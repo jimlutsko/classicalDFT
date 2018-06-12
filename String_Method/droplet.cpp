@@ -1,0 +1,229 @@
+
+#include <cmath>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <complex>
+#include <stdexcept>
+#include <vector>
+#include <time.h>
+
+using namespace std;
+
+extern char   __BUILD_DATE;
+extern char   __BUILD_NUMBER;
+
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
+
+#include "Grace.h"
+#include "options.h"
+#include "TimeStamp.h"
+
+
+#include "Droplet.h"
+
+#include "StringMethod.h"
+
+int main(int argc, char** argv)
+{
+  cout << "Build date  : " <<  (unsigned long) &__BUILD_DATE << endl;
+  cout << "Build number: " << (unsigned long) & __BUILD_NUMBER << endl;
+
+
+  double L[3] = {10,10,10};
+  int PointsPerHardSphere = 5;
+  int nCores = 1;
+
+  double R = -1;
+  double zPos = 0;
+
+  double density = 0.8;
+
+  double alpha = 0.01;
+  int MaxIts = 100;
+
+  double kT = 1;
+
+  double eps = 1;
+  double sigma = 1;
+  double rcut = 1;
+
+  double sigma_conj_grad = 1;
+
+  string pointsFile("..//SS31-Mar-2016//ss109.05998");
+  string outfile("dump.dat");
+  string infile;
+  double Natoms = -1;
+
+  bool showGraphics = true;
+  double forceLimit = -1;
+
+  int Nimages = 10;
+  bool bRestart = false;
+  int Jclimber = -1;
+  bool freeEnd = false;
+  
+  Options options;
+
+  options.addOption("nCores", &nCores);
+  options.addOption("BulkDensity", &density);
+  options.addOption("PointsPerHardSphere", &PointsPerHardSphere);
+
+  options.addOption("kT", &kT);
+
+  options.addOption("eps", &eps);
+  options.addOption("sigma", &sigma);
+  options.addOption("rcut", &rcut);
+
+  options.addOption("Lx", L);
+  options.addOption("Ly", L+1);
+  options.addOption("Lz", L+2);
+
+  options.addOption("R", &R);
+  options.addOption("zPosition", &zPos);
+
+  options.addOption("alpha", &alpha);
+  options.addOption("MaxIts", &MaxIts);
+
+  options.addOption("sigma_conj_grad", &sigma_conj_grad);
+  options.addOption("ForceTerminationCriterion",&forceLimit);
+
+  options.addOption("OutputFile", &outfile);
+  options.addOption("IntegrationPointsFile", &pointsFile);
+  options.addOption("InputFile", &infile);
+  options.addOption("Natoms", &Natoms);
+  options.addOption("ShowGraphics", &showGraphics);
+
+  options.addOption("Nimages",&Nimages);
+  options.addOption("Restart",&bRestart);
+  options.addOption("Jclimber",&Jclimber);
+    options.addOption("FreeEnd",&freeEnd);
+  
+  options.read(argc, argv);
+
+  ofstream log("log.dat");
+  TimeStamp ts;
+  log << "# " << ts << endl;
+  log << "#=================================" << endl << "#" << endl;
+  log << "#Input parameters:" << endl <<  "#" << endl;
+  options.write(log);
+  log << "#=================================" << endl;
+  log.close();
+
+  double dx = 1.0/PointsPerHardSphere;
+
+#ifdef USE_OMP    
+  omp_set_dynamic(0);
+  omp_set_num_threads(nCores);
+
+  int fftw_init_threads();
+  fftw_plan_with_nthreads(omp_get_max_threads());
+#endif
+
+  Droplet finalDensity(dx, L, PointsPerHardSphere, R, zPos); 
+  Potential1 potential(sigma, eps, rcut);
+  DFT_VDW<RSLT> dft(finalDensity,potential,pointsFile,kT);
+
+  // Determine coexistence to give us a baseline for the densities
+  double xliq_coex = 0.001;
+  double xgas_coex = 0.6;
+  try{
+    dft.coexistence(xliq_coex, xgas_coex);
+  } catch(...) { cout << "No coexistence found ... " << endl;}
+  
+  double xs1,xs2;
+  dft.spinodal(xs1,xs2);
+  cout << "Spinodal: " << xs1 << " " << xs2 <<  " so Nspinodal = " << xs1*finalDensity.getVolume() << endl;
+  cout << "Coexistence: " << xgas_coex << " " << xliq_coex << endl;
+
+  // set the thermodynamic state
+  double omega_coex = dft.Omega(xliq_coex);
+  double mu         = dft.Mu(xliq_coex);
+  finalDensity.initialize(xliq_coex,xgas_coex);
+
+  //  double NN = 297.0; //finalDensity.getNtotal();
+  double NN = finalDensity.getNumberAtoms();
+  cout << "NN = " << NN << endl;
+
+  if(! infile.empty())
+    finalDensity.readDensity(infile.c_str());
+
+  if(Natoms > 0) NN = Natoms;
+  else NN = finalDensity.getNumberAtoms();
+
+  cout << "Final NN = " << finalDensity.getNumberAtoms() << endl;
+
+  cout << "Hard sphere diameter  = " << dft.HSD() << endl;
+  cout << "Coexisting densities  = " << xliq_coex << " " << xgas_coex << endl;  
+  cout << "Chemical potential/kT = " << mu << endl;
+  cout << "beta * Grand free energy per unit volume = " << omega_coex << endl;
+  string s("log.dat");
+
+
+  double avDensity = NN/finalDensity.getVolume();
+
+  cout << "Average density = " << avDensity << endl;
+
+  vector<Density*> Images(Nimages); //,finalDensity);
+  double Rmax = 3.0;
+
+  for(int J=0;J<Nimages;J++)
+    {
+      Droplet *d = new Droplet(dx, L, PointsPerHardSphere, R, zPos);
+
+      
+	if(J == 0)
+	  d->initialize(avDensity,avDensity);
+	else d->initializeTo(*((Droplet*) Images.front()),finalDensity,1-J*1.0/(Images.size()-1));
+      
+      
+      //      d->initializeTo(NN, 0.669079, J*1.0/(Images.size()-1), Rmax);
+
+      /*
+      if(J == 0)
+	d->initialize(avDensity,avDensity);
+      else d->initializeToSqueezedImage(finalDensity,J*1.0/(Images.size()-1),NN);
+      */
+      Images[J] = d;
+    }
+
+  ofstream log1("log.dat");
+  
+  for(int i=0;i<Images.size();i++)
+    {
+      cout << "Image " << i << " has N = " << Images[i]->getNumberAtoms() << " atoms" << endl;
+      log1 << "Image " << i << " has N = " << Images[i]->getNumberAtoms() << " atoms" << endl;
+    }
+  log1.close();
+
+  dft.setEtaMax(1.0-1e-8);
+  
+  DDFT ddft(dft,finalDensity,false,NULL,showGraphics);
+  ddft.initialize();
+  //  ddft.setForceTerminationCriterion(forceLimit);
+
+    Grace grace(800,600,2);
+  //  Grace *grace = NULL;
+
+  StringMethod theString(ddft, Images, &grace, freeEnd);
+
+  if(Jclimber > 0) theString.setClimbingImage(Jclimber);
+
+  system("rm string_graph.agr");
+
+  
+  if(bRestart)
+    {
+      string file("..//archive");
+      theString.read(file);
+    }
+  
+  theString.run(s);
+
+
+
+  return 1;
+}
