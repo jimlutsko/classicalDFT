@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 #include "Grace.h"
-// a comment
+
 
 int Grace::CIRCLE = 1;
 int Grace::SQUARE = 2;
