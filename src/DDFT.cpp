@@ -122,7 +122,7 @@ void DDFT::sub_step_x(DFT_Vec &ynew, const Density& original_density, bool bFixe
 	    // : the LHS is 1 - (1/2) DX d2/dx2
 	    RHS.set(ix, r0 + 0.5*Dx*(rpx+rmx-2*r0) + Dy*(rpy+rmy-2*r0) + Dz*(rpz+rmz-2*r0) + RHS_F);
 
-	    if(!bFixedBoundaries)
+	    if(bFixedBoundaries)
 	      if(ix == 0 || ix == Nx-1) RHS.set(ix,r0);
 		
 	  }
@@ -137,7 +137,7 @@ void DDFT::sub_step_x(DFT_Vec &ynew, const Density& original_density, bool bFixe
 	  for(int kk=1;kk<Nx-1;kk++)
 	    b.set(kk,1+2*(0.5*Dx));
 
-	  solv_tridiag(b,RHS,bFixedBoundaries);
+	  solv_tridiag(b,RHS,0.5*Dx,bFixedBoundaries);
 	}
 	for(int ix=0;ix<Nx;ix++)
 	  {
@@ -182,7 +182,7 @@ void DDFT::sub_step_y(DFT_Vec &ynew, const Density &original_density, bool bFixe
 
 	    //	    RHS.set(iy, ynew.get(i0) - Dy*(rpy+rmy-2*r0));
 	    RHS.set(iy, ynew.get(i0) - 0.5*Dy*(rpy+rmy-2*r0));
-	    if(!bFixedBoundaries)
+	    if(bFixedBoundaries)
 	      if(iy == 0 || iy == Ny-1) RHS.set(iy,r0);	    
 	  }
 	if(!bFixedBoundaries)
@@ -193,7 +193,7 @@ void DDFT::sub_step_y(DFT_Vec &ynew, const Density &original_density, bool bFixe
 	  b.set(original_density.Ny()-1,1.0);
 	  for(int kk=1;kk<original_density.Ny()-1;kk++)
 	    b.set(kk,1+2*(0.5*Dy));
-	  solv_tridiag(b,RHS,bFixedBoundaries);
+	  solv_tridiag(b,RHS,0.5*Dy, bFixedBoundaries);
 	}
 	
 	for(int iy=0;iy<original_density.Ny();iy++)
@@ -317,7 +317,7 @@ bool DDFT::sub_step_z(DFT_Vec &ynew, const Density &original_density, bool bUseF
 	    //	    RHS.set(iz, ynew.get(i0) - Dz*(rpz+rmz-2*r0));
 	    RHS.set(iz, ynew.get(i0) - 0.5*Dz*(rpz+rmz-2*r0)+ 0.5*dt_*RHS_F);
 
-	    if(!bFixedBoundaries)
+	    if(bFixedBoundaries)
 	      if(iz == 0 || iz == Nz-1) RHS.set(iz, r0);	    	    
 	  }
 
@@ -329,7 +329,7 @@ bool DDFT::sub_step_z(DFT_Vec &ynew, const Density &original_density, bool bUseF
 	  b.set(original_density.Nz()-1,1.0);
 	  for(int kk=1;kk<original_density.Nz()-1;kk++)
 	    b.set(kk,1+2*(0.5*Dz));
-	  solv_tridiag(b,RHS,bFixedBoundaries);
+	  solv_tridiag(b,RHS,0.5*Dz,bFixedBoundaries);
 	}
 
 	for(int iz=0;iz<original_density.Nz() && !bLessThanZero;iz++)
@@ -339,7 +339,7 @@ bool DDFT::sub_step_z(DFT_Vec &ynew, const Density &original_density, bool bUseF
 	    deviation += fabs(val-ynew.get(i0));
 	    ynew.set(i0,val);
 	    
-	    if(val < 0) bLessThanZero = true;	    
+	    if(val < 0) bLessThanZero = true; 
 	  }
       }
   return bLessThanZero;

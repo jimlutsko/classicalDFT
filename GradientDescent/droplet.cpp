@@ -173,19 +173,17 @@ int main(int argc, char** argv)
   dft.setEtaMax(1.0-1e-8);
 
 
-  //Grace grace(800,600,2);
+  Grace grace(800,600,1);
   bool bFixedBoundaries = true;
   
-  DDFT ddft(dft,finalDensity,bFixedBoundaries,NULL, false); //&grace,showGraphics);
+  DDFT ddft(dft,finalDensity,bFixedBoundaries,&grace,showGraphics);
   ddft.initialize();
 
   string slog("log.dat");
 
-  ddft.test_solv_tridiag();
+  //  ddft.test_solv_tridiag();
   
-  //  ddft.run(slog);
-
-
+  ddft.run(slog);
 
   return 1;
 }

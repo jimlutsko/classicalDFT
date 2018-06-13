@@ -241,7 +241,7 @@ class DDFT : public Minimizer
  public:
  DDFT(DFT &dft, Density &density, bool bFixedBoundaries = false, Grace *g = NULL, bool showGraphics = true) : Minimizer(dft, density, 0.0) , bFixedBoundaries_(bFixedBoundaries), show_(showGraphics) ,grace_(g)
   {
-    dt_ = 0.1*density_.getDX() * density_.getDX();
+    dt_ = 10*0.1*density_.getDX() * density_.getDX();
   }
   ~DDFT() {}
 
