@@ -9,7 +9,9 @@ kT = 0.85
 #Restart = true
 
 
-InputFile = /home/jlutsko/repos/dev/ftDFT/String_Method/T0.85_droplet_corrected/archive_0019.dat
+#InputFile = /home/jlutsko/repos/dev/ftDFT/String_Method/T0.85_droplet_corrected/archive_0019.dat
+#InputFile = /home/jlutsko/repos/dev/ftDFT/String_Method/T0.85_droplet_corrected/archive_0038.dat
+InputFile = /home/jlutsko/repos/dev/ftDFT/String_Method/T0.85_droplet/snapshot_in.dat
 
 
 

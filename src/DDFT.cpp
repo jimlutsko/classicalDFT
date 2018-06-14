@@ -24,6 +24,7 @@ void DDFT::initialize()
 {
   Minimizer::initialize();
 
+
   F_ = dft_.calculateFreeEnergyAndDerivatives(density_, 0.0, dF_,true);   
 
   DFT_Vec dummy;
@@ -38,6 +39,8 @@ int DDFT::draw_before() { return 0; }
 
 void DDFT::sub_step_x(DFT_Vec &ynew, const Density& original_density, bool bFixedBoundaries)
 {
+  cout << "bFixedBoundaries = " << bFixedBoundaries << endl;
+  
   double dx = original_density.getDX();
   double dy = original_density.getDY();
   double dz = original_density.getDZ();
@@ -114,6 +117,7 @@ void DDFT::sub_step_x(DFT_Vec &ynew, const Density& original_density, bool bFixe
 	    double dvmz = original_density.getFieldDeriv(0,0,iz,2);
 	    RHS_F += dz*Dz*((rpz+r0)*dvpz-(r0+rmz)*dvmz)/2;
 
+
 	    // This is Douglas-Rachford: a fully implicit scheme
 	    //   : the LHS is 1-Dx d2/dx2
 	    //RHS.set(ix, r0+ Dy*(rpy+rmy-2*r0) + Dz*(rpz+rmz-2*r0) + RHS_F);
@@ -142,7 +146,9 @@ void DDFT::sub_step_x(DFT_Vec &ynew, const Density& original_density, bool bFixe
 	for(int ix=0;ix<Nx;ix++)
 	  {
 	    long i0 = original_density.get_PBC_Pos(ix,iy,iz);		    
-	    ynew.set(i0,RHS.get(ix));
+	    if(bFixedBoundaries && (iy == 0 || iy == original_density.Ny()-1 || iz == 0 || iz == original_density.Nz()-1))
+	      ynew.set(i0,original_density.getDensity(i0));
+	    else ynew.set(i0,RHS.get(ix));
 	  }	
       }
 }
@@ -199,7 +205,10 @@ void DDFT::sub_step_y(DFT_Vec &ynew, const Density &original_density, bool bFixe
 	for(int iy=0;iy<original_density.Ny();iy++)
 	  {
 	    long i0 = original_density.get_PBC_Pos(ix,iy,iz);		    
-	    ynew.set(i0,RHS.get(iy));
+	    //	    ynew.set(i0,RHS.get(iy));
+	    if(bFixedBoundaries && (ix == 0 || ix == original_density.Nx()-1 || iz == 0 || iz == original_density.Nz()-1))
+	      ynew.set(i0,original_density.getDensity(i0));
+	    else ynew.set(i0,RHS.get(iy));	    
 	  }
       }
   return;
@@ -335,7 +344,11 @@ bool DDFT::sub_step_z(DFT_Vec &ynew, const Density &original_density, bool bUseF
 	for(int iz=0;iz<original_density.Nz() && !bLessThanZero;iz++)
 	  {
 	    long i0 = original_density.get_PBC_Pos(ix,iy,iz);	
-	    double val = RHS.get(iz);
+	    double val = 0; // = RHS.get(iz);
+	    if(bFixedBoundaries && (ix == 0 || ix == original_density.Nx()-1 || iy == 0 || iy == original_density.Ny()-1))
+	      val = original_density.getDensity(i0);
+	    else val = RHS.get(iz);
+	    
 	    deviation += fabs(val-ynew.get(i0));
 	    ynew.set(i0,val);
 	    
@@ -571,33 +584,39 @@ void DDFT::solv_periodic_tridiag_2(DFT_Vec &b, DFT_Vec &RHS, double D)
 
     F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,true);  
 
-    DFT_Vec dummy;
+    cout << "F = " << F_ << endl;
+    
+    DFT_Vec dummy; dummy.zeros(dF_.size());
     F_ += dft_.F_IdealGas(density_,dummy);
+
+    DFT_Vec dummy3(dummy);
+    
     F_ += dft_.F_External(density_,0.0,dummy);
-  
+
+    dummy.IncrementBy(dF_);
+    double d0 = dummy.min()/density_.dV();
+    double d1 = dummy.max()/density_.dV();
+    
     if(grace_)
-      {
-	grace_->deleteDataSet(0);
-	grace_->deleteDataSet(1);
-	grace_->deleteDataSet(2);
-	for(int i=0;i<density_.Nx();i++)
-	  grace_->addPoint(i,density_.getDensity(i,density_.Ny()/2, density_.Nz()/2),0);
+      Display(F_,d0,d1,density_.getNumberAtoms());
 
-	for(int i=0;i<density_.Ny();i++)
-	  grace_->addPoint(i,density_.getDensity(density_.Nx()/2,i, density_.Nz()/2),1);
+    
+    int ix0,iy0,iz0;
+    long i00;
+    double fm = -1e30;
+    for(int ix = 0;ix < density_.Nx(); ix++)
+      for(int iy = 0;iy < density_.Ny(); iy++)
+	for(int iz = 0;iz < density_.Nz(); iz++)
+	  {
+	    long i0 = density_.pos(ix,iy,iz);
+	    if(dummy.get(i0) > fm) {ix0 = ix; iy0 = iy; iz0 = iz; i00 = i0; fm = dummy.get(i0);}
+	  }
+    cout << "i0 = " << i00 << " ix = " << ix0 << " iy = " << iy0 << " iz = " << iz0 << " fm = " << fm/density_.dV() << " Fid = " << (dummy.get(i00) - dF_.get(i00))/density_.dV() << " density = " << density_.getDensity(i00) << endl;
 
-	for(int i=0;i<density_.Nz();i++)
-	  grace_->addPoint(i,density_.getDensity(density_.Nx()/2,density_.Ny()/2,i),2);
-
-	if(cc == 0)
-	  for(int i=0;i<density_.Nx();i++)
-	    grace_->addPoint(i,density_.getDensity(i,density_.Ny()/2, density_.Nz()/2),3);
-
-	cc = 1;
-  
-	grace_->redraw();
-      }
-  
+    DFT_Vec dummy2(dF_.size());
+   dft_.F_IdealGas(density_,dummy2);
+   cout << "dummy2 : " << dummy2.get(i00)/density_.dV() << endl;
+   cout << "dummy3 : " << dummy3.get(i00)/density_.dV() << endl;
     return F_;
   }
 
@@ -730,4 +749,38 @@ void DDFT::test_solv_tridiag()
     }
 
   
+}
+
+void DDFT::Display(double F, double dFmin, double dFmax, double N)
+{
+  static int cc = 0;
+  
+  grace_->deleteDataSet(0);
+  grace_->deleteDataSet(1);
+  grace_->deleteDataSet(2);
+  for(int i=0;i<density_.Nx();i++)
+    grace_->addPoint(i,density_.getDensity(i,density_.Ny()/2, density_.Nz()/2),0);
+  
+  for(int i=0;i<density_.Ny();i++)
+    grace_->addPoint(i,density_.getDensity(density_.Nx()/2,i, density_.Nz()/2),1);
+  
+  for(int i=0;i<density_.Nz();i++)
+    grace_->addPoint(i,density_.getDensity(density_.Nx()/2,density_.Ny()/2,i),2);
+  
+  if(cc == 0)
+    for(int i=0;i<density_.Nx();i++)
+      grace_->addPoint(i,density_.getDensity(i,density_.Ny()/2, density_.Nz()/2),3);
+  
+  cc = 1;
+  
+  grace_->redraw();
+  
+  stringstream ss;
+  ss << "Step = " << step_counter_ << " F = " << F << " dFMin = " << dFmin << " dFmax = " << dFmax << " N = " << N;
+  cout << "Setting title to: " << ss.str() << endl;
+  grace_->setTitle(ss.str().c_str());
+  
+  grace_->redraw(1,0);
+  string s("string_graph.agr");
+  grace_->store(s);
 }

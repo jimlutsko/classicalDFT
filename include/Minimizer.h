@@ -258,6 +258,10 @@ class DDFT : public Minimizer
 	 << endl;
   }
 
+  void Display(double F, double dFmin, double dFmax, double N);
+    
+
+
   virtual void finish(const char *c){} // if(gr_) gr_->WriteFrame(c);}
 
 

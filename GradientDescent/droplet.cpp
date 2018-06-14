@@ -175,6 +175,38 @@ int main(int argc, char** argv)
 
   Grace grace(800,600,1);
   bool bFixedBoundaries = true;
+
+
+  int ret = system("rm string_graph.agr");
+
+
+  // lower all densities on the boundaries a small amount
+  int Nx = finalDensity.Nx();
+  int Ny = finalDensity.Ny();
+  int Nz = finalDensity.Nz();
+
+  for(int ix=0;ix<Nx;ix++)
+    for(int iy=0;iy<Ny;iy++)
+      {
+	finalDensity.set_Density_Elem(ix,iy,0,finalDensity.getDensity(ix,iy,0)*0.90);
+	finalDensity.set_Density_Elem(ix,iy,Nz-1,finalDensity.getDensity(ix,iy,Nz-1)*0.90);
+      }
+  for(int ix=0;ix<Nx;ix++)
+    for(int iz=1;iz<Nz-1;iz++)
+      {
+	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*0.90);
+	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*0.90);
+      }
+
+  for(int iy=1;iy<Ny-1;iy++)
+    for(int iz=1;iz<Nz-1;iz++)
+      {
+	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*0.90);
+	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*0.90);
+      }
+
+  
+
   
   DDFT ddft(dft,finalDensity,bFixedBoundaries,&grace,showGraphics);
   ddft.initialize();
