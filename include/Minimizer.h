@@ -242,6 +242,7 @@ class DDFT : public Minimizer
  DDFT(DFT &dft, Density &density, bool bFixedBoundaries = false, Grace *g = NULL, bool showGraphics = true) : Minimizer(dft, density, 0.0) , bFixedBoundaries_(bFixedBoundaries), show_(showGraphics) ,grace_(g)
   {
     dt_ = 10*0.1*density_.getDX() * density_.getDX();
+    dt_ = 0.0001*density_.getDX() * density_.getDX();
   }
   ~DDFT() {}
 
@@ -281,6 +282,8 @@ class DDFT : public Minimizer
   void reverseForce(DFT_Vec *tangent);
 
   void test_solv_tridiag();
+
+  void fftDiffusion(double dt, Density& density);
 
   
  protected:

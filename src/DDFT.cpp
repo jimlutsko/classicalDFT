@@ -39,8 +39,6 @@ int DDFT::draw_before() { return 0; }
 
 void DDFT::sub_step_x(DFT_Vec &ynew, const Density& original_density, bool bFixedBoundaries)
 {
-  cout << "bFixedBoundaries = " << bFixedBoundaries << endl;
-  
   double dx = original_density.getDX();
   double dy = original_density.getDY();
   double dz = original_density.getDZ();
@@ -50,8 +48,6 @@ void DDFT::sub_step_x(DFT_Vec &ynew, const Density& original_density, bool bFixe
   double Dz = dt_/(dz*dz);
 
   double dV = dx*dy*dz;
-
-  bool bLessThanZero = false;
 
   int Nx = original_density.Nx();
   
@@ -117,6 +113,7 @@ void DDFT::sub_step_x(DFT_Vec &ynew, const Density& original_density, bool bFixe
 	    double dvmz = original_density.getFieldDeriv(0,0,iz,2);
 	    RHS_F += dz*Dz*((rpz+r0)*dvpz-(r0+rmz)*dvmz)/2;
 
+	    RHS_F = 0.0;
 
 	    // This is Douglas-Rachford: a fully implicit scheme
 	    //   : the LHS is 1-Dx d2/dx2
@@ -322,6 +319,7 @@ bool DDFT::sub_step_z(DFT_Vec &ynew, const Density &original_density, bool bUseF
 		// factor dV because f0, etc carries a dV
 		RHS_F *= 1.0/(2*dV);
 	      }
+	    RHS_F = 0.0;
 
 	    //	    RHS.set(iz, ynew.get(i0) - Dz*(rpz+rmz-2*r0));
 	    RHS.set(iz, ynew.get(i0) - 0.5*Dz*(rpz+rmz-2*r0)+ 0.5*dt_*RHS_F);
@@ -348,11 +346,13 @@ bool DDFT::sub_step_z(DFT_Vec &ynew, const Density &original_density, bool bUseF
 	    if(bFixedBoundaries && (ix == 0 || ix == original_density.Nx()-1 || iy == 0 || iy == original_density.Ny()-1))
 	      val = original_density.getDensity(i0);
 	    else val = RHS.get(iz);
+
+	    if(val < SMALL_VALUE) val = SMALL_VALUE;
 	    
 	    deviation += fabs(val-ynew.get(i0));
 	    ynew.set(i0,val);
 	    
-	    if(val < 0) bLessThanZero = true; 
+	    //	    if(val < 0) {bLessThanZero = true; cout << "density ==> " << val << " ix = " << ix << " iy = " << iy << " iz = " << iz << endl;}
 	  }
       }
   return bLessThanZero;
@@ -568,7 +568,7 @@ void DDFT::solv_periodic_tridiag_2(DFT_Vec &b, DFT_Vec &RHS, double D)
   {
     bool bLessThanZero;
     cout << "===================================================================================================================" << endl;
-
+    /*
     do {
       DFT_Vec new_density(density_.Ntot());
 
@@ -579,7 +579,8 @@ void DDFT::solv_periodic_tridiag_2(DFT_Vec &b, DFT_Vec &RHS, double D)
       if(bLessThanZero) {dt_ /= 2; cout << "dt_ = " << dt_ << endl;} // density went negative: reduce time step
       else density_.set(new_density);    
     } while(bLessThanZero);
-
+    */
+    fftDiffusion(1e-2,density_);
     calls_++;
 
     F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,true);  
@@ -783,4 +784,56 @@ void DDFT::Display(double F, double dFmin, double dFmax, double N)
   grace_->redraw(1,0);
   string s("string_graph.agr");
   grace_->store(s);
+}
+
+
+void DDFT::fftDiffusion(double dt, Density& density)
+{
+  double dx = density.getDX();
+  double dy = density.getDY();
+  double dz = density.getDZ();
+
+  double Dx = dt/(dx*dx);
+  double Dy = dt/(dy*dy);
+  double Dz = dt/(dz*dz);
+
+  double dV = dx*dy*dz;
+
+  int Nx = density.Nx();
+  int Ny = density.Ny();
+  int Nz = density.Nz();
+
+  DFT_FFT work(Nx,Ny,Nz);
+
+  DFT_Vec &rwork = work.Real();
+  rwork.set(density.getDensity());
+  work.do_real_2_fourier();
+
+  DFT_Vec_Complex &cwork = work.Four();
+
+  for(int ix = 0;ix<Nx;ix++)
+    for(int iy=0;iy<Ny;iy++)
+      for(int iz=0;iz<Nz/2+1;iz++)
+	{
+	  unsigned pos = iz + (1+Nz/2)*(iy +  Ny*ix);
+	  complex<double> x = cwork.get(pos);
+	  double kx = (2*M_PI*ix)/Nx;
+	  double ky = (2*M_PI*iy)/Ny;
+	  double kz = (2*M_PI*iz)/Nz;
+
+	  double facx = 2*Dx*(cos(kx)-1);
+	  double facy = 2*Dy*(cos(ky)-1);
+	  double facz = 2*Dz*(cos(kz)-1);
+
+	  double fac = exp(facx+facy+facz);
+	  x *= fac;
+
+	  cwork.set(pos,x);
+	}
+  
+  work.do_fourier_2_real();
+  
+  density.set(work.Real());
+  density.scale_to(1.0/density.Ntot());
+  cout << "Natoms = " << density.getNumberAtoms() << endl;
 }
