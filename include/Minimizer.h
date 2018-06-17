@@ -283,7 +283,7 @@ class DDFT : public Minimizer
 
   void test_solv_tridiag();
 
-  void fftDiffusion(double dt, Density& density);
+  void fftDiffusion(double dt, Density& density, DFT_Vec &d1, DFT_FFT &RHS0, DFT_FFT &RHS1);
 
   
  protected:

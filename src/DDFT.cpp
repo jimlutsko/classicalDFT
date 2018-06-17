@@ -580,7 +580,43 @@ void DDFT::solv_periodic_tridiag_2(DFT_Vec &b, DFT_Vec &RHS, double D)
       else density_.set(new_density);    
     } while(bLessThanZero);
     */
-    fftDiffusion(1e-2,density_);
+
+    DFT_FFT RHS0(density_.Nx(), density_.Ny(), density_.Nz());
+    F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,true);
+    RHS0.do_real_2_fourier();
+    
+    calcNonlinearTerm(density_,density_.getDensity(), dF_,RHS0.Real());
+    
+    //    fftDiffusion(1e-2,density_,d1);
+    
+    DFT_Vec d0(density_.getDensity());
+    DFT_Vec d1(d0);
+    DFT_FFT RHS1(density_.Nx(), density_.Ny(), density_.Nz());
+    
+    double alpha = 1.0;
+    for(int i=0;i<100;i++)
+      {		
+	density_.set(d1);       
+	F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,true);
+	calcNonlinearTerm(density_,d2, dF_,RHS1.Real());
+	RHS1.do_real_2_fourier();
+	
+	fftDiffusion(1e-2,d0,d1,RHS0,RHS1);
+
+	double amax = 1;
+	for(unsigned s=0;s<density_.Ntot();s++)
+	  if(d1.get(s) < 0)
+	    amax = min(amax,d0.get(s)/(d0.get(s)-d1.get(s)));
+	
+	cout << "amax = " << amax << endl;
+	amax /= 10;
+	
+	for(unsigned s=0;s<density_.Ntot();s++)
+	  d1.set(s,(1-amax)*d0.get(s) + amax*d1.get(s));
+	
+      }
+    
+    density_.set(d1);
     calls_++;
 
     F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,true);  
@@ -787,7 +823,7 @@ void DDFT::Display(double F, double dFmin, double dFmax, double N)
 }
 
 
-void DDFT::fftDiffusion(double dt, Density& density)
+double DDFT::fftDiffusion(double dt, Density& density, DFT_Vec &d1, DFT_FFT &RHS0, DFT_FFT &RHS1)
 {
   double dx = density.getDX();
   double dy = density.getDY();
@@ -803,6 +839,10 @@ void DDFT::fftDiffusion(double dt, Density& density)
   int Ny = density.Ny();
   int Nz = density.Nz();
 
+  long Ntot = density.Ntot();
+
+  double deviation = 0;
+  
   DFT_FFT work(Nx,Ny,Nz);
 
   DFT_Vec &rwork = work.Real();
@@ -825,15 +865,104 @@ void DDFT::fftDiffusion(double dt, Density& density)
 	  double facy = 2*Dy*(cos(ky)-1);
 	  double facz = 2*Dz*(cos(kz)-1);
 
-	  double fac = exp(facx+facy+facz);
+	  double Lambda = facx+facy+facz;
+	  
+	  double fac = exp(Lambda);
+
 	  x *= fac;
 
+	  x += ((fac-1)/Lambda)*RHS0.Four().get(pos);
+
+	  x += ((fac-1-dt*Lambda)/(Lambda*lambda*dt))*(RHS1.Four().get(pos)-RHS0.Four().get(pos));
+	  
 	  cwork.set(pos,x);
 	}
   
   work.do_fourier_2_real();
+
+  for(unsigned i=0;i<d1.size();i++)
+    deviation += (d1.get(i)-rwork.get(i)/Ntot)*(d1.get(i)-rwork.get(i)/Ntot);
   
-  density.set(work.Real());
-  density.scale_to(1.0/density.Ntot());
-  cout << "Natoms = " << density.getNumberAtoms() << endl;
+  d1.set(work.Real());
+  d1.multBy(1.0/density.Ntot);
+  return sqrt(deviation/Ntot);
+}
+
+
+void DDFT::calcNonlinearTerm(Density &density, DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &RHS1)
+{
+  double dx = density.getDX();
+  double dy = density.getDY();
+  double dz = density.getDZ();
+
+  double Dx = dt_/(dx*dx);
+  double Dy = dt_/(dy*dy);
+  double Dz = dt_/(dz*dz);
+
+  double dV = dx*dy*dz;
+
+  int Nx = density.Nx();
+  int Ny = density.Ny();
+  int Nz = density.Nz();
+  
+  int chunk = Ny/10;
+  int iy;
+
+#pragma omp parallel for			\
+  shared(chunk,dx,dy,dz,Dx,Dy,Dz,dV)		\
+  private(iy)					\
+  schedule(static,chunk)			  
+  for(iy = 0;iy<Ny;iy++)
+    for(int iz = 0;iz<Nz;iz++)
+      for(int ix=0;ix<Nx;ix++)
+	{
+	  long i0 = density.get_PBC_Pos(ix,iy,iz);
+
+	  long ipx = density.get_PBC_Pos(ix+1,iy,iz);
+	  long imx = density.get_PBC_Pos(ix-1,iy,iz);
+
+	  long ipy = density.get_PBC_Pos(ix,iy+1,iz);
+	  long imy = density.get_PBC_Pos(ix,iy-1,iz);
+
+	  long ipz = density.get_PBC_Pos(ix,iy,iz+1);
+	  long imz = density.get_PBC_Pos(ix,iy,iz-1);
+	    
+	  double r0 = density.getDensity(i0);
+
+	  double rpx = density.getDensity(ipx);
+	  double rmx = density.getDensity(imx);
+
+	  double rpy = density.getDensity(ipy);
+	  double rmy = density.getDensity(imy);
+	    
+	  double rpz = density.getDensity(ipz);
+	  double rmz = density.getDensity(imz);
+
+	  double f0 = dF.get(i0);
+
+	  double fpx = dF.get(ipx);
+	  double fmx = dF.get(imx);
+
+	  double fpy = dF.get(ipy);
+	  double fmy = dF.get(imy);
+
+	  double fpz = dF.get(ipz);
+	  double fmz = dF.get(imz);
+
+	  double RHS_F = Dx*((rpx+r0)*(fpx-f0)-(r0+rmx)*(f0-fmx))
+	    +Dy*((rpy+r0)*(fpy-f0)-(r0+rmy)*(f0-fmy))
+	    +Dz*((rpz+r0)*(fpz-f0)-(r0+rmz)*(f0-fmz));
+
+	  // factor 1/2 because of density average used in prev line
+	  // factor dV because f0, etc carries a dV
+	  RHS_F *= 1.0/(2*dV);
+
+	  // N.B. getFieldDeriv returns the derivative at iz-0.5.
+	  int Nz = density.Nz();
+	  double dvpz = density.getFieldDeriv(0,0,(iz+1 > Nz ? 0 : iz+1),2);
+	  double dvmz = density.getFieldDeriv(0,0,iz,2);
+	  RHS_F += dz*Dz*((rpz+r0)*dvpz-(r0+rmz)*dvmz)/2;
+
+	  RHS1.set(i0,RHS_F);
+	}
 }
