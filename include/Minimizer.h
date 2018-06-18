@@ -283,8 +283,8 @@ class DDFT : public Minimizer
 
   void test_solv_tridiag();
 
-  void fftDiffusion(double dt, Density& density, DFT_Vec &d1, DFT_FFT &RHS0, DFT_FFT &RHS1);
-
+  double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
+  void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
   
  protected:
 
@@ -294,7 +294,6 @@ class DDFT : public Minimizer
   Grace *grace_;
   double dt_;
   DFT_Vec oldF_;
-
 };
 
 /**

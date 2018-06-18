@@ -144,7 +144,6 @@ int main(int argc, char** argv)
   double mu         = dft.Mu(xliq_coex);
   finalDensity.initialize(xliq_coex,xgas_coex);
 
-  //  double NN = 297.0; //finalDensity.getNtotal();
   double NN = finalDensity.getNumberAtoms();
   cout << "NN = " << NN << endl;
 
