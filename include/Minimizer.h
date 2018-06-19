@@ -285,6 +285,8 @@ class DDFT : public Minimizer
 
   double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
+
+  void setTimeStep(double dt) { dt_ = dt;}
   
  protected:
 

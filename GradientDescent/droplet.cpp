@@ -40,18 +40,11 @@ int main(int argc, char** argv)
   double R = -1;
   double zPos = 0;
 
-  double density = 0.8;
-
-  double alpha = 0.01;
-  int MaxIts = 100;
-
   double kT = 1;
 
   double eps = 1;
   double sigma = 1;
   double rcut = 1;
-
-  double sigma_conj_grad = 1;
 
   string pointsFile("..//SS31-Mar-2016//ss109.05998");
   string outfile("dump.dat");
@@ -65,14 +58,17 @@ int main(int argc, char** argv)
   bool bRestart = false;
   int Jclimber = -1;
   bool freeEnd = false;
+
+  double dt = 1e-3;
   
   Options options;
 
   options.addOption("nCores", &nCores);
-  options.addOption("BulkDensity", &density);
   options.addOption("PointsPerHardSphere", &PointsPerHardSphere);
 
   options.addOption("kT", &kT);
+
+  options.addOption("TimeStep", &dt);
 
   options.addOption("eps", &eps);
   options.addOption("sigma", &sigma);
@@ -85,10 +81,6 @@ int main(int argc, char** argv)
   options.addOption("R", &R);
   options.addOption("zPosition", &zPos);
 
-  options.addOption("alpha", &alpha);
-  options.addOption("MaxIts", &MaxIts);
-
-  options.addOption("sigma_conj_grad", &sigma_conj_grad);
   options.addOption("ForceTerminationCriterion",&forceLimit);
 
   options.addOption("OutputFile", &outfile);
@@ -184,31 +176,37 @@ int main(int argc, char** argv)
   int Ny = finalDensity.Ny();
   int Nz = finalDensity.Nz();
 
+  double fac = 0.9;
+  /*
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
       {
-	finalDensity.set_Density_Elem(ix,iy,0,finalDensity.getDensity(ix,iy,0)*0.90);
-	finalDensity.set_Density_Elem(ix,iy,Nz-1,finalDensity.getDensity(ix,iy,Nz-1)*0.90);
+	finalDensity.set_Density_Elem(ix,iy,0,finalDensity.getDensity(ix,iy,0)*fac);
+	finalDensity.set_Density_Elem(ix,iy,Nz-1,finalDensity.getDensity(ix,iy,Nz-1)*fac);
       }
   for(int ix=0;ix<Nx;ix++)
     for(int iz=1;iz<Nz-1;iz++)
       {
-	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*0.90);
-	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*0.90);
+	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*fac);
+	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*fac);
       }
 
   for(int iy=1;iy<Ny-1;iy++)
     for(int iz=1;iz<Nz-1;iz++)
       {
-	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*0.90);
-	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*0.90);
+	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*fac);
+	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*fac);
       }
-
-  
+  */
+  for(int ix=0;ix<Nx;ix++)
+    for(int iy=0;iy<Ny;iy++)
+      for(int iz=0;iz<Nz;iz++)      
+	finalDensity.set_Density_Elem(ix,iy,iz,finalDensity.getDensity(ix,iy,iz)*fac+avDensity*(1-fac));
 
   
   DDFT ddft(dft,finalDensity,bFixedBoundaries,&grace,showGraphics);
   ddft.initialize();
+  ddft.setTimeStep(dt);
 
   string slog("log.dat");
 
