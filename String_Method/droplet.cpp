@@ -203,6 +203,10 @@ int main(int argc, char** argv)
   
   DDFT ddft(dft,finalDensity,false,NULL,showGraphics);
   ddft.initialize();
+
+  ddft.setTimeStep(1e-2);
+  ddft.set_tolerence_fixed_point(1e-4);
+  ddft.set_max_time_step(1e-2);
   //  ddft.setForceTerminationCriterion(forceLimit);
 
     Grace grace(800,600,2);

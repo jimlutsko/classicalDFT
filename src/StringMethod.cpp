@@ -65,11 +65,7 @@ void StringMethod::run(string& logfile)
   for(int J=0;J<N;J++)
     {
       oldF[J] = ddft_.F_string(*(string_[J]));
-      DT_[J] = 0.0001*string_[J]->getDX() * string_[J]->getDX();
-
-      // HERE
-      DT_[J] = 0.01; //*string_[J]->getDX() * string_[J]->getDX();
-      //      DT_[J] = 0.1; //*string_[J]->getDX() * string_[J]->getDX();
+      DT_[J] = 0.01; 
     }
 
   if(grace_) Display(oldF,0);

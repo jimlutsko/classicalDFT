@@ -60,13 +60,17 @@ int main(int argc, char** argv)
   bool freeEnd = false;
 
   double dt = 1e-3;
-  
+  double dtMax = 1e-2;
+  double tolerence_fixed_point = 1e-4;
   Options options;
 
   options.addOption("nCores", &nCores);
   options.addOption("PointsPerHardSphere", &PointsPerHardSphere);
 
   options.addOption("kT", &kT);
+
+  options.addOption("MaxTimeStep", &dtMax);
+  options.addOption("TolerenceFixedPoint", &tolerence_fixed_point);
 
   options.addOption("TimeStep", &dt);
 
@@ -89,11 +93,6 @@ int main(int argc, char** argv)
   options.addOption("Natoms", &Natoms);
   options.addOption("ShowGraphics", &showGraphics);
 
-  options.addOption("Nimages",&Nimages);
-  options.addOption("Restart",&bRestart);
-  options.addOption("Jclimber",&Jclimber);
-    options.addOption("FreeEnd",&freeEnd);
-  
   options.read(argc, argv);
 
   ofstream log("log.dat");
@@ -176,7 +175,7 @@ int main(int argc, char** argv)
   int Ny = finalDensity.Ny();
   int Nz = finalDensity.Nz();
 
-  double fac = 0.9;
+  double fac = 0.6;
   /*
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
@@ -207,7 +206,10 @@ int main(int argc, char** argv)
   DDFT ddft(dft,finalDensity,bFixedBoundaries,&grace,showGraphics);
   ddft.initialize();
   ddft.setTimeStep(dt);
+  ddft.set_tolerence_fixed_point(tolerence_fixed_point);
+  ddft.set_max_time_step(dtMax);
 
+  
   string slog("log.dat");
 
   //  ddft.test_solv_tridiag();

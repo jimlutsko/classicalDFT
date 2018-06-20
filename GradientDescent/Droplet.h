@@ -2,7 +2,7 @@
 #define __LUTSKO_DROPLET__
 
 #include "Density.h"
- 
+#include "Display.h" 
 /**
   *  @brief Class that specializes Density to a slit-pore geometry with a fixed spherical particle
   */  
@@ -23,6 +23,18 @@ class Droplet : public Density
  Droplet(double dx, double L[], int PointsPerHardSphere, double R, double zpos) 
    : Density(dx,L), R_(R), zPos_(zpos)
   {
+    display_ = new Display(Nx_, Ny_+5);
+  }
+
+  void doDisplay(string &title, string &file)
+  {
+    Density::doDisplay(title, file);
+    
+    for(int i=0;i<Nx_;i++)
+      for(int j=0;j<Ny_;j++)
+	display_->setData(i+Nx_*j, getDensity(i,j, int((Nz_-1)/2)));
+
+    display_->doDisplay(title, file);
   }
 
   /**
@@ -180,6 +192,7 @@ class Droplet : public Density
  protected:
   double R_;        ///< Radius of the spherical cap droplet
   double zPos_;     ///< Position of the center of the sphere defining the droplet
+  Display *display_;
 };
 
 

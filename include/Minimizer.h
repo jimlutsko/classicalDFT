@@ -239,16 +239,18 @@ class Picard : public Minimizer
 class DDFT : public Minimizer
 {
  public:
- DDFT(DFT &dft, Density &density, bool bFixedBoundaries = false, Grace *g = NULL, bool showGraphics = true) : Minimizer(dft, density, 0.0) , bFixedBoundaries_(bFixedBoundaries), show_(showGraphics) ,grace_(g)
+ DDFT(DFT &dft, Density &density, bool bFixedBoundaries = false, Grace *g = NULL, bool showGraphics = true)
+   : Minimizer(dft, density, 0.0) , bFixedBoundaries_(bFixedBoundaries), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0)
   {
     dt_ = 10*0.1*density_.getDX() * density_.getDX();
     dt_ = 0.0001*density_.getDX() * density_.getDX();
+    dtMax_ = density_.getDX() * density_.getDX();
   }
   ~DDFT() {}
 
   virtual void initialize();
   
-  virtual int draw_before(); // Display something before the next step
+  //  virtual int draw_before(); // Display something before the next step
   virtual int draw_during(){}  // Display something during the minimization
   virtual void draw_after()  // Display something after the minimization
   {
@@ -261,8 +263,9 @@ class DDFT : public Minimizer
 
   void Display(double F, double dFmin, double dFmax, double N);
     
-
-
+  void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
+  void set_max_time_step(double t) { dtMax_ = t;}
+  
   virtual void finish(const char *c){} // if(gr_) gr_->WriteFrame(c);}
 
 
@@ -296,6 +299,11 @@ class DDFT : public Minimizer
   Grace *grace_;
   double dt_;
   DFT_Vec oldF_;
+  double tolerence_fixed_point_;
+
+  // control of adaptive time step
+  int successes_;
+  double dtMax_;
 };
 
 /**

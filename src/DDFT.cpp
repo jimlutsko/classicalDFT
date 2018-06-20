@@ -24,9 +24,10 @@ void DDFT::initialize()
 {
   Minimizer::initialize();
 
+  successes_ = 0;
 
+  
   F_ = dft_.calculateFreeEnergyAndDerivatives(density_, 0.0, dF_,true);   
-
   DFT_Vec dummy;
   F_ += dft_.F_IdealGas(density_, dummy);
   F_ += dft_.F_External(density_,0.0,dummy);
@@ -34,8 +35,6 @@ void DDFT::initialize()
   cout << "Initial value of F = " << F_ << endl;
 }
 
-
-int DDFT::draw_before() { return 0; }
 
 void DDFT::sub_step_x(DFT_Vec &ynew, const Density& original_density, bool bFixedBoundaries)
 {
@@ -357,7 +356,7 @@ bool DDFT::sub_step_z(DFT_Vec &ynew, const Density &original_density, bool bUseF
       }
   return bLessThanZero;
 }
-
+/*
   double DDFT::step_string(double &dt, Density &original_density, double self_consistency_threshold)
   {
     dt_ = dt;
@@ -421,6 +420,75 @@ bool DDFT::sub_step_z(DFT_Vec &ynew, const Density &original_density, bool bUseF
 
     return F;
   }
+*/
+
+double DDFT::step_string(double &dt, Density &original_density, double self_consistency_threshold)
+{
+  int Nx = original_density.Nx();
+  int Ny = original_density.Ny();
+  int Nz = original_density.Nz();
+  
+  dt_ = dt;
+
+  F_ = dft_.calculateFreeEnergyAndDerivatives(original_density,0.0, dF_,false);
+
+  cout << "Initial F = " << F_ << endl;
+
+  const DFT_Vec &d0 = original_density.getDensity();   
+  DFT_FFT RHS0(Nx,Ny,Nz);
+  calcNonlinearTerm(d0, dF_,RHS0.Real());
+  RHS0.do_real_2_fourier();
+    
+  DFT_Vec d1(d0);
+  DFT_FFT RHS1(Nx,Ny,Nz);
+
+  double deviation = 1;
+
+  bool reStart;
+  bool decreased_time_step = false;
+  
+  do {
+    reStart = false;
+    double old_error = 0;
+    
+    for(int i=0;i<20 && deviation > tolerence_fixed_point_ && !reStart;i++)
+      {
+	density_.set(d1);
+	F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,false);
+	calcNonlinearTerm(d1, dF_,RHS1.Real());
+	RHS1.do_real_2_fourier();
+
+	density_.set(d0);       
+	density_.doFFT();
+	
+	deviation = fftDiffusion(d1,RHS0,RHS1);
+	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
+
+	// decrease time step and restart if density goes negative or if error is larger than previous step
+	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+
+	old_error = deviation;	       	
+      }
+    if(!reStart && deviation > tolerence_fixed_point_)
+      {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+  } while(reStart);
+  /*
+  // Adaptive time-step: try to increase time step if the present one works 5 times 
+  if(decreased_time_step) successes_ = 0;
+  else successes_++;
+  if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
+  */
+  
+  original_density.set(d1);
+  original_density.doFFT();
+  calls_++;
+
+  //  F_ = dft_.calculateFreeEnergyAndDerivatives(original_density,0.0, dF_,false);  
+    
+  dt = dt_;
+
+  return F_;
+}
 
 
 
@@ -601,11 +669,13 @@ double DDFT::step()
   double dt = dt_;
 
   bool reStart;
+  bool decreased_time_step = false;
   
   do {
     reStart = false;
-    //    for(int i=0;i<100 && deviation > 1e-8 && !reStart;i++)
-    for(int i=0;i<100 && deviation > 1e-4 && !reStart;i++)
+    double old_error = 0;
+    
+    for(int i=0;i<100 && deviation > tolerence_fixed_point_ && !reStart;i++)
       {
 	density_.set(d1);
 	F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,false);
@@ -617,13 +687,21 @@ double DDFT::step()
 	
 	deviation = fftDiffusion(d1,RHS0,RHS1);
 	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
-	
-	if(d1.min() < 0) {reStart = true; dt_ /= 10; d1.set(d0);}
+
+	// decrease time step and restart if density goes negative or if error is larger than previous step
+	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+
+	old_error = deviation;	       	
       }
+    if(deviation > tolerence_fixed_point_)
+      throw std::runtime_error("Failed to find fixed point in DDFT::step()");
   } while(reStart);
 
-  dt_ = dt;
-  
+  // Adaptive time-step: try to increase time step if the present one works 5 times 
+  if(decreased_time_step) successes_ = 0;
+  else successes_++;
+  if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
+
   density_.set(d1);
   density_.doFFT();
   calls_++;
@@ -704,9 +782,6 @@ double DDFT::fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1)
       double u = fabs(d1.get(i)-work.Real().get(i)/Ntot);
       if(u > maxdeviation) maxdeviation = u;
     }
-  cout << "maxdeviation = " << maxdeviation << endl;
-			   
-  
   d1.set(work.Real());
   d1.multBy(1.0/Ntot);
   return maxdeviation; //sqrt(deviation/Ntot);
@@ -781,27 +856,6 @@ void DDFT::calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1
 	  // factor dV because f0, etc carries a dV
 	  RHS_F *= 1.0/(2*dV);
 
-	  /*	  // correct for the use of del2 rho rather than del rho del lnrho
-	  
-	  fpx = log(rpx);
-	  fmx = log(rmx);
-
-	  fpy = log(rpy);
-	  fmy = log(rmy);
-
-	  fpz = log(rpz);
-	  fmz = log(rmz);
-
-	  f0 = log(r0);
-	  
-	  // factor 0.5 because of density average used in next line
-	  double corr = 0.5*Dx*((rpx+r0)*(fpx-f0)-(r0+rmx)*(f0-fmx))
-	    +0.5*Dy*((rpy+r0)*(fpy-f0)-(r0+rmy)*(f0-fmy))
-	    +0.5*Dz*((rpz+r0)*(fpz-f0)-(r0+rmz)*(f0-fmz));
-	  
-	  RHS_F += corr;
-	  */
-	  
 	  RHS_F -= Dx*(rpx+rmx-2*r0)+Dy*(rpy+rmy-2*r0)+Dz*(rpz+rmz-2*r0);
 
 	  // N.B. getFieldDeriv returns the derivative at iz-0.5.
