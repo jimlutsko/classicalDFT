@@ -157,19 +157,19 @@ class Lattice
    *  
    *   @return returns L_[0]
    */  
-  long Lx() const { return L_[0];}
+  double Lx() const { return L_[0];}
   /**
    *  @brief  Accessor for nox length in y direction
    *  
    *   @return returns L_[1]
    */    
-  long Ly() const { return L_[1];}
+  double Ly() const { return L_[1];}
   /**
    *  @brief  Accessor for box length in z direction
    *  
    *   @return returns L_[2]
    */  
-  long Lz() const { return L_[2];}
+  double Lz() const { return L_[2];}
 
   /**
    *  @brief  Accessor for (total) number of lattice points redundant with @size()
