@@ -209,14 +209,18 @@ int main(int argc, char** argv)
   ddft.set_max_time_step(1e-2);
   //  ddft.setForceTerminationCriterion(forceLimit);
 
-    Grace grace(800,600,2);
+  Grace *grace = NULL;
+  if(showGraphics)
+    grace = new Grace(800,600,2);
   //  Grace *grace = NULL;
 
-  StringMethod theString(ddft, Images, &grace, freeEnd);
+  StringMethod theString(ddft, Images, grace, freeEnd);
 
   if(Jclimber > 0) theString.setClimbingImage(Jclimber);
 
-  system("rm string_graph.agr");
+  if(remove("rm string_graph.agr"))
+    cout << "Error removing string_graph.agr" << endl;
+  else cout << "Removed string_graph.agr" << endl;
 
   
   if(bRestart)
@@ -226,7 +230,9 @@ int main(int argc, char** argv)
     }
   
   theString.run(s);
-
+  grace->pause();
+  grace->close();
+  delete grace;
 
 
   return 1;
