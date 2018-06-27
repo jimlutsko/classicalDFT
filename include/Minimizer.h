@@ -231,16 +231,19 @@ class Picard : public Minimizer
   double Mixing_;
 };
 
+
+
+
 /**
-  *  @brief DDFT minimizer Class
+  *  @brief DDFT minimizer Class 
   *
   */  
 
 class DDFT : public Minimizer
 {
  public:
- DDFT(DFT &dft, Density &density, bool bFixedBoundaries = false, Grace *g = NULL, bool showGraphics = true)
-   : Minimizer(dft, density, 0.0) , bFixedBoundaries_(bFixedBoundaries), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0)
+ DDFT(DFT &dft, Density &density, Grace *g = NULL, bool showGraphics = true)
+   : Minimizer(dft, density, 0.0), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0)
   {
     dt_ = 10*0.1*density_.getDX() * density_.getDX();
     dt_ = 0.0001*density_.getDX() * density_.getDX();
@@ -260,41 +263,23 @@ class DDFT : public Minimizer
 	 << " and N = " << density_.getNumberAtoms() 
 	 << endl;
   }
+  virtual void finish(const char *c){};
 
   void Display(double F, double dFmin, double dFmax, double N);
     
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
   void set_max_time_step(double t) { dtMax_ = t;}
-  
-  virtual void finish(const char *c){} // if(gr_) gr_->WriteFrame(c);}
-
-
-  void sub_step_x(DFT_Vec &new_density, const Density &original_density, bool bFixedBoundaries = false);
-  void sub_step_y(DFT_Vec &new_density, const Density &original_density, bool bFixedBoundaries = false);
-  bool sub_step_z(DFT_Vec &new_density, const Density &origina_density,  bool bSelfConsistent = false, bool bFixedBoundaries = false);
-
-  double step();
-
-  double step_string(double &dt, Density &d, double self_consistency_threshold = -1);
-  double F_string(Density &d, double *fmax = NULL);
-
-  void   solv_tridiag(const DFT_Vec &b, DFT_Vec &RHS, double D, bool bFixedBoundaries = false);
-  void   solv_periodic_tridiag(DFT_Vec &RHS, double D);
-  void   solv_periodic_tridiag_2(DFT_Vec &b, DFT_Vec &RHS, double D);
-
-  void reverseForce(DFT_Vec *tangent);
-
-  void test_solv_tridiag();
-
-  double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
-  void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
-
   void setTimeStep(double dt) { dt_ = dt;}
   
+  double F_string(Density &d, double *fmax = NULL);
+  void reverseForce(DFT_Vec *tangent);
+
+  virtual double step() = 0;
+  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1) = 0;
+
  protected:
 
   bool show_;
-  bool bFixedBoundaries_;
   
   Grace *grace_;
   double dt_;
@@ -304,6 +289,90 @@ class DDFT : public Minimizer
   // control of adaptive time step
   int successes_;
   double dtMax_;
+};
+
+
+/**
+  *  @brief DDFT minimizer Class using discretized equations
+  *
+  */  
+
+class DDFT_Discrete : public DDFT
+{
+ public:
+ DDFT_Discrete(DFT &dft, Density &density, bool bFixedBoundaries = false, Grace *g = NULL, bool showGraphics = true)
+   : DDFT(dft, density, g, showGraphics), bFixedBoundaries_(bFixedBoundaries)
+  {}
+  ~DDFT_Discrete() {}
+
+  virtual void initialize();
+  
+  void sub_step_x(DFT_Vec &new_density, const Density &original_density, bool bFixedBoundaries = false);
+  void sub_step_y(DFT_Vec &new_density, const Density &original_density, bool bFixedBoundaries = false);
+  bool sub_step_z(DFT_Vec &new_density, const Density &origina_density,  bool bSelfConsistent = false, bool bFixedBoundaries = false);
+
+  virtual double step();
+
+  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1);
+
+  void   solv_tridiag(const DFT_Vec &b, DFT_Vec &RHS, double D, bool bFixedBoundaries = false);
+  void   solv_periodic_tridiag(DFT_Vec &RHS, double D);
+  void   solv_periodic_tridiag_2(DFT_Vec &b, DFT_Vec &RHS, double D);
+
+  void test_solv_tridiag();
+  
+ protected:
+  bool bFixedBoundaries_;
+};
+
+/**
+  *  @brief DDFT minimizer Class using integrating factor
+  *
+  */  
+
+class DDFT_IF : public DDFT
+{
+ public:
+ DDFT_IF(DFT &dft, Density &density, Grace *g = NULL, bool showGraphics = true)
+   : DDFT(dft, density, g, showGraphics), fixedBorder_(false)
+    {}
+  ~DDFT_IF() {}
+
+  virtual void initialize();
+
+  void setFixedBoundary() {fixedBorder_ = true;}
+  
+  virtual double step();
+
+  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1);
+
+  double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
+  void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
+  void restore_values_on_border(Density& density, const DFT_Vec &d0);
+
+  
+ protected:
+  bool fixedBorder_;
+};
+
+class DDFT_Open : public DDFT
+{
+ public:
+ DDFT_Open(DFT &dft, Density &density, Grace *g = NULL, bool showGraphics = true)
+   : DDFT(dft, density, g, showGraphics)
+    {}
+  ~DDFT_Open() {}
+
+  virtual void initialize();
+  
+  virtual double step();
+
+  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1);
+
+  double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
+  void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
+
+ protected:
 };
 
 /**

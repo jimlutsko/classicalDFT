@@ -167,6 +167,50 @@ int main(int argc, char** argv)
 
   cout << "Average density = " << avDensity << endl;
 
+  // For closed system:
+  double bav = 0;
+  double nav = 0;
+
+  int Nx = finalDensity.Nx();
+  int Ny = finalDensity.Ny();
+  int Nz = finalDensity.Nz();
+
+  for(int ix=0;ix<Nx;ix++)
+    for(int iy=0;iy<Ny;iy++)
+      {
+	//finalDensity.set_Density_Elem(ix,iy,0,finalDensity.getDensity(ix,iy,0)*fac);
+	bav += finalDensity.getDensity(ix,iy,0);
+	nav++;
+      }
+  for(int ix=0;ix<Nx;ix++)
+    for(int iz=1;iz<Nz-1;iz++)
+      {
+	//	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*fac);
+	//	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*fac);
+	bav += finalDensity.getDensity(ix,0,iz);
+	nav++;
+      }
+
+  for(int iy=1;iy<Ny-1;iy++)
+    for(int iz=1;iz<Nz-1;iz++)
+      {
+	//	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*fac);
+	//	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*fac);
+	bav += finalDensity.getDensity(0,iy,iz);
+	nav++;	
+      }
+  bav /= nav;
+
+  double mu_boundary = dft.Mu(bav);
+
+  
+
+  cout << "Boundary Mu = " <<   mu_boundary << endl;
+
+  
+
+
+  
   vector<Density*> Images(Nimages); //,finalDensity);
   double Rmax = 3.0;
 
@@ -174,10 +218,14 @@ int main(int argc, char** argv)
     {
       Droplet *d = new Droplet(dx, L, PointsPerHardSphere, R, zPos);
 
+      //	if(J == 0)
+      //	  d->initialize(avDensity,avDensity);
+      // For closed system:
       
-	if(J == 0)
-	  d->initialize(avDensity,avDensity);
-	else d->initializeTo(*((Droplet*) Images.front()),finalDensity,1-J*1.0/(Images.size()-1));
+      if(J == 0)
+	{
+	  d->initialize(bav,bav,&finalDensity);
+	} else d->initializeTo(*((Droplet*) Images.front()),finalDensity,1-J*1.0/(Images.size()-1));
       
       
       //      d->initializeTo(NN, 0.669079, J*1.0/(Images.size()-1), Rmax);
@@ -201,12 +249,15 @@ int main(int argc, char** argv)
 
   dft.setEtaMax(1.0-1e-8);
   
-  DDFT ddft(dft,finalDensity,false,NULL,showGraphics);
+  DDFT_IF ddft(dft,finalDensity,NULL,showGraphics);
   ddft.initialize();
 
   ddft.setTimeStep(1e-2);
   ddft.set_tolerence_fixed_point(1e-4);
   ddft.set_max_time_step(1e-2);
+  // For closed system:
+  ddft.setFixedBoundary();
+  
   //  ddft.setForceTerminationCriterion(forceLimit);
 
   Grace *grace = NULL;
@@ -218,6 +269,8 @@ int main(int argc, char** argv)
 
   if(Jclimber > 0) theString.setClimbingImage(Jclimber);
 
+  theString.setMu(mu_boundary);
+  
   if(remove("rm string_graph.agr"))
     cout << "Error removing string_graph.agr" << endl;
   else cout << "Removed string_graph.agr" << endl;

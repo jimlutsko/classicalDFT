@@ -175,39 +175,52 @@ int main(int argc, char** argv)
   int Ny = finalDensity.Ny();
   int Nz = finalDensity.Nz();
 
-  double fac = 0.6;
-  /*
+  double fac = 0.0;
+  double bav = 0;
+  double nav = 0;
+  
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
       {
-	finalDensity.set_Density_Elem(ix,iy,0,finalDensity.getDensity(ix,iy,0)*fac);
-	finalDensity.set_Density_Elem(ix,iy,Nz-1,finalDensity.getDensity(ix,iy,Nz-1)*fac);
+	//finalDensity.set_Density_Elem(ix,iy,0,finalDensity.getDensity(ix,iy,0)*fac);
+	bav += finalDensity.getDensity(ix,iy,0);
+	nav++;
       }
   for(int ix=0;ix<Nx;ix++)
     for(int iz=1;iz<Nz-1;iz++)
       {
-	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*fac);
-	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*fac);
+	//	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*fac);
+	//	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*fac);
+	bav += finalDensity.getDensity(ix,0,iz);
+	nav++;
       }
 
   for(int iy=1;iy<Ny-1;iy++)
     for(int iz=1;iz<Nz-1;iz++)
       {
-	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*fac);
-	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*fac);
+	//	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*fac);
+	//	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*fac);
+	bav += finalDensity.getDensity(0,iy,iz);
+	nav++;	
       }
-  */
+  bav /= nav;
+  
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
-      for(int iz=0;iz<Nz;iz++)      
-	finalDensity.set_Density_Elem(ix,iy,iz,finalDensity.getDensity(ix,iy,iz)*fac+avDensity*(1-fac));
-
+      for(int iz=0;iz<Nz;iz++)
+	{
+	  if(ix != 0 && iy != 0 && iz != 0)
+	    //	    finalDensity.set_Density_Elem(ix,iy,iz,finalDensity.getDensity(ix,iy,iz)*fac+avDensity*(1-fac));
+	    finalDensity.set_Density_Elem(ix,iy,iz,bav);
+	}
   
-  DDFT ddft(dft,finalDensity,bFixedBoundaries,&grace,showGraphics);
+  DDFT_IF ddft(dft,finalDensity,&grace,showGraphics);
   ddft.initialize();
   ddft.setTimeStep(dt);
   ddft.set_tolerence_fixed_point(tolerence_fixed_point);
   ddft.set_max_time_step(dtMax);
+
+  ddft.setFixedBoundary();
 
   
   string slog("log.dat");

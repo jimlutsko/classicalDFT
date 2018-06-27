@@ -64,7 +64,7 @@ void StringMethod::run(string& logfile)
   // Initialize free energies  
   for(int J=0;J<N;J++)
     {
-      oldF[J] = ddft_.F_string(*(string_[J]));
+      oldF[J] = ddft_.F_string(*(string_[J])) - mu_*string_[J]->getNumberAtoms();
       DT_[J] = 0.01; 
     }
 
@@ -146,7 +146,7 @@ void StringMethod::run(string& logfile)
     for(int J=0;J<N;J++)
       {
 	double fmax = 0;
-	newF[J] = ddft_.F_string(*(string_[J]), &fmax);
+	newF[J] = ddft_.F_string(*(string_[J]), &fmax) - string_[J]->getNumberAtoms()*mu_;
 	double ff = fabs(newF[J]-oldF[J]);
 	dFmax = max(ff,dFmax);
 	dFav += ff;
@@ -163,7 +163,7 @@ void StringMethod::run(string& logfile)
 
 	Natoms[J] = string_[J]->getNumberAtoms();
 	
-	cout << "Image " << J << " N = " << Natoms[J] << " delta dist = " << distances[J] << endl;
+	cout << "Image " << J << " F = " << newF[J] - mu_*Natoms[J] << " N = " << Natoms[J] << " delta dist = " << distances[J] << endl;
       }
 
     dFav /= N;

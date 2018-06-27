@@ -32,7 +32,7 @@ class Droplet : public Density
   *   @param  d2 is unused
   *   @return  
   */  
-  virtual void initialize(double density, double d2)
+  virtual void initialize(double density, double d2, Density *inputdensity = NULL)
   {
     Density::initialize(density,d2);
 
@@ -40,6 +40,10 @@ class Droplet : public Density
       for(int j=0;j<Ny_;j++)
 	for(int k=0;k<Nz_; k++)
 	  {
+	    if(inputdensity)
+	      if(i == 0 || j == 0 || k == 0)
+		set_Density_Elem(i,j,k,inputdensity->getDensity(i,j,k));
+	    
 	    double x = getX(i);
 	    double y = getY(j);
 	    double z = getZ(k);

@@ -16,6 +16,8 @@ class StringMethod
   ~StringMethod(){if(gr_) delete gr_;}
 
   void setClimbingImage(int J) { Jclimb_ = J; tangent_.zeros(string_[0]->Ntot());}
+
+  void setMu(double m) { mu_ = m;}
   
   void run(string& logfile);
 
@@ -41,6 +43,8 @@ class StringMethod
   
   mglGraph *gr_;
   mglData data_2D_;
+
+  double mu_;
 };
 
 
