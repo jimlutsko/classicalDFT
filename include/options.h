@@ -36,8 +36,8 @@ class Options
      bOptions_[name] = place;
     }
 
-  void read(int argc, char ** argv);
-  void read(char const * file);
+  void read(int argc, char ** argv, bool bPrint = true);
+  void read(char const * file, bool bPrint  = true);
   void write(ofstream &of) const;
 
   int getIntOption(string&  name) const 

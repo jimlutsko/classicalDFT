@@ -9,7 +9,7 @@ using namespace std;
 
 #include "options.h"
 
-void Options::read(int argc, char ** argv)
+void Options::read(int argc, char ** argv, bool bPrint)
 {
   if(argc < 2)
   {
@@ -17,14 +17,14 @@ void Options::read(int argc, char ** argv)
       message <<  "Usage: " << argv[0] << "  <input.dat>";
       throw std::runtime_error(message.str().c_str());
   }
-  cout << "input file is : " << argv[1] << endl;
-  read(argv[1]);
+  if(bPrint) cout << "input file is : " << argv[1] << endl;
+  read(argv[1],bPrint);
 }
 
 
-void Options::read(char const * file)
+void Options::read(char const * file, bool bPrint)
 {
-  cout << endl << "++++++++++++++++++++ reading parameters from " << file << " +++++++++++++++++++" << endl << endl;
+  if(bPrint) cout << endl << "++++++++++++++++++++ reading parameters from " << file << " +++++++++++++++++++" << endl << endl;
 
   ifstream f(file,ios::in);
   
@@ -44,46 +44,46 @@ void Options::read(char const * file)
       char * pch = strtok (buf,delim);
       if(!pch) continue;
 
-      cout << pch << " = ";
+      if(bPrint) cout << pch << " = ";
 
       if(intOptions_.find(pch) != intOptions_.end())
 	{
 	  int *place = intOptions_[pch];
 	  pch = strtok(NULL,delim);
 	  *place = atoi(pch);
-	  cout << *place << endl;
+	  if(bPrint) cout << *place << endl;
 	} else if(longOptions_.find(pch) != longOptions_.end()) {
 	  long *place = longOptions_[pch];
 	  pch = strtok(NULL,delim);
 	  *place = atol(pch);
-	  cout << *place << endl;
+	  if(bPrint) cout << *place << endl;
 	} else if(dOptions_.find(pch) != dOptions_.end()) {
 	  double *place = dOptions_[pch];
 	  pch = strtok(NULL,delim);
 	  *place = atof(pch);
-	  cout << *place << endl;
+	  if(bPrint) cout << *place << endl;
 	} else if(cOptions_.find(pch) != cOptions_.end()) {
 	  string *place = cOptions_[pch];
 	  pch = strtok(NULL,delim);
 	  if(pch != NULL) place->assign(pch);
-	  cout << *place << endl;
+	  if(bPrint) cout << *place << endl;
 	} else if(bOptions_.find(pch) != bOptions_.end()) {
 	  bool *place = bOptions_[pch];
 	  pch = strtok(NULL,delim);
 	  if(strcmp(pch,"true") == 0) *place = true;
 	  else if(strcmp(pch,"false") == 0) *place = false;
 	  else {
-	      cout << "Input was : " << pch << endl;
+	      if(bPrint) cout << "Input was : " << pch << endl;
 	      throw std::runtime_error("Unrecognized boolean input in util//options.cpp");
 	  }
-	  cout << boolalpha << *place << endl;
+	  if(bPrint) cout << boolalpha << *place << endl;
 	} else {
-	  cout <<  "<not a parameter>" << endl;
+	  if(bPrint) cout <<  "<not a parameter>" << endl;
 	}
     }
   f.close();
 
-  cout << endl << "++++++++++++++++++++ end parameters +++++++++++++++++++" << endl << endl;
+  if(bPrint) cout << endl << "++++++++++++++++++++ end parameters +++++++++++++++++++" << endl << endl;
 }
 
 void Options::write(ofstream &of) const

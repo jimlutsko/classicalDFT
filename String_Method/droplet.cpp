@@ -142,17 +142,16 @@ int main(int argc, char** argv)
   // set the thermodynamic state
   double omega_coex = dft.Omega(xliq_coex);
   double mu         = dft.Mu(xliq_coex);
-  finalDensity.initialize(xliq_coex,xgas_coex);
 
-  //  double NN = 297.0; //finalDensity.getNtotal();
-  double NN = finalDensity.getNumberAtoms();
-  cout << "NN = " << NN << endl;
+  // Begin intialization of images
+
+  finalDensity.initialize(xliq_coex,xgas_coex);
 
   if(! infile.empty())
     finalDensity.readDensity(infile.c_str());
 
+  double NN = finalDensity.getNumberAtoms();
   if(Natoms > 0) NN = Natoms;
-  else NN = finalDensity.getNumberAtoms();
 
   cout << "Final NN = " << finalDensity.getNumberAtoms() << endl;
 
@@ -202,15 +201,9 @@ int main(int argc, char** argv)
   bav /= nav;
 
   double mu_boundary = dft.Mu(bav);
-
-  
-
   cout << "Boundary Mu = " <<   mu_boundary << endl;
+  log1 << "#Boundary Mu = " <<   mu_boundary << endl;
 
-  
-
-
-  
   vector<Density*> Images(Nimages); //,finalDensity);
   double Rmax = 3.0;
 
@@ -218,23 +211,14 @@ int main(int argc, char** argv)
     {
       Droplet *d = new Droplet(dx, L, PointsPerHardSphere, R, zPos);
 
-      //	if(J == 0)
-      //	  d->initialize(avDensity,avDensity);
-      // For closed system:
-      
       if(J == 0)
 	{
+	  // For closed system:
 	  d->initialize(bav,bav,&finalDensity);
+	  // For open system:
+	  // d->initialize(avDensity,avDensity);
 	} else d->initializeTo(*((Droplet*) Images.front()),finalDensity,1-J*1.0/(Images.size()-1));
-      
-      
-      //      d->initializeTo(NN, 0.669079, J*1.0/(Images.size()-1), Rmax);
 
-      /*
-      if(J == 0)
-	d->initialize(avDensity,avDensity);
-      else d->initializeToSqueezedImage(finalDensity,J*1.0/(Images.size()-1),NN);
-      */
       Images[J] = d;
     }
 
@@ -243,7 +227,7 @@ int main(int argc, char** argv)
   for(int i=0;i<Images.size();i++)
     {
       cout << "Image " << i << " has N = " << Images[i]->getNumberAtoms() << " atoms" << endl;
-      log1 << "Image " << i << " has N = " << Images[i]->getNumberAtoms() << " atoms" << endl;
+      log1 << "#Image " << i << " has N = " << Images[i]->getNumberAtoms() << " atoms" << endl;
     }
   log1.close();
 
@@ -255,15 +239,15 @@ int main(int argc, char** argv)
   ddft.setTimeStep(1e-2);
   ddft.set_tolerence_fixed_point(1e-4);
   ddft.set_max_time_step(1e-2);
+
   // For closed system:
   ddft.setFixedBoundary();
   
-  //  ddft.setForceTerminationCriterion(forceLimit);
 
+  
   Grace *grace = NULL;
   if(showGraphics)
     grace = new Grace(800,600,2);
-  //  Grace *grace = NULL;
 
   StringMethod theString(ddft, Images, grace, freeEnd);
 

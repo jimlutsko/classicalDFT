@@ -270,6 +270,8 @@ class DDFT : public Minimizer
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
   void set_max_time_step(double t) { dtMax_ = t;}
   void setTimeStep(double dt) { dt_ = dt;}
+
+  double getTimeStep() const { return dt_;}
   
   double F_string(Density &d, double *fmax = NULL);
   void reverseForce(DFT_Vec *tangent);
