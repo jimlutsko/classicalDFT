@@ -248,6 +248,18 @@ int main(int argc, char** argv)
     cout << "task " << taskid << " recieved mu = " << mu << " and bav = " << bav << endl;    
   }
 
+  Grace *grace = NULL;
+
+  if(taskid == MASTER)
+    {
+      if(showGraphics)
+	grace = new Grace(800,600,2);
+
+      if(!remove("rm string_graph.agr"))
+	cout << "Removed string_graph.agr" << endl;
+    }
+
+
   // There are numtasks-1 slave tasks available so each one will take some number of images
   // Since the first and last images are fixed, there are only N-2 to allocate
   
@@ -271,6 +283,8 @@ int main(int argc, char** argv)
   
   if(taskid == MASTER)
     {
+      theString = new StringMethod_MPI_Master(Nimages, Ntot, grace, freeEnd);
+      
       int assigned = 0;
       int chunk = (Nimages-2)/(numtasks-1);
       if((numtasks-1)*chunk < Nimages-2) chunk++;
@@ -288,8 +302,10 @@ int main(int argc, char** argv)
 	  MPI_Send(&todo,          1,   MPI_INT,jtask,/*tag*/ 0 ,MPI_COMM_WORLD);
 
 	  assigned += todo;
+	  ((StringMethod_MPI_Master*) theString)->addTask(todo);
 	}
       delete d;
+      
     } else { 
 
     double *final = new double[Ntot];
@@ -323,16 +339,7 @@ int main(int argc, char** argv)
   }
 
   string s("log.dat");
-  Grace *grace = NULL;
 
-  if(taskid == MASTER)
-    {
-      if(showGraphics)
-	grace = new Grace(800,600,2);
-
-      if(!remove("rm string_graph.agr"))
-	cout << "Removed string_graph.agr" << endl;
-    }
 
   /*
   if(bRestart)
@@ -344,7 +351,7 @@ int main(int argc, char** argv)
 
   if(taskid == MASTER)
     {
-      theString = new StringMethod_MPI_Master(grace, freeEnd);
+     
     } else {
     //    theString.run(s);
   }

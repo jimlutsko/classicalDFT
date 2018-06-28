@@ -57,6 +57,28 @@ void StringMethod_MPI_Master::Display(vector<double> &F, int dataSet, double dFm
 
 void StringMethod_MPI_Master::run(string& logfile)
 {
+  for(int i=0;i<Images_.size();i++)
+    Images_[i].resize(Ntot_);
+
+  do {
+    // Collect the densities
+    MPI_Status *stat;
+    int pos = 1;
+    for(int I=0;I<taskList.size();I++)
+      {
+	for(int J=0;J<taskList[I];J++)
+	  {
+	    MPI_Recv(d,Ntot,MPI_DOUBLE,I,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat);
+	    Images_[pos] = d;
+	  }
+      }
+
+
+  } while(1);
+
+
+
+  
   if(grace_) grace_->redraw(1,0);
 
   ofstream log(logfile.c_str());

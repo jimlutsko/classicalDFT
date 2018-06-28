@@ -24,19 +24,25 @@ class StringMethod_MPI
 class StringMethod_MPI_Master : public StringMethod_MPI
 {
  public:
- StringMethod_MPI_Master(Grace *g = NULL,bool freeEnd = false) 
+ StringMethod_MPI_Master(int Nimages, long Ntot, Grace *g = NULL,bool freeEnd = false) 
    : StringMethod_MPI(freeEnd), grace_(g)
-  
-
-    {}
+    {
+      Images_.resize(Nimages);
+    }
 
   virtual void run(string& logfile);
 
   void Display(vector<double> &F, int dataSet, double dFmax = 0.0, double dFav = 0.0);
 
+
+  void addTask(int images) { taskList.push_back(images);}
   
  private:
     Grace *grace_;
+    vector<int> taskList;
+
+    vector< vector<double> > Images_;
+    long Ntot_;
 
 };
 
