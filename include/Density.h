@@ -462,6 +462,13 @@ class Density : public Lattice
   const DFT_Vec& getDensity() const { return Density_.cReal();}
 
   /**
+   *   @brief  Directly access the data
+   *  
+   *   @return double* array
+   */  
+  double* getData() { return Density_.Real().memptr();}
+
+  /**
    *   @brief  Read-only accessor for array holding fft of density;
    *  
    *   @return Density_.Four()

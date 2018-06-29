@@ -245,7 +245,8 @@ int main(int argc, char** argv)
     MPI_Status *stat;
     MPI_Recv(&mu,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat );
     MPI_Recv(&bav,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat ); 
-    cout << "task " << taskid << " recieved mu = " << mu << " and bav = " << bav << endl;    
+    cout << "task " << taskid << " recieved mu = " << mu << " and bav = " << bav << endl;
+    
   }
 
   Grace *grace = NULL;
@@ -283,7 +284,7 @@ int main(int argc, char** argv)
   
   if(taskid == MASTER)
     {
-      theString = new StringMethod_MPI_Master(Nimages, Ntot, grace, freeEnd);
+      theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, ddft.getF()-mu*finalDensity.getNumberAtoms(), grace, freeEnd);
       
       int assigned = 0;
       int chunk = (Nimages-2)/(numtasks-1);
@@ -333,7 +334,7 @@ int main(int argc, char** argv)
 	}
     delete final;
 
-    theString = new StringMethod_MPI_Slave(ddft, Images, freeEnd);
+    theString = new StringMethod_MPI_Slave(ddft, Images,taskid);
     theString->setMu(mu_boundary);  
 
   }
@@ -349,12 +350,9 @@ int main(int argc, char** argv)
     }
   */
 
-  if(taskid == MASTER)
-    {
-     
-    } else {
-    //    theString.run(s);
-  }
+  theString->setMu(mu);
+  
+  theString->run(s);
   
   if(taskid == MASTER)
     {

@@ -24,13 +24,13 @@ MACHINE := $(shell uname -m)
 ifeq ($(strip $(MACHINE)),$(I686))
 	PROCESSOR=pentium
 	COPTS= $(DEBUG)  -march=${PROCESSOR} 
-	CCC= g++
+	CCC= mpic++
 	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR} -MMD
 	LIBINTEL= iode_ia32
 else
 	PROCESSOR=opteron
 	COPTS= $(DEBUG)  -march=${PROCESSOR} -fopenmp -MMD
-	CCC= g++
+	CCC= mpic++
 	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR}  -MMD -fopenmp  -D USE_OMP 
 	LIBINTEL =iode_intel64
 endif
@@ -48,7 +48,7 @@ $(DEP_DIR)/%.d: $(SRC_DIR)/%.cpp
 	${CCC} $(CCOPTS) -I ${INCLUDE} -c -o $@ $<
 
 .cpp.d:
-	g++ -MMD -E -march=${PROCESSOR} -std=gnu++11 -I ${INCLUDE} $< > /dev/null
+	mpic++ -MMD -E -march=${PROCESSOR} -std=gnu++11 -I ${INCLUDE} $< > /dev/null
 
 sourcescpp := $(wildcard ./src/*.cpp)
 sourcesc := $(wildcard ./*.c)

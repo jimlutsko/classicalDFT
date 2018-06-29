@@ -24,25 +24,45 @@ class StringMethod_MPI
 class StringMethod_MPI_Master : public StringMethod_MPI
 {
  public:
- StringMethod_MPI_Master(int Nimages, long Ntot, Grace *g = NULL,bool freeEnd = false) 
-   : StringMethod_MPI(freeEnd), grace_(g)
+ StringMethod_MPI_Master(int Nimages, Density &finalDensity, double bav, double F_final, Grace *g = NULL, bool freeEnd = false) 
+   : StringMethod_MPI(freeEnd), finalDensity_(finalDensity), bav_(bav), grace_(g)
     {
+      Ntot_ = finalDensity.Ntot();
+      gr_ = new mglGraph;
       Images_.resize(Nimages);
-    }
+      dF_.resize(Nimages);
+      dF_[Nimages-1] = F_final;
+
+      
+      //We just need one density to set up the array which is then shared by all
+      finalDensity.initialize_2D_data(data_2D_);
+  }
+  ~StringMethod_MPI_Master(){if(gr_) delete gr_;}
 
   virtual void run(string& logfile);
-
-  void Display(vector<double> &F, int dataSet, double dFmax = 0.0, double dFav = 0.0);
-
-
+  void interpolate();
+  void processImages();
+  void report(string &logfile);
+  
+  void Display(int dataSet, double dFmax = 0.0, double dFav = 0.0);
+  void Draw(vector<double> &data, int image_number, double F);
+  
   void addTask(int images) { taskList.push_back(images);}
+  void archive(string &filename) const;
   
  private:
     Grace *grace_;
     vector<int> taskList;
 
+    Density &finalDensity_;
+    double bav_; // background density so we can reconstruct initial state
+    
     vector< vector<double> > Images_;
+    vector<double> dF_;
     long Ntot_;
+
+    mglGraph *gr_;
+    mglData data_2D_;
 
 };
 
@@ -50,15 +70,15 @@ class StringMethod_MPI_Master : public StringMethod_MPI
 class StringMethod_MPI_Slave : public StringMethod_MPI
 {
  public:
- StringMethod_MPI_Slave(DDFT &ddft, vector<Density*> string, bool freeEnd = false) 
-   : StringMethod_MPI(freeEnd), ddft_(ddft), string_(string), Jclimb_(-1)
+ StringMethod_MPI_Slave(DDFT &ddft, vector<Density*> string, int id) 
+   : StringMethod_MPI(false), ddft_(ddft), string_(string), id_(id)
   {
     int N = string_.size();  
 
-    gr_ = new mglGraph;
     DT_.resize(N,0.0);
     oldF_.resize(N,0.0);
     N_.resize(N,0.0);
+    distances_.resize(N,0.0);
 
     // Initialize free energies  
     for(int J=0;J<N;J++)
@@ -72,15 +92,11 @@ class StringMethod_MPI_Slave : public StringMethod_MPI
     for(int J=0;J<N;J++)
       string_copy_[J].zeros(string_[0]->Ntot());
     
-    //We just need one density to set up the array which is then shared by all
-    string_[N-1]->initialize_2D_data(data_2D_);
   }
   
-  ~StringMethod_MPI_Slave(){if(gr_) delete gr_;}
+  ~StringMethod_MPI_Slave(){}
 
   virtual void run(string& logfile);
-
-  void setClimbingImage(int J) { Jclimb_ = J; tangent_.zeros(string_[0]->Ntot());}
 
   void archive(string &filename) const;
   void read(string &filename);
@@ -98,13 +114,14 @@ class StringMethod_MPI_Slave : public StringMethod_MPI
   vector<double> DT_;
   vector<double> oldF_;
   vector<double> N_;
-  DFT_Vec tangent_;
-  bool freeEnd_;
+  vector<double> distances_;
 
-  int Jclimb_;
+  double dFmax_;
+  double dFav_;
+  double delta_max_;
   
-  mglGraph *gr_;
-  mglData data_2D_;
+
+  int id_;
 };
 
 
