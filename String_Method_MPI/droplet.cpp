@@ -245,8 +245,6 @@ int main(int argc, char** argv)
     MPI_Status *stat;
     MPI_Recv(&mu,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat );
     MPI_Recv(&bav,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat ); 
-    cout << "task " << taskid << " recieved mu = " << mu << " and bav = " << bav << endl;
-    
   }
 
   Grace *grace = NULL;
@@ -256,7 +254,7 @@ int main(int argc, char** argv)
       if(showGraphics)
 	grace = new Grace(800,600,2);
 
-      if(!remove("rm string_graph.agr"))
+      if(!remove("string_graph.agr"))
 	cout << "Removed string_graph.agr" << endl;
     }
 
@@ -280,11 +278,10 @@ int main(int argc, char** argv)
   long Ntot = finalDensity.Ntot();
 
   StringMethod_MPI *theString = NULL;
-
   
   if(taskid == MASTER)
     {
-      theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, ddft.getF()-mu*finalDensity.getNumberAtoms(), grace, freeEnd);
+      theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, ddft.getF()-mu*finalDensity.getNumberAtoms(), mu, grace, freeEnd);
       
       int assigned = 0;
       int chunk = (Nimages-2)/(numtasks-1);
@@ -303,10 +300,9 @@ int main(int argc, char** argv)
 	  MPI_Send(&todo,          1,   MPI_INT,jtask,/*tag*/ 0 ,MPI_COMM_WORLD);
 
 	  assigned += todo;
-	  ((StringMethod_MPI_Master*) theString)->addTask(todo);
+	  ((StringMethod_MPI_Master*) theString)->addTask(todo);	 
 	}
       delete d;
-      
     } else { 
 
     double *final = new double[Ntot];
@@ -328,13 +324,10 @@ int main(int argc, char** argv)
 	for(long k=0;k<Ntot;k++)
 	  drop->set_Density_Elem(k,(1-alf)*bav + alf*final[k]);
 	Images[J] = drop;
-	cout << "Task " << taskid << " created image " << J << endl;	
-	  // d->initialize(avDensity,avDensity);
-	  // d0->initialize(avDensity,avDensity);
-	}
+      }
     delete final;
 
-    theString = new StringMethod_MPI_Slave(ddft, Images,taskid);
+    theString = new StringMethod_MPI_Slave(ddft, Images,mu, taskid, start_index);
     theString->setMu(mu_boundary);  
 
   }
@@ -343,10 +336,10 @@ int main(int argc, char** argv)
 
 
   /*
-  if(bRestart)
+    if(bRestart)
     {
-      string file("..//archive");
-      theString.read(file);
+    string file("..//archive");
+    theString.read(file);
     }
   */
 

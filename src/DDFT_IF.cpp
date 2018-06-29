@@ -31,7 +31,7 @@ void DDFT_IF::initialize()
   cout << "Initial value of F = " << F_ << endl;
 }
 
-double DDFT_IF::step_string(double &dt, Density &original_density, double self_consistency_threshold)
+double DDFT_IF::step_string(double &dt, Density &original_density, double self_consistency_threshold, bool verbose)
 {
   int Nx = original_density.Nx();
   int Ny = original_density.Ny();
@@ -41,7 +41,7 @@ double DDFT_IF::step_string(double &dt, Density &original_density, double self_c
 
   F_ = dft_.calculateFreeEnergyAndDerivatives(original_density,0.0, dF_,false);
 
-  cout << "Initial F = " << F_ << endl;
+  if(verbose) cout << "Initial F = " << F_ << endl;
 
   const DFT_Vec &d0 = original_density.getDensity();   
   DFT_FFT RHS0(Nx,Ny,Nz);
@@ -71,7 +71,7 @@ double DDFT_IF::step_string(double &dt, Density &original_density, double self_c
 	density_.doFFT();
 	
 	deviation = fftDiffusion(d1,RHS0,RHS1);
-	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
+	if(verbose) cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
 	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}

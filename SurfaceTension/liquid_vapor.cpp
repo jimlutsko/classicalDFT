@@ -211,13 +211,13 @@ int main(int argc, char** argv)
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
-  //  minimizer.run(s);
+  minimizer.run(s);
 
   double Natoms = theDensity.getNumberAtoms();
   double Omega = minimizer.getF();
   double dOmega = Omega - omega_coex*theDensity.getVolume();
   double SurfaceTension = dOmega/(theDensity.Lx()*theDensity.Ly());
-  SurfaceTension = 1;
+  //  SurfaceTension = 1;
 
   cout << "Final Omega: " << Omega << endl;
   cout << "Excess Omega = " << dOmega << endl;
@@ -236,11 +236,12 @@ int main(int argc, char** argv)
       double xgas = xgas_coex+(xgas_spin-xgas_coex)*i/100.0;
       double m = dft.Mu(xgas);
       double xliq = dft.findLiquidFromMu(mu,mu_coex, xliq_coex);
+      double V = theDensity.getVolume();
 
       double domega = dft.Fhelmholtz(xliq)-mu*xliq-dft.Fhelmholtz(xgas)+mu*xgas;
       double R = 2*SurfaceTension/fabs(domega);
-      cout << xgas*theDensity.getVolume() << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
-      log <<"#" <<   xgas*theDensity.getVolume() << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
+      cout << xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
+      log <<"#" <<   xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
     }
   log.close();  
   g->pause();

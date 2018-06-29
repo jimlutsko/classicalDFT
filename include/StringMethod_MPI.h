@@ -7,7 +7,7 @@
 class StringMethod_MPI
 {
  public:
- StringMethod_MPI(bool freeEnd) : freeEnd_(freeEnd), step_counter_(0){};
+ StringMethod_MPI(double mu, bool freeEnd) : mu_(mu), freeEnd_(freeEnd), step_counter_(0){};
   ~StringMethod_MPI(){};
 
   void setMu(double m) { mu_ = m;}
@@ -24,8 +24,8 @@ class StringMethod_MPI
 class StringMethod_MPI_Master : public StringMethod_MPI
 {
  public:
- StringMethod_MPI_Master(int Nimages, Density &finalDensity, double bav, double F_final, Grace *g = NULL, bool freeEnd = false) 
-   : StringMethod_MPI(freeEnd), finalDensity_(finalDensity), bav_(bav), grace_(g)
+ StringMethod_MPI_Master(int Nimages, Density &finalDensity, double bav, double F_final, double mu, Grace *g = NULL, bool freeEnd = false) 
+   : StringMethod_MPI(mu, freeEnd), finalDensity_(finalDensity), bav_(bav), grace_(g)
     {
       Ntot_ = finalDensity.Ntot();
       gr_ = new mglGraph;
@@ -70,8 +70,8 @@ class StringMethod_MPI_Master : public StringMethod_MPI
 class StringMethod_MPI_Slave : public StringMethod_MPI
 {
  public:
- StringMethod_MPI_Slave(DDFT &ddft, vector<Density*> string, int id) 
-   : StringMethod_MPI(false), ddft_(ddft), string_(string), id_(id)
+ StringMethod_MPI_Slave(DDFT &ddft, vector<Density*> string, double mu, int id, int offset) 
+   : StringMethod_MPI(mu, false), ddft_(ddft), string_(string), id_(id), offset_(offset)
   {
     int N = string_.size();  
 
@@ -97,7 +97,8 @@ class StringMethod_MPI_Slave : public StringMethod_MPI
   ~StringMethod_MPI_Slave(){}
 
   virtual void run(string& logfile);
-
+  virtual void report();
+  
   void archive(string &filename) const;
   void read(string &filename);
   
@@ -120,8 +121,8 @@ class StringMethod_MPI_Slave : public StringMethod_MPI
   double dFav_;
   double delta_max_;
   
-
   int id_;
+  int offset_; // this tells us which are the real image indexes
 };
 
 

@@ -3,8 +3,7 @@ BulkDensity = 0.5925
 PointsPerHardSphere = 7
 
 #Temperature
-kT = 0.8
-#kT = 0.4
+kT = 0.475
 
 # The mean field potential
 eps = 1
@@ -14,9 +13,9 @@ rcut = 3
 ShowGraphics =  false
 
 #Box dimensions
-Lx = 30
-Ly = 30
-Lz = 30
+Lx = 25
+Ly = 25
+Lz = 25
 
 # Fixed particle radius and position
 R = 1
@@ -31,7 +30,7 @@ MaxIts = 100000
 alpha = 0.0001
 
 
-IntegrationPointsFile = //home//jlutsko//dev//ftDFT//SS31-Mar-2016//ss109.05998
+IntegrationPointsFile = ../../SS31-Mar-2016/ss109.05998
 
 
 

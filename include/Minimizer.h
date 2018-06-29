@@ -277,7 +277,7 @@ class DDFT : public Minimizer
   void reverseForce(DFT_Vec *tangent);
 
   virtual double step() = 0;
-  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1) = 0;
+  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true) = 0;
 
  protected:
 
@@ -315,7 +315,7 @@ class DDFT_Discrete : public DDFT
 
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1);
+  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true			     );
 
   void   solv_tridiag(const DFT_Vec &b, DFT_Vec &RHS, double D, bool bFixedBoundaries = false);
   void   solv_periodic_tridiag(DFT_Vec &RHS, double D);
@@ -346,7 +346,7 @@ class DDFT_IF : public DDFT
   
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1);
+  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true);
 
   double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
@@ -369,7 +369,7 @@ class DDFT_Open : public DDFT
   
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1);
+  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true);
 
   double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);

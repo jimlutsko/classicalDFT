@@ -49,6 +49,8 @@ void StringMethod_MPI_Master::run(string& logfile)
       Images_[0][i] = bav_;
       Images_[Nimages-1][i] = finalDensity_.getDensity(i);
     }
+
+  report(logfile);
   
   do {
     // Collect the densities
@@ -126,27 +128,7 @@ void StringMethod_MPI_Master::archive(string &filename) const
   of << finalDensity_.Nx() << " " << finalDensity_.Ny()  << " " << finalDensity_.Nz()  << endl;
   of << finalDensity_.Lx() << " " << finalDensity_.Ly()  << " " << finalDensity_.Lz()  << endl;
   of << Images_.size() << endl;
-  of.close();
-  
-  for(int J=0;J<Images_.size();J++)
-    {
-      stringstream ss;
-      std::ios  state(NULL);
-      state.copyfmt(ss);
-      
-      ss << filename << "_";
-      ss << setfill ('0') << std::setw(4);
-      ss << J;
-      ss.copyfmt(state);
-      ss <<".dat";  
-
-      DFT_Vec tmp;
-      tmp.set(Images_[J].data(),finalDensity_.Ntot());
-
-      ofstream of1(ss.str().c_str());
-      tmp.save(of1);
-      of1.close();
-    }
+  of.close();    
 }
 
 
@@ -210,7 +192,7 @@ void StringMethod_MPI_Master::report(string &logfile)
 
   /////////////////// Report
   if(grace_)
-    Display(1, dFmax, dFav);
+    Display((step_counter_ == 0 ? 0 : 1), dFmax, dFav);
 
   cout << "Step = " << step_counter_ << " dFmax = " << dFmax << " dFav = " << dFav << endl;
   cout << endl;
@@ -243,7 +225,7 @@ void StringMethod_MPI_Master::Display(int dataSet, double dFmax, double dFav)
   grace_->setTitle(ss.str().c_str());
   
   grace_->redraw(1,0);
-  grace_->redraw(1,1);
+  if(step_counter_ > 0) grace_->redraw(1,1);
   string s("string_graph.agr");
   grace_->store(s);
 }
@@ -325,6 +307,10 @@ void StringMethod_MPI_Slave::run(string& logfile)
   double dtmax = -1;
   int Nimages = string_.size();
 
+  for(int J=0;J<Nimages;J++)
+      string_copy_[J].set(string_[J]->getDensity());
+  report();
+  
   cout << "Task " << id_ << " beginning to relax" << endl;
   
   do {
@@ -344,9 +330,9 @@ void StringMethod_MPI_Slave::run(string& logfile)
 
 	if(dt < dtmax) dt *= 2;
 
-	ddft_.step_string(dt, *(string_[J]),self_consistency_threshold);
+	ddft_.step_string(dt, *(string_[J]),self_consistency_threshold, false);
 	
-	cout << "ID " << id_ << " Image " << J << " dt = " << dt << endl;
+	//	cout << "ID " << id_ << " Image " << J << " dt = " << dt << endl;
 		
 	DT_[J] = dt;
       }
@@ -359,14 +345,22 @@ void StringMethod_MPI_Slave::run(string& logfile)
     for(int J=0;J<Nimages;J++)
       MPI_Send(string_[J]->getData(), Ntot,MPI_DOUBLE,0,/*tag*/ 0 ,MPI_COMM_WORLD);
 
-    cout << "Task " << id_ << " is waiting for interpolation ... " << endl;
-
     MPI_Status *stat;
     for(int J=0;J<Nimages;J++)
       MPI_Recv(string_[J]->getData(),Ntot,MPI_DOUBLE,0,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat);
     
-    /////////////////// Compute stats
+    /////////////////// Compute stats and send to master
+    report();
+    string arc("archive");
+    archive(arc);        
+  } while(1);
+}
 
+void StringMethod_MPI_Slave::report()
+{
+    int Nimages = string_.size();
+    long Ntot = (Nimages > 0 ? string_[0]->Ntot() : 0);
+  
     vector<double> newF(Nimages);
     dFmax_     = 0;
     dFav_      = 0;
@@ -383,7 +377,7 @@ void StringMethod_MPI_Slave::run(string& logfile)
 	dFav_ += ff;
 
 	distances_[J] = 0.0;
-	for(long k=0;k<Nimages;k++)
+	for(long k=0;k<Ntot;k++)
 	  {
 	    double d = (string_copy_[J].get(k)-string_[J]->getDensity(k));
 	    distances_[J]  += d*d;
@@ -391,9 +385,7 @@ void StringMethod_MPI_Slave::run(string& logfile)
 	distances_[J]  = string_[J]->dV()*sqrt(distances_[J] )/DT_[J];
 
 	delta_max_ = max(delta_max_, distances_[J] );
-
-	
-	cout << "ID " << id_ << " Image " << J << " F = " << newF[J]  << " N = " << N_[J] << " delta dist = " << distances_[J] << endl;
+	//	cout << "ID " << id_ << " Image " << J << " F = " << newF[J]  << " N = " << N_[J] << " delta dist = " << distances_[J] << endl;
       }
 
     dFav_ /= Nimages;
@@ -407,15 +399,12 @@ void StringMethod_MPI_Slave::run(string& logfile)
     MPI_Send(&dFmax_,     1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     MPI_Send(&dFav_,      1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     MPI_Send(&delta_max_, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    
-    //    string arc("archive");
-    //    archive(arc);
-    
-  
-  } while(1);
-
 
 }
+
+
+
+
 /*
 void StringMethod_MPI_Slave::rescale_linear()
 {
@@ -564,7 +553,7 @@ void StringMethod_MPI_Slave::read(string &filename)
       
       ss << filename << "_";
       ss << setfill ('0') << std::setw(4);
-      ss << J;
+      ss << J+offset_;
       ss.copyfmt(state);
       ss <<".dat";  
 
@@ -572,4 +561,23 @@ void StringMethod_MPI_Slave::read(string &filename)
       string_[J]->readDensity(s.c_str());
     }
 
+}
+
+void StringMethod_MPI_Slave::archive(string &filename) const
+{
+  for(int J=0;J<string_.size();J++)
+    {
+      stringstream ss;
+      std::ios  state(NULL);
+      state.copyfmt(ss);
+      
+      ss << filename << "_";
+      ss << setfill ('0') << std::setw(4);
+      ss << J+offset_;
+      ss.copyfmt(state);
+      ss <<".dat";  
+
+      string s = ss.str();
+      string_[J]->writeDensity(s);
+    }
 }
