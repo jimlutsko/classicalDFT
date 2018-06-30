@@ -357,6 +357,44 @@ class DDFT_IF : public DDFT
   bool fixedBorder_;
 };
 
+/**
+  *  @brief DDFT minimizer Class using integrating factor
+  *
+  */  
+
+class DDFT_IF_Open : public DDFT
+{
+ public:
+ DDFT_IF_Open(DFT &dft, Density &density, double background, Grace *g = NULL, bool showGraphics = true)
+   : DDFT(dft, density, g, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
+    {
+    }
+  ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
+
+  virtual void initialize();
+
+  virtual double step();
+
+  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true);
+
+  double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1) {throw std::runtime_error("Need to adapt fftDiffusion for non-string application");}
+  double fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform);
+  void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
+
+  void pack_for_sin_transform(const double *x, double val);
+  void unpack_after_transform(double *x, double val);
+
+  
+ protected:
+  double background_;
+  
+  fftw_plan sin_plan_;
+  unsigned sin_Ntot_;
+  unsigned sin_Norm_;
+  double *sin_in_;
+  double *sin_out_;
+};
+
 class DDFT_Open : public DDFT
 {
  public:

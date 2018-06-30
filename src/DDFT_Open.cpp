@@ -29,7 +29,7 @@ void DDFT_Open::initialize()
 
 
 
-double DDFT_Open::step_string(double &dt, Density &original_density, double self_consistency_threshold)
+double DDFT_Open::step_string(double &dt, Density &original_density, double self_consistency_threshold, bool verbose)
 {
   int Nx = original_density.Nx();
   int Ny = original_density.Ny();

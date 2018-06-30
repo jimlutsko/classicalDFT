@@ -74,7 +74,9 @@ double DDFT_IF::step_string(double &dt, Density &original_density, double self_c
 	if(verbose) cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
-	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {
+	  cout << "d0.min = " << d0.min() << " d1.min = " << d1.min() << endl;
+	  reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
 
 	old_error = deviation;	       	
       }

@@ -174,11 +174,16 @@ int main(int argc, char** argv)
   int Ny = finalDensity.Ny();
   int Nz = finalDensity.Nz();
 
+  double bmax = 0;
+  double bmin = 100;
+  
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
       {
 	//finalDensity.set_Density_Elem(ix,iy,0,finalDensity.getDensity(ix,iy,0)*fac);
 	bav += finalDensity.getDensity(ix,iy,0);
+	bmax = max(bmax,finalDensity.getDensity(ix,iy,0));
+	bmin = min(bmin,finalDensity.getDensity(ix,iy,0));
 	nav++;
       }
   for(int ix=0;ix<Nx;ix++)
@@ -187,6 +192,8 @@ int main(int argc, char** argv)
 	//	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*fac);
 	//	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*fac);
 	bav += finalDensity.getDensity(ix,0,iz);
+	bmax = max(bmax,finalDensity.getDensity(ix,0,iz));
+	bmin = min(bmin,finalDensity.getDensity(ix,0,iz));
 	nav++;
       }
 
@@ -196,10 +203,18 @@ int main(int argc, char** argv)
 	//	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*fac);
 	//	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*fac);
 	bav += finalDensity.getDensity(0,iy,iz);
+	bmax = max(bmax,finalDensity.getDensity(0,iy,iz));
+	bmin = min(bmin,finalDensity.getDensity(0,iy,iz));
 	nav++;	
       }
   bav /= nav;
 
+  ofstream log1("log.dat");
+  
+  cout << "bmax = " << bmax << endl;
+  cout << "bmin = " << bmin << endl;
+  cout << "bav  = " << bav  << endl;
+  
   double mu_boundary = dft.Mu(bav);
   cout << "Boundary Mu = " <<   mu_boundary << endl;
   log1 << "#Boundary Mu = " <<   mu_boundary << endl;
@@ -222,8 +237,6 @@ int main(int argc, char** argv)
       Images[J] = d;
     }
 
-  ofstream log1("log.dat");
-  
   for(int i=0;i<Images.size();i++)
     {
       cout << "Image " << i << " has N = " << Images[i]->getNumberAtoms() << " atoms" << endl;
@@ -232,19 +245,20 @@ int main(int argc, char** argv)
   log1.close();
 
   dft.setEtaMax(1.0-1e-8);
+
+
+
+  DDFT_IF_Open ddft(dft,finalDensity,bav,NULL,showGraphics);  
+  //    DDFT_IF ddft(dft,finalDensity,NULL,showGraphics);
+  // For closed system:
+  //ddft.setFixedBoundary();
   
-  DDFT_IF ddft(dft,finalDensity,NULL,showGraphics);
   ddft.initialize();
 
   ddft.setTimeStep(1e-2);
   ddft.set_tolerence_fixed_point(1e-4);
   ddft.set_max_time_step(1e-2);
 
-  // For closed system:
-  ddft.setFixedBoundary();
-  
-
-  
   Grace *grace = NULL;
   if(showGraphics)
     grace = new Grace(800,600,2);
@@ -255,7 +269,7 @@ int main(int argc, char** argv)
 
   theString.setMu(mu_boundary);
   
-  if(remove("rm string_graph.agr"))
+  if(remove("string_graph.agr"))
     cout << "Error removing string_graph.agr" << endl;
   else cout << "Removed string_graph.agr" << endl;
 

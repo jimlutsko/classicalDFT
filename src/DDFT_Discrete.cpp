@@ -354,7 +354,7 @@ bool DDFT_Discrete::sub_step_z(DFT_Vec &ynew, const Density &original_density, b
   return bLessThanZero;
 }
 
-  double DDFT_Discrete::step_string(double &dt, Density &original_density, double self_consistency_threshold)
+double DDFT_Discrete::step_string(double &dt, Density &original_density, double self_consistency_threshold, bool verbose)
   {
     dt_ = dt;
 
