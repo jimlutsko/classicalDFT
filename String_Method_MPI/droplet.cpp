@@ -314,14 +314,16 @@ int main(int argc, char** argv)
       
       int assigned = 0;
       int chunk = (Nimages-2)/(numtasks-1);
-      if((numtasks-1)*chunk < Nimages-2) chunk++;
+      int left_over = (Nimages-2) - chunk*(ntasks-1);
 
       double *d = new double[Ntot];
       for(long i=0;i<Ntot;i++) d[i] = finalDensity.getDensity(i);
       
       for(int jtask = 1;jtask < numtasks; jtask++)
 	{
-	  int todo = min(chunk, max(Nimages-2-assigned, 0));	  
+	  int todo = chunk + (left_over ? 1 : 0);
+	  if(left_over) left_over--;
+	  
 	  int start_index = assigned+1;
 	  
 	  MPI_Send(d,           Ntot,MPI_DOUBLE,jtask,/*tag*/ 0 ,MPI_COMM_WORLD);
