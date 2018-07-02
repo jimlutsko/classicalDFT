@@ -7,7 +7,7 @@
 class StringMethod
 {
  public:
- StringMethod(DDFT &ddft, vector<Density*> string, Grace *g = NULL,bool freeEnd = false) : ddft_(ddft), string_(string), grace_(g), freeEnd_(freeEnd), Jclimb_(-1)
+ StringMethod(DDFT &ddft, vector<Density*> string, double Time_Step_Max = 1e-2, Grace *g = NULL,bool freeEnd = false) : ddft_(ddft), string_(string), grace_(g), Time_Step_Max_(Time_Step_Max), freeEnd_(freeEnd), Jclimb_(-1)
   {
     gr_ = new mglGraph;
     DT_.resize(string_.size(),0.0);
@@ -45,6 +45,7 @@ class StringMethod
   mglData data_2D_;
 
   double mu_;
+  double Time_Step_Max_;
 };
 
 

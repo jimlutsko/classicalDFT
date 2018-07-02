@@ -68,6 +68,8 @@ int main(int argc, char** argv)
   int Jclimber = -1;
   bool freeEnd = false;
 
+  double TimeStepMax = -1;
+  
   string ddft_type;
   
   Options options;
@@ -107,8 +109,12 @@ int main(int argc, char** argv)
   options.addOption("FreeEnd",&freeEnd);
 
   options.addOption("DDFT_Type",&ddft_type);
+  options.addOption("TimeStepMax",&TimeStepMax);
   
   options.read(argc, argv);
+
+
+  if(TimeStepMax < 0) throw std::runtime_error("Must set TimeStepMax in input file ... aborting");
 
   ofstream log("log.dat");
   TimeStamp ts;
@@ -262,6 +268,7 @@ int main(int argc, char** argv)
     log1<< "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
   }
 
+  
   log1.close();    
   
   //DDFT_IF_Open ddft(dft,finalDensity,bav,NULL,showGraphics);  
@@ -279,7 +286,7 @@ int main(int argc, char** argv)
   if(showGraphics)
     grace = new Grace(800,600,2);
 
-  StringMethod theString(*ddft, Images, grace, freeEnd);
+  StringMethod theString(*ddft, Images, TimeStepMax, grace, freeEnd);
 
   if(Jclimber > 0) theString.setClimbingImage(Jclimber);
 

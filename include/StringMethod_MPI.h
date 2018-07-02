@@ -73,8 +73,8 @@ class StringMethod_MPI_Master : public StringMethod_MPI
 class StringMethod_MPI_Slave : public StringMethod_MPI
 {
  public:
- StringMethod_MPI_Slave(DDFT &ddft, vector<Density*> string, double mu, int id, int offset) 
-   : StringMethod_MPI(mu, false), ddft_(ddft), string_(string), id_(id), offset_(offset)
+ StringMethod_MPI_Slave(DDFT &ddft, vector<Density*> string, double mu, int id, int offset, double Time_Step_Max = 1e-2) 
+   : StringMethod_MPI(mu, false), ddft_(ddft), string_(string), id_(id), offset_(offset), Time_Step_Max_(Time_Step_Max)
   {
     int N = string_.size();  
 
@@ -85,10 +85,7 @@ class StringMethod_MPI_Slave : public StringMethod_MPI
 
     // Initialize free energies  
     for(int J=0;J<N;J++)
-      {
-	//	oldF_[J] = ddft_.F_string(*(string_[J])) - mu_*string_[J]->getNumberAtoms();
-	DT_[J] = 0.01; 
-      }
+      DT_[J] = Time_Step_Max_;
 
     // this holds a copy of the string
     string_copy_.resize(N);
@@ -123,6 +120,8 @@ class StringMethod_MPI_Slave : public StringMethod_MPI
   double dFmax_;
   double dFav_;
   double delta_max_;
+
+  double Time_Step_Max_;
   
   int id_;
   int offset_; // this tells us which are the real image indexes

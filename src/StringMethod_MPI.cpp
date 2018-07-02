@@ -304,9 +304,7 @@ void StringMethod_MPI_Master::interpolate()
 
 void StringMethod_MPI_Slave::run(string& logfile)
 {
-  double dtmax = -1;
   int Nimages = string_.size();
-
   
   for(int J=0;J<Nimages;J++)
       string_copy_[J].set(string_[J]->getDensity());
@@ -328,13 +326,8 @@ void StringMethod_MPI_Slave::run(string& logfile)
       {
 	double dt = DT_[J];
 
-	if(dtmax < 0) dtmax = dt;
-
-	if(dt < dtmax) dt *= 2;
-
+	dt = min(2*dt, Time_Step_Max_);
 	ddft_.step_string(dt, *(string_[J]),self_consistency_threshold, false);
-	
-	//	cout << "ID " << id_ << " Image " << J << " dt = " << dt << endl;
 		
 	DT_[J] = dt;
       }

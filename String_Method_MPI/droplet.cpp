@@ -84,6 +84,7 @@ int main(int argc, char** argv)
   int Jclimber = -1;
   bool freeEnd = false;
 
+  double TimeStepMax = -1;
   string ddft_type;
   
   Options options;
@@ -123,6 +124,7 @@ int main(int argc, char** argv)
   options.addOption("FreeEnd",&freeEnd);
 
   options.addOption("DDFT_Type",&ddft_type);
+  options.addOption("TimeStepMax",&TimeStepMax);
   
   options.read(argc, argv, taskid == MASTER);
 
@@ -138,6 +140,7 @@ int main(int argc, char** argv)
       log.close();
     }
 
+  if(TimeStepMax < 0) throw std::runtime_error("Must set TimeStepMax in input file ... aborting");
       
   double dx = 1.0/PointsPerHardSphere;
 
@@ -352,7 +355,7 @@ int main(int argc, char** argv)
       }
     delete final;
 
-    theString = new StringMethod_MPI_Slave(*ddft, Images,mu_boundary, taskid, start_index);
+    theString = new StringMethod_MPI_Slave(*ddft, Images,mu_boundary, taskid, start_index, TimeStepMax);
     //    theString->setMu(mu_boundary);  
 
   }

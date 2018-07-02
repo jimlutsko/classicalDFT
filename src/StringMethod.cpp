@@ -67,7 +67,7 @@ void StringMethod::run(string& logfile)
       double ff =  ddft_.F_string(*(string_[J]));
       double NN = string_[J]->getNumberAtoms();
       oldF[J] = ff- mu_*NN;
-      DT_[J] = 0.01;
+      DT_[J] = Time_Step_Max_;
       cout << "Image " << J << " F = " << ff<< " mu = " << mu_ << " N = " << NN  << " Omega = " << oldF[J] << endl;
     }
 
@@ -86,9 +86,6 @@ void StringMethod::run(string& logfile)
   
   log << "#step_counter\tdFmax\tdFav\tdist_max" << endl;
   log.close();
-
-
-  double dtmax = -1;
 
   // this holds a copy of the string
   vector<DFT_Vec> string_copy(string_.size());
@@ -120,9 +117,7 @@ void StringMethod::run(string& logfile)
       {
 	double dt = DT_[J];
 
-	if(dtmax < 0) dtmax = dt;
-
-	if(dt < dtmax) dt *= 2;
+	dt = min(2*dt, Time_Step_Max_);
 
 	ddft_.step_string(dt, *(string_[J]),self_consistency_threshold);
 	
@@ -309,13 +304,20 @@ void StringMethod::rescale_linear()
       double alpha_local = J*dL;
       bool found = false;
       for(int K=0;K<alpha.size() && !found;K++)
-	if(alpha_local > alpha[K] && alpha_local < alpha[K+1])
-	  {
-	    Intervals.push_back(K);
-	    found = true;
-	  }
+	{
+	  if(alpha_local >= alpha[K] && alpha_local < alpha[K+1])
+	    {
+	      Intervals.push_back(K);
+	      found = true;
+	    }
+	}
       if(!found)
-	throw std::runtime_error("Could not locate interval for linear interpolation");
+	{
+	  cout << "***************** Could not locate interval for linear interpolation" << endl;
+	  for(int K=0;K<alpha.size();K++)
+	    cout << "J = " << J << " alpha_local = " << alpha_local << " alpha[K] = " << alpha[K] << " alpha[K+1] = " << alpha[K+1] << endl;	      	    
+	  throw std::runtime_error("Could not locate interval for linear interpolation");
+	}
     }
 
   //  cout << endl;
