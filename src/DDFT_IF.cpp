@@ -28,7 +28,7 @@ void DDFT_IF::initialize()
   F_ += dft_.F_IdealGas(density_, dummy);
   F_ += dft_.F_External(density_,0.0,dummy);
 
-  cout << "Initial value of F = " << F_ << endl;
+  //  cout << "Initial value of F = " << F_ << endl;
 }
 
 double DDFT_IF::step_string(double &dt, Density &original_density, double self_consistency_threshold, bool verbose)

@@ -68,7 +68,7 @@ int main(int argc, char** argv)
   int Jclimber = -1;
   bool freeEnd = false;
 
-
+  string ddft_type;
   
   Options options;
 

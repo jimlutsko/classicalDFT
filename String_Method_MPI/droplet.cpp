@@ -231,7 +231,7 @@ int main(int argc, char** argv)
       bav /= nav;
 
   
-      double mu_boundary = dft.Mu(bav);
+      mu_boundary = dft.Mu(bav);
       if(taskid == MASTER)
 	{
 	  ofstream log1("log.dat", ios::app);
@@ -239,15 +239,15 @@ int main(int argc, char** argv)
 	  log1 << "#Boundary Mu = " <<   mu_boundary << endl;
 	}
 
-      // broadcast mu
+      // broadcast mu_boundary
       for(int jtask = 1; jtask < numtasks; jtask++)
 	{
-	  MPI_Send(&mu,1,MPI_DOUBLE,jtask,/*tag*/ 0 ,MPI_COMM_WORLD);
+	  MPI_Send(&mu_boundary,1,MPI_DOUBLE,jtask,/*tag*/ 0 ,MPI_COMM_WORLD);
 	  MPI_Send(&bav,1,MPI_DOUBLE,jtask,/*tag*/ 0 ,MPI_COMM_WORLD);
 	}	  
     } else {
     MPI_Status *stat;
-    MPI_Recv(&mu,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat );
+    MPI_Recv(&mu_boundary,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat );
     MPI_Recv(&bav,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat ); 
   }
 
@@ -275,6 +275,7 @@ int main(int argc, char** argv)
   else if(ddft_type.compare("OPEN_SIMPLE_MODIFIED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary(); ddft->setModified();}
   else if(ddft_type.compare("OPEN_SIN") == 0) {ddft = new DDFT_IF_Open(dft,finalDensity,bav,NULL,showGraphics); }
   else {
+    ofstream log1("log.dat", ios::app);
     cout << "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
     log1<< "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
   }
@@ -296,7 +297,17 @@ int main(int argc, char** argv)
   
   if(taskid == MASTER)
     {
-      theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, ddft->getF()-mu*finalDensity.getNumberAtoms(), mu, grace, freeEnd);
+      double Finitial = dft.Fhelmholtz(bav)*finalDensity.getVolume();
+      double Ni = bav*finalDensity.getVolume();
+      
+      cout << "Image 0 " << " F = " << Finitial << " mu = " << mu_boundary << " N = " << Ni  << " Omega = " << Finitial-mu_boundary*Ni << endl;
+
+      double Ffinal = ddft->getF();
+      double NN = finalDensity.getNumberAtoms();
+
+      cout << "Image " << Nimages-1 << " F = " << Ffinal << " mu = " << mu_boundary << " N = " << NN  << " Omega = " << Ffinal-mu_boundary*NN << endl;
+      
+      theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, Ffinal-mu_boundary*NN, Finitial-Ni*mu_boundary, mu_boundary, grace, freeEnd);
       
       int assigned = 0;
       int chunk = (Nimages-2)/(numtasks-1);
@@ -319,7 +330,6 @@ int main(int argc, char** argv)
 	}
       delete d;
     } else { 
-
     double *final = new double[Ntot];
     int todo;
     int start_index;
@@ -342,8 +352,8 @@ int main(int argc, char** argv)
       }
     delete final;
 
-    theString = new StringMethod_MPI_Slave(*ddft, Images,mu, taskid, start_index);
-    theString->setMu(mu_boundary);  
+    theString = new StringMethod_MPI_Slave(*ddft, Images,mu_boundary, taskid, start_index);
+    //    theString->setMu(mu_boundary);  
 
   }
 
@@ -358,7 +368,7 @@ int main(int argc, char** argv)
     }
   */
 
-  theString->setMu(mu);
+  //  theString->setMu(mu);
   
   theString->run(s);
   

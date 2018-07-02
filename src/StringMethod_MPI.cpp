@@ -8,7 +8,7 @@
 #include <time.h>
 
 #include <mgl2/mgl.h>
-#include <mgl2/fltk.h>
+//#include <mgl2/fltk.h>
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -307,10 +307,12 @@ void StringMethod_MPI_Slave::run(string& logfile)
   double dtmax = -1;
   int Nimages = string_.size();
 
+  
   for(int J=0;J<Nimages;J++)
       string_copy_[J].set(string_[J]->getDensity());
+
   report();
-  
+   
   cout << "Task " << id_ << " beginning to relax" << endl;
   
   do {
@@ -371,7 +373,8 @@ void StringMethod_MPI_Slave::report()
 	N_[J] = string_[J]->getNumberAtoms();
 
 	double fmax = 0;
-	newF[J] = ddft_.F_string(*(string_[J]), &fmax) - N_[J]*mu_;
+	double fj = ddft_.F_string(*(string_[J]), &fmax);
+	newF[J] = fj - N_[J]*mu_;
 	double ff = fabs(newF[J]-oldF_[J]);
 	dFmax_ = max(ff,dFmax_);
 	dFav_ += ff;
@@ -385,7 +388,7 @@ void StringMethod_MPI_Slave::report()
 	distances_[J]  = string_[J]->dV()*sqrt(distances_[J] )/DT_[J];
 
 	delta_max_ = max(delta_max_, distances_[J] );
-	//	cout << "ID " << id_ << " Image " << J << " F = " << newF[J]  << " N = " << N_[J] << " delta dist = " << distances_[J] << endl;
+	cout << "Image " << J+offset_ << " F = " << fj << " mu = " << mu_ << " N = " << N_[J]  << " Omega = " << newF[J] << endl;
       }
 
     dFav_ /= Nimages;

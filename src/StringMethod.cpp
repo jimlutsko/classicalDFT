@@ -8,7 +8,7 @@
 #include <time.h>
 
 #include <mgl2/mgl.h>
-#include <mgl2/fltk.h>
+//#include <mgl2/fltk.h>
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -64,8 +64,11 @@ void StringMethod::run(string& logfile)
   // Initialize free energies  
   for(int J=0;J<N;J++)
     {
-      oldF[J] = ddft_.F_string(*(string_[J])) - mu_*string_[J]->getNumberAtoms();
-      DT_[J] = 0.01; 
+      double ff =  ddft_.F_string(*(string_[J]));
+      double NN = string_[J]->getNumberAtoms();
+      oldF[J] = ff- mu_*NN;
+      DT_[J] = 0.01;
+      cout << "Image " << J << " F = " << ff<< " mu = " << mu_ << " N = " << NN  << " Omega = " << oldF[J] << endl;
     }
 
   if(grace_) Display(oldF,0);

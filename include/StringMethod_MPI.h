@@ -10,7 +10,7 @@ class StringMethod_MPI
  StringMethod_MPI(double mu, bool freeEnd) : mu_(mu), freeEnd_(freeEnd), step_counter_(0){};
   ~StringMethod_MPI(){};
 
-  void setMu(double m) { mu_ = m;}
+  //  void setMu(double m) { mu_ = m;}
   virtual void run(string& logfile) = 0;
 
   
@@ -24,13 +24,16 @@ class StringMethod_MPI
 class StringMethod_MPI_Master : public StringMethod_MPI
 {
  public:
- StringMethod_MPI_Master(int Nimages, Density &finalDensity, double bav, double F_final, double mu, Grace *g = NULL, bool freeEnd = false) 
+ StringMethod_MPI_Master(int Nimages, Density &finalDensity, double bav, double F_final, double F_initial, double mu, Grace *g = NULL, bool freeEnd = false) 
    : StringMethod_MPI(mu, freeEnd), finalDensity_(finalDensity), bav_(bav), grace_(g)
     {
       Ntot_ = finalDensity.Ntot();
       gr_ = new mglGraph;
       Images_.resize(Nimages);
       dF_.resize(Nimages);
+
+
+      dF_[0] = F_initial;
       dF_[Nimages-1] = F_final;
 
       
@@ -83,7 +86,7 @@ class StringMethod_MPI_Slave : public StringMethod_MPI
     // Initialize free energies  
     for(int J=0;J<N;J++)
       {
-	oldF_[J] = ddft_.F_string(*(string_[J])) - mu_*string_[J]->getNumberAtoms();
+	//	oldF_[J] = ddft_.F_string(*(string_[J])) - mu_*string_[J]->getNumberAtoms();
 	DT_[J] = 0.01; 
       }
 
