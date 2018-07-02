@@ -83,6 +83,8 @@ int main(int argc, char** argv)
   bool bRestart = false;
   int Jclimber = -1;
   bool freeEnd = false;
+
+  string ddft_type;
   
   Options options;
 
@@ -119,6 +121,8 @@ int main(int argc, char** argv)
   options.addOption("Restart",&bRestart);
   options.addOption("Jclimber",&Jclimber);
   options.addOption("FreeEnd",&freeEnd);
+
+  options.addOption("DDFT_Type",&ddft_type);
   
   options.read(argc, argv, taskid == MASTER);
 
@@ -264,16 +268,27 @@ int main(int argc, char** argv)
   
 
   dft.setEtaMax(1.0-1e-8);
-  
-  DDFT_IF ddft(dft,finalDensity,NULL,showGraphics);
-  ddft.initialize();
 
-  ddft.setTimeStep(1e-2);
-  ddft.set_tolerence_fixed_point(1e-4);
-  ddft.set_max_time_step(1e-2);
+  DDFT *ddft;
+  if(ddft_type.compare("CLOSED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics);;}
+  else if(ddft_type.compare("OPEN_SIMPLE") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary();}
+  else if(ddft_type.compare("OPEN_SIMPLE_MODIFIED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary(); ddft->setModified();}
+  else if(ddft_type.compare("OPEN_SIN") == 0) {ddft = new DDFT_IF_Open(dft,finalDensity,bav,NULL,showGraphics); }
+  else {
+    cout << "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
+    log1<< "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
+  }
+
+  
+  //  DDFT_IF ddft(dft,finalDensity,NULL,showGraphics);
+  ddft->initialize();
+
+  ddft->setTimeStep(1e-2);
+  ddft->set_tolerence_fixed_point(1e-4);
+  ddft->set_max_time_step(1e-2);
 
   // For closed system:
-  ddft.setFixedBoundary();
+  //  ddft.setFixedBoundary();
 
   long Ntot = finalDensity.Ntot();
 
@@ -281,7 +296,7 @@ int main(int argc, char** argv)
   
   if(taskid == MASTER)
     {
-      theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, ddft.getF()-mu*finalDensity.getNumberAtoms(), mu, grace, freeEnd);
+      theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, ddft->getF()-mu*finalDensity.getNumberAtoms(), mu, grace, freeEnd);
       
       int assigned = 0;
       int chunk = (Nimages-2)/(numtasks-1);
@@ -327,7 +342,7 @@ int main(int argc, char** argv)
       }
     delete final;
 
-    theString = new StringMethod_MPI_Slave(ddft, Images,mu, taskid, start_index);
+    theString = new StringMethod_MPI_Slave(*ddft, Images,mu, taskid, start_index);
     theString->setMu(mu_boundary);  
 
   }
@@ -354,6 +369,8 @@ int main(int argc, char** argv)
       delete grace;
     }
 
+  delete ddft;
+  
   MPI_Finalize();
   return 0;
 }

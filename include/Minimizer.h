@@ -243,7 +243,7 @@ class DDFT : public Minimizer
 {
  public:
  DDFT(DFT &dft, Density &density, Grace *g = NULL, bool showGraphics = true)
-   : Minimizer(dft, density, 0.0), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0)
+   : Minimizer(dft, density, 0.0), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
   {
     dt_ = 10*0.1*density_.getDX() * density_.getDX();
     dt_ = 0.0001*density_.getDX() * density_.getDX();
@@ -271,6 +271,9 @@ class DDFT : public Minimizer
   void set_max_time_step(double t) { dtMax_ = t;}
   void setTimeStep(double dt) { dt_ = dt;}
 
+  void setFixedBoundary() {fixedBorder_ = true;}
+  void setModified() {modified_ = true;}
+    
   double getTimeStep() const { return dt_;}
   
   double F_string(Density &d, double *fmax = NULL);
@@ -291,6 +294,9 @@ class DDFT : public Minimizer
   // control of adaptive time step
   int successes_;
   double dtMax_;
+
+  bool fixedBorder_;
+  bool modified_; // for certain derived classes
 };
 
 
@@ -336,14 +342,12 @@ class DDFT_IF : public DDFT
 {
  public:
  DDFT_IF(DFT &dft, Density &density, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft, density, g, showGraphics), fixedBorder_(false)
+   : DDFT(dft, density, g, showGraphics)
     {}
   ~DDFT_IF() {}
 
   virtual void initialize();
 
-  void setFixedBoundary() {fixedBorder_ = true;}
-  
   virtual double step();
 
   virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true);
@@ -354,7 +358,7 @@ class DDFT_IF : public DDFT
 
   
  protected:
-  bool fixedBorder_;
+
 };
 
 /**

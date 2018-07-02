@@ -106,7 +106,8 @@ void StringMethod::run(string& logfile)
         
     for(int J=1;J<string_.size()-1;J++)
       string_copy[J].set(string_[J]->getDensity());
-    
+
+
     cout << "Relaxing now ... " << endl;
     int Limit = (freeEnd_ ? string_.size() : string_.size()-1);
 
@@ -131,7 +132,6 @@ void StringMethod::run(string& logfile)
     for(int k=0;k<5;k++)
       rescale_linear();
     //          rescale(Ntarget);
-
 
     /////////////////// Compute stats
     

@@ -27,6 +27,8 @@ extern char   __BUILD_NUMBER;
 
 #include "StringMethod.h"
 
+
+
 int main(int argc, char** argv)
 {
   cout << "Build date  : " <<  (unsigned long) &__BUILD_DATE << endl;
@@ -65,6 +67,8 @@ int main(int argc, char** argv)
   bool bRestart = false;
   int Jclimber = -1;
   bool freeEnd = false;
+
+
   
   Options options;
 
@@ -100,7 +104,9 @@ int main(int argc, char** argv)
   options.addOption("Nimages",&Nimages);
   options.addOption("Restart",&bRestart);
   options.addOption("Jclimber",&Jclimber);
-    options.addOption("FreeEnd",&freeEnd);
+  options.addOption("FreeEnd",&freeEnd);
+
+  options.addOption("DDFT_Type",&ddft_type);
   
   options.read(argc, argv);
 
@@ -242,28 +248,38 @@ int main(int argc, char** argv)
       cout << "Image " << i << " has N = " << Images[i]->getNumberAtoms() << " atoms" << endl;
       log1 << "#Image " << i << " has N = " << Images[i]->getNumberAtoms() << " atoms" << endl;
     }
-  log1.close();
 
   dft.setEtaMax(1.0-1e-8);
 
 
+  DDFT *ddft;
+  if(ddft_type.compare("CLOSED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics);;}
+  else if(ddft_type.compare("OPEN_SIMPLE") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary();}
+  else if(ddft_type.compare("OPEN_SIMPLE_MODIFIED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary(); ddft->setModified();}
+  else if(ddft_type.compare("OPEN_SIN") == 0) {ddft = new DDFT_IF_Open(dft,finalDensity,bav,NULL,showGraphics); }
+  else {
+    cout << "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
+    log1<< "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
+  }
 
-  DDFT_IF_Open ddft(dft,finalDensity,bav,NULL,showGraphics);  
-  //    DDFT_IF ddft(dft,finalDensity,NULL,showGraphics);
-  // For closed system:
-  //ddft.setFixedBoundary();
+  log1.close();    
   
-  ddft.initialize();
+  //DDFT_IF_Open ddft(dft,finalDensity,bav,NULL,showGraphics);  
+  //  DDFT_IF ddft(dft,finalDensity,NULL,showGraphics);
+  // For closed system:
+  //  ddft.setFixedBoundary();
+  
+  ddft->initialize();
 
-  ddft.setTimeStep(1e-2);
-  ddft.set_tolerence_fixed_point(1e-4);
-  ddft.set_max_time_step(1e-2);
+  ddft->setTimeStep(1e-2);
+  ddft->set_tolerence_fixed_point(1e-4);
+  ddft->set_max_time_step(1e-2);
 
   Grace *grace = NULL;
   if(showGraphics)
     grace = new Grace(800,600,2);
 
-  StringMethod theString(ddft, Images, grace, freeEnd);
+  StringMethod theString(*ddft, Images, grace, freeEnd);
 
   if(Jclimber > 0) theString.setClimbingImage(Jclimber);
 
@@ -284,7 +300,7 @@ int main(int argc, char** argv)
   grace->pause();
   grace->close();
   delete grace;
-
+  delete ddft;
 
   return 1;
 }

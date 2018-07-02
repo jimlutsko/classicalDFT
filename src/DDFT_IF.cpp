@@ -94,7 +94,7 @@ double DDFT_IF::step_string(double &dt, Density &original_density, double self_c
 
   if(fixedBorder_)
     restore_values_on_border(original_density, d0);
-
+  
   original_density.doFFT();
   calls_++;
 
@@ -186,29 +186,56 @@ double DDFT_IF::step()
 
 void DDFT_IF::restore_values_on_border(Density &density, const DFT_Vec &d0)
 {
+  
   int Nx = density.Nx();
   int Ny = density.Ny();
   int Nz = density.Nz();
-      
+
+
+  int jx=0,jy=0,jz=0;
+  double max_change = 0;
+  double d_before = 0;
+  //  cout << "Before restoring values on border: " << density.getDensity(Nx-1,(Ny-1)/2,(Nz-1)/2);    
+
+
+
+
+
+  
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
       {
 	long i0 = density.pos(ix,iy,0);
+
+	double dd = fabs(density.getDensity(i0) - d0.get(i0));
+	if(dd > max_change){ max_change = dd; jx = ix; jy = iy; jz = 0; d_before = density.getDensity(i0);}
+	
 	density.set_Density_Elem(i0,d0.get(i0));
+	
       }
 
   for(int ix=0;ix<Nx;ix++)
     for(int iz=0;iz<Nz;iz++)
       {
 	long i0 = density.pos(ix,0,iz);
+	
+	double dd = fabs(density.getDensity(i0) - d0.get(i0));
+	if(dd > max_change){ max_change = dd; jx = ix; jy = 0; jz = iz; d_before = density.getDensity(i0);}
+	
 	density.set_Density_Elem(i0,d0.get(i0));
       }
   for(int iy=0;iy<Ny;iy++)
     for(int iz=0;iz<Nz;iz++)
       {
 	long i0 = density.pos(0,iy,iz);
+	
+	double dd = fabs(density.getDensity(i0) - d0.get(i0));
+	if(dd > max_change){ max_change = dd; jx = 0; jy = iy; jz = iz; d_before = density.getDensity(i0);}
+	
 	density.set_Density_Elem(i0,d0.get(i0));
       }
+
+  cout << "With modified_ = " << modified_ << " max change on boundary was " << max_change << " at position " << jx << "," << jy << "," << jz << " where density was " << d0.get(density.pos(jx,jy,jz)) << " and became " <<  d_before << endl;
 }
 
 /**
@@ -348,6 +375,11 @@ void DDFT_IF::calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &R
 	  // factor dV because f0, etc carries a dV
 	  RHS_F *= 1.0/(2*dV);
 
+	  // In the modified version, on the boundaries the RHS is thrown away and only the (negative) diffusive part kept
+	  if(modified_)
+	    if(ix == 0 || iy == 0 || iz == 0)
+	      RHS_F = 0.0;
+
 	  RHS_F -= Dx*(rpx+rmx-2*r0)+Dy*(rpy+rmy-2*r0)+Dz*(rpz+rmz-2*r0);
 
 	  // N.B. getFieldDeriv returns the derivative at iz-0.5.
@@ -357,7 +389,7 @@ void DDFT_IF::calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &R
 	  //	  double dvpz = density_.getFieldDeriv(0,0,(iz+1 > Nz ? 0 : iz+1),2);
 	  //	  double dvmz = density_.getFieldDeriv(0,0,iz,2);
 	  //	  RHS_F += dz*Dz*((rpz+r0)*dvpz-(r0+rmz)*dvmz)/2;
-
+	  
 	  RHS1.set(i0,RHS_F);
 	}
 }
