@@ -30,11 +30,14 @@ class StringMethod_MPI_Master : public StringMethod_MPI
       Ntot_ = finalDensity.Ntot();
       gr_ = new mglGraph;
       Images_.resize(Nimages);
+
       dF_.resize(Nimages);
-
-
       dF_[0] = F_initial;
       dF_[Nimages-1] = F_final;
+
+      N_.resize(Nimages);
+      N_[0] = bav_*finalDensity_.getVolume();
+      N_[Nimages-1] = finalDensity_.getNumberAtoms();
 
       
       //We just need one density to set up the array which is then shared by all
@@ -62,6 +65,7 @@ class StringMethod_MPI_Master : public StringMethod_MPI
     
     vector< vector<double> > Images_;
     vector<double> dF_;
+    vector<double> N_;
     long Ntot_;
 
     mglGraph *gr_;

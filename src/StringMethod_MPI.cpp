@@ -145,7 +145,7 @@ void StringMethod_MPI_Master::report(string &logfile)
 
   ofstream status("status.dat");
 
-  status << "0  0.000 " << dF_[0] << " 0 " << bav_*finalDensity_.getVolume() << endl; 
+  status << "0  0.000 " << dF_[0] << " 0 " << N_[0] << endl; 
   
   MPI_Status *stat;
 
@@ -173,8 +173,9 @@ void StringMethod_MPI_Master::report(string &logfile)
 
       for(int K=0;K<Nimage;K++)
 	{
-	  status <<  Nimages+K << " " << DT[K] << " " << dF1[K] << " " << dist[K] << " " << N[K] << endl; 
+	  status <<  1+Nimages+K << " " << DT[K] << " " << dF1[K] << " " << dist[K] << " " << N[K] << endl; 
 	  dF_[1+Nimages+K] = dF1[K];
+	  N_[1+Nimages+K] = N[K];
 	}
       Nimages  += Nimage;
       dFmax     = max(dFmax, dFmax1);
@@ -186,6 +187,8 @@ void StringMethod_MPI_Master::report(string &logfile)
       delete N;
       delete DT;
     }
+  int nlast = Images_.size()-1;
+  status <<  1+Nimages << " " << "0.0" << " " << dF_[nlast] << " " << "0.0" << " " << N_[nlast] << endl; 
   status.close();      
 
   dFav /= Nimages;

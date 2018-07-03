@@ -314,7 +314,7 @@ int main(int argc, char** argv)
       
       int assigned = 0;
       int chunk = (Nimages-2)/(numtasks-1);
-      int left_over = (Nimages-2) - chunk*(ntasks-1);
+      int left_over = (Nimages-2) - chunk*(numtasks-1);
 
       double *d = new double[Ntot];
       for(long i=0;i<Ntot;i++) d[i] = finalDensity.getDensity(i);
