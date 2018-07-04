@@ -107,19 +107,16 @@ void StringMethod::run(string& logfile)
     for(int J=1;J<string_.size()-1;J++)
       string_copy[J].set(string_[J]->getDensity());
 
-
     cout << "Relaxing now ... " << endl;
     int Limit = (freeEnd_ ? string_.size() : string_.size()-1);
 
-    double self_consistency_threshold = -1e-5;
-    
     for(int J=1;J<Limit;J++)
       {
 	double dt = DT_[J];
 
 	dt = min(2*dt, Time_Step_Max_);
 
-	ddft_.step_string(dt, *(string_[J]),self_consistency_threshold);
+	ddft_.step_string(dt, *(string_[J]));
 	
 	cout << "Image " << J << " dt = " << dt << endl;
 		

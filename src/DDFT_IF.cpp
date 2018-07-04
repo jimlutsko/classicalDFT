@@ -31,7 +31,7 @@ void DDFT_IF::initialize()
   //  cout << "Initial value of F = " << F_ << endl;
 }
 
-double DDFT_IF::step_string(double &dt, Density &original_density, double self_consistency_threshold, bool verbose)
+double DDFT_IF::step_string(double &dt, Density &original_density, bool verbose)
 {
   int Nx = original_density.Nx();
   int Ny = original_density.Ny();
@@ -43,22 +43,20 @@ double DDFT_IF::step_string(double &dt, Density &original_density, double self_c
 
   if(verbose) cout << "Initial F = " << F_ << endl;
 
-  const DFT_Vec &d0 = original_density.getDensity();   
   DFT_FFT RHS0(Nx,Ny,Nz);
-  calcNonlinearTerm(d0, dF_,RHS0.Real());
+  calcNonlinearTerm(original_density.getDensity(), dF_,RHS0.Real());
   RHS0.do_real_2_fourier();
-    
-  DFT_Vec d1(d0);
+
+  // This is going to be the new density that we refine 
+  DFT_Vec d1(original_density.getDensity());
   DFT_FFT RHS1(Nx,Ny,Nz);
 
-  double deviation = 1;
-
-  bool reStart;
-  bool decreased_time_step = false;
+  double deviation = 1;  // Euclidean distance between d1 before and after iteration - goes to zero at convergence
+  bool reStart;          // flag to tell if the search must be restarted with a smaller time steo
   
   do {
     reStart = false;
-    double old_error = 0;
+    double old_error = 0;  // previous value of deviation: if new error is larger than this, we reduce the time step
     
     for(int i=0;i<20 && deviation > tolerence_fixed_point_ && !reStart;i++)
       {
@@ -67,39 +65,25 @@ double DDFT_IF::step_string(double &dt, Density &original_density, double self_c
 	calcNonlinearTerm(d1, dF_,RHS1.Real());
 	RHS1.do_real_2_fourier();
 
-	density_.set(d0);       
-	density_.doFFT();
-	
-	deviation = fftDiffusion(d1,RHS0,RHS1);
+	deviation = fftDiffusion(original_density, d1,RHS0,RHS1);
 	if(verbose) cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
-	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {
-	  cout << "d0.min = " << d0.min() << " d1.min = " << d1.min() << endl;
-	  reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(original_density.getDensity());}
 
 	old_error = deviation;	       	
       }
     if(!reStart && deviation > tolerence_fixed_point_)
-      {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+      {reStart = true; dt_ /= 10; d1.set(original_density.getDensity()); }
   } while(reStart);
-  /*
-  // Adaptive time-step: try to increase time step if the present one works 5 times 
-  if(decreased_time_step) successes_ = 0;
-  else successes_++;
-  if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
-  */
   
-  original_density.set(d1);
-
   if(fixedBorder_)
-    restore_values_on_border(original_density, d0);
-  
-  original_density.doFFT();
-  calls_++;
+    restore_values_on_border(d1, original_density.getDensity());
 
-  //  F_ = dft_.calculateFreeEnergyAndDerivatives(original_density,0.0, dF_,false);  
-    
+  original_density.set(d1);  
+  original_density.doFFT(); // is this needed?
+
+  calls_++;
   dt = dt_;
 
   return F_;
@@ -145,7 +129,7 @@ double DDFT_IF::step()
 	density_.set(d0);       
 	density_.doFFT();
 	
-	deviation = fftDiffusion(d1,RHS0,RHS1);
+	deviation = fftDiffusion(density_, d1,RHS0,RHS1);
 	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
@@ -162,11 +146,10 @@ double DDFT_IF::step()
   else successes_++;
   if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
 
-  density_.set(d1);
-
   if(fixedBorder_)
-    restore_values_on_border(density_,d0);
-
+    restore_values_on_border(d1,d0);
+  
+  density_.set(d1);
 
   density_.doFFT();
   calls_++;
@@ -184,68 +167,61 @@ double DDFT_IF::step()
   return F_;
 }
 
-void DDFT_IF::restore_values_on_border(Density &density, const DFT_Vec &d0)
-{
-  
-  int Nx = density.Nx();
-  int Ny = density.Ny();
-  int Nz = density.Nz();
-
+void DDFT_IF::restore_values_on_border(DFT_Vec &d1, const DFT_Vec &d0)
+{  
+  int Nx = density_.Nx();
+  int Ny = density_.Ny();
+  int Nz = density_.Nz();
 
   int jx=0,jy=0,jz=0;
-  double max_change = 0;
   double d_before = 0;
-  //  cout << "Before restoring values on border: " << density.getDensity(Nx-1,(Ny-1)/2,(Nz-1)/2);    
 
-
-
-
-
+  largest_change_on_border_ = 0.0;
   
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
       {
-	long i0 = density.pos(ix,iy,0);
+	long i0 = density_.pos(ix,iy,0);
 
-	double dd = fabs(density.getDensity(i0) - d0.get(i0));
-	if(dd > max_change){ max_change = dd; jx = ix; jy = iy; jz = 0; d_before = density.getDensity(i0);}
+	double dd = fabs(d1.get(i0) - d0.get(i0));
+	if(dd > largest_change_on_border_){ largest_change_on_border_ = dd; jx = ix; jy = iy; jz = 0; d_before = d1.get(i0);}
 	
-	density.set_Density_Elem(i0,d0.get(i0));
+	d1.set(i0,d0.get(i0));
 	
       }
 
   for(int ix=0;ix<Nx;ix++)
     for(int iz=0;iz<Nz;iz++)
       {
-	long i0 = density.pos(ix,0,iz);
+	long i0 = density_.pos(ix,0,iz);
 	
-	double dd = fabs(density.getDensity(i0) - d0.get(i0));
-	if(dd > max_change){ max_change = dd; jx = ix; jy = 0; jz = iz; d_before = density.getDensity(i0);}
+	double dd = fabs(d1.get(i0) - d0.get(i0));
+	if(dd > largest_change_on_border_){ largest_change_on_border_ = dd; jx = ix; jy = 0; jz = iz; d_before = d1.get(i0);}
 	
-	density.set_Density_Elem(i0,d0.get(i0));
+	d1.set(i0,d0.get(i0));
       }
   for(int iy=0;iy<Ny;iy++)
     for(int iz=0;iz<Nz;iz++)
       {
-	long i0 = density.pos(0,iy,iz);
+	long i0 = density_.pos(0,iy,iz);
 	
-	double dd = fabs(density.getDensity(i0) - d0.get(i0));
-	if(dd > max_change){ max_change = dd; jx = 0; jy = iy; jz = iz; d_before = density.getDensity(i0);}
+	double dd = fabs(d1.get(i0) - d0.get(i0));
+	if(dd > largest_change_on_border_){ largest_change_on_border_ = dd; jx = 0; jy = iy; jz = iz; d_before = d1.get(i0);}
 	
-	density.set_Density_Elem(i0,d0.get(i0));
+	d1.set(i0,d0.get(i0));
       }
 
-  cout << "With modified_ = " << modified_ << " max change on boundary was " << max_change << " at position " << jx << "," << jy << "," << jz << " where density was " << d0.get(density.pos(jx,jy,jz)) << " and became " <<  d_before << endl;
+  cout << "With modified_ = " << modified_ << " max change on boundary was " << largest_change_on_border_ << " at position " << jx << "," << jy << "," << jz << " where density was " << d0.get(density_.pos(jx,jy,jz)) << " and became " <<  d_before << endl;
 }
 
 /**
  This function takes the input density and calculates a new density, d1, by propagating the density a time step dt. The nonlinear terms, RHS0 and RHS1, are treated explicitly.
 */
-double DDFT_IF::fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1)
+double DDFT_IF::fftDiffusion(const Density & density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1)
 {
-  double dx = density_.getDX();
-  double dy = density_.getDY();
-  double dz = density_.getDZ();
+  double dx = density.getDX();
+  double dy = density.getDY();
+  double dz = density.getDZ();
 
   double Dx = 1.0/(dx*dx);
   double Dy = 1.0/(dy*dy);
@@ -253,9 +229,9 @@ double DDFT_IF::fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RH
 
   double dV = dx*dy*dz;
 
-  int Nx = density_.Nx();
-  int Ny = density_.Ny();
-  int Nz = density_.Nz();
+  int Nx = density.Nx();
+  int Ny = density.Ny();
+  int Nz = density.Nz();
 
   double deviation = 0;
   double maxdeviation = 0;
@@ -280,7 +256,7 @@ double DDFT_IF::fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RH
 
 	  unsigned pos = iz + (1+Nz/2)*(iy +  Ny*ix);
 
-	  complex<double> x = density_.DensityK(pos); 
+	  complex<double> x = density.DensityK(pos); 
 	  
 	  if(pos > 0)
 	    {
@@ -294,7 +270,7 @@ double DDFT_IF::fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RH
   
   work.do_fourier_2_real();
 
-  long Ntot = density_.Ntot();   
+  long Ntot = density.Ntot();   
   for(unsigned i=0;i<d1.size();i++)
     {
       deviation += (d1.get(i)-work.Real().get(i)/Ntot)*(d1.get(i)-work.Real().get(i)/Ntot);

@@ -354,10 +354,11 @@ bool DDFT_Discrete::sub_step_z(DFT_Vec &ynew, const Density &original_density, b
   return bLessThanZero;
 }
 
-double DDFT_Discrete::step_string(double &dt, Density &original_density, double self_consistency_threshold, bool verbose)
+double DDFT_Discrete::step_string(double &dt, Density &original_density, bool verbose)
   {
     dt_ = dt;
 
+    double self_consistency_threshold = -1;
     bool bSelfConsistent = (self_consistency_threshold > 0);
 
     double F = dft_.calculateFreeEnergyAndDerivatives(original_density,0.0, dF_,true);

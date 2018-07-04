@@ -56,7 +56,7 @@ void DDFT_IF_Open::initialize()
 
 }
 
-double DDFT_IF_Open::step_string(double &dt, Density &original_density, double self_consistency_threshold, bool verbose)
+double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool verbose)
 {
   int Nx = original_density.Nx();
   int Ny = original_density.Ny();
@@ -173,7 +173,7 @@ double DDFT_IF_Open::step()
 	density_.set(d0);       
 	density_.doFFT();
 	
-	deviation = fftDiffusion(d1,RHS0,RHS1);
+	deviation = fftDiffusion(density_,d1,RHS0,RHS1);
 	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step

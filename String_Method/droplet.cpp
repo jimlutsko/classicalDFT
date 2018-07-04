@@ -259,7 +259,7 @@ int main(int argc, char** argv)
 
 
   DDFT *ddft;
-  if(ddft_type.compare("CLOSED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics);;}
+  if(ddft_type.compare("CLOSED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics);}
   else if(ddft_type.compare("OPEN_SIMPLE") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary();}
   else if(ddft_type.compare("OPEN_SIMPLE_MODIFIED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary(); ddft->setModified();}
   else if(ddft_type.compare("OPEN_SIN") == 0) {ddft = new DDFT_IF_Open(dft,finalDensity,bav,NULL,showGraphics); }

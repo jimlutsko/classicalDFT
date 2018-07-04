@@ -323,14 +323,12 @@ void StringMethod_MPI_Slave::run(string& logfile)
 
     ///////////////// Relaxation step
 
-    double self_consistency_threshold = -1e-5;
-    
     for(int J=0;J<Nimages;J++)
       {
 	double dt = DT_[J];
 
 	dt = min(2*dt, Time_Step_Max_);
-	ddft_.step_string(dt, *(string_[J]),self_consistency_threshold, false);
+	ddft_.step_string(dt, *(string_[J]),false);
 		
 	DT_[J] = dt;
       }

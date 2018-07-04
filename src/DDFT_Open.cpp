@@ -29,7 +29,7 @@ void DDFT_Open::initialize()
 
 
 
-double DDFT_Open::step_string(double &dt, Density &original_density, double self_consistency_threshold, bool verbose)
+double DDFT_Open::step_string(double &dt, Density &original_density, bool verbose)
 {
   int Nx = original_density.Nx();
   int Ny = original_density.Ny();
@@ -68,7 +68,7 @@ double DDFT_Open::step_string(double &dt, Density &original_density, double self
 	density_.set(d0);       
 	density_.doFFT();
 	
-	deviation = fftDiffusion(d1,RHS0,RHS1);
+	deviation = fftDiffusion(original_density, d1,RHS0,RHS1);
 	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
@@ -135,7 +135,7 @@ double DDFT_Open::step()
 	density_.set(d0);       
 	density_.doFFT();
 	
-	deviation = fftDiffusion(d1,RHS0,RHS1);
+	deviation = fftDiffusion(density_,d1,RHS0,RHS1);
 	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
@@ -172,7 +172,7 @@ double DDFT_Open::step()
 /**
  This function takes the input density and calculates a new density, d1, by propagating the density a time step dt. The nonlinear terms, RHS0 and RHS1, are treated explicitly.
 */
-double DDFT_Open::fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1)
+double DDFT_Open::fftDiffusion(const Density &d0, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1)
 {
   double dx = density_.getDX();
   double dy = density_.getDY();
@@ -211,7 +211,7 @@ double DDFT_Open::fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &
 
 	  unsigned pos = iz + (1+Nz/2)*(iy +  Ny*ix);
 
-	  complex<double> x = density_.DensityK(pos); 
+	  complex<double> x = d0.DensityK(pos); 
 	  
 	  if(pos > 0)
 	    {

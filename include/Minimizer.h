@@ -280,7 +280,7 @@ class DDFT : public Minimizer
   void reverseForce(DFT_Vec *tangent);
 
   virtual double step() = 0;
-  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true) = 0;
+  virtual double step_string(double &dt, Density &d, bool verbose = true) = 0;
 
  protected:
 
@@ -321,7 +321,7 @@ class DDFT_Discrete : public DDFT
 
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true			     );
+  virtual double step_string(double &dt, Density &d, bool verbose = true);
 
   void   solv_tridiag(const DFT_Vec &b, DFT_Vec &RHS, double D, bool bFixedBoundaries = false);
   void   solv_periodic_tridiag(DFT_Vec &RHS, double D);
@@ -350,15 +350,16 @@ class DDFT_IF : public DDFT
 
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true);
+  virtual double step_string(double &dt, Density &d, bool verbose = true);
 
-  double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
+  double fftDiffusion(const Density &density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
-  void restore_values_on_border(Density& density, const DFT_Vec &d0);
+  void restore_values_on_border(DFT_Vec& d1, const DFT_Vec &d0);
 
   
  protected:
 
+  double largest_change_on_border_; // for reporting effect of restore_values_on_border()
 };
 
 /**
@@ -379,9 +380,9 @@ class DDFT_IF_Open : public DDFT
 
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true);
+  virtual double step_string(double &dt, Density &d, bool verbose = true);
 
-  double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1) {throw std::runtime_error("Need to adapt fftDiffusion for non-string application");}
+  double fftDiffusion(const Density &density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1) {throw std::runtime_error("Need to adapt fftDiffusion for non-string application");}
   double fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
 
@@ -411,9 +412,9 @@ class DDFT_Open : public DDFT
   
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, double self_consistency_threshold = -1, bool verbose = true);
+  virtual double step_string(double &dt, Density &d, bool verbose = true);
 
-  double fftDiffusion(DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
+  double fftDiffusion(const Density &density,DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
 
  protected:
