@@ -129,6 +129,42 @@ void StringMethod_MPI_Master::archive(string &filename) const
   of << finalDensity_.Lx() << " " << finalDensity_.Ly()  << " " << finalDensity_.Lz()  << endl;
   of << Images_.size() << endl;
   of.close();    
+
+
+  stringstream ss;
+  std::ios  state(NULL);
+  state.copyfmt(ss);
+  
+  int J = 0;
+  DFT_Vec dd;
+
+  ss << filename << "_";
+  ss << setfill ('0') << std::setw(4);
+  ss << J;
+  ss.copyfmt(state);
+  ss <<".dat";  
+
+  dd.set(Images_[J]);
+  finalDensity_.setDensity(dd.data(), dd.size());
+  string s = ss.str();
+  ofstream of(s.c_str(),ios::binary);
+  finalDenisty_.writeDensity(s);
+
+  int J = Images_.size()-1;
+
+  ss << filename << "_";
+  ss << setfill ('0') << std::setw(4);
+  ss << J;
+  ss.copyfmt(state);
+  ss <<".dat";  
+
+  dd.set(Images_[J]);
+  finalDensity_.setDensity(dd.data(), dd.size());
+  string s = ss.str();
+  ofstream of(s.c_str(),ios::binary);
+  finalDenisty_.writeDensity(s);
+
+
 }
 
 
