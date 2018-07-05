@@ -169,7 +169,7 @@ class Droplet : public Density
   {  
     for(int i=0;i<Nx_;i++)
       for(int j=0;j<Ny_;j++)
-	a.a[i+Nx_*j] = getDensity(i,j, int((Nz_-1)/2)); 	
+	a.a[i+Nx_*j] = log(getDensity(i,j, int((Nz_-1)/2))); 	
 	//	a.a[i+Nx_*j] = getDensity(i,j, int(0.85*Nz_));
   }
 

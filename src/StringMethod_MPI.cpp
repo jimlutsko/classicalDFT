@@ -131,39 +131,40 @@ void StringMethod_MPI_Master::archive(string &filename) const
   of.close();    
 
 
-  stringstream ss;
+  stringstream ss1;
   std::ios  state(NULL);
-  state.copyfmt(ss);
+  state.copyfmt(ss1);
   
   int J = 0;
   DFT_Vec dd;
 
-  ss << filename << "_";
-  ss << setfill ('0') << std::setw(4);
-  ss << J;
-  ss.copyfmt(state);
-  ss <<".dat";  
+  ss1 << filename << "_";
+  ss1 << setfill ('0') << std::setw(4);
+  ss1 << J;
+  ss1.copyfmt(state);
+  ss1 <<".dat";  
 
-  dd.set(Images_[J]);
-  finalDensity_.setDensity(dd.data(), dd.size());
-  string s = ss.str();
-  ofstream of(s.c_str(),ios::binary);
-  finalDenisty_.writeDensity(s);
+  dd.set(Images_[J].data(), finalDensity_.Ntot());
+  finalDensity_.set(dd);
+  string s1 = ss1.str();
+  finalDensity_.writeDensity(s1);
 
-  int J = Images_.size()-1;
 
-  ss << filename << "_";
-  ss << setfill ('0') << std::setw(4);
-  ss << J;
-  ss.copyfmt(state);
-  ss <<".dat";  
+  stringstream ss2;
+  std::ios  state2(NULL);
+  state2.copyfmt(ss2);
+  J = Images_.size()-1;
 
-  dd.set(Images_[J]);
-  finalDensity_.setDensity(dd.data(), dd.size());
-  string s = ss.str();
-  ofstream of(s.c_str(),ios::binary);
-  finalDenisty_.writeDensity(s);
+  ss2 << filename << "_";
+  ss2 << setfill ('0') << std::setw(4);
+  ss2 << J;
+  ss2.copyfmt(state2);
+  ss2 <<".dat";  
 
+  dd.set(Images_[J].data(), finalDensity_.Ntot());
+  finalDensity_.set(dd);
+  string s2 = ss2.str();
+  finalDensity_.writeDensity(s2);
 
 }
 
