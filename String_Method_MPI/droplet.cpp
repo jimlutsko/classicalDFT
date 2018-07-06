@@ -358,8 +358,12 @@ int main(int argc, char** argv)
     delete final;
 
     theString = new StringMethod_MPI_Slave(*ddft, Images,mu_boundary, taskid, start_index, TimeStepMax);
-    //    theString->setMu(mu_boundary);  
 
+    if(bRestart)
+      {
+	string file("..//archive");
+	((StringMethod_MPI_Slave*) theString)->read(file);
+      }
   }
 
   string s("log.dat");
