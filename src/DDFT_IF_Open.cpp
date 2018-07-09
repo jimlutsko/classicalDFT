@@ -73,7 +73,6 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool ver
   const DFT_Vec &d0 = original_density.getDensity();   
   DFT_Vec RHS0(Ntot);
   calcNonlinearTerm(d0, dF_,RHS0);
-  //  RHS0.do_real_2_fourier();
   double *RHS0_sin_transform = new double[sin_Ntot_];
 
   pack_for_sin_transform(RHS0.memptr(),0.0);
@@ -98,7 +97,7 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool ver
 	density_.set(d1);
 	F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,false);
 	calcNonlinearTerm(d1, dF_,RHS1);
-	//	RHS1.do_real_2_fourier();
+
 	pack_for_sin_transform(RHS1.memptr(),0.0);
 	fftw_execute(sin_plan_);
 	memcpy(RHS1_sin_transform,sin_out_,sin_Ntot_*sizeof(double));
@@ -230,7 +229,6 @@ double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform,
 
   double deviation = 0;
   double maxdeviation = 0;
-
   
   pack_for_sin_transform(density_.getData(),background_);
   fftw_execute(sin_plan_);
@@ -255,20 +253,17 @@ double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform,
 
 	  double x = sin_out_[pos];
 	  
-	  if(pos > 0)
-	    {
-	      double fac = exp(Lambda*dt_);
-	      x *= fac;
-	      x += ((fac-1)/Lambda)*RHS0_sin_transform[pos];
-	      x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform[pos]-RHS0_sin_transform[pos]);
-	    }
+	  double fac = exp(Lambda*dt_);
+	  x *= fac;
+	  x += ((fac-1)/Lambda)*RHS0_sin_transform[pos];
+	  x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform[pos]-RHS0_sin_transform[pos]);
+
 	  sin_in_[pos] = x;
 	  pos++;
 	}
 
   fftw_execute(sin_plan_);
 
-  //  for(unsigned i=0;i<sin_Ntot_;i++)
   pos = 0;
   for(int ix=1;ix<Nx;ix++)
     for(int iy=1;iy<Ny;iy++)

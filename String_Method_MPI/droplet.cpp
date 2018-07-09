@@ -155,17 +155,26 @@ int main(int argc, char** argv)
 
   Droplet finalDensity(dx, L, PointsPerHardSphere, R, zPos); 
   Potential1 potential(sigma, eps, rcut);
-  DFT_VDW<RSLT> dft(finalDensity,potential,pointsFile,kT);
+
+  // Don't like this ... quick and dirty ... better with MPI_FILE_READ in Fmt.cpp?
+  DFT_VDW<RSLT> *dft;
+  
+  for(int rank = 0; rank < numtasks; rank++)
+    {
+      if (taskid == rank) 
+	dft = new DFT_VDW<RSLT>(finalDensity,potential,pointsFile,kT);    
+      MPI_Barrier(MPI_COMM_WORLD);
+    } 
 
   // Determine coexistence to give us a baseline for the densities
   double xliq_coex = 0.001;
   double xgas_coex = 0.6;
   try{
-    dft.coexistence(xliq_coex, xgas_coex);
+    dft->coexistence(xliq_coex, xgas_coex);
   } catch(...) { if(taskid == MASTER) cout << "No coexistence found ... " << endl;}
   
   double xs1,xs2;
-  dft.spinodal(xs1,xs2);
+  dft->spinodal(xs1,xs2);
   if(taskid == MASTER)
     {
       cout << "Spinodal: " << xs1 << " " << xs2 <<  " so Nspinodal = " << xs1*finalDensity.getVolume() << endl;
@@ -173,8 +182,8 @@ int main(int argc, char** argv)
     }
 
   // set the thermodynamic state
-  double omega_coex = dft.Omega(xliq_coex);
-  double mu         = dft.Mu(xliq_coex);
+  double omega_coex = dft->Omega(xliq_coex);
+  double mu         = dft->Mu(xliq_coex);
 
   // Begin intialization of images
 
@@ -191,7 +200,7 @@ int main(int argc, char** argv)
       double NN = finalDensity.getNumberAtoms();
 
       cout << "Final NN = " << finalDensity.getNumberAtoms() << endl;
-      cout << "Hard sphere diameter  = " << dft.HSD() << endl;
+      cout << "Hard sphere diameter  = " << dft->HSD() << endl;
       cout << "Coexisting densities  = " << xliq_coex << " " << xgas_coex << endl;  
       cout << "Chemical potential/kT = " << mu << endl;
       cout << "beta * Grand free energy per unit volume = " << omega_coex << endl;
@@ -210,15 +219,12 @@ int main(int argc, char** argv)
       for(int ix=0;ix<Nx;ix++)
 	for(int iy=0;iy<Ny;iy++)
 	  {
-	    //finalDensity.set_Density_Elem(ix,iy,0,finalDensity.getDensity(ix,iy,0)*fac);
 	    bav += finalDensity.getDensity(ix,iy,0);
 	    nav++;
 	  }
       for(int ix=0;ix<Nx;ix++)
 	for(int iz=1;iz<Nz-1;iz++)
 	  {
-	    //	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*fac);
-	    //	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*fac);
 	    bav += finalDensity.getDensity(ix,0,iz);
 	    nav++;
 	  }
@@ -226,15 +232,13 @@ int main(int argc, char** argv)
       for(int iy=1;iy<Ny-1;iy++)
 	for(int iz=1;iz<Nz-1;iz++)
 	  {
-	    //	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*fac);
-	    //	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*fac);
 	    bav += finalDensity.getDensity(0,iy,iz);
 	    nav++;	
 	  }
       bav /= nav;
 
   
-      mu_boundary = dft.Mu(bav);
+      mu_boundary = dft->Mu(bav);
       if(taskid == MASTER)
 	{
 	  ofstream log1("log.dat", ios::app);
@@ -270,21 +274,19 @@ int main(int argc, char** argv)
   // Since the first and last images are fixed, there are only N-2 to allocate
   
 
-  dft.setEtaMax(1.0-1e-8);
+  dft->setEtaMax(1.0-1e-8);
 
   DDFT *ddft;
-  if(ddft_type.compare("CLOSED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics);;}
-  else if(ddft_type.compare("OPEN_SIMPLE") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary();}
-  else if(ddft_type.compare("OPEN_SIMPLE_MODIFIED") == 0) {ddft = new DDFT_IF(dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary(); ddft->setModified();}
-  else if(ddft_type.compare("OPEN_SIN") == 0) {ddft = new DDFT_IF_Open(dft,finalDensity,bav,NULL,showGraphics); }
+  if(ddft_type.compare("CLOSED") == 0) {ddft = new DDFT_IF(*dft,finalDensity,NULL,showGraphics);;}
+  else if(ddft_type.compare("OPEN_SIMPLE") == 0) {ddft = new DDFT_IF(*dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary();}
+  else if(ddft_type.compare("OPEN_SIMPLE_MODIFIED") == 0) {ddft = new DDFT_IF(*dft,finalDensity,NULL,showGraphics); ddft->setFixedBoundary(); ddft->setModified();}
+  else if(ddft_type.compare("OPEN_SIN") == 0) {ddft = new DDFT_IF_Open(*dft,finalDensity,bav,NULL,showGraphics); }
   else {
     ofstream log1("log.dat", ios::app);
     cout << "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
     log1<< "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
   }
 
-  
-  //  DDFT_IF ddft(dft,finalDensity,NULL,showGraphics);
   ddft->initialize();
 
   ddft->setTimeStep(1e-2);
@@ -292,7 +294,7 @@ int main(int argc, char** argv)
   ddft->set_max_time_step(1e-2);
 
   // For closed system:
-  //  ddft.setFixedBoundary();
+  //  ddft->setFixedBoundary();
 
   long Ntot = finalDensity.Ntot();
 
@@ -300,7 +302,7 @@ int main(int argc, char** argv)
   
   if(taskid == MASTER)
     {
-      double Finitial = dft.Fhelmholtz(bav)*finalDensity.getVolume();
+      double Finitial = dft->Fhelmholtz(bav)*finalDensity.getVolume();
       double Ni = bav*finalDensity.getVolume();
       
       cout << "Image 0 " << " F = " << Finitial << " mu = " << mu_boundary << " N = " << Ni  << " Omega = " << Finitial-mu_boundary*Ni << endl;
@@ -385,6 +387,7 @@ int main(int argc, char** argv)
     }
 
   delete ddft;
+  delete dft;
   
   MPI_Finalize();
   return 0;

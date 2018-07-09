@@ -36,19 +36,34 @@ void StringMethod::Display(vector<double> &F, int dataSet, double dFmax, double 
   
   for(int J=0;J<N;J++)	
     grace_->deleteDataSet(J,1);
+
+  double ymin = -1;
+  double ymax = -1;
   for(int J=0;J<N;J++)
     {
-      for(int i=(Nx-1)/2;i<Nx;i++)
-	grace_->addPoint(string_[J]->getX(i), string_[J]->getDensity(i,(Ny-1)/2,(Nz-1)/2),J,1);
+      //      for(int i=(Nx-1)/2;i<Nx;i++)
+      for(int i=0;i<Nx;i++)
+	{
+	  double d = string_[J]->getDensity(i,(Ny-1)/2,(Nz-1)/2);
+	  grace_->addPoint(string_[J]->getX(i), d,J,1);
+	  if(ymin < 0 || d < ymin) ymin = d;
+	  if(ymax < 0 || d > ymax) ymax = d;
+	}
     }
   
   stringstream ss;
   ss << "Step = " << step_counter_ << " dFmax = " << dFmax << " dFav = " << dFav;
   cout << "Setting title to: " << ss.str() << endl;
   grace_->setTitle(ss.str().c_str());
+
+
+  double xmin = string_[0]->getX(0);
+  double xmax = string_[0]->getX(Nx);
+
+  grace_->setLimits(xmin,xmax,ymin,ymax*1.1,1);
   
   grace_->redraw(1,0);
-  grace_->redraw(1,1);
+  grace_->redraw(0,1);
   string s("string_graph.agr");
   grace_->store(s);
 }

@@ -69,7 +69,10 @@ COMMON = ../
 LIBS= 
 
 prog : $(OBS) $(LIBS) $(BUILD_NUMBER_FILE) common
-	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o $(PROG)   ../DFT.o ../FMT.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o ../DDFT.o ../StringMethod.o ../Grace.o ../spliner.o ../DDFT_IF.o  ../DDFT_Discrete.o ../DDFT_Open.o  $(OBS) $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lnlopt -lpthread -lm
+	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o $(PROG)   ../DFT.o ../FMT.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o ../DDFT.o ../StringMethod.o ../Grace.o ../spliner.o ../DDFT_IF.o ../DDFT_IF_Open.o ../DDFT_Discrete.o ../DDFT_Open.o  $(OBS) $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lnlopt -lpthread -lm
+
+generate_images : generate_images.o $(LIBS) $(BUILD_NUMBER_FILE) common
+	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o generate_images   generate_images.o ../Density.o   ../options.o ../Grace.o    $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lnlopt -lpthread -lm
 
 .PHONY : clean
 clean :

@@ -7,6 +7,8 @@
   *  @brief Class that specializes Density to a slit-pore geometry with a fixed spherical particle
   */  
 
+int Jglobal = 0;
+
 class Droplet : public Density
 {
  public:
@@ -169,8 +171,13 @@ class Droplet : public Density
   {  
     for(int i=0;i<Nx_;i++)
       for(int j=0;j<Ny_;j++)
-	a.a[i+Nx_*j] = log(getDensity(i,j, int((Nz_-1)/2))); 	
-	//	a.a[i+Nx_*j] = getDensity(i,j, int(0.85*Nz_));
+	//	a.a[i+Ny_*j] = log(getDensity(i,-2+int((Ny_-1)/2),j));
+    //a.a[i+Nx_*j] = log(getDensity(i,j, Jglobal+int((Nz_-1)/2)));
+        	a.a[i+Nx_*j] = log(getDensity(i,j, int((Nz_-1)/2))); 	
+
+
+
+    //	a.a[i+Nx_*j] = getDensity(i,j, int(0.85*Nz_));
   }
 
   void translate(ofstream &of)

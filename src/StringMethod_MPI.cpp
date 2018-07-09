@@ -308,7 +308,7 @@ void StringMethod_MPI_Master::interpolate()
       double alpha_local = J*dL;
       bool found = false;
       for(int K=0;K<alpha.size() && !found;K++)
-	if(alpha_local > alpha[K] && alpha_local < alpha[K+1])
+	if(alpha_local >= alpha[K] && alpha_local < alpha[K+1])
 	  {
 	    Intervals.push_back(K);
 	    found = true;
