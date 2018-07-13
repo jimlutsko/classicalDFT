@@ -47,6 +47,7 @@ class StringMethod_MPI_Master : public StringMethod_MPI
 
   virtual void run(string& logfile);
   void interpolate();
+  void interpolate_cubic();
   void processImages();
   void report(string &logfile);
   

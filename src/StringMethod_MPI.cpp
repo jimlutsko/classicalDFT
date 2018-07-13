@@ -345,6 +345,61 @@ void StringMethod_MPI_Master::interpolate()
     }
 }
 
+
+void StringMethod_MPI_Master::interpolate_cubic()
+{
+  // Calculate the "distance" of each image from the origin
+
+  int Nimage = Images_.size();
+  
+  vector<double> alpha;
+  alpha.push_back(0.0);
+
+  for(int J = 1;J<Nimage;J++)
+    {      
+      double d = 0;
+      for(long i=0;i<Ntot_;i++)
+	{
+	  double d1 = Images_[J-1][i];
+	  double d2 = Images_[J][i];
+
+	  d += (d1-d2)*(d1-d2);
+	}
+      d = sqrt(d) + alpha.back();
+      alpha.push_back(d);
+    }
+
+  
+  // Now, interpolate to get the new images
+
+  double dL = alpha.back()/(Nimage-1);
+
+  int chunk = Ntot_/10;
+  long i;
+  
+  //#pragma omp parallel for			\
+  //  shared(chunk)				\
+  //  private(i)				\
+  //  schedule(static,chunk)			  
+  for(i=0;i<Ntot_;i++)
+    {
+      vector<double> y;
+
+      for(int J = 0;J<Nimage;J++)
+	y.push_back(sqrt(Images_[J][i]));
+
+      SplinerVec s(alpha,y);
+
+      for(int J = 1;J<Nimage-1; J++)
+	{
+	  double d = s.f(J*dL);
+	  d = d*d;	  
+	  Images_[J][i] = d;
+	}
+    }
+}
+
+
 void StringMethod_MPI_Slave::run(string& logfile)
 {
   int Nimages = string_.size();
