@@ -223,8 +223,8 @@ int main(int argc, char** argv)
 
   ofstream log1("log.dat");
   
-  cout << "bmax = " << bmax << endl;
-  cout << "bmin = " << bmin << endl;
+  cout << "bmax-bav = " << bmax-bav << endl;
+  cout << "bmin-bav = " << bmin-bav << endl;
   cout << "bav  = " << bav  << endl;
   
   double mu_boundary = dft.Mu(bav);

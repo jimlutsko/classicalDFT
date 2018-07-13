@@ -85,7 +85,7 @@ void StringMethod_MPI_Master::run(string& logfile)
 
     if(grace_) grace_->redraw(1,0);
 
-  } while(1);
+  } while(delta_max_ > termination_criterion_);
 
 }
 
@@ -246,6 +246,9 @@ void StringMethod_MPI_Master::report(string &logfile)
   log << endl;
   log.close();
 
+  delta_max_ = delta_max;
+
+  
 }
 
 void StringMethod_MPI_Master::Display(int dataSet, double dFmax, double dFav)

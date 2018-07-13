@@ -109,10 +109,10 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool ver
 	if(verbose) cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
-	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {
-	  
-	  reStart = true; dt_ /= (fabs(d1.min()) > 0.1 ? 10 : 2) ; d1.set(d0); decreased_time_step = true;}
-
+	if(d1.min() < 0 || (i > 0 && old_error < deviation))
+	  {
+	    reStart = true; dt_ /= (fabs(d1.min()) > 0.1 ? 10 : 2) ; d1.set(d0); decreased_time_step = true;
+	  }
 	old_error = deviation;	       	
       }
     if(!reStart && deviation > tolerence_fixed_point_)
@@ -136,6 +136,18 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool ver
 
 double DDFT_IF_Open::step()
 {
+  double olddt = dt_;
+  double dt = dt_;
+  F_ = step_string(dt, density_, true);
+  dt_ = olddt;
+  
+    // Adaptive time-step: try to increase time step if the present one works 5 times 
+  if(dt < dt_*1.01) successes_ = 0;
+  else successes_++;
+  if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
+
+  
+  /*
   bool bLessThanZero;
   cout << "===================================================================================================================" << endl;
 
@@ -203,7 +215,7 @@ double DDFT_IF_Open::step()
     
   if(grace_)
     Display(F_,d00,d11,density_.getNumberAtoms());
-
+  */
   return F_;
 }
 
@@ -276,7 +288,7 @@ double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform,
 	  
 	  deviation += (d1val-d)*(d1val-d);
 	  double u = fabs(d1val-d);
-	  if(u > maxdeviation) maxdeviation = u;
+	  if(u > maxdeviation) maxdeviation = u;	  
 	}
   unpack_after_transform(d1.memptr(), background_);
   return maxdeviation; 

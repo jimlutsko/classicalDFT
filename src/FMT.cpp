@@ -140,11 +140,46 @@ void FMT::generateWeights(vector<FMT_Weighted_Density> &densities, double hsd, s
 
   vector < vector<double> > points; 
   
-  // Read points from file
+  // Read points from file : C++ way
+  
   ifstream in(pointsFile.c_str());
   if(!in.good())
     throw std::runtime_error("input file cannot be opened");
+  
 
+  // Read points from file : C code for use with MPI functions
+  /*
+  FILE *infile = fopen(pointsFile.c_str(),"r");
+  if(infile == NULL)
+    throw std::runtime_error("input pointsfile cannot be opened");
+
+  // get num bytes
+  fseek(infile, 0L, SEEK_END);
+  long numbytes = ftell(infile);
+
+  // reset
+  fseek(infile, 0L, SEEK_SET);
+
+  // allocate buffer
+  char *buffer = (char*)calloc(numbytes, sizeof(char));	
+
+  if(buffer == NULL)
+    throw std::runtime_error("could not allocate buffer for points file");
+
+  // copy
+  fread(buffer, sizeof(char), numbytes, infile);
+  fclose(infile);
+  
+  string sbuffer(buffer,numbytes/sizeof(char));
+
+  infile.close();
+  delete buffer;
+  
+  istringstream in(sbuffer);
+  */
+
+
+  
   for(string buf; getline(in,buf);)
     {
       vector<double> line;

@@ -159,6 +159,41 @@ int main(int argc, char** argv)
   if(! infile.empty())
     theDensity.readDensity(infile.c_str());
 
+
+  double bav = 0.0;
+  double bmax = 0.0;
+  double bmin = 1e30;
+  double nav = 0.0;
+  for(int ix = 0;ix<theDensity.Nx();ix++)
+      for(int iy = 0;iy<theDensity.Ny();iy++)
+	  for(int iz = 0;iz<theDensity.Nz();iz++)
+	    if(ix == 0 || iy == 0 || iz == 0)
+	      {
+		double d = theDensity.getDensity(ix,iy,iz);
+		nav++;
+		bav += d;
+		bmax = max(bmax,d);
+		bmin = min(bmin,d);
+	      }
+  bav/=nav;
+  cout << "boundary density:" << endl;
+  cout << "\tmax = " << bmax << endl;
+  cout << "\tmin = " << bmin << endl;
+  cout << "\tave = " << bav << endl;
+
+  ofstream log2("log.dat",ios::app);
+  log2 << "#boundary density:" << endl;
+  log2 << "#\tmax = " << bmax << endl;
+  log2 << "#\tmin = " << bmin << endl;
+  log2 << "#\tave = " << bav/nav << endl;
+  log2.close();
+
+  for(int ix = 0;ix<theDensity.Nx();ix++)
+      for(int iy = 0;iy<theDensity.Ny();iy++)
+	  for(int iz = 0;iz<theDensity.Nz();iz++)
+	    if(ix == 0 || iy == 0 || iz == 0)
+	      theDensity.set_Density_Elem(ix,iy,iz,bav);
+
   if(Natoms > 0) NN = Natoms;
   else NN = theDensity.getNumberAtoms();
 

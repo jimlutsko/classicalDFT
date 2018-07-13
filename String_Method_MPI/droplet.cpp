@@ -84,6 +84,8 @@ int main(int argc, char** argv)
   int Jclimber = -1;
   bool freeEnd = false;
 
+  double terminationCriterion = 0.01;
+  
   double TimeStepMax = -1;
   string ddft_type;
   
@@ -110,7 +112,7 @@ int main(int argc, char** argv)
   options.addOption("MaxIts", &MaxIts);
 
   options.addOption("sigma_conj_grad", &sigma_conj_grad);
-  options.addOption("ForceTerminationCriterion",&forceLimit);
+  options.addOption("TerminationCriterion",&terminationCriterion);
 
   options.addOption("OutputFile", &outfile);
   options.addOption("IntegrationPointsFile", &pointsFile);
@@ -158,14 +160,15 @@ int main(int argc, char** argv)
 
   // Don't like this ... quick and dirty ... better with MPI_FILE_READ in Fmt.cpp?
   DFT_VDW<RSLT> *dft;
-  
+  dft = new DFT_VDW<RSLT>(finalDensity,potential,pointsFile,kT);
+  /*
   for(int rank = 0; rank < numtasks; rank++)
     {
       if (taskid == rank) 
 	dft = new DFT_VDW<RSLT>(finalDensity,potential,pointsFile,kT);    
       MPI_Barrier(MPI_COMM_WORLD);
     } 
-
+  */
   // Determine coexistence to give us a baseline for the densities
   double xliq_coex = 0.001;
   double xgas_coex = 0.6;
@@ -312,7 +315,7 @@ int main(int argc, char** argv)
 
       cout << "Image " << Nimages-1 << " F = " << Ffinal << " mu = " << mu_boundary << " N = " << NN  << " Omega = " << Ffinal-mu_boundary*NN << endl;
       
-      theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, Ffinal-mu_boundary*NN, Finitial-Ni*mu_boundary, mu_boundary, grace, freeEnd);
+      theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, Ffinal-mu_boundary*NN, Finitial-Ni*mu_boundary, mu_boundary, terminationCriterion, grace, freeEnd);
       
       int assigned = 0;
       int chunk = (Nimages-2)/(numtasks-1);

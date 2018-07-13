@@ -24,8 +24,8 @@ class StringMethod_MPI
 class StringMethod_MPI_Master : public StringMethod_MPI
 {
  public:
- StringMethod_MPI_Master(int Nimages, Density &finalDensity, double bav, double F_final, double F_initial, double mu, Grace *g = NULL, bool freeEnd = false) 
-   : StringMethod_MPI(mu, freeEnd), finalDensity_(finalDensity), bav_(bav), grace_(g)
+ StringMethod_MPI_Master(int Nimages, Density &finalDensity, double bav, double F_final, double F_initial, double mu, double terminationCriterion = 0.01, Grace *g = NULL, bool freeEnd = false) 
+   : StringMethod_MPI(mu, freeEnd), finalDensity_(finalDensity), bav_(bav), grace_(g), termination_criterion_(terminationCriterion)
     {
       Ntot_ = finalDensity.Ntot();
       gr_ = new mglGraph;
@@ -68,6 +68,9 @@ class StringMethod_MPI_Master : public StringMethod_MPI
     vector<double> N_;
     long Ntot_;
 
+    double delta_max_; // largest velocity
+    double termination_criterion_;
+    
     mglGraph *gr_;
     mglData data_2D_;
 

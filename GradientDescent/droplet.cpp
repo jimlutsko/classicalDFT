@@ -158,8 +158,6 @@ int main(int argc, char** argv)
   cout << "Average density = " << avDensity << endl;
 
 
-  ofstream log1("log.dat");
-  
   dft.setEtaMax(1.0-1e-8);
 
 
@@ -187,7 +185,7 @@ int main(int argc, char** argv)
 	nav++;
       }
   for(int ix=0;ix<Nx;ix++)
-    for(int iz=1;iz<Nz-1;iz++)
+    for(int iz=1;iz<Nz;iz++)
       {
 	//	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*fac);
 	//	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*fac);
@@ -195,8 +193,8 @@ int main(int argc, char** argv)
 	nav++;
       }
 
-  for(int iy=1;iy<Ny-1;iy++)
-    for(int iz=1;iz<Nz-1;iz++)
+  for(int iy=1;iy<Ny;iy++)
+    for(int iz=1;iz<Nz;iz++)
       {
 	//	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*fac);
 	//	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*fac);
@@ -204,23 +202,25 @@ int main(int argc, char** argv)
 	nav++;	
       }
   bav /= nav;
+  cout << "Estimated mu = " << dft.Mu(bav) << endl;
+  ofstream lof("log.dat", ios::app);
+  lof <<  "#Estimated mu = " << dft.Mu(bav) << endl;
+  lof.close();
   
+  /*
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
       for(int iz=0;iz<Nz;iz++)
-	{
-	  if(ix != 0 && iy != 0 && iz != 0)
-	    //	    finalDensity.set_Density_Elem(ix,iy,iz,finalDensity.getDensity(ix,iy,iz)*fac+avDensity*(1-fac));
-	    finalDensity.set_Density_Elem(ix,iy,iz,bav);
-	}
-  
+	if(ix == 0 || iy == 0 ||  iz == 0)
+	  finalDensity.set_Density_Elem(ix,iy,iz,bav);
+  */
   DDFT_IF ddft(dft,finalDensity,&grace,showGraphics);
   ddft.initialize();
   ddft.setTimeStep(dt);
   ddft.set_tolerence_fixed_point(tolerence_fixed_point);
   ddft.set_max_time_step(dtMax);
 
-  ddft.setFixedBoundary();
+  //  ddft.setFixedBoundary();
 
   
   string slog("log.dat");
