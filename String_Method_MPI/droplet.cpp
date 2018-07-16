@@ -318,8 +318,10 @@ int main(int argc, char** argv)
       theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, Ffinal-mu_boundary*NN, Finitial-Ni*mu_boundary, mu_boundary, terminationCriterion, grace, freeEnd);
       
       int assigned = 0;
-      int chunk = (Nimages-2)/(numtasks-1);
-      int left_over = (Nimages-2) - chunk*(numtasks-1);
+      int to_assign = Nimages-2 + (freeEnd ? 1 : 0);
+      
+      int chunk = to_assign/(numtasks-1);
+      int left_over = to_assign - chunk*(numtasks-1);
 
       double *d = new double[Ntot];
       for(long i=0;i<Ntot;i++) d[i] = finalDensity.getDensity(i);
@@ -372,17 +374,6 @@ int main(int argc, char** argv)
   }
 
   string s("log.dat");
-
-
-  /*
-    if(bRestart)
-    {
-    string file("..//archive");
-    theString.read(file);
-    }
-  */
-
-  //  theString->setMu(mu);
   
   theString->run(s);
   
