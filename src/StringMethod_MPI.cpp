@@ -26,7 +26,7 @@ using namespace std;
 void StringMethod_MPI_Master::run(string& logfile)
 {
 
-  ofstream log(logfile.c_str());
+  ofstream log(logfile.c_str(), ios::app);
   log << "#Initial free energies = ";
 
   //for(double F: oldF)
