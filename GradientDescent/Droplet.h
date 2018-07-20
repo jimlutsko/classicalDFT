@@ -46,6 +46,8 @@ class Droplet : public Density
   */  
   virtual void initialize(double density, double d2)
   {
+    if(density < d2) swap(density,d2);
+
     Density::initialize(density,d2);
 
     for(int i=0;i<Nx_;i++)

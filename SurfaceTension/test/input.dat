@@ -3,7 +3,7 @@ BulkDensity = 0.5925
 PointsPerHardSphere = 7
 
 #Temperature
-kT = 0.475
+kT = 0.5
 
 # The mean field potential
 eps = 1

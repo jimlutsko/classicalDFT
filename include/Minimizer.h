@@ -55,6 +55,9 @@ class Minimizer
   
   virtual double getDF_DX();
 
+  virtual double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}
+
+  
  protected:
   DFT &dft_;
   Density &density_;
@@ -356,7 +359,7 @@ class DDFT_IF : public DDFT
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
   void restore_values_on_border(DFT_Vec& d1, const DFT_Vec &d0);
 
-  
+  virtual double get_convergence_monitor() const { return fabs(dF_.max() - dF_.min())/density_.dV();}
  protected:
 
   double largest_change_on_border_; // for reporting effect of restore_values_on_border()

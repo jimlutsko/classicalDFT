@@ -216,21 +216,21 @@ int main(int argc, char** argv)
   double Natoms = theDensity.getNumberAtoms();
   double Omega = minimizer.getF();
   double dOmega = Omega - omega_coex*theDensity.getVolume();
-  double SurfaceTension = dOmega/(theDensity.Lx()*theDensity.Ly());
+  double SurfaceTension = dOmega/(2*theDensity.Lx()*theDensity.Ly());
   //  SurfaceTension = 1;
 
   cout << "Final Omega: " << Omega << endl;
   cout << "Excess Omega = " << dOmega << endl;
   cout << "Surface Tension = " << SurfaceTension << endl;
 
-  ofstream log1("log.dat");
-  log << "#=================================" << endl << "#" << endl;
-  log << "#Final Omega: " << Omega << endl;
-  log << "#Excess Omega = " << dOmega << endl;
-  log << "#Surface Tension = " << SurfaceTension << endl;
+  ofstream log1(s.c_str(),ios::app);
+  log1 << "#=================================" << endl << "#" << endl;
+  log1 << "#Final Omega: " << Omega << endl;
+  log1 << "#Excess Omega = " << dOmega << endl;
+  log1 << "#Surface Tension = " << SurfaceTension << endl;
 
   cout << endl << "Critical Radius" << endl << "Natoms\txgas\txliq\tR" << endl;
-  log << endl << "#Critical Radius" << endl << "#Natoms\txgas\txliq\tR" << endl;
+  log1 << endl << "#Critical Radius" << endl << "#Natoms\txgas\txliq\tR" << endl;
   for(int i=0;i<100;i++)
     {
       double xgas = xgas_coex+(xgas_spin-xgas_coex)*i/100.0;
@@ -241,9 +241,9 @@ int main(int argc, char** argv)
       double domega = dft.Fhelmholtz(xliq)-mu*xliq-dft.Fhelmholtz(xgas)+mu*xgas;
       double R = 2*SurfaceTension/fabs(domega);
       cout << xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
-      log <<"#" <<   xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
+      log1 <<"#" <<   xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
     }
-  log.close();  
+  log1.close();  
   g->pause();
   g->close();
   return 1;

@@ -43,9 +43,8 @@ void Minimizer::run(string& logfile, long maxSteps)
 
     double Ntotal = density_.getNumberAtoms();
     double Volume = density_.getVolume();
-    //    f_abs_max_ = norm(dF_,"inf")/density_.dV();
-    f_abs_max_ = dF_.inf_norm()/density_.dV();
-	//    f_abs_max_ = err_;
+
+    f_abs_max_ = get_convergence_monitor();
 
     ofstream log(logfile.c_str(), ios::app);
     log.precision(12);
@@ -66,7 +65,10 @@ void Minimizer::run(string& logfile, long maxSteps)
     log.close();
 
     draw_after();
-    cout << "f_abs_max_ = " << f_abs_max_ << endl;
+
+    int oldprecision = cout.precision(12);
+    cout << "F = " << F_ << " f_abs_max_ = " << f_abs_max_ << endl;
+    cout.precision(oldprecision);
 
     if(step_counter_%20 == 1)
       {
@@ -95,9 +97,6 @@ void Minimizer::run(string& logfile, long maxSteps)
 	density_.writeDensity(s); //s.str());
       }
     */
-    ofstream debug("debug.dat",ios::app);
-    debug << step_counter_ << " " << F_ << endl; //" " << dF_.min()/density_.dV() << " " << dF_.max()/density_.dV()  << endl;
-    debug.close();
 
     if(f_abs_max_ < forceLimit_)
       {

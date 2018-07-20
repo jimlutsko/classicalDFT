@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 
   options.addOption("kT", &kT);
 
-  options.addOption("MaxTimeStep", &dtMax);
+  options.addOption("TimeStepMax", &dtMax);
   options.addOption("TolerenceFixedPoint", &tolerence_fixed_point);
 
   options.addOption("TimeStep", &dt);
@@ -133,16 +133,15 @@ int main(int argc, char** argv)
   // set the thermodynamic state
   double omega_coex = dft.Omega(xliq_coex);
   double mu         = dft.Mu(xliq_coex);
-  finalDensity.initialize(xliq_coex,xgas_coex);
+  finalDensity.initialize(xliq_coex, xgas_coex);
 
   double NN = finalDensity.getNumberAtoms();
-  cout << "NN = " << NN << endl;
 
   if(! infile.empty())
     finalDensity.readDensity(infile.c_str());
+  else if(Natoms > 0) finalDensity.scale_to(Natoms/NN);
 
-  if(Natoms > 0) NN = Natoms;
-  else NN = finalDensity.getNumberAtoms();
+  NN = finalDensity.getNumberAtoms();
 
   cout << "Final NN = " << finalDensity.getNumberAtoms() << endl;
 
@@ -168,27 +167,23 @@ int main(int argc, char** argv)
   int ret = system("rm string_graph.agr");
 
 
-  // lower all densities on the boundaries a small amount
+  // get average density on boundary
   int Nx = finalDensity.Nx();
   int Ny = finalDensity.Ny();
   int Nz = finalDensity.Nz();
 
-  double fac = 0.0;
   double bav = 0;
   double nav = 0;
   
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
       {
-	//finalDensity.set_Density_Elem(ix,iy,0,finalDensity.getDensity(ix,iy,0)*fac);
 	bav += finalDensity.getDensity(ix,iy,0);
 	nav++;
       }
   for(int ix=0;ix<Nx;ix++)
     for(int iz=1;iz<Nz;iz++)
       {
-	//	finalDensity.set_Density_Elem(ix,0,iz,finalDensity.getDensity(ix,0,iz)*fac);
-	//	finalDensity.set_Density_Elem(ix,Ny-1,iz,finalDensity.getDensity(ix,Ny-1,iz)*fac);
 	bav += finalDensity.getDensity(ix,0,iz);
 	nav++;
       }
@@ -196,8 +191,6 @@ int main(int argc, char** argv)
   for(int iy=1;iy<Ny;iy++)
     for(int iz=1;iz<Nz;iz++)
       {
-	//	finalDensity.set_Density_Elem(0,iy,iz,finalDensity.getDensity(0,iy,iz)*fac);
-	//	finalDensity.set_Density_Elem(Nx-1,iy,iz,finalDensity.getDensity(Nx-1,iy,iz)*fac);
 	bav += finalDensity.getDensity(0,iy,iz);
 	nav++;	
       }
@@ -207,19 +200,14 @@ int main(int argc, char** argv)
   lof <<  "#Estimated mu = " << dft.Mu(bav) << endl;
   lof.close();
   
-  /*
-  for(int ix=0;ix<Nx;ix++)
-    for(int iy=0;iy<Ny;iy++)
-      for(int iz=0;iz<Nz;iz++)
-	if(ix == 0 || iy == 0 ||  iz == 0)
-	  finalDensity.set_Density_Elem(ix,iy,iz,bav);
-  */
+
   DDFT_IF ddft(dft,finalDensity,&grace,showGraphics);
   ddft.initialize();
   ddft.setTimeStep(dt);
   ddft.set_tolerence_fixed_point(tolerence_fixed_point);
   ddft.set_max_time_step(dtMax);
-
+  ddft.setForceTerminationCriterion(forceLimit);
+  
   //  ddft.setFixedBoundary();
 
   
@@ -228,6 +216,8 @@ int main(int argc, char** argv)
   //  ddft.test_solv_tridiag();
   
   ddft.run(slog);
+
+  
 
   return 1;
 }

@@ -164,6 +164,9 @@ double DDFT_IF::step()
   if(grace_)
     Display(F_,d00,d11,density_.getNumberAtoms());
 
+  string s("snapshot.dat");
+  density_.writeDensity(s);
+  
   return F_;
 }
 
