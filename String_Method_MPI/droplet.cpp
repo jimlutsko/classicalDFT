@@ -202,6 +202,8 @@ int main(int argc, char** argv)
 
       double NN = finalDensity.getNumberAtoms();
 
+      ofstream log1("log.dat", ios::app);
+      
       cout << "Final NN = " << finalDensity.getNumberAtoms() << endl;
       cout << "Hard sphere diameter  = " << dft->HSD() << endl;
       cout << "Coexisting densities  = " << xliq_coex << " " << xgas_coex << endl;  
@@ -211,6 +213,14 @@ int main(int argc, char** argv)
       double avDensity = NN/finalDensity.getVolume();
       
       cout << "Average density = " << avDensity << endl;
+
+      
+      log1 << "#Final NN = " << finalDensity.getNumberAtoms() << endl;
+      log1 << "#Hard sphere diameter  = " << dft->HSD() << endl;
+      log1 << "#Coexisting densities  = " << xliq_coex << " " << xgas_coex << endl;  
+      log1 << "#Chemical potential/kT = " << mu << endl;
+      log1 << "#beta * Grand free energy per unit volume = " << omega_coex << endl;           
+      log1 << "#Average density = " << avDensity << endl;      
 
       // For closed system:
       double nav = 0;
@@ -242,13 +252,23 @@ int main(int argc, char** argv)
 
   
       mu_boundary = dft->Mu(bav);
-      if(taskid == MASTER)
-	{
-	  ofstream log1("log.dat", ios::app);
-	  cout << "Boundary Mu = " <<   mu_boundary << endl;
-	  log1 << "#Boundary Mu = " <<   mu_boundary << endl;
-	}
 
+      double xliq = dft->findLiquidFromMu(mu_boundary, mu, xgas_coex);
+	  
+
+      cout << "Boundary density = " <<   bav << endl;
+      cout << "Boundary Mu = " <<   mu_boundary << endl;
+      cout << "Liq at this chem pot has density " << xliq << endl;
+      cout << "Vapor energy bw = " << dft->Omega(bav) << endl;
+      cout << "Liq energy bw = " << dft->Omega(xliq) << endl;
+
+      
+      log1 << "#Boundary density = " <<   bav << endl;	  
+      log1 << "#Boundary Mu = " <<   mu_boundary << endl;
+      log1 << "#Liq at this chem pot has density " << xliq << endl;
+      log1 << "#Vapor energy bw = " << dft->Omega(bav) << endl;
+      log1 << "#Liq energy bw = " << dft->Omega(xliq) << endl;
+      
       // broadcast mu_boundary
       for(int jtask = 1; jtask < numtasks; jtask++)
 	{
@@ -318,8 +338,10 @@ int main(int argc, char** argv)
       theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, Ffinal-mu_boundary*NN, Finitial-Ni*mu_boundary, mu_boundary, terminationCriterion, grace, freeEnd);
       
       int assigned = 0;
-      int chunk = (Nimages-2)/(numtasks-1);
-      int left_over = (Nimages-2) - chunk*(numtasks-1);
+      int to_assign = Nimages-2 + (freeEnd ? 1 : 0);
+      
+      int chunk = to_assign/(numtasks-1);
+      int left_over = to_assign - chunk*(numtasks-1);
 
       double *d = new double[Ntot];
       for(long i=0;i<Ntot;i++) d[i] = finalDensity.getDensity(i);
@@ -372,17 +394,6 @@ int main(int argc, char** argv)
   }
 
   string s("log.dat");
-
-
-  /*
-    if(bRestart)
-    {
-    string file("..//archive");
-    theString.read(file);
-    }
-  */
-
-  //  theString->setMu(mu);
   
   theString->run(s);
   

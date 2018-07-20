@@ -26,7 +26,7 @@ using namespace std;
 void StringMethod_MPI_Master::run(string& logfile)
 {
 
-  ofstream log(logfile.c_str());
+  ofstream log(logfile.c_str(), ios::app);
   log << "#Initial free energies = ";
 
   //for(double F: oldF)
@@ -115,8 +115,6 @@ void StringMethod_MPI_Master::processImages()
 
   for(int J=0;J<N;J++)
     Draw(Images_[J], J, dF_[J]);
-
-
 }
 
 
@@ -149,23 +147,24 @@ void StringMethod_MPI_Master::archive(string &filename) const
   string s1 = ss1.str();
   finalDensity_.writeDensity(s1);
 
+  if(!freeEnd_)
+    {
+      stringstream ss2;
+      std::ios  state2(NULL);
+      state2.copyfmt(ss2);
+      J = Images_.size()-1;
 
-  stringstream ss2;
-  std::ios  state2(NULL);
-  state2.copyfmt(ss2);
-  J = Images_.size()-1;
+      ss2 << filename << "_";
+      ss2 << setfill ('0') << std::setw(4);
+      ss2 << J;
+      ss2.copyfmt(state2);
+      ss2 <<".dat";  
 
-  ss2 << filename << "_";
-  ss2 << setfill ('0') << std::setw(4);
-  ss2 << J;
-  ss2.copyfmt(state2);
-  ss2 <<".dat";  
-
-  dd.set(Images_[J].data(), finalDensity_.Ntot());
-  finalDensity_.set(dd);
-  string s2 = ss2.str();
-  finalDensity_.writeDensity(s2);
-
+      dd.set(Images_[J].data(), finalDensity_.Ntot());
+      finalDensity_.set(dd);
+      string s2 = ss2.str();
+      finalDensity_.writeDensity(s2);
+    }
 }
 
 
@@ -224,8 +223,11 @@ void StringMethod_MPI_Master::report(string &logfile)
       delete N;
       delete DT;
     }
-  int nlast = Images_.size()-1;
-  status <<  1+Nimages << " " << "0.0" << " " << dF_[nlast] << " " << "0.0" << " " << N_[nlast] << endl; 
+  if(!freeEnd_)
+    {
+      int nlast = Images_.size()-1;
+      status <<  1+Nimages << " " << "0.0" << " " << dF_[nlast] << " " << "0.0" << " " << N_[nlast] << endl;
+    }
   status.close();      
 
   dFav /= Nimages;
@@ -494,86 +496,6 @@ void StringMethod_MPI_Slave::report()
 
 }
 
-
-
-
-/*
-void StringMethod_MPI_Slave::rescale_linear()
-{
-  // Calculate the "distance" of each image from the origin
-  
-  vector<double> alpha;
-  alpha.push_back(0.0);
-
-  for(int J = 1;J<string_.size();J++)
-    {      
-      double d = 0;
-      for(long i=0;i<string_[0]->Ntot();i++)
-	{
-	  double d1 = string_[J-1]->getDensity(i);
-	  double d2 = string_[J]->getDensity(i);
-
-	  d += (d1-d2)*(d1-d2);
-	}
-      d = sqrt(d) + alpha.back();
-      alpha.push_back(d);
-    }
-
-
-  // Interpolation.
-  // First, find the interval we will use for each image
-  
-  double dL = alpha.back()/(string_.size()-1);
-
-  vector<int> Intervals;
-  Intervals.push_back(0); // first image is not interpolated
-  for(int J = 1;J<string_.size()-1; J++) 
-    {
-      double alpha_local = J*dL;
-      bool found = false;
-      for(int K=0;K<alpha.size() && !found;K++)
-	if(alpha_local > alpha[K] && alpha_local < alpha[K+1])
-	  {
-	    Intervals.push_back(K);
-	    found = true;
-	  }
-      if(!found)
-	throw std::runtime_error("Could not locate interval for linear interpolation");
-    }
-
-  //  cout << endl;
-  //  cout << "Intervals for interpolation: " << endl;
-  //  for(int J=0;J<string_.size()-1;J++)
-  //    cout << J << " " << Intervals[J] << " - " << Intervals[J]+1 << endl;
-  
-  int chunk = string_[0]->Ntot()/10;
-  long i;
-
-#pragma omp parallel for			\
-  shared(chunk)                                 \
-  private(i)					\
-  schedule(static,chunk)			  
-  for(i=0;i<string_[0]->Ntot();i++)
-    {
-      vector<double> y;
-
-      for(int J = 0;J<string_.size();J++)
-	y.push_back(string_[J]->getDensity(i));
-
-      for(int J = 1;J<string_.size()-1; J++) 
-	{
-	  double alpha_local = J*dL;
-	  int K = Intervals[J];
-	  double h = alpha[K+1]-alpha[K];
-	  double x = (alpha_local-alpha[K])/h;
-	  string_[J]->set_Density_Elem(i,x*y[K+1]+(1-x)*y[K]);
-	  //	  string_[J]->set_Density_Elem(i,((alpha_local-alpha[K])*y[K+1]+(alpha[K+1]-alpha_local)*y[K])/(alpha[K+1]-alpha[K]));
-	}
-    }
-}
-*/
-
-
 void StringMethod_MPI_Master::Draw(vector<double> &data, int image_number, double F)
 {
   if(!gr_) return;
@@ -588,9 +510,6 @@ void StringMethod_MPI_Master::Draw(vector<double> &data, int image_number, doubl
   for(int i=0;i<Nx;i++)
     for(int j=0;j<Ny;j++)
       data_2D_.a[i+Nx*j] = data[finalDensity_.pos(i,j, int((Nz-1)/2))]; 	
-
-
-
 
   //  ofstream dd("image_dump.dat");
 
