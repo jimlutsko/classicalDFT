@@ -138,6 +138,10 @@ int main(int argc, char** argv)
 	  mglData data_2D;
 
 	  //	  for(int i=49;i<50;i++)
+
+	  ofstream of_radius("Radius.dat");
+	  of_radius << "#Radius of gyration of the images" << endl;
+	  
 	  for(int j=0;j<50;j++)
 	    {
 	      Jglobal = j;
@@ -158,9 +162,42 @@ int main(int argc, char** argv)
 	      finalDensity.readDensity(ss.str().c_str());
 	      finalDensity.initialize_2D_data(data_2D);	  	  
 	      Draw(finalDensity,j,gr, data_2D);
-	    }
-	}
-  
 
+	      double Rx = 0;
+	      double Ry = 0;
+	      double Rz = 0;
+	      double R2 = 0;
+	      double M = 0;
+
+	      double m0 = finalDensity.getDensity(0,0,0);
+
+	      for(int ix=0;ix<finalDensity.Nx(); ix++)
+		for(int iy=0;iy<finalDensity.Ny(); iy++)
+		  for(int iz=0;iz<finalDensity.Nz(); iz++)
+		    {
+		      double x = finalDensity.getX(ix);
+		      double y = finalDensity.getX(iy);
+		      double z = finalDensity.getX(iz);
+		      double m = finalDensity.getDensity(ix,iy,iz);
+
+		      m -= m0;
+		      
+		      Rx += m*x;
+		      Ry += m*y;
+		      Rz += m*z;
+
+		      R2 += m*(x*x+y*y+z*z);		      
+		      M += m;
+		    }
+
+	      Rx /= M;
+	      Ry /= M;
+	      Rz /= M;
+	      double RR = Rx*Rx+Ry*Ry+Rz*Rz;
+	      R2 = (R2/M)-RR;
+	      of_radius << i << " " << sqrt(R2) << endl;
+	    }
+	  of_radius.close();
+	}
   return 1;
 }
