@@ -71,6 +71,9 @@ LIBS=
 prog : $(OBS) $(LIBS) $(BUILD_NUMBER_FILE) common
 	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o $(PROG)   ../DFT.o ../FMT.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o $(OBS) $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lnlopt -lpthread -lm
 
+get_thermo : $(LIBS) $(BUILD_NUMBER_FILE) get_thermo.o common
+	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o get_thermo   ../DFT.o ../FMT.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o get_thermo.o  $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lnlopt -lpthread -lm
+
 .PHONY : clean
 clean :
 	-rm -f *.o

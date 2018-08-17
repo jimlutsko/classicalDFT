@@ -157,7 +157,7 @@ int main(int argc, char** argv)
   cout << "Average density = " << avDensity << endl;
 
 
-  dft.setEtaMax(1.0-1e-8);
+  //  dft.setEtaMax(1.0-1e-8);
 
 
   Grace grace(800,600,1);

@@ -8,6 +8,7 @@
   */  
 
 int Jglobal = 0;
+bool bLogarithmic = false;
 
 class Droplet : public Density
 {
@@ -171,9 +172,12 @@ class Droplet : public Density
   {  
     for(int i=0;i<Nx_;i++)
       for(int j=0;j<Ny_;j++)
-	//	a.a[i+Ny_*j] = log(getDensity(i,-2+int((Ny_-1)/2),j));
-    //a.a[i+Nx_*j] = log(getDensity(i,j, Jglobal+int((Nz_-1)/2)));
-        	a.a[i+Nx_*j] = log(getDensity(i,j, int((Nz_-1)/2))); 	
+	{
+	  if(bLogarithmic)
+	    a.a[i+Nx_*j] = log(getDensity(i,j, int((Nz_-1)/2)));
+	  else 
+	    a.a[i+Nx_*j] = getDensity(i,j, int((Nz_-1)/2));
+	}
 
 
 
