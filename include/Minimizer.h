@@ -490,6 +490,7 @@ class fireMinimizer : public Minimizer_Fixed_N
   void setTimeStepMax(double dt) { dt_max_ = dt;}
   
   void setAlphaStart(double a) { alpha_start_ = a;}
+  void setAlphaFac(double a) { f_alf_ = a;}
 
  protected:
   DFT_Vec v_;

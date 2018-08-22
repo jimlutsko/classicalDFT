@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 
   double density = 0.8;
 
-  double alpha = 0.01;
+  double alpha = 0.1;
   int MaxIts = 100;
 
   double epsWall = 1;
@@ -69,6 +69,7 @@ int main(int argc, char** argv)
   double dt = 1e-3;
   double dtMax = dt*10;
   double alpha_start = 0.01;
+  double alpha_fac = 1.0;
   
   Options options;
 
@@ -112,6 +113,7 @@ int main(int argc, char** argv)
   options.addOption("TimeStepMax", &dtMax);
 
   options.addOption("AlphaStart", &alpha_start);
+  options.addOption("AlphaFac", &alpha_fac);
 
   options.read(argc, argv);
 
@@ -226,6 +228,7 @@ int main(int argc, char** argv)
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
+    minimizer.setAlphaFac(alpha_fac);
   minimizer.run(s);
 
   /*

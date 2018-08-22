@@ -803,6 +803,7 @@ double fireMinimizer::step()
 
   if(p < 0)
     {
+      cout << "\tp < 0 : reset" << endl;
       v_.zeros(v_.size());
       cut_ = it_;
       dt_ *= f_dec_;
