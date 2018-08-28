@@ -189,9 +189,19 @@ int main(int argc, char** argv)
   log2 << "#\tave = " << bav/nav << endl;
   log2.close();
 
+  for(int ix = 0;ix<theDensity.Nx();ix++)
+      for(int iy = 0;iy<theDensity.Ny();iy++)
+	  for(int iz = 0;iz<theDensity.Nz();iz++)
+	    if(ix == 0 || iy == 0 || iz == 0)
+	      theDensity.set_Density_Elem(ix,iy,iz,bav);
+
+  
   if(Natoms > 0) NN = Natoms;
   else NN = theDensity.getNumberAtoms();
 
+
+
+  
   double xs1,xs2;
   dft.spinodal(xs1,xs2);
 

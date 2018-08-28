@@ -8,14 +8,18 @@
 #include <time.h>
 
 #include <mgl2/mgl.h>
-#include <mgl2/fltk.h>
+//#include <mgl2/fltk.h>
 
 #ifdef USE_OMP
 #include <omp.h>
 #endif
 
+
+
 using namespace std;
 
+// required MPI include file  
+#include <mpi.h>
 
 #include "Minimizer.h"
 
@@ -32,12 +36,14 @@ void DDFT_IF_Open::initialize()
 
   sin_in_ = new double[sin_Ntot_];
   sin_out_ = new double[sin_Ntot_];
-
+  
   sin_plan_ = fftw_plan_r2r_3d(Nx-1, Ny-1, Nz-1,
 					sin_in_, sin_out_,
 					 FFTW_RODFT00, FFTW_RODFT00, FFTW_RODFT00,
-					 FFTW_MEASURE);
-  
+					 FFTW_MEASURE);			       
+			       //			       FFTW_ESTIMATE);
+
+
   F_ = dft_.calculateFreeEnergyAndDerivatives(density_, 0.0, dF_,true);   
   DFT_Vec dummy;
   F_ += dft_.F_IdealGas(density_, dummy);
@@ -45,15 +51,11 @@ void DDFT_IF_Open::initialize()
 
   cout << "Initial value of F = " << F_ << endl;
 
-
   pack_for_sin_transform(density_.getData(),background_);
   fftw_execute(sin_plan_);
   memcpy(sin_in_, sin_out_, sin_Ntot_*sizeof(double));
   fftw_execute(sin_plan_);
   for(unsigned k=0;k<sin_Ntot_;k++) sin_out_[k] /= sin_Norm_;
-  double *d = new double[density_.Ntot()];
-  unpack_after_transform(d,background_);
-
 }
 
 double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool verbose)

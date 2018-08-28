@@ -30,7 +30,8 @@ else
 	PROCESSOR=opteron
 	COPTS= $(DEBUG)  -march=${PROCESSOR} -fopenmp
 	CCC= mpic++
-	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR}  -I ${INCLUDE} -fopenmp  -D USE_OMP 
+#	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR}  -I ${INCLUDE} -fopenmp  -D USE_OMP
+	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR}  -I ${INCLUDE} -fopenmp  
 	LIBINTEL =iode_intel64
 endif
 
@@ -69,7 +70,7 @@ COMMON = ../
 LIBS= 
 
 prog : $(OBS) $(LIBS) $(BUILD_NUMBER_FILE) common
-	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o $(PROG)   ../DFT.o ../FMT.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o ../DDFT.o ../StringMethod_MPI.o ../Grace.o ../spliner.o ../DDFT_IF.o ../DDFT_Discrete.o ../DDFT_Open.o  ../DDFT_IF_Open.o $(OBS) $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lpthread -lm
+	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o $(PROG)   ../DFT.o ../FMT.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o ../DDFT.o ../StringMethod_MPI.o ../Grace.o ../spliner.o ../DDFT_IF.o ../DDFT_Discrete.o ../DDFT_Open.o  ../DDFT_IF_Open.o $(OBS) $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3 -lpthread -lm
 
 .PHONY : clean
 clean :

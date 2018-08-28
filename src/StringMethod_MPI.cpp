@@ -54,14 +54,13 @@ void StringMethod_MPI_Master::run(string& logfile)
   
   do {
     // Collect the densities
-    MPI_Status *stat;
     int pos = 1;
     cout << "Reading densities ..." << endl;
     
     for(int Im=0;Im<taskList.size();Im++)
       for(int J=0;J<taskList[Im];J++)
 	{
-	  MPI_Recv(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat);
+	  MPI_Recv(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 	  cout << " Read Im = " << Im << " J = " << J << endl;
 	}
 
@@ -183,8 +182,6 @@ void StringMethod_MPI_Master::report(string &logfile)
 
   status << "0  0.000 " << dF_[0] << " 0 " << N_[0] << endl; 
   
-  MPI_Status *stat;
-
   for(int Im=0;Im<taskList.size();Im++)
     {
       int Nimage = taskList[Im];
@@ -198,14 +195,14 @@ void StringMethod_MPI_Master::report(string &logfile)
       double *N = new double[Nimage];
       double *DT = new double[Nimage];
 
-      MPI_Recv(dF1,  Nimage, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, stat);
-      MPI_Recv(dist, Nimage, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, stat);
-      MPI_Recv(N,    Nimage, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, stat);
-      MPI_Recv(DT,   Nimage, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, stat);
+      MPI_Recv(dF1,  Nimage, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(dist, Nimage, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(N,    Nimage, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(DT,   Nimage, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             
-      MPI_Recv(&dFmax1,     1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, stat);
-      MPI_Recv(&dFav1,      1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, stat);
-      MPI_Recv(&delta_max1, 1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, stat);
+      MPI_Recv(&dFmax1,     1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&dFav1,      1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&delta_max1, 1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
       for(int K=0;K<Nimage;K++)
 	{
@@ -438,9 +435,8 @@ void StringMethod_MPI_Slave::run(string& logfile)
     for(int J=0;J<Nimages;J++)
       MPI_Send(string_[J]->getData(), Ntot,MPI_DOUBLE,0,/*tag*/ 0 ,MPI_COMM_WORLD);
 
-    MPI_Status *stat;
     for(int J=0;J<Nimages;J++)
-      MPI_Recv(string_[J]->getData(),Ntot,MPI_DOUBLE,0,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat);
+      MPI_Recv(string_[J]->getData(),Ntot,MPI_DOUBLE,0,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
     
     /////////////////// Compute stats and send to master
     report();
