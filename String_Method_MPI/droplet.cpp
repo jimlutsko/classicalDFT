@@ -189,12 +189,6 @@ int main(int argc, char** argv)
     dft->coexistence(xliq_coex, xgas_coex);
   } catch(...) { if(taskid == MASTER) cout << "No coexistence found ... " << endl;}
 
-  MPI_Barrier( MPI_COMM_WORLD ) ;
-  
-  cout << std::flush;
-  cout << "Task " << taskid << " has pid " << getpid() << endl;
-  MPI_Barrier( MPI_COMM_WORLD ) ;
-  
   // Begin intialization of images
 
   finalDensity.initialize(xliq_coex,xgas_coex);
@@ -305,8 +299,6 @@ int main(int argc, char** argv)
     MPI_Recv(&mu_boundary,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
     MPI_Recv(&bav,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE); 
   }
-  MPI_Barrier( MPI_COMM_WORLD ) ;
-  cout << "Task " << taskid << " passed Barrier 3" << endl;
 
   dft->setEtaMax(1.0-1e-8);
 
@@ -321,13 +313,7 @@ int main(int argc, char** argv)
     log1<< "DDFT type must be defined: current value is \"" << ddft_type << "\" which is unknown"  << endl;
   }
 
-  MPI_Barrier( MPI_COMM_WORLD ) ;
-  cout << "Task " << taskid << " passed Barrier 4" << endl;
-  
   ddft->initialize();
-
-  MPI_Barrier( MPI_COMM_WORLD ) ;
-  cout << "Task " << taskid << " passed Barrier 5" << endl;
 
   ddft->setTimeStep(1e-2);
   ddft->set_tolerence_fixed_point(1e-4);
@@ -340,10 +326,6 @@ int main(int argc, char** argv)
 
   StringMethod_MPI *theString = NULL;
 
-  MPI_Barrier( MPI_COMM_WORLD ) ;
-  cout << "Task " << taskid << " passed Barrier 6" << endl;
-
-  
   if(taskid == MASTER)
     {
       double Finitial = dft->Fhelmholtz(bav)*finalDensity.getVolume();
