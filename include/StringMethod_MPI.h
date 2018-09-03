@@ -46,7 +46,7 @@ class StringMethod_MPI_Master : public StringMethod_MPI
   ~StringMethod_MPI_Master(){if(gr_) delete gr_;}
 
   virtual void run(string& logfile);
-  void interpolate();
+  double interpolate();
   void interpolate_cubic();
   void processImages();
   void report(string &logfile);

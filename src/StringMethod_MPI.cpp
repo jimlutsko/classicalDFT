@@ -31,7 +31,7 @@ void StringMethod_MPI_Master::run(string& logfile)
 
   //for(double F: oldF)
   ///    log << F << " ";
-  //  log << endl;
+  log << endl;
   
   log << "#step_counter\tdFmax\tdFav\tdist_max" << endl;
   log.close();
@@ -55,24 +55,30 @@ void StringMethod_MPI_Master::run(string& logfile)
   do {
     // Collect the densities
     int pos = 1;
-    cout << "Reading densities ..." << endl;
+    cout << "Waiting for densities ..." << endl;
     
     for(int Im=0;Im<taskList.size();Im++)
       for(int J=0;J<taskList[Im];J++)
-	{
-	  MPI_Recv(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-	  cout << " Read Im = " << Im << " J = " << J << endl;
-	}
+	MPI_Recv(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
+
+    cout << "... begin interpolation" << endl;
     
     // Do interpolation
-    for(int k=0;k<5;k++)
-      interpolate();
+    double movement = 1;
+    int k = 0;
+    do {
+	movement = interpolate();
+	cout << "Interpolation iteration " << ++k << " has movement = " << movement << endl;
+      } while(movement > 1e-6);
 
     // archive and draw images
+    cout << "post-process images ..." << endl;
     processImages();
 
+    
     // send the densities back
+    cout << "Send densities back ..." << endl;    
     pos = 1;
     for(int Im=0;Im<taskList.size();Im++)
       for(int J=0;J<taskList[Im];J++)
@@ -133,7 +139,6 @@ void StringMethod_MPI_Master::archive(string &filename) const
   state.copyfmt(ss1);
   
   int J = 0;
-  DFT_Vec dd;
 
   ss1 << filename << "_";
   ss1 << setfill ('0') << std::setw(4);
@@ -141,6 +146,7 @@ void StringMethod_MPI_Master::archive(string &filename) const
   ss1.copyfmt(state);
   ss1 <<".dat";  
 
+  DFT_Vec dd;
   dd.set(Images_[J].data(), finalDensity_.Ntot());
   finalDensity_.set(dd);
   string s1 = ss1.str();
@@ -178,8 +184,10 @@ void StringMethod_MPI_Master::report(string &logfile)
   double delta_max = 0;
   int Nimages = 0;
 
-  ofstream status("status.dat");
+  //  ofstream status("status.dat");
 
+  stringstream status;
+  
   status << "0  0.000 " << dF_[0] << " 0 " << N_[0] << endl; 
   
   for(int Im=0;Im<taskList.size();Im++)
@@ -225,7 +233,10 @@ void StringMethod_MPI_Master::report(string &logfile)
       int nlast = Images_.size()-1;
       status <<  1+Nimages << " " << "0.0" << " " << dF_[nlast] << " " << "0.0" << " " << N_[nlast] << endl;
     }
-  status.close();      
+
+  ofstream status_file("status.dat");
+  status_file << status.str() << endl;
+  status_file.close();      
 
   dFav /= Nimages;
 
@@ -274,7 +285,7 @@ void StringMethod_MPI_Master::Display(int dataSet, double dFmax, double dFav)
 
 
 
-void StringMethod_MPI_Master::interpolate()
+double StringMethod_MPI_Master::interpolate()
 {
   // Calculate the "distance" of each image from the origin
 
@@ -322,6 +333,8 @@ void StringMethod_MPI_Master::interpolate()
   int chunk = finalDensity_.Ntot()/10;
   long i;
 
+  double movement = 0.0;
+  
 #pragma omp parallel for			\
   shared(chunk)                                 \
   private(i)					\
@@ -339,9 +352,20 @@ void StringMethod_MPI_Master::interpolate()
 	  int K = Intervals[J];
 	  double h = alpha[K+1]-alpha[K];
 	  double x = (alpha_local-alpha[K])/h;
+
+	  double dx = Images_[J][i];
+	  double sx = dx;
 	  Images_[J][i] = x*y[K+1]+(1-x)*y[K];
+	  dx -= Images_[J][i];
+	  sx += Images_[J][i];
+	  dx /= (0.5*sx);
+	  movement += dx*dx;
 	}
     }
+  movement /= Ntot_;
+  movement /= (Nimages-2);
+  movement = sqrt(movement);
+  return movement;
 }
 
 
@@ -467,12 +491,22 @@ void StringMethod_MPI_Slave::report()
 	dFav_ += ff;
 
 	distances_[J] = 0.0;
+	double mass = 0.0;
 	for(long k=0;k<Ntot;k++)
 	  {
-	    double d = (string_copy_[J].get(k)-string_[J]->getDensity(k));
+	    double d1 = string_copy_[J].get(k);
+	    double d2 = string_[J]->getDensity(k);
+	    
+	    //	    double d = 2*(d1-d2)/(d1+d2);
+	    double d = (d1-d2);
 	    distances_[J]  += d*d;
+	    mass += d1;
+	    //	    distances_[J]  = max(d*d, distances_[J]);
+
 	  }
-	distances_[J]  = string_[J]->dV()*sqrt(distances_[J] )/DT_[J];
+	//	distances_[J]  = string_[J]->dV()*sqrt(distances_[J] )/DT_[J];
+	//	distances_[J]  = sqrt(distances_[J] )/(DT_[J]*Ntot);
+	distances_[J]  = sqrt(distances_[J] )/(DT_[J]*mass);
 
 	delta_max_ = max(delta_max_, distances_[J] );
 	cout << "Image " << J+offset_ << " F = " << fj << " mu = " << mu_ << " N = " << N_[J]  << " Omega = " << newF[J] << endl;

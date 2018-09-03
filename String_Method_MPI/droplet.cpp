@@ -42,9 +42,9 @@ int main(int argc, char** argv)
 
   /* Obtain number of tasks and task ID */
   int provided;
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+  //  MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
   //  threads_ok = provided >= MPI_THREAD_FUNNELED;
-  //MPI_Init(&argc,&argv);
+  MPI_Init(&argc,&argv);
   MPI_Comm_size(MPI_COMM_WORLD,&numtasks);
   MPI_Comm_rank(MPI_COMM_WORLD,&taskid);
 
@@ -83,8 +83,6 @@ int main(int argc, char** argv)
   double sigma = 1;
   double rcut = 1;
 
-  double sigma_conj_grad = 1;
-
   string pointsFile("..//SS31-Mar-2016//ss109.05998");
   string outfile("dump.dat");
   string infile;
@@ -99,6 +97,7 @@ int main(int argc, char** argv)
   bool freeEnd = false;
 
   double terminationCriterion = 0.01;
+  double fixedPointTolerence = 1e-4;
   
   double TimeStepMax = -1;
   string ddft_type;
@@ -125,7 +124,7 @@ int main(int argc, char** argv)
   options.addOption("alpha", &alpha);
   options.addOption("MaxIts", &MaxIts);
 
-  options.addOption("sigma_conj_grad", &sigma_conj_grad);
+  options.addOption("FixedPointTol", &fixedPointTolerence);
   options.addOption("TerminationCriterion",&terminationCriterion);
 
   options.addOption("OutputFile", &outfile);
@@ -165,14 +164,16 @@ int main(int argc, char** argv)
   omp_set_dynamic(0);
   omp_set_num_threads(nCores);
 
-  int threads_ok = provided >= MPI_THREADED_FUNNELED;
+  int threads_ok = provided >= MPI_THREAD_FUNNELED;
+
+  cout << "MPI: Provided = " << provided << " MPI_THREAD_FUNNELED = " << MPI_THREAD_FUNNELED << endl;
   if(threads_ok) threads_ok = fftw_init_threads();
-  fftw_mpi_init();
+  //  fftw_mpi_init();
   if(threads_ok)  fftw_plan_with_nthreads(omp_get_max_threads());
 
     //int fftw_init_threads();
     //  fftw_plan_with_nthreads(omp_get_max_threads());
-  cout << "OMP is enabled" << endl;
+  cout << "OMP is enabled: threads_ok = " << threads_ok << endl;
   #else
   cout << "OMP is NOT enabled" << endl;
 #endif
@@ -316,7 +317,7 @@ int main(int argc, char** argv)
   ddft->initialize();
 
   ddft->setTimeStep(1e-2);
-  ddft->set_tolerence_fixed_point(1e-4);
+  ddft->set_tolerence_fixed_point(fixedPointTolerence);
   ddft->set_max_time_step(1e-2);
 
   // For closed system:
@@ -409,9 +410,12 @@ int main(int argc, char** argv)
   
   if(taskid == MASTER)
     {
-      grace->pause();
-      grace->close();
-      delete grace;
+      if(grace)
+	{
+	  grace->pause();
+	  grace->close();
+	  delete grace;
+	}	  
     }
 
   delete ddft;
