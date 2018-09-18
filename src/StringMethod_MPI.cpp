@@ -8,7 +8,6 @@
 #include <time.h>
 
 #include <mgl2/mgl.h>
-//#include <mgl2/fltk.h>
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -510,16 +509,6 @@ void StringMethod_MPI_Master::Draw(vector<double> &data, int image_number, doubl
   for(int i=0;i<Nx;i++)
     for(int j=0;j<Ny;j++)
       data_2D_.a[i+Nx*j] = data[finalDensity_.pos(i,j, int((Nz-1)/2))]; 	
-
-  //  ofstream dd("image_dump.dat");
-
-  //  for(int i=0;i<density.Nx();i++)
-  //    {
-  //      for(int j=0;j<density.Ny();j++)
-  //	dd << i << " " << j << " " << data_2D_.a[i+density.Nx()*j] << endl;
-  //      cout << endl;
-  //    }
-
   
   //clear the window
   gr_->Clf();	
