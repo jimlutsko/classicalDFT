@@ -19,6 +19,7 @@ extern char   __BUILD_NUMBER;
 
 // required MPI include file  
 #include <mpi.h>
+#include <fftw3-mpi.h>
 
 #include "Grace.h"
 #include "options.h"
@@ -40,6 +41,9 @@ int main(int argc, char** argv)
     rc;   /* return code */
 
   /* Obtain number of tasks and task ID */
+  int provided;
+  //  MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+  //  threads_ok = provided >= MPI_THREAD_FUNNELED;
   MPI_Init(&argc,&argv);
   MPI_Comm_size(MPI_COMM_WORLD,&numtasks);
   MPI_Comm_rank(MPI_COMM_WORLD,&taskid);
@@ -51,6 +55,16 @@ int main(int argc, char** argv)
   if(taskid == MASTER) cout << "Build number: " << (unsigned long) & __BUILD_NUMBER << endl;
 
 
+  /*
+  if(taskid == 0)   cout << "Task " << taskid << " has pid " << getpid() << endl;
+
+  
+  int isleep = 0;
+  if(taskid == 0)
+    while(0 == isleep)
+      sleep(5);
+  
+  */
   double L[3] = {10,10,10};
   int PointsPerHardSphere = 5;
   int nCores = 1;
@@ -69,8 +83,6 @@ int main(int argc, char** argv)
   double sigma = 1;
   double rcut = 1;
 
-  double sigma_conj_grad = 1;
-
   string pointsFile("..//SS31-Mar-2016//ss109.05998");
   string outfile("dump.dat");
   string infile;
@@ -85,6 +97,7 @@ int main(int argc, char** argv)
   bool freeEnd = false;
 
   double terminationCriterion = 0.01;
+  double fixedPointTolerence = 1e-4;
   
   double TimeStepMax = -1;
   string ddft_type;
@@ -111,7 +124,7 @@ int main(int argc, char** argv)
   options.addOption("alpha", &alpha);
   options.addOption("MaxIts", &MaxIts);
 
-  options.addOption("sigma_conj_grad", &sigma_conj_grad);
+  options.addOption("FixedPointTol", &fixedPointTolerence);
   options.addOption("TerminationCriterion",&terminationCriterion);
 
   options.addOption("OutputFile", &outfile);
@@ -151,52 +164,53 @@ int main(int argc, char** argv)
   omp_set_dynamic(0);
   omp_set_num_threads(nCores);
 
-  int fftw_init_threads();
-  fftw_plan_with_nthreads(omp_get_max_threads());
+  int threads_ok = provided >= MPI_THREAD_FUNNELED;
+
+  cout << "MPI: Provided = " << provided << " MPI_THREAD_FUNNELED = " << MPI_THREAD_FUNNELED << endl;
+  if(threads_ok) threads_ok = fftw_init_threads();
+  //  fftw_mpi_init();
+  if(threads_ok)  fftw_plan_with_nthreads(omp_get_max_threads());
+
+    //int fftw_init_threads();
+    //  fftw_plan_with_nthreads(omp_get_max_threads());
+  cout << "OMP is enabled: threads_ok = " << threads_ok << endl;
+  #else
+  cout << "OMP is NOT enabled" << endl;
 #endif
 
   Droplet finalDensity(dx, L, PointsPerHardSphere, R, zPos); 
   Potential1 potential(sigma, eps, rcut);
 
-  // Don't like this ... quick and dirty ... better with MPI_FILE_READ in Fmt.cpp?
-  DFT_VDW<RSLT> *dft;
-  dft = new DFT_VDW<RSLT>(finalDensity,potential,pointsFile,kT);
-  /*
-  for(int rank = 0; rank < numtasks; rank++)
-    {
-      if (taskid == rank) 
-	dft = new DFT_VDW<RSLT>(finalDensity,potential,pointsFile,kT);    
-      MPI_Barrier(MPI_COMM_WORLD);
-    } 
-  */
+  DFT_VDW<RSLT> *dft = new DFT_VDW<RSLT>(finalDensity,potential,pointsFile,kT);
+
   // Determine coexistence to give us a baseline for the densities
   double xliq_coex = 0.001;
   double xgas_coex = 0.6;
   try{
     dft->coexistence(xliq_coex, xgas_coex);
   } catch(...) { if(taskid == MASTER) cout << "No coexistence found ... " << endl;}
-  
-  double xs1,xs2;
-  dft->spinodal(xs1,xs2);
-  if(taskid == MASTER)
-    {
-      cout << "Spinodal: " << xs1 << " " << xs2 <<  " so Nspinodal = " << xs1*finalDensity.getVolume() << endl;
-      cout << "Coexistence: " << xgas_coex << " " << xliq_coex << endl;
-    }
-
-  // set the thermodynamic state
-  double omega_coex = dft->Omega(xliq_coex);
-  double mu         = dft->Mu(xliq_coex);
 
   // Begin intialization of images
 
   finalDensity.initialize(xliq_coex,xgas_coex);
 
+  Grace *grace = NULL;
   double mu_boundary = 0;
   double bav = 0;
+  
   if(taskid == MASTER)
     {
-  
+      // Output spinodal for reference ...
+      double xs1,xs2;
+      dft->spinodal(xs1,xs2);
+
+      cout << "Spinodal: " << xs1 << " " << xs2 <<  " so Nspinodal = " << xs1*finalDensity.getVolume() << endl;
+      cout << "Coexistence: " << xgas_coex << " " << xliq_coex << endl;
+
+      // set the thermodynamic state
+      double omega_coex = dft->Omega(xliq_coex);
+      double mu         = dft->Mu(xliq_coex);
+
       if(! infile.empty())
 	finalDensity.readDensity(infile.c_str());
 
@@ -274,28 +288,18 @@ int main(int argc, char** argv)
 	{
 	  MPI_Send(&mu_boundary,1,MPI_DOUBLE,jtask,/*tag*/ 0 ,MPI_COMM_WORLD);
 	  MPI_Send(&bav,1,MPI_DOUBLE,jtask,/*tag*/ 0 ,MPI_COMM_WORLD);
-	}	  
-    } else {
-    MPI_Status *stat;
-    MPI_Recv(&mu_boundary,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat );
-    MPI_Recv(&bav,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat ); 
-  }
-
-  Grace *grace = NULL;
-
-  if(taskid == MASTER)
-    {
+	}
+      
       if(showGraphics)
 	grace = new Grace(800,600,2);
-
+      
       if(!remove("string_graph.agr"))
 	cout << "Removed string_graph.agr" << endl;
-    }
-
-
-  // There are numtasks-1 slave tasks available so each one will take some number of images
-  // Since the first and last images are fixed, there are only N-2 to allocate
-  
+      
+    } else {
+    MPI_Recv(&mu_boundary,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Recv(&bav,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE); 
+  }
 
   dft->setEtaMax(1.0-1e-8);
 
@@ -313,7 +317,7 @@ int main(int argc, char** argv)
   ddft->initialize();
 
   ddft->setTimeStep(1e-2);
-  ddft->set_tolerence_fixed_point(1e-4);
+  ddft->set_tolerence_fixed_point(fixedPointTolerence);
   ddft->set_max_time_step(1e-2);
 
   // For closed system:
@@ -322,7 +326,7 @@ int main(int argc, char** argv)
   long Ntot = finalDensity.Ntot();
 
   StringMethod_MPI *theString = NULL;
-  
+
   if(taskid == MASTER)
     {
       double Finitial = dft->Fhelmholtz(bav)*finalDensity.getVolume();
@@ -336,17 +340,24 @@ int main(int argc, char** argv)
       cout << "Image " << Nimages-1 << " F = " << Ffinal << " mu = " << mu_boundary << " N = " << NN  << " Omega = " << Ffinal-mu_boundary*NN << endl;
       
       theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, Ffinal-mu_boundary*NN, Finitial-Ni*mu_boundary, mu_boundary, terminationCriterion, grace, freeEnd);
-      
+
+
+      // There are numtasks-1 slave tasks available so each one will take some number of images
+      // Since the first and last images are fixed, there are only N-2 to allocate
+  
       int assigned = 0;
       int to_assign = Nimages-2 + (freeEnd ? 1 : 0);
+
+      int num_possible = min(numtasks-1, to_assign);
       
-      int chunk = to_assign/(numtasks-1);
-      int left_over = to_assign - chunk*(numtasks-1);
+      int chunk = to_assign/num_possible;
+
+      int left_over = to_assign - chunk*num_possible;
 
       double *d = new double[Ntot];
       for(long i=0;i<Ntot;i++) d[i] = finalDensity.getDensity(i);
       
-      for(int jtask = 1;jtask < numtasks; jtask++)
+      for(int jtask = 1;jtask <= num_possible; jtask++)
 	{
 	  int todo = chunk + (left_over ? 1 : 0);
 	  if(left_over) left_over--;
@@ -361,16 +372,16 @@ int main(int argc, char** argv)
 	  ((StringMethod_MPI_Master*) theString)->addTask(todo);	 
 	}
       delete d;
-    } else { 
+    } else {
+    cout << "Taskid " << taskid << " Ntot = " << Ntot << endl;
     double *final = new double[Ntot];
     int todo;
     int start_index;
     double alf = 1.0/Nimages;
-    MPI_Status *stat;
-    
-    MPI_Recv(final,      Ntot,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat );     
-    MPI_Recv(&start_index,   1,MPI_INT   ,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat );
-    MPI_Recv(&todo,          1,MPI_INT   ,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,stat ); 
+
+    MPI_Recv(final,      Ntot,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);     
+    MPI_Recv(&start_index,   1,MPI_INT   ,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Recv(&todo,          1,MPI_INT   ,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE); 
 
     vector<Density*> Images(todo);
     for(int J=0;J<todo;J++)
@@ -399,9 +410,12 @@ int main(int argc, char** argv)
   
   if(taskid == MASTER)
     {
-      grace->pause();
-      grace->close();
-      delete grace;
+      if(grace)
+	{
+	  grace->pause();
+	  grace->close();
+	  delete grace;
+	}	  
     }
 
   delete ddft;
