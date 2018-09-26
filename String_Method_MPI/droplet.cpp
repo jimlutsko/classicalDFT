@@ -98,6 +98,7 @@ int main(int argc, char** argv)
 
   double terminationCriterion = 0.01;
   double fixedPointTolerence = 1e-4;
+  double interpPointTolerence = 1e-6;
   
   double TimeStepMax = -1;
   string ddft_type;
@@ -125,6 +126,7 @@ int main(int argc, char** argv)
   options.addOption("MaxIts", &MaxIts);
 
   options.addOption("FixedPointTol", &fixedPointTolerence);
+  options.addOption("InterpPointTol", &interpPointTolerence);
   options.addOption("TerminationCriterion",&terminationCriterion);
 
   options.addOption("OutputFile", &outfile);
@@ -316,9 +318,9 @@ int main(int argc, char** argv)
 
   ddft->initialize();
 
-  ddft->setTimeStep(1e-2);
+  ddft->setTimeStep(TimeStepMax);
   ddft->set_tolerence_fixed_point(fixedPointTolerence);
-  ddft->set_max_time_step(1e-2);
+  ddft->set_max_time_step(TimeStepMax);
 
   // For closed system:
   //  ddft->setFixedBoundary();
@@ -340,6 +342,8 @@ int main(int argc, char** argv)
       cout << "Image " << Nimages-1 << " F = " << Ffinal << " mu = " << mu_boundary << " N = " << NN  << " Omega = " << Ffinal-mu_boundary*NN << endl;
       
       theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, Ffinal-mu_boundary*NN, Finitial-Ni*mu_boundary, mu_boundary, terminationCriterion, grace, freeEnd);
+
+      ((StringMethod_MPI_Master*) theString)->setInterpolationTolerence(interpPointTolerence);
 
 
       // There are numtasks-1 slave tasks available so each one will take some number of images

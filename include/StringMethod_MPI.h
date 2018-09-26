@@ -25,7 +25,7 @@ class StringMethod_MPI_Master : public StringMethod_MPI
 {
  public:
  StringMethod_MPI_Master(int Nimages, Density &finalDensity, double bav, double F_final, double F_initial, double mu, double terminationCriterion = 0.01, Grace *g = NULL, bool freeEnd = false) 
-   : StringMethod_MPI(mu, freeEnd), finalDensity_(finalDensity), bav_(bav), grace_(g), termination_criterion_(terminationCriterion)
+   : StringMethod_MPI(mu, freeEnd), finalDensity_(finalDensity), bav_(bav), grace_(g), termination_criterion_(terminationCriterion), interpolation_tolerence_(1e-6)
     {
       Ntot_ = finalDensity.Ntot();
       gr_ = new mglGraph;
@@ -44,6 +44,8 @@ class StringMethod_MPI_Master : public StringMethod_MPI
       finalDensity.initialize_2D_data(data_2D_);
   }
   ~StringMethod_MPI_Master(){if(gr_) delete gr_;}
+
+  void setInterpolationTolerence(double x) {interpolation_tolerence_ = x;}
 
   virtual void run(string& logfile);
   double interpolate();
@@ -71,6 +73,8 @@ class StringMethod_MPI_Master : public StringMethod_MPI
 
     double delta_max_; // largest velocity
     double termination_criterion_;
+
+    double interpolation_tolerence_;
     
     mglGraph *gr_;
     mglData data_2D_;

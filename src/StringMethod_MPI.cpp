@@ -70,7 +70,7 @@ void StringMethod_MPI_Master::run(string& logfile)
     do {
 	movement = interpolate();
 	cout << "Interpolation iteration " << ++k << " has movement = " << movement << endl;
-      } while(movement > 1e-6);
+    } while(movement > interpolation_tolerence_); //1e-6);
 
     // archive and draw images
     cout << "post-process images ..." << endl;
@@ -89,6 +89,8 @@ void StringMethod_MPI_Master::run(string& logfile)
     report(logfile);
 
     if(grace_) grace_->redraw(1,0);
+
+    cout << "delta_max_ = " << delta_max_ << " termination_criterion_ = " << termination_criterion_ << endl;
 
   } while(delta_max_ > termination_criterion_);
 
