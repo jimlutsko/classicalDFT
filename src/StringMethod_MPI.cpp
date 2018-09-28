@@ -185,8 +185,6 @@ void StringMethod_MPI_Master::report(string &logfile)
   double delta_max = 0;
   int Nimages = 0;
 
-  //  ofstream status("status.dat");
-
   stringstream status;
   
   status << "0  0.000 " << dF_[0] << " 0 " << N_[0] << endl; 
@@ -239,6 +237,10 @@ void StringMethod_MPI_Master::report(string &logfile)
   status_file << status.str() << endl;
   status_file.close();      
 
+  stringstream scpy;
+  scpy << "cp status.dat status_" << step_counter_ << ".dat" << endl;
+  system(scpy.str().c_str());
+  
   dFav /= Nimages;
 
   /////////////////// Report
@@ -444,12 +446,20 @@ void StringMethod_MPI_Slave::run(string& logfile)
 
     for(int J=0;J<Nimages;J++)
       {
-	double dt = DT_[J];
+	double dt = min(2*DT_[J], Time_Step_Max_);
 
-	dt = min(2*dt, Time_Step_Max_);
-	ddft_.step_string(dt, *(string_[J]),false);
-		
+	unsigned time_num = 0;
+	unsigned time_den = max(1,int(0.5+Time_Step_Max_/dt));
+
+	while(time_num < time_den)
+	  {
+	    double old_dt = dt;
+	    ddft_.step_string(dt, *(string_[J]),false);
+	    time_den *= int(0.5+old_dt/dt); // the new denominator
+	    time_num++;
+	  }	
 	DT_[J] = dt;
+	cout << "Task " << id_ << " finished relaxtion in " << time_num << " steps" << endl;	
       }
     cout << "Task " << id_ << " finished relaxtion" << endl;
     ///////////////// Interpolation step: send to master and wait to get back

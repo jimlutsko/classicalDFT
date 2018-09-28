@@ -68,10 +68,17 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool ver
   
   dt_ = dt;
 
+
+  // Calculate the RHS and sin transform of the incoming density.
+
+  double *d0_sin_transform = new double[sin_Ntot_];
+  pack_for_sin_transform(original_density.getData(),background_);
+  fftw_execute(sin_plan_);
+  memcpy(d0_sin_transform,sin_out_,sin_Ntot_*sizeof(double));  
+
   F_ = dft_.calculateFreeEnergyAndDerivatives(original_density,0.0, dF_,false);
-
   if(verbose) cout << "Initial F = " << F_ << endl;
-
+  
   const DFT_Vec &d0 = original_density.getDensity();   
   DFT_Vec RHS0(Ntot);
   calcNonlinearTerm(d0, dF_,RHS0);
@@ -80,15 +87,14 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool ver
   pack_for_sin_transform(RHS0.memptr(),0.0);
   fftw_execute(sin_plan_);
   memcpy(RHS0_sin_transform,sin_out_,sin_Ntot_*sizeof(double));
-    
+
+  // Prepare the local version which will be updated
   DFT_Vec d1(d0);
   DFT_Vec RHS1; RHS1.zeros(Ntot);  
   double *RHS1_sin_transform = new double[sin_Ntot_];
 
   double deviation = 1;
-
   bool reStart;
-  bool decreased_time_step = false;
   
   do {
     reStart = false;
@@ -104,21 +110,26 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool ver
 	fftw_execute(sin_plan_);
 	memcpy(RHS1_sin_transform,sin_out_,sin_Ntot_*sizeof(double));
 	
-	density_.set(d0);       
-	density_.doFFT();
+	//	density_.set(d0);  
+	//	density_.doFFT(); // NOT NEEDED HERE?     
 	
-	deviation = fftDiffusion(d1,RHS0_sin_transform,RHS1_sin_transform);
+	deviation = fftDiffusion(d0_sin_transform, d1,RHS0_sin_transform,RHS1_sin_transform);
 	if(verbose) cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
 	if(d1.min() < 0 || (i > 0 && old_error < deviation))
-	  {
-	    reStart = true; dt_ /= (fabs(d1.min()) > 0.1 ? 10 : 2) ; d1.set(d0); decreased_time_step = true;
-	  }
+	  reStart = true;
+
 	old_error = deviation;	       	
       }
-    if(!reStart && deviation > tolerence_fixed_point_)
-      {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+    if(deviation > tolerence_fixed_point_)
+      reStart = true;
+
+    if(reStart)
+      {
+	dt_ /= 2;
+	d1.set(original_density.getDensity());   //d0);
+      }    
   } while(reStart);
   
   
@@ -131,6 +142,8 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool ver
   delete RHS0_sin_transform;
   delete RHS1_sin_transform;
 
+  delete d0_sin_transform;
+  
   return F_;
 }
 
@@ -225,7 +238,7 @@ double DDFT_IF_Open::step()
 /**
  This function takes the input density and calculates a new density, d1, by propagating the density a time step dt. The nonlinear terms, RHS0 and RHS1, are treated explicitly.
 */
-double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform)
+double DDFT_IF_Open::fftDiffusion(const double *d0_sin_transform, DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform)
 {
   double dx = density_.getDX();
   double dy = density_.getDY();
@@ -244,8 +257,8 @@ double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform,
   double deviation = 0;
   double maxdeviation = 0;
   
-  pack_for_sin_transform(density_.getData(),background_);
-  fftw_execute(sin_plan_);
+  //  pack_for_sin_transform(density_.getData(),background_);
+  //  fftw_execute(sin_plan_);
   
   // fft of density is now in sin_out_;
   // we construct the rhs in sin_in_ since we will fft it to get the density in real space
@@ -265,7 +278,8 @@ double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform,
 
 	  double Lambda = facx+facy+facz;
 
-	  double x = sin_out_[pos];
+	  //	  double x = sin_out_[pos];
+	  double x = d0_sin_transform[pos];
 	  
 	  double fac = exp(Lambda*dt_);
 	  x *= fac;

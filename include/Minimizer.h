@@ -386,7 +386,7 @@ class DDFT_IF_Open : public DDFT
   virtual double step_string(double &dt, Density &d, bool verbose = true);
 
   double fftDiffusion(const Density &density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1) {throw std::runtime_error("Need to adapt fftDiffusion for non-string application");}
-  double fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform);
+  double fftDiffusion(const double *d0_sin_transform, DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
 
   void pack_for_sin_transform(const double *x, double val);
