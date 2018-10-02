@@ -25,7 +25,7 @@ class StringMethod_MPI_Master : public StringMethod_MPI
 {
  public:
  StringMethod_MPI_Master(int Nimages, Density &finalDensity, double bav, double F_final, double F_initial, double mu, double terminationCriterion = 0.01, Grace *g = NULL, bool freeEnd = false) 
-   : StringMethod_MPI(mu, freeEnd), finalDensity_(finalDensity), bav_(bav), grace_(g), termination_criterion_(terminationCriterion), interpolation_tolerence_(1e-6)
+   : StringMethod_MPI(mu, freeEnd), finalDensity_(finalDensity), background_density_(bav), grace_(g), termination_criterion_(terminationCriterion), interpolation_tolerence_(1e-6), archive_frequency_(1)
     {
       Ntot_ = finalDensity.Ntot();
       gr_ = new mglGraph;
@@ -36,7 +36,7 @@ class StringMethod_MPI_Master : public StringMethod_MPI
       dF_[Nimages-1] = F_final;
 
       N_.resize(Nimages);
-      N_[0] = bav_*finalDensity_.getVolume();
+      N_[0] = background_density_*finalDensity_.getVolume();
       N_[Nimages-1] = finalDensity_.getNumberAtoms();
 
       
@@ -45,13 +45,14 @@ class StringMethod_MPI_Master : public StringMethod_MPI
   }
   ~StringMethod_MPI_Master(){if(gr_) delete gr_;}
 
-  void setInterpolationTolerence(double x) {interpolation_tolerence_ = x;}
-
   virtual void run(string& logfile);
   double interpolate();
   void interpolate_cubic();
   void processImages();
   void report(string &logfile);
+
+  void setInterpolationTolerence(double t){ interpolation_tolerence_ = t;}
+  void setArchiveFrequency(int f) { archive_frequency_ = f;}
   
   void Display(int dataSet, double dFmax = 0.0, double dFav = 0.0);
   void Draw(vector<double> &data, int image_number, double F);
@@ -64,7 +65,7 @@ class StringMethod_MPI_Master : public StringMethod_MPI
     vector<int> taskList;
 
     Density &finalDensity_;
-    double bav_; // background density so we can reconstruct initial state
+    double background_density_; // background density so we can reconstruct initial state
     
     vector< vector<double> > Images_;
     vector<double> dF_;
@@ -73,12 +74,11 @@ class StringMethod_MPI_Master : public StringMethod_MPI
 
     double delta_max_; // largest velocity
     double termination_criterion_;
-
     double interpolation_tolerence_;
+    int archive_frequency_;
     
     mglGraph *gr_;
     mglData data_2D_;
-
 };
 
 

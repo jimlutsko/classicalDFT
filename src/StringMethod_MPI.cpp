@@ -7,7 +7,10 @@
 #include <vector>
 #include <time.h>
 
+#include <chrono>  // for high_resolution_clock
+
 #include <mgl2/mgl.h>
+//#include <mgl2/fltk.h>
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -22,8 +25,13 @@ using namespace std;
 #include "spliner.h"
 
 
+// Record start time
+static auto start = std::chrono::high_resolution_clock::now();
+
+
 void StringMethod_MPI_Master::run(string& logfile)
 {
+  
 
   ofstream log(logfile.c_str(), ios::app);
   log << "#Initial free energies = ";
@@ -45,13 +53,14 @@ void StringMethod_MPI_Master::run(string& logfile)
 
   for(long i=0;i<Ntot_;i++)
     {
-      Images_[0][i] = bav_;
+      Images_[0][i] = background_density_;
       Images_[Nimages-1][i] = finalDensity_.getDensity(i);
     }
 
   report(logfile);
-  
+
   do {
+    
     // Collect the densities
     int pos = 1;
     cout << "Waiting for densities ..." << endl;
@@ -69,30 +78,38 @@ void StringMethod_MPI_Master::run(string& logfile)
     do {
 	movement = interpolate();
 	cout << "Interpolation iteration " << ++k << " has movement = " << movement << endl;
-    } while(movement > interpolation_tolerence_); //1e-6);
+    } while(movement > interpolation_tolerence_); 
 
-    // archive and draw images
-    cout << "post-process images ..." << endl;
-    processImages();
 
-    
+    int doContinue = (delta_max_ > termination_criterion_ ? 1 : 0);
+
     // send the densities back
     cout << "Send densities back ..." << endl;    
     pos = 1;
     for(int Im=0;Im<taskList.size();Im++)
-      for(int J=0;J<taskList[Im];J++)
-	MPI_Send(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
-
+      {
+	MPI_Send(&doContinue,1,MPI_INT,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
+	
+	for(int J=0;J<taskList[Im];J++)
+	  MPI_Send(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
+      }
     // Report
     step_counter_++;    
-    report(logfile);
 
+    // archive and draw images
+    if(step_counter_%archive_frequency_ == 0)
+      {
+	cout << "post-process images ..." << endl;
+	processImages();
+      }
     if(grace_) grace_->redraw(1,0);
 
-    cout << "delta_max_ = " << delta_max_ << " termination_criterion_ = " << termination_criterion_ << endl;
+    report(logfile);
 
+    
   } while(delta_max_ > termination_criterion_);
 
+  cout << "Minimization is finished ... " << endl;
 }
 
 void StringMethod_MPI_Master::processImages()
@@ -173,7 +190,6 @@ void StringMethod_MPI_Master::archive(string &filename) const
     }
 }
 
-
 void StringMethod_MPI_Master::report(string &logfile)
 {
   // get the stats from the slave processes
@@ -184,6 +200,8 @@ void StringMethod_MPI_Master::report(string &logfile)
   double dFav = 0;
   double delta_max = 0;
   int Nimages = 0;
+
+  //  ofstream status("status.dat");
 
   stringstream status;
   
@@ -236,18 +254,27 @@ void StringMethod_MPI_Master::report(string &logfile)
   ofstream status_file("status.dat");
   status_file << status.str() << endl;
   status_file.close();      
-
-  stringstream scpy;
-  scpy << "cp status.dat status_" << step_counter_ << ".dat" << endl;
-  system(scpy.str().c_str());
+  
+  stringstream ff;
+  ff << "cp status.dat status_" << step_counter_ << ".dat";
+  int ret = system(ff.str().c_str());
   
   dFav /= Nimages;
 
+  // Record end time
+  auto finish = std::chrono::high_resolution_clock::now();
+
+
+  
   /////////////////// Report
   if(grace_)
     Display((step_counter_ == 0 ? 0 : 1), dFmax, dFav);
 
-  cout << "Step = " << step_counter_ << " dFmax = " << dFmax << " dFav = " << dFav << endl;
+
+  std::chrono::duration<double> elapsed_seconds = finish-start;
+  
+  cout << "Step = " << step_counter_ << " dFmax = " << dFmax << " dFav = " << dFav
+       << " time = " << int(elapsed_seconds.count()/60) << ":" << int(elapsed_seconds.count())%60 << endl;
   cout << endl;
   
   ofstream log(logfile.c_str(), ios::app);
@@ -255,12 +282,13 @@ void StringMethod_MPI_Master::report(string &logfile)
   log << step_counter_ << "\t"
       << dFmax << "\t"
       << dFav << "\t"
-      << delta_max << "\t";
+      << delta_max << "\t"
+      << elapsed_seconds.count() <<  "\t";
   log << endl;
   log.close();
 
   delta_max_ = delta_max;
-
+  start = finish;
   
 }
 
@@ -436,6 +464,8 @@ void StringMethod_MPI_Slave::run(string& logfile)
   report();
    
   cout << "Task " << id_ << " beginning to relax" << endl;
+
+  int doContinue = 0;
   
   do {
     // Copy string for evaluating distance moved at end of step        
@@ -449,19 +479,18 @@ void StringMethod_MPI_Slave::run(string& logfile)
 	double dt = min(2*DT_[J], Time_Step_Max_);
 
 	unsigned time_num = 0;
-	unsigned time_den = max(1,int(0.5+Time_Step_Max_/dt));
+	unsigned time_den = max(1, int(0.5+Time_Step_Max_/dt));
 
 	while(time_num < time_den)
 	  {
-	    double old_dt = dt;
-	    ddft_.step_string(dt, *(string_[J]),false);
-	    time_den *= int(0.5+old_dt/dt); // the new denominator
+	    ddft_.step_string(dt, *(string_[J]), time_den, false);
 	    time_num++;
-	  }	
+	  }
+
 	DT_[J] = dt;
-	cout << "Task " << id_ << " finished relaxtion in " << time_num << " steps" << endl;	
+	cout << "Task " << id_ << " image " << J << " finished relaxtion in " << time_den << " steps" << endl;
       }
-    cout << "Task " << id_ << " finished relaxtion" << endl;
+    cout << "Task " << id_ << " finished relaxtion " << endl;
     ///////////////// Interpolation step: send to master and wait to get back
 
     long Ntot = (Nimages > 0 ? string_[0]->Ntot() : 0);
@@ -470,6 +499,8 @@ void StringMethod_MPI_Slave::run(string& logfile)
     for(int J=0;J<Nimages;J++)
       MPI_Send(string_[J]->getData(), Ntot,MPI_DOUBLE,0,/*tag*/ 0 ,MPI_COMM_WORLD);
 
+    MPI_Recv(&doContinue,1,MPI_INT,0,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    
     for(int J=0;J<Nimages;J++)
       MPI_Recv(string_[J]->getData(),Ntot,MPI_DOUBLE,0,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
     
@@ -477,7 +508,7 @@ void StringMethod_MPI_Slave::run(string& logfile)
     report();
     string arc("archive");
     archive(arc);        
-  } while(1);
+  } while(doContinue);
 }
 
 void StringMethod_MPI_Slave::report()
@@ -551,6 +582,16 @@ void StringMethod_MPI_Master::Draw(vector<double> &data, int image_number, doubl
   for(int i=0;i<Nx;i++)
     for(int j=0;j<Ny;j++)
       data_2D_.a[i+Nx*j] = data[finalDensity_.pos(i,j, int((Nz-1)/2))]; 	
+
+  //  ofstream dd("image_dump.dat");
+
+  //  for(int i=0;i<density.Nx();i++)
+  //    {
+  //      for(int j=0;j<density.Ny();j++)
+  //	dd << i << " " << j << " " << data_2D_.a[i+density.Nx()*j] << endl;
+  //      cout << endl;
+  //    }
+
   
   //clear the window
   gr_->Clf();	

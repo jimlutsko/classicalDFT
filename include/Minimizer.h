@@ -283,7 +283,7 @@ class DDFT : public Minimizer
   void reverseForce(DFT_Vec *tangent);
 
   virtual double step() = 0;
-  virtual double step_string(double &dt, Density &d, bool verbose = true) = 0;
+  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true) = 0;
 
  protected:
 
@@ -324,7 +324,7 @@ class DDFT_Discrete : public DDFT
 
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, bool verbose = true);
+  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
 
   void   solv_tridiag(const DFT_Vec &b, DFT_Vec &RHS, double D, bool bFixedBoundaries = false);
   void   solv_periodic_tridiag(DFT_Vec &RHS, double D);
@@ -353,7 +353,7 @@ class DDFT_IF : public DDFT
 
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, bool verbose = true);
+  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
 
   double fftDiffusion(const Density &density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
@@ -383,13 +383,14 @@ class DDFT_IF_Open : public DDFT
 
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, bool verbose = true);
+  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
 
   double fftDiffusion(const Density &density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1) {throw std::runtime_error("Need to adapt fftDiffusion for non-string application");}
-  double fftDiffusion(const double *d0_sin_transform, DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform);
+  double fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
 
   void pack_for_sin_transform(const double *x, double val);
+  
   void unpack_after_transform(double *x, double val);
 
   
@@ -401,6 +402,10 @@ class DDFT_IF_Open : public DDFT
   unsigned sin_Norm_;
   double *sin_in_;
   double *sin_out_;
+
+  vector<double> Lamx;
+  vector<double> Lamy;
+  vector<double> Lamz;
 };
 
 class DDFT_Open : public DDFT
@@ -415,7 +420,7 @@ class DDFT_Open : public DDFT
   
   virtual double step();
 
-  virtual double step_string(double &dt, Density &d, bool verbose = true);
+  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
 
   double fftDiffusion(const Density &density,DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
