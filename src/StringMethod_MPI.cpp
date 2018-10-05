@@ -7,6 +7,8 @@
 #include <vector>
 #include <time.h>
 
+#include <chrono>  // for high_resolution_clock
+
 #include <mgl2/mgl.h>
 //#include <mgl2/fltk.h>
 
@@ -23,8 +25,13 @@ using namespace std;
 #include "spliner.h"
 
 
+// Record start time
+static auto start = std::chrono::high_resolution_clock::now();
+
+
 void StringMethod_MPI_Master::run(string& logfile)
 {
+  
 
   ofstream log(logfile.c_str(), ios::app);
   log << "#Initial free energies = ";
@@ -46,13 +53,14 @@ void StringMethod_MPI_Master::run(string& logfile)
 
   for(long i=0;i<Ntot_;i++)
     {
-      Images_[0][i] = bav_;
+      Images_[0][i] = background_density_;
       Images_[Nimages-1][i] = finalDensity_.getDensity(i);
     }
 
   report(logfile);
-  
+
   do {
+    
     // Collect the densities
     int pos = 1;
     cout << "Waiting for densities ..." << endl;
@@ -70,11 +78,7 @@ void StringMethod_MPI_Master::run(string& logfile)
     do {
 	movement = interpolate();
 	cout << "Interpolation iteration " << ++k << " has movement = " << movement << endl;
-      } while(movement > 1e-6);
-
-    // archive and draw images
-    cout << "post-process images ..." << endl;
-    processImages();
+    } while(movement > interpolation_tolerence_); 
 
     
     // send the densities back
@@ -86,10 +90,18 @@ void StringMethod_MPI_Master::run(string& logfile)
 
     // Report
     step_counter_++;    
-    report(logfile);
 
+    // archive and draw images
+    if(step_counter_%archive_frequency_ == 0)
+      {
+	cout << "post-process images ..." << endl;
+	processImages();
+      }
     if(grace_) grace_->redraw(1,0);
 
+    report(logfile);
+
+    
   } while(delta_max_ > termination_criterion_);
 
 }
@@ -172,7 +184,6 @@ void StringMethod_MPI_Master::archive(string &filename) const
     }
 }
 
-
 void StringMethod_MPI_Master::report(string &logfile)
 {
   // get the stats from the slave processes
@@ -237,14 +248,27 @@ void StringMethod_MPI_Master::report(string &logfile)
   ofstream status_file("status.dat");
   status_file << status.str() << endl;
   status_file.close();      
-
+  
+  stringstream ff;
+  ff << "cp status.dat status_" << step_counter_ << ".dat";
+  int ret = system(ff.str().c_str());
+  
   dFav /= Nimages;
 
+  // Record end time
+  auto finish = std::chrono::high_resolution_clock::now();
+
+
+  
   /////////////////// Report
   if(grace_)
     Display((step_counter_ == 0 ? 0 : 1), dFmax, dFav);
 
-  cout << "Step = " << step_counter_ << " dFmax = " << dFmax << " dFav = " << dFav << endl;
+
+  std::chrono::duration<double> elapsed_seconds = finish-start;
+  
+  cout << "Step = " << step_counter_ << " dFmax = " << dFmax << " dFav = " << dFav
+       << " time = " << int(elapsed_seconds.count()/60) << ":" << int(elapsed_seconds.count())%60 << endl;
   cout << endl;
   
   ofstream log(logfile.c_str(), ios::app);
@@ -252,12 +276,13 @@ void StringMethod_MPI_Master::report(string &logfile)
   log << step_counter_ << "\t"
       << dFmax << "\t"
       << dFav << "\t"
-      << delta_max << "\t";
+      << delta_max << "\t"
+      << elapsed_seconds.count() <<  "\t";
   log << endl;
   log.close();
 
   delta_max_ = delta_max;
-
+  start = finish;
   
 }
 
@@ -443,14 +468,21 @@ void StringMethod_MPI_Slave::run(string& logfile)
 
     for(int J=0;J<Nimages;J++)
       {
-	double dt = DT_[J];
+	double dt = min(2*DT_[J], Time_Step_Max_);
 
-	dt = min(2*dt, Time_Step_Max_);
-	ddft_.step_string(dt, *(string_[J]),false);
-		
+	unsigned time_num = 0;
+	unsigned time_den = max(1, int(0.5+Time_Step_Max_/dt));
+
+	while(time_num < time_den)
+	  {
+	    ddft_.step_string(dt, *(string_[J]), time_den, false);
+	    time_num++;
+	  }
+
 	DT_[J] = dt;
+	cout << "Task " << id_ << " image " << J << " finished relaxtion in " << time_den << " steps" << endl;
       }
-    cout << "Task " << id_ << " finished relaxtion" << endl;
+    cout << "Task " << id_ << " finished relaxtion " << endl;
     ///////////////// Interpolation step: send to master and wait to get back
 
     long Ntot = (Nimages > 0 ? string_[0]->Ntot() : 0);

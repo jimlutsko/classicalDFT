@@ -8,7 +8,6 @@
 #include <time.h>
 
 #include <mgl2/mgl.h>
-//#include <mgl2/fltk.h>
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -56,10 +55,46 @@ void DDFT_IF_Open::initialize()
   memcpy(sin_in_, sin_out_, sin_Ntot_*sizeof(double));
   fftw_execute(sin_plan_);
   for(unsigned k=0;k<sin_Ntot_;k++) sin_out_[k] /= sin_Norm_;
+
+  double dx = density_.getDX();
+  double dy = density_.getDY();
+  double dz = density_.getDZ();
+
+  double Dx = 1.0/(dx*dx);
+  double Dy = 1.0/(dy*dy);
+  double Dz = 1.0/(dz*dz);
+
+  for(int ix=0;ix<Nx-1;ix++)
+    {
+      double kx = (M_PI*(ix+1))/Nx;
+      double facx = 2*Dx*(cos(kx)-1);
+
+      Lamx.push_back(facx);
+    }
+      
+    for(int iy=0;iy<Ny-1;iy++)
+      {
+	  double ky = (M_PI*(iy+1))/Ny;
+	  double facy = 2*Dy*(cos(ky)-1);
+
+	  Lamy.push_back(facy);
+	}
+
+      for(int iz=0;iz<Nz-1;iz++)
+	{
+	  double kz = (M_PI*(iz+1))/Nz;
+	  double facz = 2*Dz*(cos(kz)-1);
+
+	  Lamz.push_back(facz);
+	}
 }
 
-double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool verbose)
+double DDFT_IF_Open::step_string(double &dt, Density &original_density, unsigned &time_den, bool verbose)
 {
+  int id;
+  MPI_Comm_rank(MPI_COMM_WORLD, &id);
+
+
   int Nx = original_density.Nx();
   int Ny = original_density.Ny();
   int Nz = original_density.Nz();
@@ -84,46 +119,53 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, bool ver
   DFT_Vec d1(d0);
   DFT_Vec RHS1; RHS1.zeros(Ntot);  
   double *RHS1_sin_transform = new double[sin_Ntot_];
+  memcpy(RHS1_sin_transform,RHS0_sin_transform,sin_Ntot_*sizeof(double));
+
 
   double deviation = 1;
 
   bool reStart;
-  bool decreased_time_step = false;
   
   do {
     reStart = false;
     double old_error = 0;
-    
+
     for(int i=0;i<20 && deviation > tolerence_fixed_point_ && !reStart;i++)
       {
-	density_.set(d1);
-	F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,false);
-	calcNonlinearTerm(d1, dF_,RHS1);
-
-	pack_for_sin_transform(RHS1.memptr(),0.0);
-	fftw_execute(sin_plan_);
-	memcpy(RHS1_sin_transform,sin_out_,sin_Ntot_*sizeof(double));
-	
-	density_.set(d0);       
-	density_.doFFT();
-	
+	density_.set(d0); // Unnecessary?
+	density_.doFFT(); // Unnecessary?
 	deviation = fftDiffusion(d1,RHS0_sin_transform,RHS1_sin_transform);
 	if(verbose) cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
 	if(d1.min() < 0 || (i > 0 && old_error < deviation))
-	  {
-	    reStart = true; dt_ /= (fabs(d1.min()) > 0.1 ? 10 : 2) ; d1.set(d0); decreased_time_step = true;
-	  }
-	old_error = deviation;	       	
+	    reStart = true;
+	else { // prepare for next step
+	  density_.set(d1);
+	  F_ = dft_.calculateFreeEnergyAndDerivatives(density_,0.0, dF_,false);
+	  calcNonlinearTerm(d1, dF_,RHS1);
+	  pack_for_sin_transform(RHS1.memptr(),0.0);
+	  fftw_execute(sin_plan_);
+	  memcpy(RHS1_sin_transform,sin_out_,sin_Ntot_*sizeof(double));	  
+	}	
+	old_error = deviation;
       }
-    if(!reStart && deviation > tolerence_fixed_point_)
-      {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+    if(deviation > tolerence_fixed_point_)
+      reStart = true;
+
+    if(reStart)
+      {
+	dt_ /= 2;
+	time_den *= 2;
+
+	d1.set(d0);
+	memcpy(RHS1_sin_transform,RHS0_sin_transform,sin_Ntot_*sizeof(double));
+      }
+    
   } while(reStart);
-  
-  
-  original_density.set(d1);
-  original_density.doFFT();
+    
+  original_density.set(d1); 
+  original_density.doFFT();// Unnecessary?
   calls_++;
 
   dt = dt_;
@@ -140,7 +182,8 @@ double DDFT_IF_Open::step()
 {
   double olddt = dt_;
   double dt = dt_;
-  F_ = step_string(dt, density_, true);
+  unsigned time_den = 1;
+  F_ = step_string(dt, density_, time_den, true);
   dt_ = olddt;
   
     // Adaptive time-step: try to increase time step if the present one works 5 times 
@@ -249,25 +292,42 @@ double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform,
   
   // fft of density is now in sin_out_;
   // we construct the rhs in sin_in_ since we will fft it to get the density in real space
+
+  vector<double> fx;
+  vector<double> fy;
+  vector<double> fz;
+
+  for(int ix=0;ix<Nx-1;ix++)
+    fx.push_back(exp(Lamx[ix]*dt_));
+
+  for(int iy=0;iy<Ny-1;iy++)
+    fy.push_back(exp(Lamy[iy]*dt_));
+  
+  for(int iz=0;iz<Nz-1;iz++)
+    fz.push_back(exp(Lamz[iz]*dt_));
   
   unsigned pos = 0;
   for(int ix=0;ix<Nx-1;ix++)
     for(int iy=0;iy<Ny-1;iy++)
       for(int iz=0;iz<Nz-1;iz++)
 	{
-	  double kx = (M_PI*(ix+1))/Nx;
-	  double ky = (M_PI*(iy+1))/Ny;
-	  double kz = (M_PI*(iz+1))/Nz;
+	  //	  double kx = (M_PI*(ix+1))/Nx;
+	  //	  double ky = (M_PI*(iy+1))/Ny;
+	  //	  double kz = (M_PI*(iz+1))/Nz;
 
-	  double facx = 2*Dx*(cos(kx)-1);
-	  double facy = 2*Dy*(cos(ky)-1);
-	  double facz = 2*Dz*(cos(kz)-1);
+	  //	  double facx = 2*Dx*(cos(kx)-1);
+	  //	  double facy = 2*Dy*(cos(ky)-1);
+	  //	  double facz = 2*Dz*(cos(kz)-1);
 
-	  double Lambda = facx+facy+facz;
+	  //	  double Lambda = facx+facy+facz;
+
+	  double Lambda = Lamx[ix]+Lamy[iy]+Lamz[iz];
 
 	  double x = sin_out_[pos];
 	  
-	  double fac = exp(Lambda*dt_);
+	  //	  double fac = exp(Lambda*dt_);
+	  double fac = fx[ix]*fy[iy]*fz[iz];
+	  
 	  x *= fac;
 	  x += ((fac-1)/Lambda)*RHS0_sin_transform[pos];
 	  x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform[pos]-RHS0_sin_transform[pos]);

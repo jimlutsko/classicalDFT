@@ -301,7 +301,7 @@ int main(int argc, char** argv)
     MPI_Recv(&bav,1,MPI_DOUBLE,MPI_ANY_SOURCE,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE); 
   }
 
-  dft->setEtaMax(1.0-1e-8);
+  //  dft->setEtaMax(1.0-1e-8);
 
   DDFT *ddft;
   if(ddft_type.compare("CLOSED") == 0) {ddft = new DDFT_IF(*dft,finalDensity,NULL,showGraphics);;}
