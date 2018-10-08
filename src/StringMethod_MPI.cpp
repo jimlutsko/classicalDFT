@@ -30,15 +30,8 @@ static auto start = std::chrono::high_resolution_clock::now();
 
 
 void StringMethod_MPI_Master::run(string& logfile)
-{
-  
-
+{  
   ofstream log(logfile.c_str(), ios::app);
-  log << "#Initial free energies = ";
-
-  //for(double F: oldF)
-  ///    log << F << " ";
-  log << endl;
   
   log << "#step_counter\tdFmax\tdFav\tdist_max" << endl;
   log.close();
@@ -58,7 +51,8 @@ void StringMethod_MPI_Master::run(string& logfile)
     }
 
   report(logfile);
-
+  int doContinue = 1;
+  
   do {
     
     // Collect the densities
@@ -81,14 +75,13 @@ void StringMethod_MPI_Master::run(string& logfile)
     } while(movement > interpolation_tolerence_); 
 
 
-    int doContinue = (delta_max_ > termination_criterion_ ? 1 : 0);
 
     // send the densities back
     cout << "Send densities back ..." << endl;    
     pos = 1;
     for(int Im=0;Im<taskList.size();Im++)
       {
-	MPI_Send(&doContinue,1,MPI_INT,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
+	//	MPI_Send(&doContinue,1,MPI_INT,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
 	
 	for(int J=0;J<taskList[Im];J++)
 	  MPI_Send(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
@@ -106,8 +99,13 @@ void StringMethod_MPI_Master::run(string& logfile)
 
     report(logfile);
 
+    doContinue = (delta_max_ > termination_criterion_ ? 1 : 0);
+
     
-  } while(delta_max_ > termination_criterion_);
+    for(int Im=0;Im<taskList.size();Im++)
+      MPI_Send(&doContinue,1,MPI_INT,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
+    
+  } while(doContinue);
 
   cout << "Minimization is finished ... " << endl;
 }
@@ -197,16 +195,17 @@ void StringMethod_MPI_Master::report(string &logfile)
 
 
   double dFmax = 0;
+  int Im_max = 0;
   double dFav = 0;
   double delta_max = 0;
   int Nimages = 0;
-
+  double dist_max = 0;
   //  ofstream status("status.dat");
 
   stringstream status;
   
   status << "0  0.000 " << dF_[0] << " 0 " << N_[0] << endl; 
-  
+
   for(int Im=0;Im<taskList.size();Im++)
     {
       int Nimage = taskList[Im];
@@ -227,10 +226,12 @@ void StringMethod_MPI_Master::report(string &logfile)
             
       MPI_Recv(&dFmax1,     1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       MPI_Recv(&dFav1,      1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      MPI_Recv(&delta_max1, 1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+      MPI_Recv(&delta_max1, 1, MPI_DOUBLE, Im+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);      
+      
       for(int K=0;K<Nimage;K++)
 	{
+	  if(dist[K] > dist_max) {Im_max = 1+Nimages+K; dist_max = dist[K];}
+
 	  status <<  1+Nimages+K << " " << DT[K] << " " << dF1[K] << " " << dist[K] << " " << N[K] << endl; 
 	  dF_[1+Nimages+K] = dF1[K];
 	  N_[1+Nimages+K] = N[K];
@@ -240,6 +241,7 @@ void StringMethod_MPI_Master::report(string &logfile)
       delta_max = max(delta_max, delta_max1);
       dFav     += dFav1*Nimage;
 
+      
       delete dF1;
       delete dist;
       delete N;
@@ -283,6 +285,7 @@ void StringMethod_MPI_Master::report(string &logfile)
       << dFmax << "\t"
       << dFav << "\t"
       << delta_max << "\t"
+      << Im_max << "\t"
       << elapsed_seconds.count() <<  "\t";
   log << endl;
   log.close();
@@ -499,15 +502,16 @@ void StringMethod_MPI_Slave::run(string& logfile)
     for(int J=0;J<Nimages;J++)
       MPI_Send(string_[J]->getData(), Ntot,MPI_DOUBLE,0,/*tag*/ 0 ,MPI_COMM_WORLD);
 
-    MPI_Recv(&doContinue,1,MPI_INT,0,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-    
     for(int J=0;J<Nimages;J++)
       MPI_Recv(string_[J]->getData(),Ntot,MPI_DOUBLE,0,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
     
     /////////////////// Compute stats and send to master
     report();
     string arc("archive");
-    archive(arc);        
+    archive(arc);
+
+    MPI_Recv(&doContinue,1,MPI_INT,0,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+
   } while(doContinue);
 }
 
@@ -520,6 +524,8 @@ void StringMethod_MPI_Slave::report()
     dFmax_     = 0;
     dFav_      = 0;
     delta_max_ = 0;
+
+    double total_time = Time_Step_Max_; // DT_
 
     for(int J=0;J<Nimages;J++)
       {
@@ -548,7 +554,8 @@ void StringMethod_MPI_Slave::report()
 	  }
 	//	distances_[J]  = string_[J]->dV()*sqrt(distances_[J] )/DT_[J];
 	//	distances_[J]  = sqrt(distances_[J] )/(DT_[J]*Ntot);
-	distances_[J]  = sqrt(distances_[J] )/(DT_[J]*mass);
+	//	distances_[J]  = sqrt(distances_[J] )/(DT_[J]*mass);
+	distances_[J]  = sqrt(distances_[J] )/(total_time*mass);   
 
 	delta_max_ = max(delta_max_, distances_[J] );
 	cout << "Image " << J+offset_ << " F = " << fj << " mu = " << mu_ << " N = " << N_[J]  << " Omega = " << newF[J] << endl;

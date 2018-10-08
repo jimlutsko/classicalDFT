@@ -10,9 +10,9 @@ class StringMethod_MPI
  StringMethod_MPI(double mu, bool freeEnd) : mu_(mu), freeEnd_(freeEnd), step_counter_(0){};
   ~StringMethod_MPI(){};
 
-  //  void setMu(double m) { mu_ = m;}
   virtual void run(string& logfile) = 0;
 
+  void setStepCounter(int s) { step_counter_ = s;}
   
  protected:
   double mu_;

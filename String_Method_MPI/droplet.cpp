@@ -101,6 +101,8 @@ int main(int argc, char** argv)
   
   double TimeStepMax = -1;
   string ddft_type;
+
+  int last_step = 0;
   
   Options options;
 
@@ -145,7 +147,23 @@ int main(int argc, char** argv)
 
   if(taskid == MASTER)
     {
-      ofstream log("log.dat");
+      if(bRestart)
+	{
+	  ifstream log("log.dat");
+	  std::string line;
+	  while (log >> std::ws && std::getline(log, line)) // skip empty lines
+	    ;
+	  stringstream str(line);
+	  str >> last_step;
+	  cout << "Last line in log file was: " << line << endl;
+	  cout << "Last step in log file was: " << last_step << endl;
+	}
+      
+
+
+
+      
+      ofstream log("log.dat", (bRestart ? ios::app : ios::trunc));
       TimeStamp ts;
       log << "# " << ts << endl;
       log << "#=================================" << endl << "#" << endl;
@@ -398,13 +416,15 @@ int main(int argc, char** argv)
 
     if(bRestart)
       {
-	string file("..//archive");
-	((StringMethod_MPI_Slave*) theString)->read(file);
+	//	string file("..//archive");
+	string file(".//archive");
+	((StringMethod_MPI_Slave*) theString)->read(file);	
       }
+    
   }
 
   string s("log.dat");
-  
+  theString->setStepCounter(last_step+1);
   theString->run(s);
   
   if(taskid == MASTER)
