@@ -7,7 +7,8 @@ DEBUG= -O3
 BUILD_NUMBER_FILE=build-number.txt
 
 # Include build number rules.
-include local.mak
+PROG= show_status
+OBS= show_status.o
 
 ###########################################################################
 # gcc version egcs-2.95.2 19991024 (release) on a Linux system
@@ -68,8 +69,8 @@ COMMON = ../
 
 LIBS= 
 
-prog : $(OBS) visit_writer.o $(LIBS) $(BUILD_NUMBER_FILE) common
-	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o $(PROG)   ../DFT.o ../FMT.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o ./visit_writer.o $(OBS) $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lnlopt -lpthread -lm
+prog : $(OBS) $(LIBS) $(BUILD_NUMBER_FILE) common
+	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o $(PROG)    $(OBS) $(LIBS)  ../Grace.o ../Table.o -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo  -lpthread -lm
 
 
 .PHONY : clean

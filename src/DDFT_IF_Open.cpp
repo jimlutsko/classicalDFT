@@ -37,16 +37,17 @@ void DDFT_IF_Open::initialize()
   sin_out_ = new double[sin_Ntot_];
   
   sin_plan_ = fftw_plan_r2r_3d(Nx-1, Ny-1, Nz-1,
-					sin_in_, sin_out_,
-					 FFTW_RODFT00, FFTW_RODFT00, FFTW_RODFT00,
-					 FFTW_MEASURE);			       
-			       //			       FFTW_ESTIMATE);
+			       sin_in_, sin_out_,
+			       FFTW_RODFT00, FFTW_RODFT00, FFTW_RODFT00,
+			       FFTW_MEASURE);			       
 
-
+  /*
   F_ = dft_.calculateFreeEnergyAndDerivatives(density_, 0.0, dF_,true);   
   DFT_Vec dummy;
   F_ += dft_.F_IdealGas(density_, dummy);
   F_ += dft_.F_External(density_,0.0,dummy);
+  */
+  F_ = dft_.calculateFreeEnergyAndDerivatives(density_, 0.0, dF_,false);     
 
   cout << "Initial value of F = " << F_ << endl;
 
@@ -72,29 +73,25 @@ void DDFT_IF_Open::initialize()
       Lamx.push_back(facx);
     }
       
-    for(int iy=0;iy<Ny-1;iy++)
-      {
-	  double ky = (M_PI*(iy+1))/Ny;
-	  double facy = 2*Dy*(cos(ky)-1);
+  for(int iy=0;iy<Ny-1;iy++)
+    {
+      double ky = (M_PI*(iy+1))/Ny;
+      double facy = 2*Dy*(cos(ky)-1);
 
-	  Lamy.push_back(facy);
-	}
+      Lamy.push_back(facy);
+    }
 
-      for(int iz=0;iz<Nz-1;iz++)
-	{
-	  double kz = (M_PI*(iz+1))/Nz;
-	  double facz = 2*Dz*(cos(kz)-1);
+  for(int iz=0;iz<Nz-1;iz++)
+    {
+      double kz = (M_PI*(iz+1))/Nz;
+      double facz = 2*Dz*(cos(kz)-1);
 
-	  Lamz.push_back(facz);
-	}
+      Lamz.push_back(facz);
+    }
 }
 
 double DDFT_IF_Open::step_string(double &dt, Density &original_density, unsigned &time_den, bool verbose)
 {
-  int id;
-  MPI_Comm_rank(MPI_COMM_WORLD, &id);
-
-
   int Nx = original_density.Nx();
   int Ny = original_density.Ny();
   int Nz = original_density.Nz();
@@ -120,7 +117,6 @@ double DDFT_IF_Open::step_string(double &dt, Density &original_density, unsigned
   DFT_Vec RHS1; RHS1.zeros(Ntot);  
   double *RHS1_sin_transform = new double[sin_Ntot_];
   memcpy(RHS1_sin_transform,RHS0_sin_transform,sin_Ntot_*sizeof(double));
-
 
   double deviation = 1;
 
@@ -311,22 +307,10 @@ double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform,
     for(int iy=0;iy<Ny-1;iy++)
       for(int iz=0;iz<Nz-1;iz++)
 	{
-	  //	  double kx = (M_PI*(ix+1))/Nx;
-	  //	  double ky = (M_PI*(iy+1))/Ny;
-	  //	  double kz = (M_PI*(iz+1))/Nz;
-
-	  //	  double facx = 2*Dx*(cos(kx)-1);
-	  //	  double facy = 2*Dy*(cos(ky)-1);
-	  //	  double facz = 2*Dz*(cos(kz)-1);
-
-	  //	  double Lambda = facx+facy+facz;
-
 	  double Lambda = Lamx[ix]+Lamy[iy]+Lamz[iz];
-
-	  double x = sin_out_[pos];
+	  double fac    = fx[ix]*fy[iy]*fz[iz];
 	  
-	  //	  double fac = exp(Lambda*dt_);
-	  double fac = fx[ix]*fy[iy]*fz[iz];
+	  double x = sin_out_[pos];
 	  
 	  x *= fac;
 	  x += ((fac-1)/Lambda)*RHS0_sin_transform[pos];

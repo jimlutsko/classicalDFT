@@ -30,32 +30,35 @@ static auto start = std::chrono::high_resolution_clock::now();
 
 
 void StringMethod_MPI_Master::run(string& logfile)
-{  
-  ofstream log(logfile.c_str(), ios::app);
+{
+  //////////////////// Initialization
   
-  log << "#step_counter\tdFmax\tdFav\tdist_max" << endl;
-  log.close();
-
-  //Eliminate existing files, if any ...
+  ///  Eliminate existing files, if any ...
   int ret = system("rm image_*.png");
 
-  int Nimages = Images_.size();
-  
+  /// Prepare fixed images (first and last ...)
+  int Nimages = Images_.size();  
+
   for(int J=0;J<Nimages;J++)
     Images_[J].resize(Ntot_);
-
+  
   for(long i=0;i<Ntot_;i++)
     {
       Images_[0][i] = background_density_;
       Images_[Nimages-1][i] = finalDensity_.getDensity(i);
     }
 
+  ///  Prepare log file
+  ofstream log(logfile.c_str(), ios::app);  
+  log << "#step_counter\tdFmax\tdFav\tdist_max" << endl;
+  log.close();
   report(logfile);
-  int doContinue = 1;
-  
+
+  ///  Main  loop 
+  int doContinue = 1;  
   do {
     
-    // Collect the densities
+    //// Collect the densities - slaves have relaxed them
     int pos = 1;
     cout << "Waiting for densities ..." << endl;
     
@@ -63,10 +66,9 @@ void StringMethod_MPI_Master::run(string& logfile)
       for(int J=0;J<taskList[Im];J++)
 	MPI_Recv(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ MPI_ANY_TAG ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-
+    ////  Interpolatation step
     cout << "... begin interpolation" << endl;
-    
-    // Do interpolation
+
     double movement = 1;
     int k = 0;
     do {
@@ -74,22 +76,16 @@ void StringMethod_MPI_Master::run(string& logfile)
 	cout << "Interpolation iteration " << ++k << " has movement = " << movement << endl;
     } while(movement > interpolation_tolerence_); 
 
-
-
-    // send the densities back
+    //// Send the densities back to the slaves
     cout << "Send densities back ..." << endl;    
     pos = 1;
     for(int Im=0;Im<taskList.size();Im++)
-      {
-	//	MPI_Send(&doContinue,1,MPI_INT,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
-	
-	for(int J=0;J<taskList[Im];J++)
-	  MPI_Send(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
-      }
-    // Report
+      for(int J=0;J<taskList[Im];J++)
+	MPI_Send(Images_[pos++].data(),Ntot_,MPI_DOUBLE,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
+
+    //// Report, archive and update graphics
     step_counter_++;    
 
-    // archive and draw images
     if(step_counter_%archive_frequency_ == 0)
       {
 	cout << "post-process images ..." << endl;
@@ -101,13 +97,17 @@ void StringMethod_MPI_Master::run(string& logfile)
 
     doContinue = (delta_max_ > termination_criterion_ ? 1 : 0);
 
-    
+    /// Tell the slaves whether to continue or to exit ...
     for(int Im=0;Im<taskList.size();Im++)
       MPI_Send(&doContinue,1,MPI_INT,Im+1,/*tag*/ 0 ,MPI_COMM_WORLD);
     
   } while(doContinue);
 
   cout << "Minimization is finished ... " << endl;
+
+  ofstream log1(logfile.c_str(), ios::app);  
+  log1 << "# Minimization finished .... exiting" << endl;
+  log1.close();
 }
 
 void StringMethod_MPI_Master::processImages()
