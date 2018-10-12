@@ -16,6 +16,8 @@ using namespace std;
 #include <omp.h>
 #endif
 
+#include <mpi.h>  
+
 #include "FMT.h"
 #include "Enskog.h"
 
@@ -142,23 +144,26 @@ void FMT::generateWeights(vector<FMT_Weighted_Density> &densities, double hsd, s
   
   // Read points from file : C++ way
   
-  ifstream in(pointsFile.c_str());
-  if(!in.good())
-    throw std::runtime_error("input file cannot be opened");
+  //  ifstream in(pointsFile.c_str());
+  //  if(!in.good())
+  //    throw std::runtime_error("input file cannot be opened");
   
 
   // Read points from file : C code for use with MPI functions
-  /*
-  FILE *infile = fopen(pointsFile.c_str(),"r");
-  if(infile == NULL)
-    throw std::runtime_error("input pointsfile cannot be opened");
+  
+    MPI_Status    status;
+    MPI_File      fh;
+
+    int error = MPI_File_open(MPI_COMM_WORLD, pointsFile.c_str(),
+                  MPI_MODE_RDONLY, MPI_INFO_NULL, &fh);
+    if(error != MPI_SUCCESS) 
+      throw std::runtime_error("Could not open points file");
 
   // get num bytes
-  fseek(infile, 0L, SEEK_END);
-  long numbytes = ftell(infile);
-
-  // reset
-  fseek(infile, 0L, SEEK_SET);
+  MPI_Offset numbytes;
+  error = MPI_File_get_size(fh, &numbytes);
+  if(error != MPI_SUCCESS) 
+    throw std::runtime_error("Could not get points file size");
 
   // allocate buffer
   char *buffer = (char*)calloc(numbytes, sizeof(char));	
@@ -167,16 +172,20 @@ void FMT::generateWeights(vector<FMT_Weighted_Density> &densities, double hsd, s
     throw std::runtime_error("could not allocate buffer for points file");
 
   // copy
-  fread(buffer, sizeof(char), numbytes, infile);
-  fclose(infile);
+  MPI_File_seek(fh, 0, MPI_SEEK_SET);
+  error = MPI_File_read(fh, buffer, numbytes, MPI_BYTE, &status);
+  if(error != MPI_SUCCESS) 
+    throw std::runtime_error("Could not read points file");
+
+  MPI_File_close(&fh);
   
   string sbuffer(buffer,numbytes/sizeof(char));
 
-  infile.close();
+  //  infile.close();
   delete buffer;
   
   istringstream in(sbuffer);
-  */
+  
 
 
   
