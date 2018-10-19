@@ -6,13 +6,12 @@
 class Potential1
 {
  public:
- Potential1(double sigma, double eps, double rcut) : sigma_(sigma), eps_(eps),rcut_(rcut)
-  {
-    shift_ = vr(rcut_);
-    rmin_  = pow(2.0,1.0/6.0)*sigma;
-    Vmin_  = V(rmin_);
-  }
+ Potential1(double sigma, double eps, double rcut) : sigma_(sigma), eps_(eps),rcut_(rcut), shift_(0), rmin_(0), Vmin_(0)
+  { }
 
+  virtual double getRmin() const = 0;
+  virtual double getHardCore() const = 0;
+  
   double V(double r) const { return vr(r)-shift_;}
 
   double Watt(double r) const { return (r < rcut_ ? (r < rmin_ ? Vmin_ : V(r)) : 0);}
@@ -20,34 +19,25 @@ class Potential1
   
   double getHSD(double kT) const
   {
-    kT_ = kT; 
+    kT_ = kT;
+    double hc = getHardCore();
+    
     Integrator<const Potential1> II(this, &Potential1::dBH_Kernal, 1e-4, 1e-6);
-    return II.integrateFinite(0.0,rmin_);
+    return hc + II.integrateFinite(hc,rmin_);
   }
 
 
   // This is $a = \frac{1}{2}\int Watt(r)/kT d{\bf r}$
   // I assume that $kT = k_{B}T/\eps$
-  double getVDW_Parameter(double kT) const
-  {
-    double y0 = sigma_/rmin_;
-    double yc = sigma_/rcut_;
-    
-    return (16*M_PI/9)*sigma_*sigma_*sigma_*(2*pow(y0,9)-3*pow(y0,3)+3*pow(yc,3)-2*pow(yc,9))/kT;
-  }
+  virtual double getVDW_Parameter(double kT) const = 0;
   
- private:
-  double vr(double r) const
-  {
-    double y = sigma_/r;
-    double y3 = y*y*y;
-    double y6 = y3*y3;
-    return 4*eps_*(y6*y6-y6);
-  }
+ protected:
+  virtual double vr(double r) const = 0;
+
 
   virtual double dBH_Kernal(double r) const {return (1.0-exp(-V0(r)/kT_));}
   
- private:
+ protected:
  double sigma_;
  double eps_;
  double rcut_;
@@ -56,5 +46,85 @@ class Potential1
  mutable double kT_;
 double Vmin_;
 };
+
+class LJ : public Potential1
+{
+ public:
+ LJ(double sigma, double eps, double rcut) : Potential1(sigma, eps, rcut)
+  {
+    shift_ = vr(rcut_);
+    rmin_  = getRmin(); //pow(2.0,1.0/6.0)*sigma;
+    Vmin_  = V(rmin_);
+  }
+
+  virtual double getRmin() const { return pow(2.0,1.0/6.0)*sigma_;}
+  virtual double getHardCore() const { return 0.0;}
+
+  
+  // This is $a = \frac{1}{2}\int Watt(r)/kT d{\bf r}$
+  // I assume that $kT = k_{B}T/\eps$
+  virtual double getVDW_Parameter(double kT) const
+  {
+    double y0 = sigma_/rmin_;
+    double yc = sigma_/rcut_;
+    
+    return (16*M_PI/9)*sigma_*sigma_*sigma_*(2*pow(y0,9)-3*pow(y0,3)+3*pow(yc,3)-2*pow(yc,9))/kT;
+  }
+
+ protected:
+  virtual double vr(double r) const
+  {
+    double y = sigma_/r;
+    double y3 = y*y*y;
+    double y6 = y3*y3;
+    return 4*eps_*(y6*y6-y6);
+  }
+};
+
+
+
+class tWF : public Potential1
+{
+ public:
+ tWF(double sigma, double eps, double rcut, alpha) : Potential1(sigma, eps, rcut), alpha_(alpha)
+  {
+    shift_ = vr(rcut_);
+    rmin_  = getRmin();
+    Vmin_  = V(rmin_);
+
+  }
+
+  virtual double getRmin() const { return sigma_*sqrt(1+pow(2.0/alpha_,1.0/3.0));}
+  virtual double getHardCore() const { return sigma_;}
+  
+  // This is $a = \frac{1}{2}\int Watt(r)/kT d{\bf r}$
+  // I assume that $kT = k_{B}T/\eps$
+  virtual double getVDW_Parameter(double kT) const
+  {
+    double y0 = sigma_/rmin_;
+    double yc = sigma_/rcut_;
+    
+    return (16*M_PI/9)*sigma_*sigma_*sigma_*(2*pow(y0,9)-3*pow(y0,3)+3*pow(yc,3)-2*pow(yc,9))/kT;
+  }
+
+ protected:
+  virtual double vr(double r) const
+  {
+      if(r < sigma) return 1e50;
+
+      double s = r/sigma_;
+      double y = 1.0/(s*s-1);
+      double y3 = y*y*y;
+      
+      return (4*eta_/(alpha_*alpha_))*(y3*y3-alpha_*y3);
+  }
+
+  double alpha_;
+};
+
+
+
+
+
 
 #endif // __POTENTIAL

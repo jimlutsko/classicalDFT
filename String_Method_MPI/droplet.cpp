@@ -197,7 +197,7 @@ int main(int argc, char** argv)
 #endif
 
   Droplet finalDensity(dx, L, PointsPerHardSphere, R, zPos); 
-  Potential1 potential(sigma, eps, rcut);
+  LJ potential(sigma, eps, rcut);
 
   DFT_VDW<RSLT> *dft = new DFT_VDW<RSLT>(finalDensity,potential,pointsFile,kT);
 
