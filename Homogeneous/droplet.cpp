@@ -141,7 +141,8 @@ int main(int argc, char** argv)
   //  L[2] += int(rcut) + 1; // expand volume to make sure there are no interactions;
 
   Droplet theDensity(dx, L, PointsPerHardSphere, R, zPos, sigWall, epsWall/kT); 
-  Potential1 potential(sigma, eps, rcut);
+  //  Potential1 potential(sigma, eps, rcut);
+  tWF potential(sigma, eps, rcut);
   DFT_VDW<RSLT> dft(theDensity,potential,pointsFile,kT);
 
   // Determine coexistence to give us a baseline for the densities

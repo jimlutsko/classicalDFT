@@ -16,7 +16,9 @@ using namespace std;
 #include <omp.h>
 #endif
 
+#ifdef USE_MPI
 #include <mpi.h>  
+#endif
 
 #include "FMT.h"
 #include "Enskog.h"
@@ -141,16 +143,15 @@ void FMT::generateWeights(vector<FMT_Weighted_Density> &densities, double hsd, s
   cout << "/////  Generating integration points on sphere " << endl;
 
   vector < vector<double> > points; 
-  
+
+#ifndef USE_MPI  
   // Read points from file : C++ way
   
-  //  ifstream in(pointsFile.c_str());
-  //  if(!in.good())
-  //    throw std::runtime_error("input file cannot be opened");
-  
-
+  ifstream in(pointsFile.c_str());
+  if(!in.good())
+    throw std::runtime_error("input file cannot be opened");
+#else
   // Read points from file : C code for use with MPI functions
-  
     MPI_Status    status;
     MPI_File      fh;
 
@@ -181,13 +182,9 @@ void FMT::generateWeights(vector<FMT_Weighted_Density> &densities, double hsd, s
   
   string sbuffer(buffer,numbytes/sizeof(char));
 
-  //  infile.close();
   delete buffer;
-  
   istringstream in(sbuffer);
-  
-
-
+#endif
   
   for(string buf; getline(in,buf);)
     {

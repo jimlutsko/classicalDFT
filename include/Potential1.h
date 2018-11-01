@@ -1,5 +1,5 @@
-#ifndef __LUTSKO_POTENTIAL__
-#define __LUTSKO_POTENTIAL__
+#ifndef __LUTSKO_POTENTIAL1__
+#define __LUTSKO_POTENTIAL1__
 
 #include "Integrator.h"
 
@@ -34,7 +34,6 @@ class Potential1
  protected:
   virtual double vr(double r) const = 0;
 
-
   virtual double dBH_Kernal(double r) const {return (1.0-exp(-V0(r)/kT_));}
   
  protected:
@@ -44,7 +43,7 @@ class Potential1
  double rmin_;
  double shift_;
  mutable double kT_;
-double Vmin_;
+ double Vmin_;
 };
 
 class LJ : public Potential1
@@ -59,10 +58,6 @@ class LJ : public Potential1
 
   virtual double getRmin() const { return pow(2.0,1.0/6.0)*sigma_;}
   virtual double getHardCore() const { return 0.0;}
-
-  
-  // This is $a = \frac{1}{2}\int Watt(r)/kT d{\bf r}$
-  // I assume that $kT = k_{B}T/\eps$
   virtual double getVDW_Parameter(double kT) const
   {
     double y0 = sigma_/rmin_;
@@ -86,7 +81,7 @@ class LJ : public Potential1
 class tWF : public Potential1
 {
  public:
- tWF(double sigma, double eps, double rcut, alpha) : Potential1(sigma, eps, rcut), alpha_(alpha)
+ tWF(double sigma, double eps, double rcut, double alpha = 50.0) : Potential1(sigma, eps, rcut), alpha_(alpha)
   {
     shift_ = vr(rcut_);
     rmin_  = getRmin();
@@ -101,22 +96,28 @@ class tWF : public Potential1
   // I assume that $kT = k_{B}T/\eps$
   virtual double getVDW_Parameter(double kT) const
   {
-    double y0 = sigma_/rmin_;
-    double yc = sigma_/rcut_;
+    double xm = rmin_/sigma_;
+    double xc = rcut_/sigma_;
     
-    return (16*M_PI/9)*sigma_*sigma_*sigma_*(2*pow(y0,9)-3*pow(y0,3)+3*pow(yc,3)-2*pow(yc,9))/kT;
+    double ym = 1.0/(xm*xm-1);
+    double yc = 1.0/(xc*xc-1);
+
+    double gc = ((7+32*alpha_)/512)*log((xc-1)/(xc+1))-(1.0/3840)*(xc*yc*yc*yc*yc*yc*(105+xc*xc*(790+xc*xc*(-896+xc*xc*(490-105*xc*xc))))) + alpha_*xc*(xc*xc+1)*yc*yc/8;
+    double gm = ((7+32*alpha_)/512)*log((xm-1)/(xm+1))-(1.0/3840)*(xm*ym*ym*ym*ym*ym*(105+xm*xm*(790+xm*xm*(-896+xm*xm*(490-105*xm*xm))))) + alpha_*xm*(xm*xm+1)*ym*ym/8;
+    
+    return (2*M_PI/kT)*sigma_*sigma_*sigma_*((xm*xm*xm/3)*vr(xm)-(xc*xc*xc/3)*vr(xc)+(4*eps_/(alpha_*alpha_))*(gc-gm));
   }
 
  protected:
   virtual double vr(double r) const
   {
-      if(r < sigma) return 1e50;
+      if(r < sigma_) return 1e50;
 
       double s = r/sigma_;
       double y = 1.0/(s*s-1);
       double y3 = y*y*y;
       
-      return (4*eta_/(alpha_*alpha_))*(y3*y3-alpha_*y3);
+      return (4*eps_/(alpha_*alpha_))*(y3*y3-alpha_*y3);
   }
 
   double alpha_;

@@ -1,4 +1,3 @@
-
 #include <cmath>
 #include <iostream>
 #include <iomanip>
@@ -30,8 +29,10 @@ int main(int argc, char** argv)
   g.pause();
 
   bool first = true;
+
+  int missed = 0;
   
-  for(int pos = 0; pos > -1; pos++)
+  for(int pos = 1; pos > -1 && missed < 3; pos++)
     {
       stringstream ss;
       ss << "status_" << pos << ".dat";
@@ -39,11 +40,15 @@ int main(int argc, char** argv)
       cout << "opening " << ss.str() << endl;
 
       ifstream in(ss.str());
-      if(!in.good()) {pos = -2; continue;}
+      if(!in.good()) {missed++; continue;}
+      else missed = 0;
+      
       Table t(in);
 
       g.deleteDataSet(0);
 
+      g.setTitle(ss.str().c_str());
+      
       for(int i=0;i<t.nRows();i++)
 	{
 	  g.addPoint(i,t.val(i,2));
@@ -53,7 +58,7 @@ int main(int argc, char** argv)
 
       if(t.nRows() < 1) pos = -2;
 
-      usleep(100000);
+      usleep(10000);
       first = false;
     }
   g.pause();

@@ -50,7 +50,7 @@ void StringMethod_MPI_Master::run(string& logfile)
 
   ///  Prepare log file
   ofstream log(logfile.c_str(), ios::app);  
-  log << "#step_counter\tdFmax\tdFav\tdist_max" << endl;
+  log << "#step\tdFmax\tdFav\tdist_max\tImax\tTime" << endl;
   log.close();
   report(logfile);
 
@@ -390,6 +390,7 @@ double StringMethod_MPI_Master::interpolate()
 	  double dx = Images_[J][i];
 	  double sx = dx;
 	  Images_[J][i] = x*y[K+1]+(1-x)*y[K];
+
 	  dx -= Images_[J][i];
 	  sx += Images_[J][i];
 	  dx /= (0.5*sx);
@@ -403,7 +404,7 @@ double StringMethod_MPI_Master::interpolate()
 }
 
 
-void StringMethod_MPI_Master::interpolate_cubic()
+double StringMethod_MPI_Master::interpolate_cubic()
 {
   // Calculate the "distance" of each image from the origin
 
@@ -437,23 +438,41 @@ void StringMethod_MPI_Master::interpolate_cubic()
   //#pragma omp parallel for			\
   //  shared(chunk)				\
   //  private(i)				\
-  //  schedule(static,chunk)			  
+  //  schedule(static,chunk)
+
+  double movement = 0.0;
+  
   for(i=0;i<Ntot_;i++)
     {
       vector<double> y;
 
       for(int J = 0;J<Nimage;J++)
-	y.push_back(sqrt(Images_[J][i]));
+	//	y.push_back(sqrt(Images_[J][i]));
+	y.push_back(log(Images_[J][i]));
 
       SplinerVec s(alpha,y);
 
       for(int J = 1;J<Nimage-1; J++)
 	{
+	  double dx = Images_[J][i];
+	  double sx = dx;
+	  
 	  double d = s.f(J*dL);
-	  d = d*d;	  
+	  //	  d = d*d;
+	  d = exp(d);
+	  
 	  Images_[J][i] = d;
+
+	  dx -= Images_[J][i];
+	  sx += Images_[J][i];
+	  dx /= (0.5*sx);
+	  movement += dx*dx;	  
 	}
     }
+  movement /= Ntot_;
+  movement /= (Nimage-2);
+  movement = sqrt(movement);
+  return 0; //movement;
 }
 
 

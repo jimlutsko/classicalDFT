@@ -98,6 +98,7 @@ int main(int argc, char** argv)
 
   double terminationCriterion = 0.01;
   double fixedPointTolerence = 1e-4;
+  double interpolationTolerence = 1e-6;
   
   double TimeStepMax = -1;
   string ddft_type;
@@ -127,6 +128,7 @@ int main(int argc, char** argv)
   options.addOption("MaxIts", &MaxIts);
 
   options.addOption("FixedPointTol", &fixedPointTolerence);
+  options.addOption("InterpolationTol", &interpolationTolerence);
   options.addOption("TerminationCriterion",&terminationCriterion);
 
   options.addOption("OutputFile", &outfile);
@@ -198,7 +200,7 @@ int main(int argc, char** argv)
 
   Droplet finalDensity(dx, L, PointsPerHardSphere, R, zPos); 
   LJ potential(sigma, eps, rcut);
-
+  
   DFT_VDW<RSLT> *dft = new DFT_VDW<RSLT>(finalDensity,potential,pointsFile,kT);
 
   // Determine coexistence to give us a baseline for the densities
@@ -238,7 +240,7 @@ int main(int argc, char** argv)
       
       cout << "Final NN = " << finalDensity.getNumberAtoms() << endl;
       cout << "Hard sphere diameter  = " << dft->HSD() << endl;
-      cout << "Coexisting densities  = " << xliq_coex << " " << xgas_coex << endl;  
+      cout << "Coexisting densities  = " << xliq_coex << " " << xgas_coex << endl;
       cout << "Chemical potential/kT = " << mu << endl;
       cout << "beta * Grand free energy per unit volume = " << omega_coex << endl;
       
@@ -358,6 +360,8 @@ int main(int argc, char** argv)
       cout << "Image " << Nimages-1 << " F = " << Ffinal << " mu = " << mu_boundary << " N = " << NN  << " Omega = " << Ffinal-mu_boundary*NN << endl;
       
       theString = new StringMethod_MPI_Master(Nimages, finalDensity, bav, Ffinal-mu_boundary*NN, Finitial-Ni*mu_boundary, mu_boundary, terminationCriterion, grace, freeEnd);
+
+      ((StringMethod_MPI_Master*) theString)->setInterpolationTolerence(interpolationTolerence);
 
 
       // There are numtasks-1 slave tasks available so each one will take some number of images
