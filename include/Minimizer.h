@@ -17,12 +17,14 @@ using namespace std;
 class Minimizer
 {
  public:
- Minimizer(DFT &dft, Density &density, double mu) : dft_(dft), density_(density), mu_(mu), forceLimit_(0.1), err_(0.0)
+ Minimizer(DFT &dft, Density &density, double mu) : dft_(dft), density_(density), mu_(mu), forceLimit_(0.1), err_(0.0), bFrozenBoundary_(false)
   {
     x_.resize(density_.Ntot());
     dF_.resize(x_.size());
   }
 
+  void setFrozenBoundaryFlag(bool f) {bFrozenBoundary_ = f;}
+  
   virtual void initialize();
 
   void run(string& logfile, long maxSteps = -1);
@@ -78,6 +80,7 @@ class Minimizer
 
   double forceLimit_;
   double f_abs_max_; // max absolute value of dF_
+  bool bFrozenBoundary_;
 };
 
 /**
@@ -552,6 +555,7 @@ class fireMinimizer_Mu : public Minimizer
   void setTimeStepMax(double dt) { dt_max_ = dt;}
   
   void setAlphaStart(double a) { alpha_start_ = a;}
+  void setAlphaFac(double a) { f_alf_ = a;}
 
  protected:
   DFT_Vec v_;

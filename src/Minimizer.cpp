@@ -148,15 +148,44 @@ double Minimizer::getDF_DX()
   double ff = 0;
   double im = 0;
   double dm = 0;
+
+  int ix = 0;
+  int iy = 0;
+  int iz = 0;
+  
   for(int i=0;i<dF_.size();i++)
     {
+      bool onBoundary = false;
+      
+      if(bFrozenBoundary_)
+	{
+	  iz++;
+	  if(iz == density_.Nz())
+	    {
+	      iz = 0;
+	      iy++;
+	      if(iy == density_.Ny())
+		{
+		  iy = 0;
+		  ix++;		  
+		}
+	    }
+      
+	  if(ix == 0 || iy == 0 || iz == 0)
+	    onBoundary = true;
+	}
+
+      
       double force = dF_.get(i);
 
-      double density = density_.getDensity(i);
-      double density_predicted = exp(log(density)-force/dV);
-      if(fabs(density-density_predicted) > ff) 
-	{ ff = fabs(density-density_predicted); im = i;}
-      dF_.set(i,2*force*x_.get(i));
+      if(!onBoundary)
+	{
+	  double density = density_.getDensity(i);
+	  double density_predicted = exp(log(density)-force/dV);
+	  if(fabs(density-density_predicted) > ff) 
+	    { ff = fabs(density-density_predicted); im = i;}
+	  dF_.set(i,2*force*x_.get(i));
+	} else dF_.set(i,0.0);	
     }
   err_ = ff;
 
