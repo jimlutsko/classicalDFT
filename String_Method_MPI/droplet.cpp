@@ -230,6 +230,7 @@ int main(int argc, char** argv)
       // set the thermodynamic state
       double omega_coex = dft->Omega(xliq_coex);
       double mu         = dft->Mu(xliq_coex);
+      
 
       if(! infile.empty())
 	finalDensity.readDensity(infile.c_str());

@@ -69,13 +69,17 @@ void StringMethod_MPI_Master::run(string& logfile)
     ////  Interpolatation step
     cout << "... begin interpolation" << endl;
 
+    double movement = interpolate_cubic();
+
+    /*
     double movement = 1;
     int k = 0;
     do {
 	movement = interpolate();
 	cout << "Interpolation iteration " << ++k << " has movement = " << movement << endl;
     } while(movement > interpolation_tolerence_); 
-
+    */
+    
     //// Send the densities back to the slaves
     cout << "Send densities back ..." << endl;    
     pos = 1;
@@ -446,9 +450,26 @@ double StringMethod_MPI_Master::interpolate_cubic()
     {
       vector<double> y;
 
+      // new method start 
+      double ymax = Images_[0][i];
+      double ymin = SMALL_VALUE;
+      
+      for(int J = 1;J<Nimage;J++)	
+	ymax = max(ymax,Images_[J][i]);
+
+      //      ymax += 1e-8;
+      
       for(int J = 0;J<Nimage;J++)
+	{
+	  double z = sqrt(fabs(ymax-Images_[J][i])/(Images_[J][i]-ymin));
+	  y.push_back(z);
+	}
+      // new method end
+      
+      
+      //      for(int J = 0;J<Nimage;J++)	
 	//	y.push_back(sqrt(Images_[J][i]));
-	y.push_back(log(Images_[J][i]));
+	//	y.push_back(log(Images_[J][i]));
 
       SplinerVec s(alpha,y);
 
@@ -459,7 +480,9 @@ double StringMethod_MPI_Master::interpolate_cubic()
 	  
 	  double d = s.f(J*dL);
 	  //	  d = d*d;
-	  d = exp(d);
+	  //	  d = exp(d);
+
+	  d = ymin + (ymax-ymin)/(1+d*d);
 	  
 	  Images_[J][i] = d;
 
