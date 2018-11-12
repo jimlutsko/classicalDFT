@@ -69,16 +69,16 @@ void StringMethod_MPI_Master::run(string& logfile)
     ////  Interpolatation step
     cout << "... begin interpolation" << endl;
 
-    double movement = interpolate_cubic();
+    //    double movement = interpolate_cubic();
 
-    /*
+    
     double movement = 1;
     int k = 0;
     do {
 	movement = interpolate();
 	cout << "Interpolation iteration " << ++k << " has movement = " << movement << endl;
     } while(movement > interpolation_tolerence_); 
-    */
+    
     
     //// Send the densities back to the slaves
     cout << "Send densities back ..." << endl;    
