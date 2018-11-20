@@ -35,7 +35,7 @@ class Minimizer
   virtual int draw_before() // Display something before the next step
   {
     stringstream ts;
-    ts << "calls = " << calls_ << " F = " << F_ << " N = " << density_.getNumberAtoms();
+    ts << "calls = " << calls_ << " F = " << F_ << " err = " << f_abs_max_;  //" N = " << density_.getNumberAtoms();
 
     string title = ts.str();
     string file("image_current.png");
@@ -86,6 +86,10 @@ class Minimizer
 /**
   *  @brief Minimizer_Fixed_N: specializes to the case of fixed number of particles
   *
+  * @detailed Here we minimize  F[rho0 + x*x*a] over x with a chosen to fix the total mass.
+  * There are a couple of problems.
+  * Since the total mass is fixed, there are really only Ntot-1 independent variables. We should 
+  * really reduce the size of the variable array by one to account for this ... 
   */  
 
 class Minimizer_Fixed_N : public Minimizer
@@ -107,7 +111,7 @@ class Minimizer_Fixed_N : public Minimizer
 
 
 /**
-  *  @brief Conjugate Gradients Class: a hand-coded CG minimizer with backtracking.
+  *  @brief OBSOLETE:  a hand-coded CG minimizer with backtracking.
   */  
 
 class ConjugateGradients2 : public Minimizer
@@ -161,6 +165,9 @@ class ConjugateGradients2 : public Minimizer
 };
 
 
+/**
+  *  @brief OBSOLETE:  a hand-coded CG minimizer with backtracking that includes a dynamic, graphical output.
+  */  
 class ConjugateGradients2_variable : public ConjugateGradients2
 {
  public:
@@ -177,10 +184,14 @@ class ConjugateGradients2_variable : public ConjugateGradients2
  protected:
 };
 
-// Here we minimize  F[rho0 + x*x*a] over x with a chosen to fix the total mass.
-// There are a couple of problems.
-// Since the total mass is fixed, there are really only Ntot-1 independent variables. We should 
-// really reduce the size of the variable array by one to account for this ... 
+/**
+  *  @brief OBSOLETE:  a hand-coded CG minimizer with backtracking that works at fixed particle number..
+  *
+  * @detailed Here we minimize  F[rho0 + x*x*a] over x with a chosen to fix the total mass.
+  * There are a couple of problems.
+  * Since the total mass is fixed, there are really only Ntot-1 independent variables. We should 
+  * really reduce the size of the variable array by one to account for this ... 
+  */
 
 class ConjugateGradients2_Fixed : public ConjugateGradients2
 {
@@ -204,7 +215,7 @@ class ConjugateGradients2_Fixed : public ConjugateGradients2
 
 
 /**
-  *  @brief Picard minimizer Class
+  *  @brief OBSOLETE: Picard minimizer Class
   *
   */  
 
@@ -241,7 +252,7 @@ class Picard : public Minimizer
 
 
 /**
-  *  @brief DDFT minimizer Class 
+  *  @brief Base class for a family of  finite elements ddft integrators. 
   *
   */  
 
@@ -307,7 +318,7 @@ class DDFT : public Minimizer
 
 
 /**
-  *  @brief DDFT minimizer Class using discretized equations
+  *  @brief OBSOLETE: DDFT integrator using Douglas-Rachford and Douglas-Gun alternate directions (ADI) algorithm.
   *
   */  
 
@@ -342,6 +353,8 @@ class DDFT_Discrete : public DDFT
 /**
   *  @brief DDFT minimizer Class using integrating factor
   *
+  *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
+  *
   */  
 
 class DDFT_IF : public DDFT
@@ -369,8 +382,9 @@ class DDFT_IF : public DDFT
 };
 
 /**
-  *  @brief DDFT minimizer Class using integrating factor
+  *  @brief DDFT minimizer Class using integrating factor. This is for fixed density at the boundaries - a model for an open system.
   *
+  *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
   */  
 
 class DDFT_IF_Open : public DDFT
@@ -411,6 +425,9 @@ class DDFT_IF_Open : public DDFT
   vector<double> Lamz;
 };
 
+/**
+  *  @brief OBSOLETE:  version of DDFT for an open system based on ADI and simply restoring the values of the density at the boundaries after each step.
+  */  
 class DDFT_Open : public DDFT
 {
  public:
@@ -431,11 +448,13 @@ class DDFT_Open : public DDFT
  protected:
 };
 
-/**
+
+/*
+**
   *  @brief Minimizer using nlOpt library
   *
-  */
-/*
+  *
+
 
 class nlOptMinimizer : public Minimizer
 {

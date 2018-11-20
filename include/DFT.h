@@ -19,7 +19,7 @@
 #include "FMT.h"
 
 
-/*! \mainpage ftDFT: Finite Temperature Density Functional Theory in 3 dimensions
+/*! \mainpage classicalDFT: Finite Temperature Density Functional Theory in 3 dimensions
  *
  * \section intro_sec Introduction
  *
@@ -302,7 +302,7 @@ template <class T> class DFT_FMT : public DFT
 
 
 /**
-  *  @brief DFT_VDW Class
+  *  @brief FMT plus van der Waals mean field tail.
   *
   *   @detailed A single-species mean-field DFT model. It holds a DFT_FMT object to do the hard-sphere stuff.
   *  

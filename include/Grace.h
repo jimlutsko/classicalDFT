@@ -6,6 +6,11 @@
 
 #include <vector>
 
+/**
+  *  @brief  UTILITY: wrapper for xmgrace graphics program.
+  *
+  *  @detailed This class provides an interface for the xmgrace graphics program which can be called programatically to provide a cheap solution  for displaying dynamically updated line graphs etc.
+  */
 
 class Grace
 {

@@ -4,6 +4,9 @@
 #include <fstream>
 #include <vector>
 
+/**
+  *  @brief  UTILITY: reads a table from an input file. The format is assumed to be one row per line with entries separated by white space.
+  */
 class Table
 {
 public:

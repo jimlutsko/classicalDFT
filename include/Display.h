@@ -4,7 +4,9 @@
 
 #include <mgl2/mgl.h>
 
-
+/**
+  *  @brief UTILITY: this class can be specialized to display Density objects using external libraries. This is currently implemented using mgl. 
+  */  
 class Display
 {
  public:

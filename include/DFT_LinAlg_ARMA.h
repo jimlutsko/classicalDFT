@@ -9,6 +9,10 @@ using namespace arma;
 
 #include "FMT_FFTW.h"
 
+
+/**
+  *  @brief UTILITY: A wrapper for linear algebra packages. The idea is to be able to easily change libraries without changing any other code. Probably overkill and could be eliminated.
+  */  
 class DFT_Vec
 {
  public:
@@ -75,7 +79,9 @@ class DFT_Vec
 };
 
 
-
+/**
+  *  @brief UTILITY: A wrapper for linear algebra packages. This one handles complex values.
+  */  
 class DFT_Vec_Complex
 {
  public:
@@ -104,7 +110,9 @@ class DFT_Vec_Complex
   cx_vec data_;
 };
 
-
+/**
+  *  @brief UTILITY: This class encapsulates a basic FFT. It is basically an interface to fftw library while holding both a real and a complex vector.
+  */  
 class DFT_FFT
 {
  public:

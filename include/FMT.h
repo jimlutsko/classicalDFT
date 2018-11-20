@@ -76,7 +76,8 @@ class Point
   *  @detailed  This class holds two 11-dimentional arrays called d0_ and d1_. These in turn hold the weighted densities as
   *             d0_ = {eta(N),s(N),V1(N),...,VD(N), T11(N), T12(N), ... T1D(N), T22(N), ..., TDD(N)}
   *             where for D=3 there are 1+1+3+(3+2+1) = 11 entries.
-  *             Note that each of these, e.g. eta(N), is an N-dimensional vector holding the value of the weighted density at each point. 
+  *             Note that each of these, e.g. eta(N), is an N-dimensional vector holding the value of the weighted density at each point.
+  *             The two copies d0_ and d1_ are to allow for two species but this is not fully implemented yet. 
   */  
 
 
@@ -90,6 +91,7 @@ class FMT
   *   @param  density is the Density object
   *   @param  hsd is the hard sphere diameter
   *   @param  pointsFile contains the points for spherical integration
+  *   @param  hsd1 is the hard-sphere diameter for the second species
   *   @return nothing 
   */  
   FMT(Lattice &lattice, double hsd, string& pointsFile, double hsd1 = -1);
@@ -439,6 +441,11 @@ class FMT
  
 };
 
+/**
+  *  @brief  The original White Bear  FMT model 
+  *
+  *  @detailed White-bear FMT model with tensor densities and the CS equation of state
+  */  
 class WhiteBearI : public FMT
 {
  public:
@@ -493,6 +500,11 @@ class WhiteBearI : public FMT
  virtual string Name() const { return string("WhiteBear I");}
 };
 
+/**
+  *  @brief  The RSLT positive-definite FMT model (pre-White Bear)
+  *
+  *  @detailed This class implements the RSLT FMT model which is not as accurate as WhiteBear but which is positive definite and therefore stable.
+  */  
 class RSLT : public FMT
 {
  public:
@@ -591,6 +603,11 @@ class RSLT : public FMT
  virtual string Name() const { return string("RSLT");}
 };
 
+/**
+  *  @brief  Modified RSLT positive-definite FMT model (pre-White Bear): for experimental purposes only!!
+  *
+  *  @detailed This class implements a modificaiton of the RSLT FMT model where I use the same basic idea to create a different type of model. In RSLT, the Rosenfeld numerator of s^3-3sv^2 (which is not positive definite) is replaced by s^3(1-v^2/s^2)^3 which agrees in the first two terms and is positive. This in fact works for  s^3(1-(3/n)v^2/s^2)^n for any n>=3. I used this class to experiment with different n but this was for research purposes only and should not be used without a thorough review ...  
+  */  
 
 
 class RSLT2: public RSLT
@@ -628,6 +645,11 @@ class RSLT2: public RSLT
 };
 
 
+/**
+  *  @brief  WhiteBear mark II
+  *
+  *  @detailed Modified WhiteBear which gives better vacancy densities for solid phase.
+  */
 
 class WhiteBearII : public WhiteBearI
 {
@@ -666,6 +688,10 @@ class WhiteBearII : public WhiteBearI
 };
 
 
+/**
+  *  @brief  Exception used to isolate eta(r) > 1 errors
+  *
+  */  
 class Eta_Too_Large_Exception : public runtime_error
 {
  public:

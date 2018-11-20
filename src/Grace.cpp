@@ -65,15 +65,17 @@ Grace::Grace(int xsize, int ysize, int Ngraph, bool show) : xmin_(0.0), xmax_(10
 {
   if(!show) return;
 
-  std::stringstream s1;
-  s1 << xsize << "x" << ysize;
-
-  std::cout << "s1 = " << s1.str() << std::endl;
-
   GraceRegisterErrorFunction(my_error_function);
- 
+
+  char st[32];
+  sprintf(st,"xmgrace");
+
+  std::stringstream arg2;
+  arg2 << "-free -nosafe -geometry " << xsize << "x" << ysize;
+  
   /* Start Grace with a buffer size of 2048 and open the pipe */
-  if (GraceOpenVA("xmgrace",2048, "-free", "-nosafe", "-geometry", s1.str().c_str(),NULL) == -1) 
+  //  if (GraceOpenVA("xmgrace",2048, "-free", "-nosafe", "-geometry", s1.str().c_str(),NULL) == -1)
+  if (GraceOpenVA(st,2048, arg2.str().c_str(),NULL) == -1)
     throw std::runtime_error("Can't run Grace. \n");
       
   /* Send some initialization commands to Grace */

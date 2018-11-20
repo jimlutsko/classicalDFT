@@ -4,14 +4,13 @@
 #include <gsl/gsl_integration.h>
 
 
-/** This class is a wrapper for the GSL integration 
- * routines qags and q
- *
- * Syntax for coding of member function pointers
- * is taken from 
- *  http://www.parashift.com/c++-faq-lite/pointers-to-members.html
- */
 
+/**
+  *  @brief  UTILITY: wrapper for GSL integration routines like qags. This version is intended to be the parent of an object with a member function we wish to integrate.
+  *
+  *  @detailed Provides a simplified, c++ interface for using some of the GSL integration routines. Syntax for coding of member function pointers
+  *            is taken from  http://www.parashift.com/c++-faq-lite/pointers-to-members.html
+  */
 template <class T>
 class Integrator
 {
@@ -93,6 +92,13 @@ class Integrator
 };
 
 
+/**
+  *  @brief  UTILITY: wrapper for GSL integration routines like qags. This version takes the function to be integrated as argumement.
+  *
+  *  @detailed Provides a simplified, c++ interface for using some of the GSL integration routines. Syntax for coding of member function pointers
+  *            is taken from  http://www.parashift.com/c++-faq-lite/pointers-to-members.html
+  */
+
 class Integrator1 : public Integrator<Integrator1>
 {
  public:
@@ -106,6 +112,12 @@ class Integrator1 : public Integrator<Integrator1>
   void * params_;
 };
 
+/**
+  *  @brief  UTILITY: wrapper for GSL integration routines like qags. Same as Integrator but it allows to pass an argument ("flag") when integrating.
+  *
+  *  @detailed Provides a simplified, c++ interface for using some of the GSL integration routines. Syntax for coding of member function pointers
+  *            is taken from  http://www.parashift.com/c++-faq-lite/pointers-to-members.html. The flag is stored in a member variable and is available when evaluating the function to be integrated.
+  */
 
 template <class T>
 class IntegratorFlag

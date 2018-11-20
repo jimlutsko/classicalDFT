@@ -6,7 +6,9 @@
 #include<time.h>
 
 
-
+/**
+  *  @brief  UTILITY: creates a timestamp that can be used to note the time and date a program is run, e.g. in a log file.
+  */
 class TimeStamp
 {
  public:

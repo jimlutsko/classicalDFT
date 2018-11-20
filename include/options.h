@@ -8,6 +8,35 @@
 //typedef std::pair<char const *, long *> long_option_pair;
 //typedef std::pair<char const *, double *> d_option_pair;
 
+
+/**
+  *  @brief  UTILITY: reads and stores values from an input file.
+  *
+  *  @detailed A simple class for reading an input file. The basic use is like this:  <br>
+  *            int main(char argc, char** argv) <br>
+  *            { <br>
+  *                 Options options;  <br>
+  *                 double x;  <br>  <br>
+  *
+  *                 options.addOption("Xvar", &x);  <br> <br>
+  *              
+  *                 options.read(argc, argv);  <br> <br>
+  *
+  *                 ofstream log("log.dat");  <br>
+  *                 options.write(log); <br> <br>
+  *
+  *                 etc. <br>
+  *            } <br> <br>
+  *               
+  *       This reads the value of x from an input file passed as the first command line argument and having the format
+  *
+  *       #Comments start with hash <br>
+  *       Xvar = 3.1 <br>
+  *      
+  *       The values of all variables registered with option is then written to the output stream "log".
+  */
+
+
 class Options
 {
  public:

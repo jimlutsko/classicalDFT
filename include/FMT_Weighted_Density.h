@@ -4,6 +4,11 @@
 
 #include "DFT_LinAlg.h"
 
+
+/**
+  *  @brief UTILITY: abstracts the FMT weighted densities. It has vectors to hold the weight functions and the resulting fundamental measures and knows how to do convolutions via FFT.
+  */  
+
 class FMT_Weighted_Density
 {
  public:

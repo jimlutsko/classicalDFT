@@ -5,6 +5,10 @@
 
 #include "DFT.h"
 
+/**
+  *  @brief Implementation of the dimer method for finding transition states on a free energy surface.
+  */  
+
 class DimerMethod
 {
  public:
