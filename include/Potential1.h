@@ -3,6 +3,9 @@
 
 #include "Integrator.h"
 
+/**
+  *  @brief Potential function - it knows how to split into hard sphere and attractive parts and to compute the hard sphere diameter.
+  */
 class Potential1
 {
  public:
@@ -46,6 +49,9 @@ class Potential1
  double Vmin_;
 };
 
+/**
+  *  @brief Truncated Lennard-Jones potential
+  */
 class LJ : public Potential1
 {
  public:
@@ -76,7 +82,9 @@ class LJ : public Potential1
   }
 };
 
-
+/**
+  *  @brief Truncated ten Wolde-Frenkel potential
+  */
 
 class tWF : public Potential1
 {

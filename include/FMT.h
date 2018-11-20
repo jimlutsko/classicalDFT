@@ -19,7 +19,7 @@
 /**
   *  @brief Point Class: holds x,y,z coordinates
   *
-  *  @detailed  This class is just a triple with members named X,Y and Z
+  *    This class is just a triple with members named X,Y and Z
   */  
 
 
@@ -73,7 +73,7 @@ class Point
 /**
   *  @brief FMT Class
   *
-  *  @detailed  This class holds two 11-dimentional arrays called d0_ and d1_. These in turn hold the weighted densities as
+  *    This class holds two 11-dimentional arrays called d0_ and d1_. These in turn hold the weighted densities as
   *             d0_ = {eta(N),s(N),V1(N),...,VD(N), T11(N), T12(N), ... T1D(N), T22(N), ..., TDD(N)}
   *             where for D=3 there are 1+1+3+(3+2+1) = 11 entries.
   *             Note that each of these, e.g. eta(N), is an N-dimensional vector holding the value of the weighted density at each point.
@@ -135,7 +135,7 @@ class FMT
   /**
   *   @brief  Calculate phi(i) and some derivative information. 
   *
-  *   @detailed This function assumes the weighted densities at each lattice site are available.
+  *    This function assumes the weighted densities at each lattice site are available.
   *           It calculates the function PHI(r) at lattice site i and also stores dPHI(i)/deta(i), dPHI/dv(i), etc. 
   *  
   *   @param  i is lattice position
@@ -198,7 +198,7 @@ class FMT
  virtual double f3_(double eta)  const= 0;
 
   /**
-  *   @brief  derivative of @f1 with respect to its argument.
+  *   @brief  derivative of f1_() with respect to its argument.
   *  
   *   @param  eta is the local volume-average density
   *   @return f1(eta).
@@ -216,7 +216,7 @@ class FMT
  }
  
  /**
-  *   @brief  derivative of @f2 with respect to its argument.
+  *   @brief  derivative of f2_() with respect to its argument.
   *  
   *   @param  eta is the local volume-average density
   *   @return f2(eta).
@@ -224,7 +224,7 @@ class FMT
  virtual double f2p_(double eta) const = 0;
 
  /**
-  *   @brief  derivative of @f3 with respect to its argument.
+  *   @brief  derivative of f3_() with respect to its argument.
   *  
   *   @param  eta is the local volume-average density
   *   @return f3(eta).
@@ -311,7 +311,7 @@ class FMT
  /**
   *   @brief  convenience accessor for weighted density T(i,j). 
   *
-  *   @detailed elements 0 and 1 are the scalar densities; 2,3,4 are v; 5,6,7 are T(0,k); 8,9 are T(1,k>=1) and d(10) is T(2,2). Note that T is symmetric.
+  *    elements 0 and 1 are the scalar densities; 2,3,4 are v; 5,6,7 are T(0,k); 8,9 are T(1,k>=1) and d(10) is T(2,2). Note that T is symmetric.
   *  
   *   @param  i is the first  index of T
   *   @param  j is the second index of T
@@ -444,7 +444,7 @@ class FMT
 /**
   *  @brief  The original White Bear  FMT model 
   *
-  *  @detailed White-bear FMT model with tensor densities and the CS equation of state
+  *   White-bear FMT model with tensor densities and the CS equation of state
   */  
 class WhiteBearI : public FMT
 {
@@ -503,7 +503,7 @@ class WhiteBearI : public FMT
 /**
   *  @brief  The RSLT positive-definite FMT model (pre-White Bear)
   *
-  *  @detailed This class implements the RSLT FMT model which is not as accurate as WhiteBear but which is positive definite and therefore stable.
+  *   This class implements the RSLT FMT model which is not as accurate as WhiteBear but which is positive definite and therefore stable.
   */  
 class RSLT : public FMT
 {
@@ -606,7 +606,7 @@ class RSLT : public FMT
 /**
   *  @brief  Modified RSLT positive-definite FMT model (pre-White Bear): for experimental purposes only!!
   *
-  *  @detailed This class implements a modificaiton of the RSLT FMT model where I use the same basic idea to create a different type of model. In RSLT, the Rosenfeld numerator of s^3-3sv^2 (which is not positive definite) is replaced by s^3(1-v^2/s^2)^3 which agrees in the first two terms and is positive. This in fact works for  s^3(1-(3/n)v^2/s^2)^n for any n>=3. I used this class to experiment with different n but this was for research purposes only and should not be used without a thorough review ...  
+  *   This class implements a modificaiton of the RSLT FMT model where I use the same basic idea to create a different type of model. In RSLT, the Rosenfeld numerator of s^3-3sv^2 (which is not positive definite) is replaced by s^3(1-v^2/s^2)^3 which agrees in the first two terms and is positive. This in fact works for  s^3(1-(3/n)v^2/s^2)^n for any n>=3. I used this class to experiment with different n but this was for research purposes only and should not be used without a thorough review ...  
   */  
 
 
@@ -648,7 +648,7 @@ class RSLT2: public RSLT
 /**
   *  @brief  WhiteBear mark II
   *
-  *  @detailed Modified WhiteBear which gives better vacancy densities for solid phase.
+  *   Modified WhiteBear which gives better vacancy densities for solid phase.
   */
 
 class WhiteBearII : public WhiteBearI

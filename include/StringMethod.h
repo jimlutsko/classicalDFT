@@ -4,6 +4,11 @@
 #include "Minimizer.h"
 #include "Grace.h"
 
+/**
+  *  @brief Nucleation Pathways via the String Method and DDFT dynamics. Practically obselete in favor of StringMethod_MPI.
+  */  
+
+
 class StringMethod
 {
  public:

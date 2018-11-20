@@ -4,6 +4,10 @@
 #include "Minimizer.h"
 #include "Grace.h"
 
+/**
+  *  @brief Nucleation Pathways via the String Method and DDFT dynamics and MPI parallelization. This is the base class for the master-slave derived classes.
+  */
+
 class StringMethod_MPI
 {
  public:
@@ -20,7 +24,9 @@ class StringMethod_MPI
   long step_counter_;
 };
 
-
+/**
+  *  @brief Nucleation Pathways via the String Method and DDFT dynamics and MPI parallelization. This is the master class mostly responsible for the interpolation step.
+  */
 class StringMethod_MPI_Master : public StringMethod_MPI
 {
  public:
@@ -81,7 +87,9 @@ class StringMethod_MPI_Master : public StringMethod_MPI
     mglData data_2D_;
 };
 
-
+/**
+  *  @brief Nucleation Pathways via the String Method and DDFT dynamics and MPI parallelization. This is the slave class that relaxes the various images via DDFT.
+  */
 class StringMethod_MPI_Slave : public StringMethod_MPI
 {
  public:

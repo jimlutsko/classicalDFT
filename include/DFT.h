@@ -89,15 +89,6 @@ class DFT
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex) = 0;
 
   /**
-  *   @brief  Calls calculateFreeEnergyAndDerivatives and then divides dF by the volume element.
-  *  
-  *   @param  density is current density
-  *   @param  mu is the chemical potential
-  *   @return total free energy of system
-  */  
-  //  double getDF_DRHO(Density &density, double mu, DFT_Vec &dF);
-
-  /**
   *   @brief  Compute chemical potential/kT for a uniform system with the given density
   *  
   *   @param  x is the density
@@ -138,6 +129,7 @@ class DFT
   virtual double Xliq_From_Mu(double mu) const {throw std::runtime_error("Not implemented");}
 
 };
+
 
 /**
   *  @brief This represents an ideal gas. 
@@ -261,6 +253,13 @@ template <class T> class DFT_FMT : public DFT
   *   @return Omega/(kT * V)
   */   
   virtual double Omega(double x) const {Enskog en(x); return x*(en.freeEnergyCS() - en.chemPotentialCS());}
+
+/**
+  *   @brief  Compute Helmhltz Free Energy/kT/V for given density
+  *  
+  *   @param  x is the density
+  *   @return F/(kT * V)
+  */   
   virtual double Fhelmholtz(double x) const {Enskog en(x); return x*en.freeEnergyCS();}
 
 /**
@@ -418,9 +417,7 @@ template <class T> class DFT_VDW : public DFT
   DFT_FFT w_att_;
   DFT_FFT v_mean_field_;
 
-  //  FreeEnergyCache_Pade *fec_;  ///< Object that computes bulk thermodynamic properties
   DFT_FMT<T> *dft_fmt_; ///< The hard-sphere dft 
-  //  double a_vdw_; /// the vdw correction to hs
   VDW1 vdw_;
 };
 

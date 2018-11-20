@@ -4,6 +4,11 @@
 #include <vector>
 #include <utility>
 
+
+
+/**
+  *  @brief UTILITY: implements the NumericalRecipes cubic spline interpolation algorithms.
+  */  
 class Spliner
 {
  public:  
@@ -36,7 +41,9 @@ Spliner() : x_(NULL), y_(NULL), y2_(NULL){}
 
 };
 
-
+/**
+  *  @brief UTILITY: implements the "nonparametric smoothing spline" 
+  */  
 class smoothingSpline
 {
  public:
@@ -68,7 +75,9 @@ class smoothingSpline
 };
   
 
-
+/**
+  *  @brief UTILITY: 2D cubic spline interpolation implementing the NumericalRecipes 2D cubic spline interpolation algorithms. 
+  */  
 class Spliner2
 {
  public:
@@ -120,7 +129,9 @@ class Spliner2
   Spliner **s1_;
 };
 
-
+/**
+  *  @brief UTILITY: implements the NumericalRecipes cubic spline interpolation algorithms. Same as Spliner but using vectors instead of real arrays
+  */  
 class SplinerVec
 {
  public:  
@@ -155,6 +166,9 @@ class SplinerVec
   std::vector<double> y2_;
 };
 
+/**
+  *  @brief UTILITY: implements the NumericalRecipes cubic spline interpolation algorithms. Same as Spliner but using the pair template object.
+  */  
 class SplinerPair
 {
 public:  
@@ -189,9 +203,9 @@ protected:
     std::vector<double> y2_;
 };
 
-// This class interpolates over coordinates (x,y). 
-// Unlike Spliner2, it allows for different numbers of 
-// of points for each value of x.
+/**
+  *  @brief UTILITY: implements the NumericalRecipes cubic spline interpolation algorithms for 2D splines. Same as Spliner2 but it allows for different numbers of points for each value of x.
+  */  
 class Spliner2General
 {
 public:
