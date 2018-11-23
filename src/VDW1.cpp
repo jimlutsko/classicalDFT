@@ -77,21 +77,15 @@ int VDW1::findCoexistence(double &x1, double &x2) const
   double Ps1 = pressure(xs1);
   double Ps2 = pressure(xs2);
   
-  //  cout << "Coexistence: spinodal points are "    << xs1 << " " << xs2 << endl;
-  //  cout << "Coexistence: spinodal pressures are " << Ps1 << " " << Ps2 << endl;
-
   // Density of liquid with zero pressure
   double xliq0 = findDensityFromPressure(0.0,xs2,2);
-  //  cout << "Coexistence: liq with P=0 " << xliq0 << endl;
 
-    // Density of liquid with  pressure Ps1
+  // Density of liquid with  pressure Ps1
   double xliq1 = findDensityFromPressure(Ps1,xs2,2);
-  //  cout << "Coexistence: liq with P=Ps1 " << xliq1 << endl;
 
   double dmu1 = -1e-30;
 
   double dmu2 = chemPotential(xs1) - chemPotential(xliq1);
-  //  cout << "dmu1 = " << dmu1 << " dmu2 = " << dmu2 << endl;
 
   if(dmu2*dmu1 > 0) throw std::runtime_error("VDW1::findCoexistence failed: could not bracket");
   
@@ -102,9 +96,6 @@ int VDW1::findCoexistence(double &x1, double &x2) const
   double xb = xs1;
   double xg = xs1/2;
 
-  //  double fa = dmu1;
-  //  double fb = dmu2;
-
   do {
     double fg = chemPotential(xg) - chemPotential(findDensityFromPressure(pressure(xg),xs2,2));
     if(fg < 0)xa = xg;
@@ -112,7 +103,6 @@ int VDW1::findCoexistence(double &x1, double &x2) const
 
     xg = (xa+xb)/2;
   } while(fabs(xa-xb) > 1e-10);
-  //  cout << "xa = " << xa << " xb = " << xb << " xg = " << xg << endl;
 
   x1 = xg;
   x2 = findDensityFromPressure(pressure(x1),xs2,2);
@@ -146,16 +136,13 @@ void VDW1::spinodal(double &xs1, double &xs2) const
 
   for (i = 0; i < 5; i++)
     {
-      //      printf ("z%d = %+.18f %+.18f\n",
-      //              i, z[2*i], z[2*i+1]);
-
       double re = z[2*i];
       double im = z[2*i+1];
       if(re > 0 && fabs(im) < 1e-10)
 	{
 	  if(xs1 < 0 || (re < xs1)) {xs2 = xs1; xs1 = re;}
 	  else if(xs2 < 0 || re < xs2) xs2 = re;
-	  }
+	}
     }
   if(xs1 < 0 || xs2 < 0) throw std::runtime_error("Determination of spinodal failed 2");
 

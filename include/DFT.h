@@ -19,7 +19,7 @@
 #include "FMT.h"
 
 
-/*! \mainpage classicalDFT: Finite Temperature Density Functional Theory in 3 dimensions
+/*! \mainpage ftDFT: Finite Temperature Density Functional Theory in 3 dimensions
  *
  * \section intro_sec Introduction
  *
@@ -89,6 +89,15 @@ class DFT
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex) = 0;
 
   /**
+  *   @brief  Calls calculateFreeEnergyAndDerivatives and then divides dF by the volume element.
+  *  
+  *   @param  density is current density
+  *   @param  mu is the chemical potential
+  *   @return total free energy of system
+  */  
+  //  double getDF_DRHO(Density &density, double mu, DFT_Vec &dF);
+
+  /**
   *   @brief  Compute chemical potential/kT for a uniform system with the given density
   *  
   *   @param  x is the density
@@ -129,7 +138,6 @@ class DFT
   virtual double Xliq_From_Mu(double mu) const {throw std::runtime_error("Not implemented");}
 
 };
-
 
 /**
   *  @brief This represents an ideal gas. 
@@ -230,6 +238,15 @@ template <class T> class DFT_FMT : public DFT
   *   @return total free energy of system
   */  
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
+
+  double calculateFreeEnergyDerivativesSurf(Density &density, double A, double rho_surf, DFT_Vec& dF)
+  {
+    return fmt_.calculateFreeEnergyDerivativesSurf(density, A, rho_surf, dF);
+  }
+
+  void setSurfactant(double rhos, double A) {fmt_.setSurfactant(rhos,A);}
+  double getSurfactant(int ix, int iy, int iz, Density &density) {return fmt_.getSurfactant(ix,iy,iz,density);}
+  
 /**
   *   @brief  Compute chemical potential/kT for given density
   *  
@@ -253,13 +270,6 @@ template <class T> class DFT_FMT : public DFT
   *   @return Omega/(kT * V)
   */   
   virtual double Omega(double x) const {Enskog en(x); return x*(en.freeEnergyCS() - en.chemPotentialCS());}
-
-/**
-  *   @brief  Compute Helmhltz Free Energy/kT/V for given density
-  *  
-  *   @param  x is the density
-  *   @return F/(kT * V)
-  */   
   virtual double Fhelmholtz(double x) const {Enskog en(x); return x*en.freeEnergyCS();}
 
 /**
@@ -301,7 +311,7 @@ template <class T> class DFT_FMT : public DFT
 
 
 /**
-  *  @brief FMT plus van der Waals mean field tail.
+  *  @brief DFT_VDW Class
   *
   *   @detailed A single-species mean-field DFT model. It holds a DFT_FMT object to do the hard-sphere stuff.
   *  
@@ -334,7 +344,13 @@ template <class T> class DFT_VDW : public DFT
   *   @return total free energy of system
   */  
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
-
+  double calculateFreeEnergyDerivativesSurf(Density &density, double A, double rho_surf, DFT_Vec& dF)
+  {
+    return dft_fmt_->calculateFreeEnergyDerivativesSurf(density, A, rho_surf, dF);
+  }
+  void setSurfactant(double rhos, double A) {dft_fmt_->setSurfactant(rhos,A);}
+  double getSurfactant(int ix, int iy, int iz, Density &density) {return dft_fmt_->getSurfactant(ix,iy,iz,density);}
+  
 /**
   *   @brief  Compute chemical potential/kT for given density
   *  
@@ -417,7 +433,9 @@ template <class T> class DFT_VDW : public DFT
   DFT_FFT w_att_;
   DFT_FFT v_mean_field_;
 
+  //  FreeEnergyCache_Pade *fec_;  ///< Object that computes bulk thermodynamic properties
   DFT_FMT<T> *dft_fmt_; ///< The hard-sphere dft 
+  //  double a_vdw_; /// the vdw correction to hs
   VDW1 vdw_;
 };
 

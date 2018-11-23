@@ -18,8 +18,14 @@ using namespace std;
 
 #include "DFT.h"
 
-//static double xmax = 1.4;
-//static int    Nmax = 200; 
+//#include "VDW.h"
+
+static double xmax = 1.4;
+static int    Nmax = 200; 
+
+template <class T> DFT_FMT<T>::DFT_FMT(Lattice &lattice, string& pointsFile, double hsd)
+  : hsd_(hsd), fmt_(lattice, hsd, pointsFile) {}
+
 
 
 double DFT::F_IdealGas(Density& density, DFT_Vec& dF)
@@ -55,14 +61,16 @@ double DFT::F_External(Density& density, double mu, DFT_Vec& dF)
 }
 
 
-template <class T> DFT_FMT<T>::DFT_FMT(Lattice &lattice, string& pointsFile, double hsd)
-  : hsd_(hsd), fmt_(lattice, hsd, pointsFile) {}
-
 template <class T>
 double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex)
 {
+  double dV = density.dV();
+
   double F = 0;
   dF.zeros(density.Ntot());
+
+  // Hard sphere contributions to F and dF
+  F = 0;
 
   try{
     F = fmt_.calculateFreeEnergyAndDerivatives_fourier_space1(density,dF);
@@ -70,9 +78,12 @@ double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu
     throw e;
   }
   if(!onlyFex) // add in ideal gas and external field and chem potential
-    {  
-      F += F_IdealGas(density, dF);       // Ideal gas 
-      F += F_External(density, mu, dF);   // External field
+    {
+  // Ideal gas contribution to F and dF
+      F += F_IdealGas(density, dF);
+   
+  // External field
+      F += F_External(density, mu, dF);
     }
   return F;
 }
@@ -98,6 +109,25 @@ double DFT_FMT<T>::Xliq_From_Mu(double mu) const
     }
   return (xa+xb)/2;
 }
+/*
+double DFT::getDF_DRHO(Density &density, double mu, DFT_Vec& dF_dRho)
+{
+  double F = 0;
+
+  try {
+    F = calculateFreeEnergyAndDerivatives(density, mu,dF_dRho,true);
+  } catch( Eta_Too_Large_Exception &e) {
+     throw e;
+  }
+
+  double dV = density.dV();
+
+  dF_dRho.multBy(1.0/dV);
+
+  return F;
+}
+*/
+
 
 #include "Potential1.h"
 

@@ -1,8 +1,6 @@
 #ifndef __LUTSKO_WEIGHTED_DENSITIES__
 #define __LUTSKO_WEIGHTED_DENSITIES__
 
-//#include "spherical.h"
-
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -11,64 +9,10 @@
 #include <complex>
 
 #include "FMT_Weighted_Density.h"
+//#include "Species.h"
 
 #include "Density.h"
-//#include "perturbative/PotentialSplitter.h"
-//#include "perturbative/HardSphereMapper.h"
-
-/**
-  *  @brief Point Class: holds x,y,z coordinates
-  *
-  *    This class is just a triple with members named X,Y and Z
-  */  
-
-
-class Point
-{
- public:
-  /**
-  *   @brief  Default  constructor for Point: all corrdinates are set to zero
-  *  
-  *   @return nothing 
-  */  
- Point() : x_(0.0),y_(0.0),z_(0.0) {};
-
-  /**
-  *   @brief  Constructor for Point: 
-  *  
-  *   @param  x is a coordinate
-  *   @param  y is a coordinate
-  *   @param  z is a coordinate
-  *   @return nothing 
-  */  
- Point(double x, double y, double z) : x_(x),y_(y),z_(z) {};
-
-  /**
-  *   @brief  Accessor for x coordinate
-  *  
-  *   @return x_ 
-  */  
-  double X() const {return x_;}
-
-  /**
-  *   @brief  Accessor for y coordinate
-  *  
-  *   @return y_
-  */  
-  double Y() const {return y_;}
-
-  /**
-  *   @brief  Accessor for z coordinate
-  *  
-  *   @return z_ 
-  */  
-  double Z() const {return z_;}
-
- protected:
-  double x_;  ///< x coordinate
-  double y_;  ///< y coordinate
-  double z_;  ///< z coordinate
-};
+#include "Point.h"
 
 /**
   *  @brief FMT Class
@@ -110,8 +54,8 @@ class FMT
   *   @return nothing 
   */    
   void setEtaMax(double etaMax) { etaMax_ = etaMax;}
-
-  /**
+  /*
+  **
   *   @brief  Performs trilinear interpolation: this is a conienience function that is not necessary internally. 
   *  
   *   @param  p is the point for which we interpolate
@@ -119,9 +63,9 @@ class FMT
   *   @param  p1 is one corner of the cube containing p (the one with the maximal values of x,y,z)
   *   @param  coeffs recieves the weights given to each of the 8 lattice points surrounding p
   *   @return nothing
-  */  
+  *  
   void interpolate(Point &p, Point &p0, Point &p1, double coeffs[8]);
-
+  */
   /**
   *   @brief  Calculates total free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
   *  
@@ -282,6 +226,18 @@ class FMT
   */       
  virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const = 0;
 
+ double calculateFreeEnergyDerivativesSurf(Density &density, double A, double rho_surf, DFT_Vec& dF);
+
+ double getSurfactant(int ix, int iy, int iz, Density &density) const
+ {
+   long i = density.pos(ix,iy,iz);
+   double vv = d0_[2].r(i)*d0_[2].r(i)+d0_[3].r(i)*d0_[3].r(i)+d0_[4].r(i)*d0_[4].r(i);
+   return rho_surf_*exp(-Asurf_*vv);
+ }
+ void setSurfactant(double rhos, double A) {Asurf_ = A; rho_surf_ = rhos;}
+ 
+
+
  protected:
  /**
   *   @brief  convenience accessor for weighted density Eta
@@ -318,14 +274,14 @@ class FMT
   *   @param  d is the array of weighted densities
   *   @return (i == 0 ? d[5+j] : d[7+j])
   */       
- FMT_Weighted_Density & T(int i, int j, vector<FMT_Weighted_Density>  &d)
+  FMT_Weighted_Density & T(int i, int j, vector<FMT_Weighted_Density>  &d)
    {
      if(i > j) swap(i,j);
      if(i == 0) return d[5+j];
      else if (i == 1) return d[7+j];
      return d[10];
    }
-
+ 
  /**
   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). Their evaluation involves real-space integrations for which the 
@@ -416,6 +372,9 @@ class FMT
   */       
  void calculateFreeEnergyDerivatives(vector<FMT_Weighted_Density> &dd, double dV, DFT_Vec &dF);
 
+
+
+ 
  /**
   *   @brief  name of model implemented by this class
   *
@@ -438,6 +397,9 @@ class FMT
  DFT_FFT dPhi_; ///< dPHI/drho(i)
 
  double etaMax_; ///< cutoff used to control divergences
+
+ double Asurf_;
+ double rho_surf_;
  
 };
 

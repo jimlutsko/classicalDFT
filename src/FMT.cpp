@@ -30,7 +30,7 @@ double sigma2 = 1e-4;
 
 
 FMT::FMT(Lattice &lattice,  double hsd, string& pointsFile, double hsd1)
-  : dx_(lattice.getDX()), dy_(lattice.getDY()), dz_(lattice.getDZ()), hsd0_(hsd), hsd1_(hsd1), etaMax_(1e30)
+  : dx_(lattice.getDX()), dy_(lattice.getDY()), dz_(lattice.getDZ()), hsd0_(hsd), hsd1_(hsd1), etaMax_(1e30), Asurf_(0.0), rho_surf_(-1)
 {
   long Nx = lattice.Nx();
   long Ny = lattice.Ny();
@@ -380,7 +380,7 @@ void FMT::generateWeights(vector<FMT_Weighted_Density> &densities, double hsd, s
   cout << "/////  Finished.  " << endl;
   cout << "///////////////////////////////////////////////////////////" << endl;
 }
-
+/*
 // This is the old, explicit interpolation. It is now directly incorporated. 
 void FMT::interpolate(Point &p, Point &p0, Point &p1, double coeffs[8])
 {
@@ -397,7 +397,7 @@ void FMT::interpolate(Point &p, Point &p0, Point &p1, double coeffs[8])
   coeffs[6] = (1-dx)*   dy *   dz ; // 011
   coeffs[7] =    dx *   dy *   dz ; // 111
 }
-
+*/
 
 
 
@@ -618,9 +618,61 @@ void FMT::calculateFreeEnergyDerivatives(vector<FMT_Weighted_Density> &dd, doubl
   dPhi_.do_fourier_2_real();
 
   dF.set(dPhi_.cReal());
+
   dF.multBy(dV);
 }
 
+double FMT::calculateFreeEnergyDerivativesSurf(Density &density, double A, double rho_surf, DFT_Vec& dF)
+{
+  int Nx = density.Nx();
+  int Ny = density.Ny();
+  int Nz = density.Nz();
+
+  double dV = density.dV();
+  
+  // Surfactant terms
+  DFT_FFT surf_x(Nx, Ny, Nz);
+  DFT_FFT surf_y(Nx, Ny, Nz);
+  DFT_FFT surf_z(Nx, Ny, Nz);
+
+  double F = 0;
+  long Ntot = Nx*Ny*Nz;
+  
+  //  for(long i=0;i<Ntot;i++)
+  for(int ix=0;ix<Nx;ix++)
+      for(int iy=0;iy<Ny;iy++)
+	  for(int iz=0;iz<Nz;iz++)
+	    {
+	      long i = density.pos(ix,iy,iz);
+	      
+	      double vv = d0_[2].r(i)*d0_[2].r(i)+d0_[3].r(i)*d0_[3].r(i)+d0_[4].r(i)*d0_[4].r(i);
+	      surf_x.Real().set(i,2.0*rho_surf*A*exp(-A*vv)*(1-A*vv)*d0_[2].r(i));
+	      surf_y.Real().set(i,2.0*rho_surf*A*exp(-A*vv)*(1-A*vv)*d0_[3].r(i));
+	      surf_z.Real().set(i,2.0*rho_surf*A*exp(-A*vv)*(1-A*vv)*d0_[4].r(i));
+	      
+	      F += rho_surf*A*vv*exp(-A*vv);
+	    }
+  surf_x.do_real_2_fourier();
+  surf_y.do_real_2_fourier();
+  surf_z.do_real_2_fourier();
+		     
+  DFT_FFT dPhiSurf(Nx, Ny, Nz);
+  dPhiSurf.Four().zeros();
+  
+  dPhiSurf.Four().incrementSchur(surf_x.Four(), d0_[2].wk());
+  dPhiSurf.Four().incrementSchur(surf_y.Four(), d0_[3].wk());
+  dPhiSurf.Four().incrementSchur(surf_z.Four(), d0_[4].wk());
+
+  dPhiSurf.do_fourier_2_real();
+
+  dF.set(dPhiSurf.cReal());  
+  dF.multBy(dV);
+
+  return F*dV;
+}
+
+
+static double NSurfactant = -1;
 
 double FMT::calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, DFT_Vec& dF0) 
 {
@@ -634,6 +686,57 @@ double FMT::calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, D
 
   double dV   = density.dV();
   calculateFreeEnergyDerivatives(d0_, dV, dF0);
+
+  if(rho_surf_ > 0)
+    {
+      // Surfactant terms
+      int Nx = density.Nx();
+      int Ny = density.Ny();
+      int Nz = density.Nz();
+
+      DFT_FFT surf_x(Nx, Ny, Nz);
+      DFT_FFT surf_y(Nx, Ny, Nz);
+      DFT_FFT surf_z(Nx, Ny, Nz);
+
+      long Ntot = Nx*Ny*Nz;
+
+      double Fs = 0.0;
+
+      double Ns = 0;
+      double Ns_uniform = 0;
+      
+      for(long i=0;i<Ntot;i++)
+	{
+	  double vv = d0_[2].r(i)*d0_[2].r(i)+d0_[3].r(i)*d0_[3].r(i)+d0_[4].r(i)*d0_[4].r(i);
+	  surf_x.Real().set(i,2.0*rho_surf_*Asurf_*exp(-Asurf_*vv)*(1-Asurf_*vv)*d0_[2].r(i));
+	  surf_y.Real().set(i,2.0*rho_surf_*Asurf_*exp(-Asurf_*vv)*(1-Asurf_*vv)*d0_[3].r(i));
+	  surf_z.Real().set(i,2.0*rho_surf_*Asurf_*exp(-Asurf_*vv)*(1-Asurf_*vv)*d0_[4].r(i));
+	      
+	  Fs += rho_surf_*Asurf_*vv*exp(-Asurf_*vv);
+	  Ns += rho_surf_*exp(-Asurf_*vv);
+	  Ns_uniform += rho_surf_;
+	}
+      surf_x.do_real_2_fourier();
+      surf_y.do_real_2_fourier();
+      surf_z.do_real_2_fourier();
+		     
+      DFT_FFT dPhiSurf(Nx, Ny, Nz);
+      dPhiSurf.Four().zeros();
+  
+      dPhiSurf.Four().incrementSchur(surf_x.Four(), d0_[2].wk());
+      dPhiSurf.Four().incrementSchur(surf_y.Four(), d0_[3].wk());
+      dPhiSurf.Four().incrementSchur(surf_z.Four(), d0_[4].wk());
+
+      dPhiSurf.do_fourier_2_real();
+
+      if(NSurfactant < 0) NSurfactant = Ns_uniform;
+      rho_surf_ *= NSurfactant/Ns;
+      
+      dF0.Increment_And_Scale(dPhiSurf.cReal(),dV*NSurfactant/Ns);  
+
+      F += Fs*NSurfactant/Ns;
+    }
+  
   return F*dV;
 };
 

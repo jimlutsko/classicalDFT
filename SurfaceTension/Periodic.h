@@ -19,8 +19,11 @@ class Periodic : public Density
   *   @return nothing 
   */  
  Periodic(double dx, double L[], Grace *g) 
-   : Density(dx,L), g_(g) { vWall_.zeros(Ntot_); }
+   : Density(dx,L), g_(g), dft_(NULL) { vWall_.zeros(Ntot_); }
 
+
+  void setDFT(DFT_VDW<RSLT> *d){dft_ = d;}
+  
   /**
   *   @brief  This is always zero
   *  
@@ -65,20 +68,27 @@ class Periodic : public Density
     if(g_ == NULL) return;
 
     g_->deleteDataSet(0);
+    if(dft_) g_->deleteDataSet(1);
 
     for(int i= 0; i < Nz(); i++)
       {
 	double x = getZ(i);
 	g_->addPoint(x,getDensity(Nx()/2,Ny()/2,i),0);
+	if(dft_)
+	  {
+	    double y = dft_->getSurfactant(Nx()/2,Ny()/2,i, *this);
+	    g_->addPoint(x,y,1);
+	  }
       }
     
     g_->setTitle(title.c_str());
+    g_->setColor(2,1);
     g_->redraw();
   }
 
  private:
   Grace *g_;
-
+  DFT_VDW<RSLT> *dft_;
 };
 
 

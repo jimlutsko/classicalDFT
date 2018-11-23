@@ -96,12 +96,17 @@ int main(int argc, char** argv)
   string outfile("dump.dat");
   string infile;
 
+
+  
   double forceLimit = 1e-4;
   double dt = 1e-3;
   double dtMax = 1;
   double alpha_start = 0.01;
 
   bool showGraphics = true;
+
+  double Asurf = 0;
+  double rho_surf = -1;
   
   Options options;
 
@@ -110,6 +115,9 @@ int main(int argc, char** argv)
   options.addOption("PointsPerHardSphere", &PointsPerHardSphere);
 
   options.addOption("kT", &kT);
+
+  options.addOption("ASurfactant", &Asurf);
+  options.addOption("RhoSurfactant", &rho_surf);
 
   options.addOption("eps", &eps);
   options.addOption("sigma", &sigma);
@@ -136,6 +144,8 @@ int main(int argc, char** argv)
   options.addOption("TimeStepMax", &dtMax);
   options.addOption("AlphaStart", &alpha_start);
 
+  options.addOption("InputFile", &infile);
+  
   options.addOption("ShorGraphics", &showGraphics);
   
   options.read(argc, argv);
@@ -163,7 +173,7 @@ int main(int argc, char** argv)
   //////////////////////////////////////
   ////// Create potential
 
-  Potential1 potential(sigma, eps, rcut);
+  LJ potential(sigma, eps, rcut);
 
   /////////////////////////////////////
   // Create density object
@@ -173,7 +183,6 @@ int main(int argc, char** argv)
   if(showGraphics) g = new Grace();
   
   Periodic theDensity(dx, L, g);
-
 
   /////////////////////////////////////
   // DFT object
@@ -194,15 +203,23 @@ int main(int argc, char** argv)
   double omega_coex = dft.Omega(xliq_coex);
   double mu         = dft.Mu(xliq_coex);
   double mu_coex    = mu;
+
+  theDensity.setDFT(&dft);
   
   theDensity.initialize(xliq_coex,xgas_coex);
 
+  if(! infile.empty())
+    theDensity.readDensity(infile.c_str());
+
+
+  
   cout << "Hard sphere diameter  = " << dft.HSD() << endl;
   cout << "Coexisting densities  = " << xliq_coex << " " << xgas_coex << endl;  
   cout << "Chemical potential(xliq)/kT = " << mu << endl;
   cout << "Chemical potential(xgas)/kT = " << dft.Mu(xgas_coex) << endl;
   cout << "beta * Grand free energy per unit volume = " << omega_coex << endl;
 
+  dft.setSurfactant(rho_surf,Asurf);
 
   string s("log.dat");
 
@@ -217,7 +234,6 @@ int main(int argc, char** argv)
   double Omega = minimizer.getF();
   double dOmega = Omega - omega_coex*theDensity.getVolume();
   double SurfaceTension = dOmega/(2*theDensity.Lx()*theDensity.Ly());
-  //  SurfaceTension = 1;
 
   cout << "Final Omega: " << Omega << endl;
   cout << "Excess Omega = " << dOmega << endl;
@@ -228,21 +244,61 @@ int main(int argc, char** argv)
   log1 << "#Final Omega: " << Omega << endl;
   log1 << "#Excess Omega = " << dOmega << endl;
   log1 << "#Surface Tension = " << SurfaceTension << endl;
-
-  cout << endl << "Critical Radius" << endl << "Natoms\txgas\txliq\tR" << endl;
-  log1 << endl << "#Critical Radius" << endl << "#Natoms\txgas\txliq\tR" << endl;
-  for(int i=0;i<100;i++)
+  /*
+    cout << endl << "Critical Radius" << endl << "Natoms\txgas\txliq\tR" << endl;
+    log1 << endl << "#Critical Radius" << endl << "#Natoms\txgas\txliq\tR" << endl;
+    for(int i=0;i<100;i++)
     {
-      double xgas = xgas_coex+(xgas_spin-xgas_coex)*i/100.0;
-      double m = dft.Mu(xgas);
-      double xliq = dft.findLiquidFromMu(mu,mu_coex, xliq_coex);
-      double V = theDensity.getVolume();
+    double xgas = xgas_coex+(xgas_spin-xgas_coex)*i/100.0;
+    double m = dft.Mu(xgas);
+    double xliq = dft.findLiquidFromMu(mu,mu_coex, xliq_coex);
+    double V = theDensity.getVolume();
 
-      double domega = dft.Fhelmholtz(xliq)-mu*xliq-dft.Fhelmholtz(xgas)+mu*xgas;
-      double R = 2*SurfaceTension/fabs(domega);
-      cout << xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
-      log1 <<"#" <<   xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
+    double domega = dft.Fhelmholtz(xliq)-mu*xliq-dft.Fhelmholtz(xgas)+mu*xgas;
+    double R = 2*SurfaceTension/fabs(domega);
+    cout << xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
+    log1 <<"#" <<   xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
     }
+  */
+  /*
+  DFT_Vec dF; dF.zeros(theDensity.Ntot());
+  DFT_Vec dF0; dF0.zeros(theDensity.Ntot());
+  
+  double F = dft.calculateFreeEnergyAndDerivatives(theDensity, mu, dF);
+  cout << "Recalculated F = " << F << endl;
+
+  
+  eps = 0.001;
+  
+  double A = -5;
+  double rho_surf = 0.01;
+
+
+  
+  for(int L=0;L<theDensity.Nz(); L++)
+    {
+      double x = theDensity.getDensity(0,0,L);
+
+      theDensity.set_Density_Elem(0,0,L,x*(1+eps));
+      double Fp0 = dft.calculateFreeEnergyAndDerivatives(theDensity, mu*0, dF0);
+      double Fp = dft.calculateFreeEnergyDerivativesSurf(theDensity, A, rho_surf, dF);
+
+      theDensity.set_Density_Elem(0,0,L,x*(1-eps));
+      double Fm0 = dft.calculateFreeEnergyAndDerivatives(theDensity, mu*0, dF0);
+      double Fm = dft.calculateFreeEnergyDerivativesSurf(theDensity, A, rho_surf, dF);
+
+      theDensity.set_Density_Elem(0,0,L,x);
+      double F0 = dft.calculateFreeEnergyAndDerivatives(theDensity, mu*0, dF0);
+      F = dft.calculateFreeEnergyDerivativesSurf(theDensity, A, rho_surf, dF);
+
+
+      cout << "Numeric = " << (Fp0-Fm0)/(2*eps*x) << " analy = " << dF0.get(L) << endl;
+      cout << "Numeric Surf= " << (Fp-Fm)/(2*eps*x) << " analy = " << dF.get(L) << endl;
+  
+  
+      cout << "Surfactant F = " << F << endl << endl;
+    }
+  */
   log1.close();  
   g->pause();
   g->close();
