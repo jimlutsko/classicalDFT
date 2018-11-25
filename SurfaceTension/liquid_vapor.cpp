@@ -150,14 +150,14 @@ int main(int argc, char** argv)
   
   options.read(argc, argv);
 
-  ofstream log("log.dat");
+  ofstream log1("log.dat");
   TimeStamp ts;
-  log << "# " << ts << endl;
-  log << "#=================================" << endl << "#" << endl;
-  log << "#Input parameters:" << endl <<  "#" << endl;
-  options.write(log);
-  log << "#=================================" << endl;
-  log.close();
+  log1 << "# " << ts << endl;
+  log1 << "#=================================" << endl << "#" << endl;
+  log1 << "#Input parameters:" << endl <<  "#" << endl;
+  options.write(log1);
+  log1 << "#=================================" << endl;
+  log1.close();
 
   double dx = 1.0/PointsPerHardSphere;
 
@@ -239,11 +239,11 @@ int main(int argc, char** argv)
   cout << "Excess Omega = " << dOmega << endl;
   cout << "Surface Tension = " << SurfaceTension << endl;
 
-  ofstream log1(s.c_str(),ios::app);
-  log1 << "#=================================" << endl << "#" << endl;
-  log1 << "#Final Omega: " << Omega << endl;
-  log1 << "#Excess Omega = " << dOmega << endl;
-  log1 << "#Surface Tension = " << SurfaceTension << endl;
+  ofstream log2(s.c_str(),ios::app);
+  log2 << "#=================================" << endl << "#" << endl;
+  log2 << "#Final Omega: " << Omega << endl;
+  log2 << "#Excess Omega = " << dOmega << endl;
+  log2 << "#Surface Tension = " << SurfaceTension << endl;
   /*
     cout << endl << "Critical Radius" << endl << "Natoms\txgas\txliq\tR" << endl;
     log1 << endl << "#Critical Radius" << endl << "#Natoms\txgas\txliq\tR" << endl;
@@ -270,10 +270,6 @@ int main(int argc, char** argv)
   
   eps = 0.001;
   
-  double A = -5;
-  double rho_surf = 0.01;
-
-
   
   for(int L=0;L<theDensity.Nz(); L++)
     {
@@ -281,15 +277,15 @@ int main(int argc, char** argv)
 
       theDensity.set_Density_Elem(0,0,L,x*(1+eps));
       double Fp0 = dft.calculateFreeEnergyAndDerivatives(theDensity, mu*0, dF0);
-      double Fp = dft.calculateFreeEnergyDerivativesSurf(theDensity, A, rho_surf, dF);
+      double Fp = dft.calculateFreeEnergyDerivativesSurf(theDensity, Asurf, rho_surf, dF);
 
       theDensity.set_Density_Elem(0,0,L,x*(1-eps));
       double Fm0 = dft.calculateFreeEnergyAndDerivatives(theDensity, mu*0, dF0);
-      double Fm = dft.calculateFreeEnergyDerivativesSurf(theDensity, A, rho_surf, dF);
+      double Fm = dft.calculateFreeEnergyDerivativesSurf(theDensity, Asurf, rho_surf, dF);
 
       theDensity.set_Density_Elem(0,0,L,x);
       double F0 = dft.calculateFreeEnergyAndDerivatives(theDensity, mu*0, dF0);
-      F = dft.calculateFreeEnergyDerivativesSurf(theDensity, A, rho_surf, dF);
+      F = dft.calculateFreeEnergyDerivativesSurf(theDensity, Asurf, rho_surf, dF);
 
 
       cout << "Numeric = " << (Fp0-Fm0)/(2*eps*x) << " analy = " << dF0.get(L) << endl;
@@ -297,9 +293,10 @@ int main(int argc, char** argv)
   
   
       cout << "Surfactant F = " << F << endl << endl;
+     
     }
   */
-  log1.close();  
+  log2.close();  
   g->pause();
   g->close();
   return 1;

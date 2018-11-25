@@ -239,7 +239,7 @@ int main(int argc, char** argv)
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
-    minimizer.setAlphaFac(alpha_fac);
+  minimizer.setAlphaFac(alpha_fac);
   minimizer.run(s);
 
   /*
