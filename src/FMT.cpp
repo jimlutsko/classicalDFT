@@ -30,12 +30,13 @@ double sigma2 = 1e-4;
 
 
 FMT::FMT(Lattice &lattice,  double hsd, string& pointsFile, double hsd1)
-  : dx_(lattice.getDX()), dy_(lattice.getDY()), dz_(lattice.getDZ()), hsd0_(hsd), hsd1_(hsd1), etaMax_(1e30), Asurf_(0.0), rho_surf_(-1)
+  : dx_(lattice.getDX()), dy_(lattice.getDY()), dz_(lattice.getDZ()), hsd0_(hsd), hsd1_(hsd1), etaMax_(1e30), Asurf_(0.0), rho_surf_(-1), surfactant_density_(lattice.Nx(), lattice.Ny(), lattice.Nz())
 {
   long Nx = lattice.Nx();
   long Ny = lattice.Ny();
   long Nz = lattice.Nz();
 
+  
   cout << endl;
   cout << "///////////////////////////////////////////////////////////" << endl;
   cout << "/////  Calculating FMT weighting functions" << endl;
@@ -624,50 +625,94 @@ void FMT::calculateFreeEnergyDerivatives(vector<FMT_Weighted_Density> &dd, doubl
 
 double FMT::calculateFreeEnergyDerivativesSurf(Density &density, double A, double rho_surf, DFT_Vec& dF)
 {
-  int Nx = density.Nx();
-  int Ny = density.Ny();
-  int Nz = density.Nz();
-
-  double dV = density.dV();
-  
-  // Surfactant terms
-  DFT_FFT surf_x(Nx, Ny, Nz);
-  DFT_FFT surf_y(Nx, Ny, Nz);
-  DFT_FFT surf_z(Nx, Ny, Nz);
-
   double F = 0;
-  long Ntot = Nx*Ny*Nz;
+
+  double dV   = density.dV();
+
+  dF.zeros();
   
-  //  for(long i=0;i<Ntot;i++)
-  for(int ix=0;ix<Nx;ix++)
-      for(int iy=0;iy<Ny;iy++)
+  if(rho_surf_ > 0)
+    {
+      // Surfactant terms
+      int Nx = density.Nx();
+      int Ny = density.Ny();
+      int Nz = density.Nz();
+
+      double dx = density.getDX();
+      double dy = density.getDY();
+      double dz = density.getDZ();
+
+      long Ntot = Nx*Ny*Nz;
+
+      // Construct surfactant potential and v2
+      DFT_FFT surfactant_potential(Nx, Ny, Nz);
+      DFT_FFT v2(Nx, Ny, Nz);      
+
+      for(int ix=0;ix<Nx;ix++)
+	for(int iy=0;iy<Ny;iy++)
 	  for(int iz=0;iz<Nz;iz++)
 	    {
 	      long i = density.pos(ix,iy,iz);
 	      
 	      double vv = d0_[2].r(i)*d0_[2].r(i)+d0_[3].r(i)*d0_[3].r(i)+d0_[4].r(i)*d0_[4].r(i);
-	      surf_x.Real().set(i,2.0*rho_surf*A*exp(-A*vv)*d0_[2].r(i));
-	      surf_y.Real().set(i,2.0*rho_surf*A*exp(-A*vv)*d0_[3].r(i));
-	      surf_z.Real().set(i,2.0*rho_surf*A*exp(-A*vv)*d0_[4].r(i));
 	      
-	      F -= rho_surf*exp(-A*vv)+rho_surf;
-	    }
-  surf_x.do_real_2_fourier();
-  surf_y.do_real_2_fourier();
-  surf_z.do_real_2_fourier();
-		     
-  DFT_FFT dPhiSurf(Nx, Ny, Nz);
-  dPhiSurf.Four().zeros();
+	      double r2 =  ix*ix*dx*dx+iy*iy*dy*dy+iz*iz*dz*dz;
+	      double vpot = 0;
+	      //if(i == 0) vpot = Asurf_*1/dV;
+	      if(r2 > 1 && r2 < 3*3) vpot = Asurf_*(1/(r2*r2*r2*r2*r2*r2)-(1/(r2*r2*r2)));
+	  
+	      surfactant_potential.Real().set(i, vpot);
+	      v2.Real().set(i, vv);
+	}
+      surfactant_potential.do_real_2_fourier();
+      v2.do_real_2_fourier();
+
+      // Construct surfactant density      
+      DFT_FFT surfactant_density(Nx, Ny, Nz);
+      surfactant_density.Four().Schur(surfactant_potential.Four(),v2.Four());
+      surfactant_density.do_fourier_2_real();
+      for(long i=0;i<Ntot;i++)
+	surfactant_density.Real().set(i, rho_surf_*exp(-surfactant_density.Real().get(i)*dV/Ntot));
+      surfactant_density.do_real_2_fourier();
+
+      // Free energy is just the integral
+      double Fs = -(surfactant_density.Real().accu() - rho_surf_*Ntot);
+      double Ns = surfactant_density.Real().accu();
+      
+      // Construct conv(surfactant_density, surfactant_potential) 
+      DFT_FFT Density_Conv_Potential(Nx,Ny,Nz);      
+      Density_Conv_Potential.Four().Schur(surfactant_density.Four(),surfactant_potential.Four());   
+      Density_Conv_Potential.do_fourier_2_real(); 
+      Density_Conv_Potential.Real().multBy(dV/Ntot);
+
+      // Construct conv(surfactant_density, surfactant_potential)(i) v(i)
+      // and convolute with vector weight function            
+      DFT_FFT dFs(Nx,Ny,Nz);
+      dFs.Four().zeros();            
+      for(int J=0;J<3;J++)
+	{
+	  DFT_FFT v_J(Nx, Ny, Nz);
+	  v_J.Real().Schur(Density_Conv_Potential.Real(),d0_[2+J].Real());
+	  v_J.do_real_2_fourier();
+	  dFs.Four().incrementSchur(v_J.Four(),d0_[2+J].wk());	  
+	}
+      dFs.do_fourier_2_real();
+      dFs.Real().multBy(2*dV); // N.B.: No factor of Ntot because it is already in wk() ...
+      //Done!
+      
+      // Constant N
+      double fac = 1;
+      /*
+      if(NSurfactant < 0) NSurfactant = rho_surf_*Ntot;
+
+      double fac = NSurfactant/Ns;  // for constant Ns
+      */
+      rho_surf_ *= fac;
+
+      F += Fs*fac;      
+      dF.Increment_And_Scale(dFs.cReal(),fac);  
+    }
   
-  dPhiSurf.Four().incrementSchur(surf_x.Four(), d0_[2].wk());
-  dPhiSurf.Four().incrementSchur(surf_y.Four(), d0_[3].wk());
-  dPhiSurf.Four().incrementSchur(surf_z.Four(), d0_[4].wk());
-
-  dPhiSurf.do_fourier_2_real();
-
-  dF.set(dPhiSurf.cReal());  
-  dF.multBy(dV);
-
   return F*dV;
 }
 
@@ -694,53 +739,79 @@ double FMT::calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, D
       int Ny = density.Ny();
       int Nz = density.Nz();
 
-      DFT_FFT surf_x(Nx, Ny, Nz);
-      DFT_FFT surf_y(Nx, Ny, Nz);
-      DFT_FFT surf_z(Nx, Ny, Nz);
+      double dx = density.getDX();
+      double dy = density.getDY();
+      double dz = density.getDZ();
 
       long Ntot = Nx*Ny*Nz;
 
-      double Fs = 0.0;
+      // Construct surfactant potential and v2
+      DFT_FFT surfactant_potential(Nx, Ny, Nz);
+      DFT_FFT v2(Nx, Ny, Nz);      
+      for(int ix=0;ix<Nx;ix++)
+	for(int iy=0;iy<Ny;iy++)
+	  for(int iz=0;iz<Nz;iz++)
+	    {
+	      long i = density.pos(ix,iy,iz);
 
-      double Ns = 0;
-      double Ns_uniform = 0;
+	      double vv = d0_[2].r(i)*d0_[2].r(i)+d0_[3].r(i)*d0_[3].r(i)+d0_[4].r(i)*d0_[4].r(i);
+	      v2.Real().set(i, vv);
       
+	      //	      double vpot = (i == 0 ? Asurf_*1/dV  : 0);
+	      double r2 =  ix*ix*dx*dx+iy*iy*dy*dy+iz*iz*dz*dz;
+	      double vpot = 0;
+	      if(r2 > 1 && r2 < 3*3) vpot = Asurf_*(1/(r2*r2*r2*r2*r2*r2)-(1/(r2*r2*r2)));
+	  
+	      surfactant_potential.Real().set(i, vpot);	  
+
+	    }
+      surfactant_potential.do_real_2_fourier();
+      v2.do_real_2_fourier();
+
+      // Construct surfactant density      
+      surfactant_density_.Four().Schur(surfactant_potential.Four(),v2.Four());
+      surfactant_density_.do_fourier_2_real();
       for(long i=0;i<Ntot;i++)
-	{
-	  double vv = d0_[2].r(i)*d0_[2].r(i)+d0_[3].r(i)*d0_[3].r(i)+d0_[4].r(i)*d0_[4].r(i);
-	  surf_x.Real().set(i,2.0*rho_surf_*Asurf_*exp(-Asurf_*vv)*d0_[2].r(i));
-	  surf_y.Real().set(i,2.0*rho_surf_*Asurf_*exp(-Asurf_*vv)*d0_[3].r(i));
-	  surf_z.Real().set(i,2.0*rho_surf_*Asurf_*exp(-Asurf_*vv)*d0_[4].r(i));
-	      
-	  Fs -= (rho_surf_*exp(-Asurf_*vv)-rho_surf_);
+	surfactant_density_.Real().set(i, rho_surf_*exp(-surfactant_density_.Real().get(i)*dV/Ntot));
+      surfactant_density_.do_real_2_fourier();
 
-	  Ns += rho_surf_*exp(-Asurf_*vv);
-	  Ns_uniform += rho_surf_;
-	}
-      surf_x.do_real_2_fourier();
-      surf_y.do_real_2_fourier();
-      surf_z.do_real_2_fourier();
-		     
-      DFT_FFT dPhiSurf(Nx, Ny, Nz);
-      dPhiSurf.Four().zeros();
-   
-      dPhiSurf.Four().incrementSchur(surf_x.Four(), d0_[2].wk());
-      dPhiSurf.Four().incrementSchur(surf_y.Four(), d0_[3].wk());
-      dPhiSurf.Four().incrementSchur(surf_z.Four(), d0_[4].wk());
-
-      dPhiSurf.do_fourier_2_real();
-
-      if(NSurfactant < 0) NSurfactant = Ns_uniform;
-      double fac = NSurfactant/Ns;  // for constant Ns
-      fac = 1;       
-      rho_surf_ *= fac;
-     
-      dF0.Increment_And_Scale(dPhiSurf.cReal(),dV*fac);  
-
-      cout << "F = " << F*dV << " Fs = " << Fs*dV << " fac = " << fac << endl;
+      // Free energy is just the integral
+      double Fs = -(surfactant_density_.Real().accu() - rho_surf_*Ntot);
+      double Ns = surfactant_density_.Real().accu();
       
-      F += Fs*fac;
-    } else cout << "F = " << F*dV << endl;
+      // Construct conv(surfactant_density, surfactant_potential) 
+      DFT_FFT Density_Conv_Potential(Nx,Ny,Nz);      
+      Density_Conv_Potential.Four().Schur(surfactant_density_.Four(),surfactant_potential.Four());   
+      Density_Conv_Potential.do_fourier_2_real(); 
+      Density_Conv_Potential.Real().multBy(dV/Ntot);
+
+      // Construct conv(surfactant_density, surfactant_potential)(i) v(i)
+      // and convolute with vector weight function            
+      DFT_FFT dFs(Nx,Ny,Nz);
+      dFs.Four().zeros();            
+      for(int J=0;J<3;J++)
+	{
+	  DFT_FFT v_J(Nx, Ny, Nz);
+	  v_J.Real().Schur(Density_Conv_Potential.Real(),d0_[2+J].Real());
+	  v_J.do_real_2_fourier();
+	  dFs.Four().incrementSchur(v_J.Four(),d0_[2+J].wk());	  
+	}
+      dFs.do_fourier_2_real();
+      dFs.Real().multBy(2*dV); // N.B.: No factor of Ntot because it is already in wk() ...
+      //Done!
+      
+      // Constant N
+      double fac = 1;
+      /*
+      if(NSurfactant < 0) NSurfactant = rho_surf_*Ntot;
+
+      double fac = NSurfactant/Ns;  // for constant Ns
+      */
+      rho_surf_ *= fac;
+
+      F += Fs*fac;      
+      dF0.Increment_And_Scale(dFs.cReal(),fac);  
+    }
   
   return F*dV;
 };

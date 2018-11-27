@@ -211,10 +211,10 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu
   v_mean_field_.Four().Schur(density.getDK(),w_att_.Four());
   v_mean_field_.Four().multBy(dV*dV/Ntot);
   v_mean_field_.do_fourier_2_real(); 
-
+  
   F  += 0.5*density.getInteractionEnergy(v_mean_field_.Real());
   dF.IncrementBy(v_mean_field_.Real());
-
+  
   return F;
 }
 

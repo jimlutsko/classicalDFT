@@ -29,7 +29,6 @@ Grace *g = NULL;
 void display(const Density &density, int calls, double F)
 {
   if(g == NULL) return;
-
   g->deleteDataSet(0);
 
   for(int i= 0; i < density.Nz(); i++)
@@ -228,7 +227,7 @@ int main(int argc, char** argv)
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
-  minimizer.run(s);
+  //  minimizer.run(s);
 
   double Natoms = theDensity.getNumberAtoms();
   double Omega = minimizer.getF();
@@ -260,7 +259,7 @@ int main(int argc, char** argv)
     log1 <<"#" <<   xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
     }
   */
-  /*
+  
   DFT_Vec dF; dF.zeros(theDensity.Ntot());
   DFT_Vec dF0; dF0.zeros(theDensity.Ntot());
   
@@ -268,7 +267,7 @@ int main(int argc, char** argv)
   cout << "Recalculated F = " << F << endl;
 
   
-  eps = 0.001;
+  eps = 0.0001;
   
   
   for(int L=0;L<theDensity.Nz(); L++)
@@ -295,7 +294,7 @@ int main(int argc, char** argv)
       cout << "Surfactant F = " << F << endl << endl;
      
     }
-  */
+  
   log2.close();  
   g->pause();
   g->close();

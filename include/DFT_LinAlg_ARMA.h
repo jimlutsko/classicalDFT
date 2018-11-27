@@ -37,6 +37,7 @@ class DFT_Vec
   
   void resize(long N) {data_.resize(N);}
   void zeros(long N)  {data_.zeros(N);}
+  void zeros()  {data_.zeros();}
 
   double inf_norm() const { return arma::norm(data_,"inf");}
   double euclidean_norm() const { return arma::norm(data_);}
