@@ -235,6 +235,11 @@ class FMT
    //   return rho_surf_*exp(-Asurf_*vv);
    return surfactant_density_.cReal().get(i);
  }
+  double getSurfactant2(int ix, int iy, int iz, Density &density) const
+ {
+   long i = density.pos(ix,iy,iz);
+   return rho2_.cReal().get(i);
+ }
  void setSurfactant(double rhos, double A) {Asurf_ = A; rho_surf_ = rhos;}
  
 
@@ -402,6 +407,7 @@ class FMT
  double Asurf_;
  double rho_surf_;
  DFT_FFT surfactant_density_;
+ DFT_FFT rho2_;
  
 };
 

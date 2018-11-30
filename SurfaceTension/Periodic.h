@@ -69,6 +69,7 @@ class Periodic : public Density
 
     g_->deleteDataSet(0);
     if(dft_) g_->deleteDataSet(1);
+    if(dft_) g_->deleteDataSet(2);
 
     for(int i= 0; i < Nz(); i++)
       {
@@ -78,6 +79,9 @@ class Periodic : public Density
 	  {
 	    double y = dft_->getSurfactant(Nx()/2,Ny()/2,i, *this);
 	    g_->addPoint(x,y,1);
+
+	    double y2 = dft_->getSurfactant2(Nx()/2,Ny()/2,i, *this);
+	    g_->addPoint(x,y2,2);
 	  }
       }
     

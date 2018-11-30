@@ -246,6 +246,7 @@ template <class T> class DFT_FMT : public DFT
 
   void setSurfactant(double rhos, double A) {fmt_.setSurfactant(rhos,A);}
   double getSurfactant(int ix, int iy, int iz, Density &density) {return fmt_.getSurfactant(ix,iy,iz,density);}
+  double getSurfactant2(int ix, int iy, int iz, Density &density) {return fmt_.getSurfactant2(ix,iy,iz,density);}
   
 /**
   *   @brief  Compute chemical potential/kT for given density
@@ -350,6 +351,7 @@ template <class T> class DFT_VDW : public DFT
   }
   void setSurfactant(double rhos, double A) {dft_fmt_->setSurfactant(rhos,A);}
   double getSurfactant(int ix, int iy, int iz, Density &density) {return dft_fmt_->getSurfactant(ix,iy,iz,density);}
+  double getSurfactant2(int ix, int iy, int iz, Density &density) {return dft_fmt_->getSurfactant2(ix,iy,iz,density);}
   
 /**
   *   @brief  Compute chemical potential/kT for given density

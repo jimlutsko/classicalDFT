@@ -30,7 +30,7 @@ double sigma2 = 1e-4;
 
 
 FMT::FMT(Lattice &lattice,  double hsd, string& pointsFile, double hsd1)
-  : dx_(lattice.getDX()), dy_(lattice.getDY()), dz_(lattice.getDZ()), hsd0_(hsd), hsd1_(hsd1), etaMax_(1e30), Asurf_(0.0), rho_surf_(-1), surfactant_density_(lattice.Nx(), lattice.Ny(), lattice.Nz())
+  : dx_(lattice.getDX()), dy_(lattice.getDY()), dz_(lattice.getDZ()), hsd0_(hsd), hsd1_(hsd1), etaMax_(1e30), Asurf_(0.0), rho_surf_(-1), surfactant_density_(lattice.Nx(), lattice.Ny(), lattice.Nz()), rho2_(lattice.Nx(), lattice.Ny(), lattice.Nz())
 {
   long Nx = lattice.Nx();
   long Ny = lattice.Ny();
@@ -655,15 +655,56 @@ double FMT::calculateFreeEnergyDerivativesSurf(Density &density, double A, doubl
 	      long i = density.pos(ix,iy,iz);
 	      
 	      double vv = d0_[2].r(i)*d0_[2].r(i)+d0_[3].r(i)*d0_[3].r(i)+d0_[4].r(i)*d0_[4].r(i);
+
+
+	      int dix = ix; if(dix > Nx/2) dix -= Nx; if(dix < -Nx/2) dix += Nx;
+	      int diy = iy; if(diy > Ny/2) diy -= Ny; if(diy < -Ny/2) diy += Ny;
+	      int diz = iz; if(diz > Nz/2) diz -= Nz; if(diz < -Nz/2) diz += Nz; 
+
+	      double r2 =  dix*dix*dx*dx+diy*diy*dy*dy+diz*diz*dz*dz;
 	      
-	      double r2 =  ix*ix*dx*dx+iy*iy*dy*dy+iz*iz*dz*dz;
+	      //	      double r2 =  ix*ix*dx*dx+iy*iy*dy*dy+iz*iz*dz*dz;
 	      double vpot = 0;
 	      //if(i == 0) vpot = Asurf_*1/dV;
 	      if(r2 > 1 && r2 < 3*3) vpot = Asurf_*(1/(r2*r2*r2*r2*r2*r2)-(1/(r2*r2*r2)));
 	  
 	      surfactant_potential.Real().set(i, vpot);
 	      v2.Real().set(i, vv);
+	    }
+      /*
+      for(int iz=0;iz<Nz;iz++)	  
+	{
+	  long i = density.pos(0,0,iz);
+	  double rr = 0;
+	  for(int jx=0;jx<Nx;jx++)
+	    for(int jy=0;jy<Ny;jy++)
+	      for(int jz=0;jz<Nz;jz++)	  
+		{
+		  long j = density.pos(jx,jy,jz);
+		  
+		  double vv = d0_[2].r(j)*d0_[2].r(j)+d0_[3].r(j)*d0_[3].r(j)+d0_[4].r(j)*d0_[4].r(j);
+		  int ix = 0;
+		  int iy = 0;
+
+		  int dix = ix-jx; if(dix > Nx/2) dix -= Nx; if(dix < -Nx/2) dix += Nx;
+		  int diy = iy-jy; if(diy > Ny/2) diy -= Ny; if(diy < -Ny/2) diy += Ny;
+		  int diz = iz-jz; if(diz > Nz/2) diz -= Nz; if(diz < -Nz/2) diz += Nz; 
+
+		  double r2 =  dix*dix*dx*dx+diy*diy*dy*dy+diz*diz*dz*dz;
+		  double vpot = 0;
+		  //if(i == 0) vpot = Asurf_*1/dV;
+		  if(r2 > 1 && r2 < 3*3) vpot = Asurf_*(1/(r2*r2*r2*r2*r2*r2)-(1/(r2*r2*r2)));
+		  
+		  rr += vpot*vv*dV;		      
+		}
+	  for(int ix=0;ix<Nx;ix++)
+	    for(int iy=0;iy<Ny;iy++)	  
+	      rho2_.Real().set(density.pos(ix,iy,iz),rho_surf_*exp(-rr));	      
+
+	  cout << "iz = " << iz << " rho = " << rho2_.Real().get(density.pos(0,0,iz)) << " surfactant_density_ = " << surfactant_density_.Real().get(density.pos(0,0,iz)) << endl;
+
 	}
+      */
       surfactant_potential.do_real_2_fourier();
       v2.do_real_2_fourier();
 
@@ -702,12 +743,12 @@ double FMT::calculateFreeEnergyDerivativesSurf(Density &density, double A, doubl
       
       // Constant N
       double fac = 1;
-      /*
-      if(NSurfactant < 0) NSurfactant = rho_surf_*Ntot;
+      double NSurfactant = rho_surf_*Ntot;
+      
 
-      double fac = NSurfactant/Ns;  // for constant Ns
-      */
-      rho_surf_ *= fac;
+	fac = NSurfactant/Ns;  // for constant Ns
+      
+	//      rho_surf_ *= fac;
 
       F += Fs*fac;      
       dF.Increment_And_Scale(dFs.cReal(),fac);  
@@ -758,9 +799,16 @@ double FMT::calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, D
 	      v2.Real().set(i, vv);
       
 	      //	      double vpot = (i == 0 ? Asurf_*1/dV  : 0);
-	      double r2 =  ix*ix*dx*dx+iy*iy*dy*dy+iz*iz*dz*dz;
+
+	      int dix = ix; if(dix > Nx/2) dix -= Nx; if(dix < -Nx/2) dix += Nx;
+	      int diy = iy; if(diy > Ny/2) diy -= Ny; if(diy < -Ny/2) diy += Ny;
+	      int diz = iz; if(diz > Nz/2) diz -= Nz; if(diz < -Nz/2) diz += Nz; 
+
+	      double r2 =  dix*dix*dx*dx+diy*diy*dy*dy+diz*diz*dz*dz;
+	      
+	      //	      double r2 =  ix*ix*dx*dx+iy*iy*dy*dy+iz*iz*dz*dz;
 	      double vpot = 0;
-	      if(r2 > 1 && r2 < 3*3) vpot = Asurf_*(1/(r2*r2*r2*r2*r2*r2)-(1/(r2*r2*r2)));
+	      if(r2 > 1 && r2 < 6*6) vpot = Asurf_*(1/(r2*r2*r2*r2*r2*r2)-(1/(r2*r2*r2)));
 	  
 	      surfactant_potential.Real().set(i, vpot);	  
 
@@ -802,12 +850,11 @@ double FMT::calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, D
       
       // Constant N
       double fac = 1;
-      /*
-      if(NSurfactant < 0) NSurfactant = rho_surf_*Ntot;
+      
+      NSurfactant = rho_surf_*Ntot;
 
-      double fac = NSurfactant/Ns;  // for constant Ns
-      */
-      rho_surf_ *= fac;
+      //      fac = NSurfactant/Ns;  // for constant Ns
+
 
       F += Fs*fac;      
       dF0.Increment_And_Scale(dFs.cReal(),fac);  

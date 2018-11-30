@@ -16,55 +16,20 @@ extern char   __BUILD_NUMBER;
 #include <omp.h>
 #endif
 
+#include <gsl/gsl_sf_lambert.h>
+
 #include "Grace.h"
 #include "options.h"
 #include "TimeStamp.h"
+#include "Integrator.h"
 
 #include "DFT.h"
 #include "Periodic.h"
 #include "Minimizer.h"
-/*
-Grace *g = NULL;
 
-void display(const Density &density, int calls, double F)
-{
-  if(g == NULL) return;
-  g->deleteDataSet(0);
 
-  for(int i= 0; i < density.Nz(); i++)
-    {
-      double x = density.getZ(i);
-      g->addPoint(x,density.getDensity(density.Nx()/2,density.Ny()/2,i),0);
-    }
+void solve(DFT_VDW<RSLT> & dft_, double xliq, double xvap, double rho_surf_, double A, Grace *g);
 
-  stringstream title;
-  title << "calls = " << calls <<  " F = " << F;
-	
-  g->setTitle(title.str().c_str());
-  g->redraw();
-}
-
-void display1(ConjugateGradients2 &cg)
-{
-  if(g == NULL) return;
-
-  g->deleteDataSet(0);
-
-  const Density &density = cg.getDensity();
-
-  for(int i= 0; i < density.Nz(); i++)
-    {
-      double x = density.getZ(i);
-      g->addPoint(x,density.getDensity(density.Nx()/2,density.Ny()/2,i),0);
-    }
-
-  stringstream title;
-  title << "calls = " << cg.getCalls() <<  " F = " << cg.getF();
-	
-  g->setTitle(title.str().c_str());
-  g->redraw();
-}
-*/
 int main(int argc, char** argv)
 {
   cout << "Build date  : " <<  (unsigned long) &__BUILD_DATE << endl;
@@ -188,7 +153,7 @@ int main(int argc, char** argv)
 
   DFT_VDW<RSLT> dft(theDensity,potential,pointsFile,kT);
 
-  
+ 
   double xliq_coex;
   double xgas_coex;
   dft.coexistence(xliq_coex, xgas_coex);
@@ -218,16 +183,24 @@ int main(int argc, char** argv)
   cout << "Chemical potential(xgas)/kT = " << dft.Mu(xgas_coex) << endl;
   cout << "beta * Grand free energy per unit volume = " << omega_coex << endl;
 
+
+  //  for(Asurf = 0.01; Asurf < 8; Asurf += 0.01)
+    {
+  
   dft.setSurfactant(rho_surf,Asurf);
 
   string s("log.dat");
 
+  solve(dft, xliq_coex, xgas_coex, rho_surf, Asurf, g);
+
+  exit(0);
+  
   fireMinimizer_Mu minimizer(dft, theDensity, mu);
   minimizer.setForceTerminationCriterion(forceLimit);
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
-  //  minimizer.run(s);
+  minimizer.run(s);
 
   double Natoms = theDensity.getNumberAtoms();
   double Omega = minimizer.getF();
@@ -243,6 +216,7 @@ int main(int argc, char** argv)
   log2 << "#Final Omega: " << Omega << endl;
   log2 << "#Excess Omega = " << dOmega << endl;
   log2 << "#Surface Tension = " << SurfaceTension << endl;
+    
   /*
     cout << endl << "Critical Radius" << endl << "Natoms\txgas\txliq\tR" << endl;
     log1 << endl << "#Critical Radius" << endl << "#Natoms\txgas\txliq\tR" << endl;
@@ -259,7 +233,7 @@ int main(int argc, char** argv)
     log1 <<"#" <<   xgas*V << "\t" << xgas << "\t" << xliq << "\t" << R << endl;
     }
   */
-  
+  /*  
   DFT_Vec dF; dF.zeros(theDensity.Ntot());
   DFT_Vec dF0; dF0.zeros(theDensity.Ntot());
   
@@ -294,9 +268,73 @@ int main(int argc, char** argv)
       cout << "Surfactant F = " << F << endl << endl;
      
     }
-  
-  log2.close();  
+  */
+  log2.close();
+    }
   g->pause();
   g->close();
   return 1;
+}
+
+static double omega0;
+static double rho_surf;
+static double B;
+static DFT_VDW<RSLT> *dft;
+static double mu;
+
+double S1(double x, void*)
+{
+  double arg = dft->Fhelmholtz(x)-mu*x-omega0-rho_surf;
+  double f   = arg+(1/B)*gsl_sf_lambert_W0(B*rho_surf*exp(-B*arg));
+  return 1.0/sqrt(f);
+}
+
+void solve(DFT_VDW<RSLT> & dft_, double xliq, double xvap, double rho_surf_, double A, Grace *g)
+{
+  dft = &dft_;
+  rho_surf = rho_surf_;
+  omega0 = dft_.Omega(xliq);
+  mu = dft_.Mu(xliq);
+
+  B = (M_PI*M_PI/18)*A*pow(dft_.HSD(),6);
+
+  cout << "alpha = " << B << endl;
+  
+  Integrator1 I1(S1);
+
+  double x0 = (xliq+xvap)/2;
+  
+  double z = 0;
+  double dx = (xliq-1e-4-x0)/100;
+
+  vector<double> zs;
+  vector<double> xs;
+
+
+  for(double x = x0; x-dx > xvap; x -= dx)
+    {
+      z -= I1.integrateFinite(x-dx,x);
+      zs.push_back(z);
+      xs.push_back(x-dx);      
+    }
+  std::reverse(std::begin(zs), std::end(zs));
+  std::reverse(std::begin(xs), std::end(xs));
+
+  z = 0;
+  zs.push_back(z);
+  xs.push_back(x0);
+  
+  for(double x = x0; x+dx < xliq; x += dx)
+    {
+      z += I1.integrateFinite(x,x+dx);
+      zs.push_back(z);
+      xs.push_back(x+dx);      
+    }
+
+  for(int i=0;i<xs.size();i++)
+    g->addPoint(zs[i], xs[i]);
+
+  g->redraw();
+
+  return;  
 }
