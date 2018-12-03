@@ -773,8 +773,12 @@ double FMT::calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, D
   double dV   = density.dV();
   calculateFreeEnergyDerivatives(d0_, dV, dF0);
 
+
+
+  
   if(rho_surf_ > 0)
     {
+
       // Surfactant terms
       int Nx = density.Nx();
       int Ny = density.Ny();
@@ -786,8 +790,13 @@ double FMT::calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, D
 
       long Ntot = Nx*Ny*Nz;
 
+            // Constant N
+      double fac = -1;      
+      fac = rho_surf_*Ntot;  // for constant Ns
+      
       // Construct surfactant potential and v2
       DFT_FFT surfactant_potential(Nx, Ny, Nz);
+      double r20 = pow(2,1.0/3);
       DFT_FFT v2(Nx, Ny, Nz);      
       for(int ix=0;ix<Nx;ix++)
 	for(int iy=0;iy<Ny;iy++)
@@ -808,19 +817,22 @@ double FMT::calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, D
 	      
 	      //	      double r2 =  ix*ix*dx*dx+iy*iy*dy*dy+iz*iz*dz*dz;
 	      double vpot = 0;
-	      if(r2 > 1 && r2 < 6*6) vpot = Asurf_*(1/(r2*r2*r2*r2*r2*r2)-(1/(r2*r2*r2)));
-	  
+	      if(r2 < r20) r2 = r20;
+	      if(r2 < 6*6) vpot = Asurf_*(1/(r2*r2*r2*r2*r2*r2)-(1/(r2*r2*r2)));
 	      surfactant_potential.Real().set(i, vpot);	  
-
 	    }
       surfactant_potential.do_real_2_fourier();
-      v2.do_real_2_fourier();
-
+      v2.do_real_2_fourier();      
+      
       // Construct surfactant density      
       surfactant_density_.Four().Schur(surfactant_potential.Four(),v2.Four());
       surfactant_density_.do_fourier_2_real();
       for(long i=0;i<Ntot;i++)
 	surfactant_density_.Real().set(i, rho_surf_*exp(-surfactant_density_.Real().get(i)*dV/Ntot));
+
+      if(fac > 0)
+	surfactant_density_.Real().multBy(fac/surfactant_density_.Real().accu());
+      
       surfactant_density_.do_real_2_fourier();
 
       // Free energy is just the integral
@@ -848,18 +860,13 @@ double FMT::calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, D
       dFs.Real().multBy(2*dV); // N.B.: No factor of Ntot because it is already in wk() ...
       //Done!
       
-      // Constant N
-      double fac = 1;
-      
-      NSurfactant = rho_surf_*Ntot;
+      F += Fs; //*fac;      
+      dF0.Increment_And_Scale(dFs.cReal(),1.0); //fac);
+      //      surfactant_density_.Real().multBy(fac);
 
-      //      fac = NSurfactant/Ns;  // for constant Ns
-
-
-      F += Fs*fac;      
-      dF0.Increment_And_Scale(dFs.cReal(),fac);  
+      cout << "Nsurf = " << Ns*dV << endl;
     }
-  
+
   return F*dV;
 };
 

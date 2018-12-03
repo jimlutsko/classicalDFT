@@ -191,15 +191,15 @@ int main(int argc, char** argv)
 
   string s("log.dat");
 
-  solve(dft, xliq_coex, xgas_coex, rho_surf, Asurf, g);
-
-  exit(0);
+  //  solve(dft, xliq_coex, xgas_coex, rho_surf, Asurf, g);
+  //  exit(0);
   
   fireMinimizer_Mu minimizer(dft, theDensity, mu);
   minimizer.setForceTerminationCriterion(forceLimit);
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
+  minimizer.setAlphaFac(1.0);
   minimizer.run(s);
 
   double Natoms = theDensity.getNumberAtoms();
