@@ -112,7 +112,6 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(Density& density
 
   // Free energy is just the integral
   double Fs = -(surfactant_density_.Real().accu() - rho_surf_*Ntot);
-
   if(bFixedN_)
     Fs = -rho_surf_*Ntot*log(rawSum/Ntot);
       
