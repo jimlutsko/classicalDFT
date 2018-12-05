@@ -28,7 +28,7 @@ extern char   __BUILD_NUMBER;
 #include "Minimizer.h"
 
 
-void solve(DFT_VDW<RSLT> & dft_, double xliq, double xvap, double rho_surf_, double A, Grace *g);
+void solve(DFT_VDW_Surfactant<RSLT> & dft_, double xliq, double xvap, double rho_surf_, double A, Grace *g);
 
 int main(int argc, char** argv)
 {
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
   /////////////////////////////////////
   // DFT object
 
-  DFT_VDW<RSLT> dft(theDensity,potential,pointsFile,kT);
+  DFT_VDW_Surfactant<RSLT> dft(theDensity,potential,pointsFile,kT);
 
  
   double xliq_coex;
@@ -279,7 +279,7 @@ int main(int argc, char** argv)
 static double omega0;
 static double rho_surf;
 static double B;
-static DFT_VDW<RSLT> *dft;
+static DFT_VDW_Surfactant<RSLT> *dft;
 static double mu;
 
 double S1(double x, void*)
@@ -289,7 +289,7 @@ double S1(double x, void*)
   return 1.0/sqrt(f);
 }
 
-void solve(DFT_VDW<RSLT> & dft_, double xliq, double xvap, double rho_surf_, double A, Grace *g)
+void solve(DFT_VDW_Surfactant<RSLT> & dft_, double xliq, double xvap, double rho_surf_, double A, Grace *g)
 {
   dft = &dft_;
   rho_surf = rho_surf_;

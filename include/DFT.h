@@ -239,15 +239,6 @@ template <class T> class DFT_FMT : public DFT
   */  
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
 
-  double calculateFreeEnergyDerivativesSurf(Density &density, double A, double rho_surf, DFT_Vec& dF)
-  {
-    return fmt_.calculateFreeEnergyDerivativesSurf(density, A, rho_surf, dF);
-  }
-
-  void setSurfactant(double rhos, double A) {fmt_.setSurfactant(rhos,A);}
-  double getSurfactant(int ix, int iy, int iz, Density &density) {return fmt_.getSurfactant(ix,iy,iz,density);}
-  double getSurfactant2(int ix, int iy, int iz, Density &density) {return fmt_.getSurfactant2(ix,iy,iz,density);}
-  
 /**
   *   @brief  Compute chemical potential/kT for given density
   *  
@@ -303,6 +294,23 @@ template <class T> class DFT_FMT : public DFT
   *   @brief  This conveys information to the FMT object for models that use it.
   */     
  virtual void setEtaMax(double etaMax) {fmt_.setEtaMax(etaMax);}
+
+  /**
+  *   @brief  Accessor for real-space FMT vector density
+  *  
+  *   @param  J is cartesian component
+  *   @return v - real space
+  */  
+ const DFT_Vec &getV_Real(int J, int species = 0) const { return fmt_.getV_Real(J,species);}
+
+   /**
+  *   @brief  Accessor for kernal for FMT vector density
+  *  
+  *   @param  J is cartesian component
+  *   @return wv - infourier space
+  */  
+ const DFT_Vec_Complex &getVweight_Four(int J, int species = 0) const { return fmt_.getVweight_Four(J,species);}
+
  
  protected:
   T         fmt_;   ///< Hard-sphere FMT object
@@ -345,15 +353,8 @@ template <class T> class DFT_VDW : public DFT
   *   @return total free energy of system
   */  
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
-  double calculateFreeEnergyDerivativesSurf(Density &density, double A, double rho_surf, DFT_Vec& dF)
-  {
-    return dft_fmt_->calculateFreeEnergyDerivativesSurf(density, A, rho_surf, dF);
-  }
-  void setSurfactant(double rhos, double A) {dft_fmt_->setSurfactant(rhos,A);}
-  double getSurfactant(int ix, int iy, int iz, Density &density) {return dft_fmt_->getSurfactant(ix,iy,iz,density);}
-  double getSurfactant2(int ix, int iy, int iz, Density &density) {return dft_fmt_->getSurfactant2(ix,iy,iz,density);}
-  
-/**
+
+  /**
   *   @brief  Compute chemical potential/kT for given density
   *  
   *   @param  x is the density
@@ -433,12 +434,61 @@ template <class T> class DFT_VDW : public DFT
   
  protected:
   DFT_FFT w_att_;
-  DFT_FFT v_mean_field_;
+  DFT_FFT v_mean_field_; ///< convolution of density and w_att_
 
-  //  FreeEnergyCache_Pade *fec_;  ///< Object that computes bulk thermodynamic properties
   DFT_FMT<T> *dft_fmt_; ///< The hard-sphere dft 
-  //  double a_vdw_; /// the vdw correction to hs
   VDW1 vdw_;
+};
+
+/**
+  *  @brief DFT_VDW Class
+  *
+  *   @detailed A single-species mean-field DFT model. It holds a DFT_FMT object to do the hard-sphere stuff.
+  *  
+  */  
+
+template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
+{
+ public:
+  /**
+  *   @brief  Default  constructor for DFT 
+  *  
+  *   @param  density is the Density object
+  *   @param  potential is the particle-particle potential
+  *   @param  pointsFile gives the location of the file containing the spherical-integration points
+  *   @return nothing 
+  */  
+  DFT_VDW_Surfactant(Lattice &lattice, Potential1 &potential,  string& pointsFile, double kT)
+    : DFT_VDW<T>(lattice, potential, pointsFile, kT), Asurf_(0), rho_surf_(0), surfactant_density_(lattice.Nx(), lattice.Ny(), lattice.Nz()) {}
+  /**
+  *   @brief  Default  destructor for DFT : deletes  fmt_ object. 
+  *  
+  *   @return nothing 
+  */  
+  ~DFT_VDW_Surfactant(){}
+
+  virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
+
+  void setSurfactant(double rhos, double A) {rho_surf_ = rhos; Asurf_ = A;}
+
+  double getSurfactant(long i, Density &density) const {return surfactant_density_.cReal().get(i);}
+  
+  virtual double Mu(double x) const;
+  virtual double Omega(double x) const;
+  virtual double Fhelmholtz(double x) const; 
+  void coexistence(double& xliq, double &xgas) const;
+  void spinodal(double& xs1, double &xs2) const; 
+  double findLiquidFromMu(double mu, double mu_coex, double xliq_coex) const;
+
+
+  virtual string Name() const { return string("DFT_VDW_Surfactant : ") +  DFT_VDW<T>::dft_fmt_->Name();}
+  
+ protected:
+  DFT_FFT surfactant_density_;   //< Arrays holding actual surfactant density and its FFT
+  double Asurf_;                     //< strength of assymetric (v^2 term) surfactant interaction
+  double rho_surf_;              //< parameter rho_0
+  double ax_;                    //< VDW parameter for symmetric part of surfactant interaction
+
 };
 
 

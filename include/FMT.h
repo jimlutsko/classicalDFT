@@ -105,6 +105,25 @@ class FMT
   */  
   const DFT_Vec_Complex& getWEK(int species) const { return (species == 0 ? d0_[0].wk() : d1_[0].wk());}
 
+  /**
+  *   @brief  Accessor for weighted density v compontent J, real space
+  *  
+  *   @param  J is cartesian component
+  *   @param  species is the particle species (either 0 or 1).
+  *   @return eta(pos)
+  */  
+
+  const DFT_Vec &getV_Real(int J, int species = 0) const { return (species == 0 ? d0_[2+J].Real() : d1_[2+J].Real());}
+
+  /**
+  *   @brief  Accessor for weighted kernal v compontent J, fourier space
+  *  
+  *   @param  J is cartesian component
+  *   @param  species is the particle species (either 0 or 1).
+  *   @return eta(pos)
+  */  
+  const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return (species == 0 ? d0_[2+J].wk() : d1_[2+J].wk());}
+
 
  /**
   *   @brief  calculate f1 cofactor in FMT PHI function.  This is the same for all models (log(1-eta)) and so is instantiated here.
@@ -225,24 +244,6 @@ class FMT
   *   @return dPHI3/dT(j,k)
   */       
  virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const = 0;
-
- double calculateFreeEnergyDerivativesSurf(Density &density, double A, double rho_surf, DFT_Vec& dF);
-
- double getSurfactant(int ix, int iy, int iz, Density &density) const
- {
-   long i = density.pos(ix,iy,iz);
-   //   double vv = d0_[2].r(i)*d0_[2].r(i)+d0_[3].r(i)*d0_[3].r(i)+d0_[4].r(i)*d0_[4].r(i);
-   //   return rho_surf_*exp(-Asurf_*vv);
-   return surfactant_density_.cReal().get(i);
- }
-  double getSurfactant2(int ix, int iy, int iz, Density &density) const
- {
-   long i = density.pos(ix,iy,iz);
-   return rho2_.cReal().get(i);
- }
- void setSurfactant(double rhos, double A) {Asurf_ = A; rho_surf_ = rhos;}
- 
-
 
  protected:
  /**
@@ -404,11 +405,6 @@ class FMT
 
  double etaMax_; ///< cutoff used to control divergences
 
- double Asurf_;
- double rho_surf_;
- DFT_FFT surfactant_density_;
- DFT_FFT rho2_;
- 
 };
 
 /**

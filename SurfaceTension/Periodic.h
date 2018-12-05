@@ -22,7 +22,7 @@ class Periodic : public Density
    : Density(dx,L), g_(g), dft_(NULL) { vWall_.zeros(Ntot_); }
 
 
-  void setDFT(DFT_VDW<RSLT> *d){dft_ = d;}
+  void setDFT(DFT_VDW_Surfactant<RSLT> *d){dft_ = d;}
   
   /**
   *   @brief  This is always zero
@@ -69,7 +69,7 @@ class Periodic : public Density
 
     g_->deleteDataSet(0);
     if(dft_) g_->deleteDataSet(1);
-    if(dft_) g_->deleteDataSet(2);
+
 
     for(int i= 0; i < Nz(); i++)
       {
@@ -77,11 +77,9 @@ class Periodic : public Density
 	g_->addPoint(x,getDensity(Nx()/2,Ny()/2,i),0);
 	if(dft_)
 	  {
-	    double y = dft_->getSurfactant(Nx()/2,Ny()/2,i, *this);
+	    double y = dft_->getSurfactant(pos(Nx()/2,Ny()/2,i), *this);
 	    g_->addPoint(x,y,1);
 
-	    double y2 = dft_->getSurfactant2(Nx()/2,Ny()/2,i, *this);
-	    g_->addPoint(x,y2,2);
 	  }
       }
     
@@ -92,7 +90,7 @@ class Periodic : public Density
 
  private:
   Grace *g_;
-  DFT_VDW<RSLT> *dft_;
+  DFT_VDW_Surfactant<RSLT> *dft_;
 };
 
 
