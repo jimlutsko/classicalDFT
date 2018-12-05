@@ -151,7 +151,7 @@ int main(int argc, char** argv)
   /////////////////////////////////////
   // DFT object
 
-  DFT_VDW_Surfactant<RSLT> dft(theDensity,potential,pointsFile,kT);
+  DFT_VDW_Surfactant<RSLT> dft(theDensity,potential,pointsFile,kT, Asurf,rho_surf);
 
  
   double xliq_coex;
@@ -175,8 +175,6 @@ int main(int argc, char** argv)
   if(! infile.empty())
     theDensity.readDensity(infile.c_str());
 
-
-  
   cout << "Hard sphere diameter  = " << dft.HSD() << endl;
   cout << "Coexisting densities  = " << xliq_coex << " " << xgas_coex << endl;  
   cout << "Chemical potential(xliq)/kT = " << mu << endl;
@@ -188,7 +186,8 @@ int main(int argc, char** argv)
     {
   
   dft.setSurfactant(rho_surf,Asurf);
-
+  dft.setFixedN(true);
+  
   string s("log.dat");
 
   //  solve(dft, xliq_coex, xgas_coex, rho_surf, Asurf, g);

@@ -458,8 +458,7 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   *   @param  pointsFile gives the location of the file containing the spherical-integration points
   *   @return nothing 
   */  
-  DFT_VDW_Surfactant(Lattice &lattice, Potential1 &potential,  string& pointsFile, double kT)
-    : DFT_VDW<T>(lattice, potential, pointsFile, kT), Asurf_(0), rho_surf_(0), surfactant_density_(lattice.Nx(), lattice.Ny(), lattice.Nz()) {}
+  DFT_VDW_Surfactant(Lattice &lattice, Potential1 &potential,  string& pointsFile, double kT, double Asurf, double rhosurf);
   /**
   *   @brief  Default  destructor for DFT : deletes  fmt_ object. 
   *  
@@ -470,7 +469,8 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
 
   void setSurfactant(double rhos, double A) {rho_surf_ = rhos; Asurf_ = A;}
-
+  void setFixedN(bool flag) {bFixedN_ = flag;}
+  
   double getSurfactant(long i, Density &density) const {return surfactant_density_.cReal().get(i);}
   
   virtual double Mu(double x) const;
@@ -485,10 +485,11 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   
  protected:
   DFT_FFT surfactant_density_;   //< Arrays holding actual surfactant density and its FFT
+  DFT_FFT surfactant_potential_; //< Arrays holding surfactant assymetric potential
   double Asurf_;                     //< strength of assymetric (v^2 term) surfactant interaction
   double rho_surf_;              //< parameter rho_0
   double ax_;                    //< VDW parameter for symmetric part of surfactant interaction
-
+  bool bFixedN_;                 ///< Fixed particle number flag
 };
 
 
