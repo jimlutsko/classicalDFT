@@ -33,7 +33,7 @@ class FMT
   *   @param  pointsFile contains the points for spherical integration
   *   @return nothing 
   */  
-  FMT(Lattice &lattice);
+  FMT(Lattice &lattice, string &pointsFile);
   /**
   *   @brief  Default  destrctur for FMT 
   *  
@@ -47,7 +47,7 @@ class FMT
   *   @param  species 
   *   @return nothing 
   */  
-  void addSpecies(FMT_Species *species) {AllSpecies_.push_back(species);}
+  void addSpecies(FMT_Species *species) {AllSpecies_.push_back(species); AllSpecies_.back()->initialize(lattice_,pointsFile_);}
   
   /**
   *   @brief  EtaMax is the maximum value of eta for which the f1,f2_,f3_ functions are calculated "honestly". For larger values of eta, 
@@ -271,6 +271,8 @@ const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpe
  double dx_; ///< spacing of lattice in x direction
  double dy_; ///< spacing of lattice in y direction
  double dz_; ///< spacing of lattice in z direction
+
+ string& pointsFile_;
  
  vector<FMT_Species*> AllSpecies_;
  
@@ -288,8 +290,8 @@ const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpe
 class WhiteBearI : public FMT
 {
  public:
- WhiteBearI(Lattice &lattice) 
-   : FMT(lattice){};
+ WhiteBearI(Lattice &lattice, string &pointsFile) 
+   : FMT(lattice, pointsFile){};
 
 
   virtual double f2_(double eta) const
@@ -347,8 +349,8 @@ class WhiteBearI : public FMT
 class RSLT : public FMT
 {
  public:
- RSLT(Lattice &lattice) 
-   : FMT(lattice){};
+ RSLT(Lattice &lattice, string &pointsFile) 
+   : FMT(lattice, pointsFile){};
 
 
   virtual double f2_(double eta) const
@@ -452,8 +454,8 @@ class RSLT : public FMT
 class RSLT2: public RSLT
 {
  public:
- RSLT2(Lattice &lattice) 
-   : RSLT(lattice){};
+ RSLT2(Lattice &lattice, string &pointsFile) 
+   : RSLT(lattice, pointsFile){};
 
 
   virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
@@ -493,8 +495,8 @@ class RSLT2: public RSLT
 class WhiteBearII : public WhiteBearI
 {
  public:
- WhiteBearII(Lattice &lattice) 
-   : WhiteBearI(lattice){};
+ WhiteBearII(Lattice &lattice, string &pointsFile) 
+   : WhiteBearI(lattice, pointsFile){};
 
   virtual double f2_(double x) const
   {

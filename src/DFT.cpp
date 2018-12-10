@@ -55,8 +55,8 @@ double DFT::F_External(Density& density, double mu, DFT_Vec& dF)
 }
 
 
-template <class T> DFT_FMT<T>::DFT_FMT(Lattice &lattice, FMT_Species *species)
-  : fmt_(lattice) { fmt_.addSpecies(species);}
+template <class T> DFT_FMT<T>::DFT_FMT(Lattice &lattice, FMT_Species *species, string& pointsFile)
+  : fmt_(lattice, pointsFile) { fmt_.addSpecies(species);}
 
 template <class T>
 double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex)
@@ -146,10 +146,10 @@ DFT_VDW<T>::DFT_VDW(Lattice& lattice,   Potential1& potential,  string& pointsFi
   vdw_.set_VDW_Parameter(a_vdw);
   vdw_.set_HardSphere_Diameter(hsd);
 
-  species_ = new FMT_Species(hsd,lattice,pointsFile);
+  species_ = new FMT_Species(hsd,lattice);
 
   // Create hard-sphere object
-  dft_fmt_ = new DFT_FMT<T>(lattice, species_); 
+  dft_fmt_ = new DFT_FMT<T>(lattice, species_, pointsFile); 
 
   // initialize working space for calculations ...
   v_mean_field_.initialize(Nx,Ny,Nz);

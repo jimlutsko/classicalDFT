@@ -32,9 +32,7 @@ class FMT_Weighted_Density
   void transformWeights()
   {
     weight_.do_real_2_fourier();
-    cout << "transform: " << weight_.Four().get(0) << " ";
     weight_.Four().scaleBy(weight_.Real().size());
-    cout << "transform: " << weight_.Four().get(0) << endl;    
   }
 
   // Tricky point: here, we have to use the conjugates because the original expression has the form
@@ -43,12 +41,6 @@ class FMT_Weighted_Density
   {
     weighted_density_.Four().Schur(density,weight_.Four(),true);
     weighted_density_.do_fourier_2_real();
-
-    //    ofstream junk("junk");
-    //    for(long i=0;i<density.size();i++)
-    //      junk << density.get(i) << " " << weight_.Four().get(i) << " " << weighted_density_.Real().get(i) << endl; 
-
-    //    exit(0);
   }
 
   void add_to_dPhi(DFT_Vec_Complex& dPhi)
@@ -57,21 +49,20 @@ class FMT_Weighted_Density
     dPhi.incrementSchur(dPhi_.Four(), weight_.Four());
   }
     
-  void setWeight(long pos, double x) {weight_.Real().set(pos,x);} 
+  void   setWeight(long pos, double x) {weight_.Real().set(pos,x);} 
   double getWeight(long pos) const {return weight_.cReal().get(pos);}
-  void addToWeight(long pos, double x) {weight_.Real().addTo(pos,x);}
-  void Set_dPhi(long pos, double x) {dPhi_.Real().set(pos,x);} 
+  void   addToWeight(long pos, double x) {weight_.Real().addTo(pos,x);}
+  void   Set_dPhi(long pos, double x) {dPhi_.Real().set(pos,x);} 
  
   double r(long i) const { return weighted_density_.cReal().get(i); }
  
-  const DFT_Vec_Complex &wk() const {return weight_.cFour();}
-  const DFT_Vec &Real() const {return weighted_density_.cReal();}
+  const DFT_Vec_Complex &wk()   const {return weight_.cFour();}
+  const DFT_Vec         &Real() const {return weighted_density_.cReal();}
   const DFT_Vec_Complex &Four() const {return weighted_density_.cFour();}
  
   void setWk(long pos, double x, double y) {weight_.Four().set(pos, complex<double>(x,y));} 
 
- protected:
-    
+ protected:    
   DFT_FFT weighted_density_;
   DFT_FFT weight_;
   DFT_FFT dPhi_;
