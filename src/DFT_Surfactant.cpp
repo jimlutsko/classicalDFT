@@ -93,8 +93,11 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(Density& density
   for(int ix=0;ix<Nx;ix++)
     for(int iy=0;iy<Ny;iy++)
       for(int iz=0;iz<Nz;iz++)
-	  v2.Real().set(density.pos(ix,iy,iz), vReal0.get(i)*vReal0.get(i)+vReal1.get(i)*vReal1.get(i)+vReal2.get(i)*vReal2.get(i));
-  v2.do_real_2_fourier();      
+	{
+	  long i = density.pos(ix,iy,iz);
+	  v2.Real().set(i, vReal0.get(i)*vReal0.get(i)+vReal1.get(i)*vReal1.get(i)+vReal2.get(i)*vReal2.get(i));
+  v2.do_real_2_fourier();
+	}
       
   // Construct surfactant density      
   surfactant_density_.Four().Schur(surfactant_potential_.Four(),v2.Four());

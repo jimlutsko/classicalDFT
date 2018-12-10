@@ -205,6 +205,8 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu
     throw e;
   }
 
+  cout << "HS Free energy = " << F << endl;
+  
   // Mean field contribution to F and dF
   // Divide by Ntot because of normalization of fft
 
@@ -214,6 +216,8 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu
   
   F  += 0.5*density.getInteractionEnergy(v_mean_field_.Real());
   dF.IncrementBy(v_mean_field_.Real());
+
+  cout << "MF free energy = " << 0.5*density.getInteractionEnergy(v_mean_field_.Real()) << endl;
   
   return F;
 }
