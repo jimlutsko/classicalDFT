@@ -14,6 +14,8 @@ class FMT_Weighted_Density
  public:
   FMT_Weighted_Density(){ }
 
+  FMT_Weighted_Density(const FMT_Weighted_Density &) = delete;
+  
   ~FMT_Weighted_Density(){}
     
   void initialize(long Nx, long Ny, long Nz)
@@ -42,11 +44,11 @@ class FMT_Weighted_Density
     weighted_density_.Four().Schur(density,weight_.Four(),true);
     weighted_density_.do_fourier_2_real();
 
-    ofstream junk("junk");
-    for(long i=0;i<density.size();i++)
-      junk << density.get(i) << " " << weight_.Four().get(i) << " " << weighted_density_.Real().get(i) << endl; 
+    //    ofstream junk("junk");
+    //    for(long i=0;i<density.size();i++)
+    //      junk << density.get(i) << " " << weight_.Four().get(i) << " " << weighted_density_.Real().get(i) << endl; 
 
-    exit(0);
+    //    exit(0);
   }
 
   void add_to_dPhi(DFT_Vec_Complex& dPhi)

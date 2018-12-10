@@ -214,7 +214,7 @@ template <class T> class DFT_FMT : public DFT
   *   @param  hsd is hard sphere diameter
   *   @return nothing 
   */  
-  DFT_FMT(Lattice &lattice, FMT_Species &species);
+  DFT_FMT(Lattice &lattice, FMT_Species  *species);
   /**
   *   @brief  Default  destructor for DFT_FMT
   *  

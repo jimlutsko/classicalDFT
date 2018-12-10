@@ -47,7 +47,7 @@ class FMT
   *   @param  species 
   *   @return nothing 
   */  
-  void addSpecies(FMT_Species &species) {AllSpecies_.push_back(species);}
+  void addSpecies(FMT_Species *species) {AllSpecies_.push_back(species);}
   
   /**
   *   @brief  EtaMax is the maximum value of eta for which the f1,f2_,f3_ functions are calculated "honestly". For larger values of eta, 
@@ -88,7 +88,7 @@ class FMT
   *   @return eta(pos)
   */  
 
-  double getEta(long pos, int species) const { return AllSpecies_[species].getEta(pos);}
+  double getEta(long pos, int species) const { return AllSpecies_[species]->getEta(pos);}
 
   /**
   *   @brief  Accessor the array holding the weight corresponding to eta, in fourier space. 
@@ -96,7 +96,7 @@ class FMT
   *   @param  species is either 0 or 1.
   *   @return wek for the requested species. 
   */  
-  const DFT_Vec_Complex& getWEK(int species) const { return AllSpecies_[species].getWEK();}
+  const DFT_Vec_Complex& getWEK(int species) const { return AllSpecies_[species]->getWEK();}
 
 /**
   *   @brief  Accessor for weighted density v compontent J, real space
@@ -106,7 +106,7 @@ class FMT
   *   @return eta(pos)
   */  
 
-  const DFT_Vec &getV_Real(int J, int species = 0) const { return AllSpecies_[species].getV_Real(J);}
+  const DFT_Vec &getV_Real(int J, int species = 0) const { return AllSpecies_[species]->getV_Real(J);}
 
   /**
   *   @brief  Accessor for weighted kernal v compontent J, fourier space
@@ -115,7 +115,7 @@ class FMT
   *   @param  species is the particle species (either 0 or 1).
   *   @return eta(pos)
   */  
-const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpecies_[species].getVweight_Four(J);}
+const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpecies_[species]->getVweight_Four(J);}
 
  /**
   *   @brief  calculate f1 cofactor in FMT PHI function.  This is the same for all models (log(1-eta)) and so is instantiated here.
@@ -272,7 +272,7 @@ const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpe
  double dy_; ///< spacing of lattice in y direction
  double dz_; ///< spacing of lattice in z direction
  
- vector<FMT_Species> AllSpecies_;
+ vector<FMT_Species*> AllSpecies_;
  
  DFT_FFT dPhi_; ///< dPHI/drho(i)
 

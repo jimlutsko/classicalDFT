@@ -50,22 +50,22 @@ double FMT::dPHI(long i)
 
   // Collect the contributions to the various weighted densities at lattice position i
   // hsd1_ has to do with mixtures (this has not been fully implementd. hsd1_ > 0 is a flag for whether or not there is a second species).
-  for(FMT_Species &species : AllSpecies_)
+  for(FMT_Species* &species : AllSpecies_)
     {
-        double hsd = species.getHSD();
+        double hsd = species->getHSD();
   
-	eta += species.getEta(i); //Eta(dd).r(i);
+	eta += species->getEta(i); //Eta(dd).r(i);
 
-	s0 += species.getS(i)/(hsd*hsd) ;
-	s1 += species.getS(i)/hsd;
-	s2 += species.getS(i);
+	s0 += species->getS(i)/(hsd*hsd) ;
+	s1 += species->getS(i)/hsd;
+	s2 += species->getS(i);
 
 	for(int j=0;j<3;j++)
 	  {
-	    v1[j] += species.getV(j,i)/hsd;
-	    v2[j] += species.getV(j,i);
+	    v1[j] += species->getV(j,i)/hsd;
+	    v2[j] += species->getV(j,i);
 	    for(int k=0;k<3;k++)
-	      T0[j][k] += species.getT(j,k,i);
+	      T0[j][k] += species->getT(j,k,i);
 	  }
     }
 
@@ -117,9 +117,9 @@ double FMT::dPHI(long i)
 
   // Also add in the contributions to the derivative of phi (at lattice site i) wrt the various weighted densities
   // (part of the chain-rule evaluation of dPhi/drho(j) = dPhi/deta(i) * deta(i)/drho(j) + ...)
-  for(FMT_Species &species : AllSpecies_)
+  for(FMT_Species* &species : AllSpecies_)
     {
-      double hsd = species.getHSD();
+      double hsd = species->getHSD();
       
         double f1 = f1_(eta);
   
@@ -152,14 +152,14 @@ double FMT::dPHI(long i)
 	  for(int j=0;j<3;j++)
 	    dPhi_dT[j][k] = dPhi3_dT(j,k,s2,v2,T0, TT)*f3; // (1.0/(8*M_PI))*(v2[j]*v2[k]-3*TT(j,k)+2*s2*T0(j,k))*f3; 
 		
-	species.Set_dPhi_Eta(i,dPhi_dEta);
-	species.Set_dPhi_S(i,dPhi_dS2);
+	species->Set_dPhi_Eta(i,dPhi_dEta);
+	species->Set_dPhi_S(i,dPhi_dS2);
 
 	for(int j=0;j<3;j++)
 	  {
-	    species.Set_dPhi_V(j,i,dPhi_dV0[j]);
+	    species->Set_dPhi_V(j,i,dPhi_dV0[j]);
 	    for(int k=j;k<3;k++)	   
-	      species.Set_dPhi_T(j,k,i,(j ==k ? 1 : 2)*dPhi_dT[j][k]); // taking account that we only use half the entries
+	      species->Set_dPhi_T(j,k,i,(j ==k ? 1 : 2)*dPhi_dT[j][k]); // taking account that we only use half the entries
 	  }
     }
 
@@ -186,22 +186,10 @@ double FMT::calculateFreeEnergy(Density &density)
 
   */
 
-  cout << "Density max in real space: " << density.getDensity().max() << endl;
-  AllSpecies_.front().convolute(density);
+  AllSpecies_.front()->convolute(density);
 
   long   Ntot = density.Ntot();  
-  
-  double emax = 0.0;  
-  for(long i=0;i<Ntot;i++)
-    emax = max(emax, AllSpecies_.front().getEta(i));
-
-  cout << "Eta = " << emax << endl;
-  
-
-
-  
-
-  double F = doFreeEnergyLoop(Ntot);
+    double F = doFreeEnergyLoop(Ntot);
 
   return F;
 }
@@ -236,7 +224,6 @@ double FMT::doFreeEnergyLoop(long Ntot)
   if(hadCatch) 
     throw   Eta_Too_Large_Exception();
 
-  cout << "From FMT: F = " << F << " dPHI(0) = " << dPHI(0) << endl;
   return F;
 }
 
@@ -256,7 +243,7 @@ void FMT::calculateFreeEnergyDerivatives(double dV, DFT_Vec& dF)
 {
   dPhi_.Four().zeros();
 
-  AllSpecies_.front().AccumulatedPhi(dPhi_.Four());
+  AllSpecies_.front()->AccumulatedPhi(dPhi_.Four());
   
   //  for(FMT_Weighted_Density &d: dd)
   //    d.add_to_dPhi(dPhi_.Four());

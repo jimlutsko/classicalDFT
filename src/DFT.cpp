@@ -55,7 +55,7 @@ double DFT::F_External(Density& density, double mu, DFT_Vec& dF)
 }
 
 
-template <class T> DFT_FMT<T>::DFT_FMT(Lattice &lattice, FMT_Species &species)
+template <class T> DFT_FMT<T>::DFT_FMT(Lattice &lattice, FMT_Species *species)
   : fmt_(lattice) { fmt_.addSpecies(species);}
 
 template <class T>
@@ -69,14 +69,11 @@ double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  cout << "F fmt = " << F << endl;
   
   if(!onlyFex) // add in ideal gas and external field and chem potential
     {  
       F += F_IdealGas(density, dF);       // Ideal gas 
       F += F_External(density, mu, dF);   // External field
-      cout << "F ideal = " << F_IdealGas(density, dF)  << endl;
-      cout << "F ext = " << F_External(density, mu, dF) << endl;
     }
   return F;
 }
@@ -150,9 +147,9 @@ DFT_VDW<T>::DFT_VDW(Lattice& lattice,   Potential1& potential,  string& pointsFi
   vdw_.set_HardSphere_Diameter(hsd);
 
   species_ = new FMT_Species(hsd,lattice,pointsFile);
-  
+
   // Create hard-sphere object
-  dft_fmt_ = new DFT_FMT<T>(lattice, *species_); 
+  dft_fmt_ = new DFT_FMT<T>(lattice, species_); 
 
   // initialize working space for calculations ...
   v_mean_field_.initialize(Nx,Ny,Nz);
