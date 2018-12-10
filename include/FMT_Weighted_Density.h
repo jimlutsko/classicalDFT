@@ -21,9 +21,12 @@ class FMT_Weighted_Density
     weighted_density_.initialize(Nx,Ny,Nz);
     weight_.initialize(Nx,Ny,Nz);
     dPhi_.initialize(Nx,Ny,Nz);
+
+    cout << Nx << " " << Ny << " " << Nz << endl;
+
   }
 
-  void do_four_2_real() { weighted_density_.do_fourier_2_real();} 
+  //  void do_four_2_real() { weighted_density_.do_fourier_2_real();} 
 
   // This function does an fft of the weights from real to fourier space
   // NOTE: I throw in a factor of 1/Ntot because these are only ever used to 
@@ -40,7 +43,13 @@ class FMT_Weighted_Density
   void convolute(const DFT_Vec_Complex& density) 
   {
     weighted_density_.Four().Schur(density,weight_.Four(),true);
-    do_four_2_real();
+    weighted_density_.do_fourier_2_real();
+
+    ofstream junk("junk");
+    for(long i=0;i<density.size();i++)
+      junk << density.get(i) << " " << weight_.Four().get(i) << " " << weighted_density_.Real().get(i) << endl; 
+
+    exit(0);    
   }
 
   void add_to_dPhi(DFT_Vec_Complex& dPhi)

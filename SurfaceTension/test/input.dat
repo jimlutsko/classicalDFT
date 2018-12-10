@@ -1,9 +1,23 @@
-nCores = 20
+nCores = 1
 BulkDensity = 0.5925
 PointsPerHardSphere = 7
 
 #Temperature
-kT = 0.5
+kT = 0.7
+
+ASurfactant = -4.0
+ASurfactant = -10.0
+ASurfactant = 80
+
+
+RhoSurfactant = 0.0002
+RhoSurfactant = 0.0001570
+
+
+ForceTerminationCriterion = 1e-5
+
+#InputFile = snapshot1.dat
+
 
 # The mean field potential
 eps = 1
@@ -13,9 +27,10 @@ rcut = 3
 ShowGraphics =  false
 
 #Box dimensions
-Lx = 25
-Ly = 25
-Lz = 25
+Lx = 5
+Ly = 5
+Lz = 50
+
 
 # Fixed particle radius and position
 R = 1

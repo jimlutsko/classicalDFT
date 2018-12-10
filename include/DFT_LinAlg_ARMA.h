@@ -112,7 +112,7 @@ class DFT_Vec_Complex
 };
 
 /**
-  *  @brief UTILITY: This class encapsulates a basic FFT. It is basically an interface to fftw library while holding both a real and a complex vector.
+  *  @brief UTILITY: This class encapsulates a basic FFT. It is basically an interface to fftw library while holding both a real and a complex vector. VERY IMPORTANT: THE C2R transform does NOT preserve the input data ... 
   */  
 class DFT_FFT
 {
@@ -147,7 +147,7 @@ class DFT_FFT
   const DFT_Vec_Complex &cFour() const { return FourierSpace_;}
 
   void do_real_2_fourier() {fftw_execute(real_2_four_);}
-  void do_fourier_2_real() {fftw_execute(four_2_real_);}
+  void do_fourier_2_real() {fftw_execute(four_2_real_); FourierSpace_.zeros();}
 
  protected:
   DFT_Vec RealSpace_;

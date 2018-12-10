@@ -69,8 +69,6 @@ void FMT::initializeWeightedDensities(vector<FMT_Weighted_Density> &dd, double h
   for(FMT_Weighted_Density &d: dd)
     d.transformWeights();
 
-
-  
   /*
   for(int i=0;i<Nx;i++)
     for(int j=0;j<Ny;j++)
@@ -564,6 +562,8 @@ double FMT::calculateFreeEnergy(Density& density)
 
   // This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
   // ( so this computes the weighted densities n(r) = int w(r-r')rho(r')dr'). The results are all stored in parts of FMT_Weighted_Density
+
+  cout << "Density max in real space: " << density.getDensity().max() << endl;
   for(FMT_Weighted_Density &d: d0_)
     d.convolute(rho_k);
 
