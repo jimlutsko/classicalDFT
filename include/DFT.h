@@ -19,7 +19,7 @@
 #include "FMT.h"
 
 
-/*! \mainpage ftDFT: Finite Temperature Density Functional Theory in 3 dimensions
+/*! \mainpage classicalDFT: Finite Temperature Density Functional Theory in 3 dimensions
  *
  * \section intro_sec Introduction
  *
@@ -89,15 +89,6 @@ class DFT
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex) = 0;
 
   /**
-  *   @brief  Calls calculateFreeEnergyAndDerivatives and then divides dF by the volume element.
-  *  
-  *   @param  density is current density
-  *   @param  mu is the chemical potential
-  *   @return total free energy of system
-  */  
-  //  double getDF_DRHO(Density &density, double mu, DFT_Vec &dF);
-
-  /**
   *   @brief  Compute chemical potential/kT for a uniform system with the given density
   *  
   *   @param  x is the density
@@ -138,6 +129,7 @@ class DFT
   virtual double Xliq_From_Mu(double mu) const {throw std::runtime_error("Not implemented");}
 
 };
+
 
 /**
   *  @brief This represents an ideal gas. 
@@ -222,7 +214,7 @@ template <class T> class DFT_FMT : public DFT
   *   @param  hsd is hard sphere diameter
   *   @return nothing 
   */  
-  DFT_FMT(Lattice &lattice, string& pointsFile, double hsd);
+  DFT_FMT(Lattice &lattice, FMT_Species &species);
   /**
   *   @brief  Default  destructor for DFT_FMT
   *  
@@ -238,7 +230,6 @@ template <class T> class DFT_FMT : public DFT
   *   @return total free energy of system
   */  
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
-
 /**
   *   @brief  Compute chemical potential/kT for given density
   *  
@@ -262,6 +253,13 @@ template <class T> class DFT_FMT : public DFT
   *   @return Omega/(kT * V)
   */   
   virtual double Omega(double x) const {Enskog en(x); return x*(en.freeEnergyCS() - en.chemPotentialCS());}
+
+/**
+  *   @brief  Compute Helmhltz Free Energy/kT/V for given density
+  *  
+  *   @param  x is the density
+  *   @return F/(kT * V)
+  */   
   virtual double Fhelmholtz(double x) const {Enskog en(x); return x*en.freeEnergyCS();}
 
 /**
@@ -295,7 +293,7 @@ template <class T> class DFT_FMT : public DFT
   */     
  virtual void setEtaMax(double etaMax) {fmt_.setEtaMax(etaMax);}
 
-  /**
+ /**
   *   @brief  Accessor for real-space FMT vector density
   *  
   *   @param  J is cartesian component
@@ -311,7 +309,6 @@ template <class T> class DFT_FMT : public DFT
   */  
  const DFT_Vec_Complex &getVweight_Four(int J, int species = 0) const { return fmt_.getVweight_Four(J,species);}
 
- 
  protected:
   T         fmt_;   ///< Hard-sphere FMT object
   double    hsd_;       ///< Hard sphere diameter
@@ -320,7 +317,7 @@ template <class T> class DFT_FMT : public DFT
 
 
 /**
-  *  @brief DFT_VDW Class
+  *  @brief FMT plus van der Waals mean field tail.
   *
   *   @detailed A single-species mean-field DFT model. It holds a DFT_FMT object to do the hard-sphere stuff.
   *  
@@ -343,7 +340,7 @@ template <class T> class DFT_VDW : public DFT
   *  
   *   @return nothing 
   */  
-  ~DFT_VDW(){if(dft_fmt_) delete dft_fmt_;}
+  ~DFT_VDW(){if(dft_fmt_) delete dft_fmt_; if(species_) delete species_;}
 
 /**
   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
@@ -354,7 +351,7 @@ template <class T> class DFT_VDW : public DFT
   */  
   virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
 
-  /**
+/**
   *   @brief  Compute chemical potential/kT for given density
   *  
   *   @param  x is the density
@@ -434,8 +431,9 @@ template <class T> class DFT_VDW : public DFT
   
  protected:
   DFT_FFT w_att_;
-  DFT_FFT v_mean_field_; ///< convolution of density and w_att_
+  DFT_FFT v_mean_field_;
 
+  FMT_Species *species_;
   DFT_FMT<T> *dft_fmt_; ///< The hard-sphere dft 
   VDW1 vdw_;
 };
@@ -491,6 +489,5 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   double ax_;                    //< VDW parameter for symmetric part of surfactant interaction
   bool bFixedN_;                 ///< Fixed particle number flag
 };
-
 
 #endif // __LUTSKO_DFT__

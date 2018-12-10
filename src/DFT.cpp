@@ -18,14 +18,8 @@ using namespace std;
 
 #include "DFT.h"
 
-//#include "VDW.h"
-
-static double xmax = 1.4;
-static int    Nmax = 200; 
-
-template <class T> DFT_FMT<T>::DFT_FMT(Lattice &lattice, string& pointsFile, double hsd)
-  : hsd_(hsd), fmt_(lattice, hsd, pointsFile) {}
-
+//static double xmax = 1.4;
+//static int    Nmax = 200; 
 
 
 double DFT::F_IdealGas(Density& density, DFT_Vec& dF)
@@ -61,29 +55,28 @@ double DFT::F_External(Density& density, double mu, DFT_Vec& dF)
 }
 
 
+template <class T> DFT_FMT<T>::DFT_FMT(Lattice &lattice, FMT_Species &species)
+  : fmt_(lattice) { fmt_.addSpecies(species);}
+
 template <class T>
 double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex)
 {
-  double dV = density.dV();
-
   double F = 0;
   dF.zeros(density.Ntot());
 
-  // Hard sphere contributions to F and dF
-  F = 0;
-
   try{
-    F = fmt_.calculateFreeEnergyAndDerivatives_fourier_space1(density,dF);
+    F = fmt_.calculateFreeEnergyAndDerivatives(density,dF);
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
+  cout << "F fmt = " << F << endl;
+  
   if(!onlyFex) // add in ideal gas and external field and chem potential
-    {
-  // Ideal gas contribution to F and dF
-      F += F_IdealGas(density, dF);
-   
-  // External field
-      F += F_External(density, mu, dF);
+    {  
+      F += F_IdealGas(density, dF);       // Ideal gas 
+      F += F_External(density, mu, dF);   // External field
+      cout << "F ideal = " << F_IdealGas(density, dF)  << endl;
+      cout << "F ext = " << F_External(density, mu, dF) << endl;
     }
   return F;
 }
@@ -109,31 +102,12 @@ double DFT_FMT<T>::Xliq_From_Mu(double mu) const
     }
   return (xa+xb)/2;
 }
-/*
-double DFT::getDF_DRHO(Density &density, double mu, DFT_Vec& dF_dRho)
-{
-  double F = 0;
-
-  try {
-    F = calculateFreeEnergyAndDerivatives(density, mu,dF_dRho,true);
-  } catch( Eta_Too_Large_Exception &e) {
-     throw e;
-  }
-
-  double dV = density.dV();
-
-  dF_dRho.multBy(1.0/dV);
-
-  return F;
-}
-*/
-
 
 #include "Potential1.h"
 
 template <class T>
 DFT_VDW<T>::DFT_VDW(Lattice& lattice,   Potential1& potential,  string& pointsFile, double kT)
-  : DFT(),  vdw_(0,0)
+  : DFT(),  vdw_(0,0), species_(NULL)
 {
   // The lattice
   long Nx = lattice.Nx();
@@ -175,8 +149,10 @@ DFT_VDW<T>::DFT_VDW(Lattice& lattice,   Potential1& potential,  string& pointsFi
   vdw_.set_VDW_Parameter(a_vdw);
   vdw_.set_HardSphere_Diameter(hsd);
 
+  species_ = new FMT_Species(hsd,lattice,pointsFile);
+  
   // Create hard-sphere object
-  dft_fmt_ = new DFT_FMT<T>(lattice, pointsFile, hsd); 
+  dft_fmt_ = new DFT_FMT<T>(lattice, *species_); 
 
   // initialize working space for calculations ...
   v_mean_field_.initialize(Nx,Ny,Nz);
@@ -205,20 +181,16 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu
     throw e;
   }
 
-  cout << "HS Free energy = " << F << endl;
-  
   // Mean field contribution to F and dF
   // Divide by Ntot because of normalization of fft
 
   v_mean_field_.Four().Schur(density.getDK(),w_att_.Four());
   v_mean_field_.Four().multBy(dV*dV/Ntot);
   v_mean_field_.do_fourier_2_real(); 
-  
+
   F  += 0.5*density.getInteractionEnergy(v_mean_field_.Real());
   dF.IncrementBy(v_mean_field_.Real());
 
-  cout << "MF free energy = " << 0.5*density.getInteractionEnergy(v_mean_field_.Real()) << endl;
-  
   return F;
 }
 

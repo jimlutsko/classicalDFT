@@ -7,10 +7,6 @@
 #include <vector>
 #include <time.h>
 
-//#include <mgl2/mgl.h>
-
-//#include <nlopt.hpp>
-
 using namespace std;
 
 #include "Minimizer.h"
@@ -22,10 +18,6 @@ void Minimizer::run(string& logfile, long maxSteps)
   initialize();
   
   cout << "Initialized ... removing old images ... " << endl;
-
-  ofstream debug("debug.dat");
-  debug << "#" << endl;
-  debug.close();
 
   ofstream log(logfile.c_str(),ios::app);
   log << "#Initial free energy = " << F_ << endl;

@@ -8,9 +8,7 @@
 #include <cstring>
 #include <complex>
 
-#include "FMT_Weighted_Density.h"
-//#include "Species.h"
-
+#include "FMT_Species.h"
 #include "Density.h"
 #include "Point.h"
 
@@ -31,14 +29,11 @@ class FMT
   /**
   *   @brief  Default  constructor for FMT 
   *  
-  *   @param  dx,dy,dz are lattice spacings
-  *   @param  density is the Density object
-  *   @param  hsd is the hard sphere diameter
+  *   @param  lattice is the Lattice object 
   *   @param  pointsFile contains the points for spherical integration
-  *   @param  hsd1 is the hard-sphere diameter for the second species
   *   @return nothing 
   */  
-  FMT(Lattice &lattice, double hsd, string& pointsFile, double hsd1 = -1);
+  FMT(Lattice &lattice);
   /**
   *   @brief  Default  destrctur for FMT 
   *  
@@ -47,6 +42,14 @@ class FMT
   ~FMT(){}
 
   /**
+  *   @brief  Add a species object
+  *  
+  *   @param  species 
+  *   @return nothing 
+  */  
+  void addSpecies(FMT_Species &species) {AllSpecies_.push_back(species);}
+  
+  /**
   *   @brief  EtaMax is the maximum value of eta for which the f1,f2_,f3_ functions are calculated "honestly". For larger values of eta, 
   *           the original, divergent forms are replaced by non-divergent quadratic forms. This is intended to allow for calculations without backtracking. It is only implemented for some models. 
   *  
@@ -54,18 +57,7 @@ class FMT
   *   @return nothing 
   */    
   void setEtaMax(double etaMax) { etaMax_ = etaMax;}
-  /*
-  **
-  *   @brief  Performs trilinear interpolation: this is a conienience function that is not necessary internally. 
-  *  
-  *   @param  p is the point for which we interpolate
-  *   @param  p0 is one corner of the cube containing p (the one with the minimum values of x,y,z)
-  *   @param  p1 is one corner of the cube containing p (the one with the maximal values of x,y,z)
-  *   @param  coeffs recieves the weights given to each of the 8 lattice points surrounding p
-  *   @return nothing
-  *  
-  void interpolate(Point &p, Point &p0, Point &p1, double coeffs[8]);
-  */
+
   /**
   *   @brief  Calculates total free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
   *  
@@ -73,9 +65,10 @@ class FMT
   *   @param  mu is the chemical potential
   *   @return total free energy of system
   */  
-  double calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, DFT_Vec &dF0);
-  //  double calculateFreeEnergyAndDerivatives_fourier_space1(Density& density, vec &dF0, vec &dF1);
+  double calculateFreeEnergyAndDerivatives(Density& density, DFT_Vec &dF0);
 
+  double doFreeEnergyLoop(long Ntot);
+  
   /**
   *   @brief  Calculate phi(i) and some derivative information. 
   *
@@ -95,7 +88,7 @@ class FMT
   *   @return eta(pos)
   */  
 
-  double getEta(long pos, int species) const { return (species == 0 ? d0_[0].r(pos) : d1_[0].r(pos));}
+  double getEta(long pos, int species) const { return AllSpecies_[species].getEta(pos);}
 
   /**
   *   @brief  Accessor the array holding the weight corresponding to eta, in fourier space. 
@@ -103,9 +96,9 @@ class FMT
   *   @param  species is either 0 or 1.
   *   @return wek for the requested species. 
   */  
-  const DFT_Vec_Complex& getWEK(int species) const { return (species == 0 ? d0_[0].wk() : d1_[0].wk());}
+  const DFT_Vec_Complex& getWEK(int species) const { return AllSpecies_[species].getWEK();}
 
-  /**
+/**
   *   @brief  Accessor for weighted density v compontent J, real space
   *  
   *   @param  J is cartesian component
@@ -113,7 +106,7 @@ class FMT
   *   @return eta(pos)
   */  
 
-  const DFT_Vec &getV_Real(int J, int species = 0) const { return (species == 0 ? d0_[2+J].Real() : d1_[2+J].Real());}
+  const DFT_Vec &getV_Real(int J, int species = 0) const { return AllSpecies_[species].getV_Real(J);}
 
   /**
   *   @brief  Accessor for weighted kernal v compontent J, fourier space
@@ -122,8 +115,7 @@ class FMT
   *   @param  species is the particle species (either 0 or 1).
   *   @return eta(pos)
   */  
-  const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return (species == 0 ? d0_[2+J].wk() : d1_[2+J].wk());}
-
+const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpecies_[species].getVweight_Four(J);}
 
  /**
   *   @brief  calculate f1 cofactor in FMT PHI function.  This is the same for all models (log(1-eta)) and so is instantiated here.
@@ -246,118 +238,6 @@ class FMT
  virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const = 0;
 
  protected:
- /**
-  *   @brief  convenience accessor for weighted density Eta
-  *  
-  *   @param  d is the array of weighted densities
-  *   @return d[0]
-  */      
- FMT_Weighted_Density & Eta(vector<FMT_Weighted_Density>  &d) { return d[0];}
-
- /**
-  *   @brief  convenience accessor for weighted density S
-  *  
-  *   @param  d is the array of weighted densities
-  *   @return d[1]
-  */       
- FMT_Weighted_Density & S(vector<FMT_Weighted_Density>  &d)   { return d[1];}
-
- /**
-  *   @brief  convenience accessor for weighted density v(i)
-  *  
-  *   @param  i is the index of v
-  *   @param  d is the array of weighted densities
-  *   @return d[2+i]
-  */       
- FMT_Weighted_Density & V(int i, vector<FMT_Weighted_Density>  &d) { return d[2+i];}
-
- /**
-  *   @brief  convenience accessor for weighted density T(i,j). 
-  *
-  *    elements 0 and 1 are the scalar densities; 2,3,4 are v; 5,6,7 are T(0,k); 8,9 are T(1,k>=1) and d(10) is T(2,2). Note that T is symmetric.
-  *  
-  *   @param  i is the first  index of T
-  *   @param  j is the second index of T
-  *   @param  d is the array of weighted densities
-  *   @return (i == 0 ? d[5+j] : d[7+j])
-  */       
-  FMT_Weighted_Density & T(int i, int j, vector<FMT_Weighted_Density>  &d)
-   {
-     if(i > j) swap(i,j);
-     if(i == 0) return d[5+j];
-     else if (i == 1) return d[7+j];
-     return d[10];
-   }
- 
- /**
-  *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-  *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). Their evaluation involves real-space integrations for which the 
-  *           integration points are given in the file pointsFile. Most of the work occurs via a call to initializeWeightedDensities@
-  *
-  *   @param  densities: the array of weighted densities
-  *   @param  hsd is the hard-sphere diameter
-  *   @param  pointsFile is the file holding the integration points for integrating a spherical shell
-  *   @param  Nx is the number of lattice points in the x-direction
-  *   @param  Ny is the number of lattice points in the y-direction
-  *   @param  Nz is the number of lattice points in the z-direction
-  */        
- void generateWeights(vector<FMT_Weighted_Density> &densities, double hsd, string& pointsFile, long Nx, long Ny, long Nz);
-
-/**
-  *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-  *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). Their evaluation involves real-space integrations for which the 
-  *           integration points are given in the file pointsFile. 
-  *
-  *   @param  dd: the array of weighted densities
-  *   @param  hsd is the hard-sphere diameter
-  *   @param  Nx is the number of lattice points in the x-direction
-  *   @param  Ny is the number of lattice points in the y-direction
-  *   @param  Nz is the number of lattice points in the z-direction
-  *   @param  pointsFile is the file holding the integration points for integrating a spherical shell
-  */  
- void initializeWeightedDensities(vector<FMT_Weighted_Density> &dd, double hsd, long Nx, long Ny, long Nz, string& pointsFile);
-
-
-/**
-  *   @brief  This function determines the final weighted densities by summing
-  *    over the contributions from each species with the appropriate factors of the hard-sphere diameter.
-  *
-  *   @param  dd: the array of weighted densities
-  *   @param  hsd is the hard-sphere diameter
-  *   @param  eta is the accumulated weighted density eta
-  *   @param  s0  is the accumulated weighted density s/(hsd*hsd)
-  *   @param  s1  is the accumulated weighted density s/(hsd)
-  *   @param  s2  is the accumulated weighted density s
-  *   @param  v1  is the accumulated weighted density v/(hsd)
-  *   @param  v2  is the accumulated weighted density v
-  *   @param  T  is the accumulated weighted density T
-  */  
- void addWeightedDensityContributions(int i, vector<FMT_Weighted_Density> &dd, double hsd,double &eta,double &s0, double &s1, double &s2, double v1[], double v2[], double T0[3][3]);
-
-
-/**
-  *   @brief  This function calculates dPhi/dEta(i), etc where i labes the species.
-  *
-  *   @param  dd: the array of weighted densities
-  *   @param  hsd is the hard-sphere diameter
-  *   @param  eta is the accumulated weighted density eta for species i
-  *   @param  s0  is the weighted density s/(hsd*hsd) for species i
-  *   @param  s1  is the weighted density s/(hsd) for species i
-  *   @param  s2  is the weighted density s for species i
-  *   @param  v1  is the weighted density v/(hsd) for species i
-  *   @param  v2  is the weighted density v for species i
-  *   @param  T  is the weighted density T for species i
-  *   @param  v1_v2  is v1 dot v2 for species i
-  *   @param  v2_v2  is v2 dot v2 for species i
-  *   @param  vTV  is v dot T dot v for species i
-  *   @param  T2  is trace(T dot T) for species i
-  *   @param  T3  is trace(T dot T dot T) for species i
-  *   @param  f2  is result of function f2_
-  *   @param  f3  is result of function f3_
-  *   @param  vT  is v dot T for species i
-  *   @param  TT  is T dot T for species i
-  */  
- void add_dPhi_d_WeightedDensity(int i, vector<FMT_Weighted_Density> &dd, double hsd, double eta, double s0, double s1, double s2, double v1[], double v2[], double T0[3][3], double v1_v2, double v2_v2, double vTv, double T2, double T3, double f2, double f3, double vT[], double TT[3][3]);
 
 
 /**
@@ -377,11 +257,8 @@ class FMT
   *   @param  dV is the volume element
   *   @param  dF is the vector to be filled.
   */       
- void calculateFreeEnergyDerivatives(vector<FMT_Weighted_Density> &dd, double dV, DFT_Vec &dF);
+ void calculateFreeEnergyDerivatives(double dV, DFT_Vec &dF);
 
-
-
- 
  /**
   *   @brief  name of model implemented by this class
   *
@@ -395,16 +272,12 @@ class FMT
  double dy_; ///< spacing of lattice in y direction
  double dz_; ///< spacing of lattice in z direction
  
- double hsd0_; ///< hard sphere diameter for first species
- double hsd1_; ///< hard sphere diameter for second species
- 
- vector<FMT_Weighted_Density>  d0_; ///< all weighted densities in real & fourier space for first species
- vector<FMT_Weighted_Density>  d1_; ///< all weighted densities in real & fourier space for second species
+ vector<FMT_Species> AllSpecies_;
  
  DFT_FFT dPhi_; ///< dPHI/drho(i)
 
  double etaMax_; ///< cutoff used to control divergences
-
+ 
 };
 
 /**
@@ -415,8 +288,8 @@ class FMT
 class WhiteBearI : public FMT
 {
  public:
- WhiteBearI(Lattice &lattice, double hsd, string& pointsFile, double hsd1 = -1) 
-   : FMT(lattice, hsd, pointsFile, hsd1){};
+ WhiteBearI(Lattice &lattice) 
+   : FMT(lattice){};
 
 
   virtual double f2_(double eta) const
@@ -474,8 +347,8 @@ class WhiteBearI : public FMT
 class RSLT : public FMT
 {
  public:
- RSLT(Lattice &lattice, double hsd, string& pointsFile, double hsd1 = -1) 
-   : FMT(lattice, hsd, pointsFile, hsd1){};
+ RSLT(Lattice &lattice) 
+   : FMT(lattice){};
 
 
   virtual double f2_(double eta) const
@@ -579,8 +452,8 @@ class RSLT : public FMT
 class RSLT2: public RSLT
 {
  public:
- RSLT2(Lattice &lattice, double hsd, string& pointsFile, double hsd1 = -1) 
-   : RSLT(lattice, hsd, pointsFile, hsd1){};
+ RSLT2(Lattice &lattice) 
+   : RSLT(lattice){};
 
 
   virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
@@ -620,8 +493,8 @@ class RSLT2: public RSLT
 class WhiteBearII : public WhiteBearI
 {
  public:
- WhiteBearII(Lattice &lattice, double hsd, string& pointsFile, double hsd1 = -1) 
-   : WhiteBearI(lattice, hsd, pointsFile, hsd1){};
+ WhiteBearII(Lattice &lattice) 
+   : WhiteBearI(lattice){};
 
   virtual double f2_(double x) const
   {

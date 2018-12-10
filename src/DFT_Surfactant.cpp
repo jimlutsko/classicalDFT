@@ -88,17 +88,11 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(Density& density
   cout << "Asurf = " << Asurf_ << " rho_surf_ = " << rho_surf_ << endl;
   
   // Construct v2
-  double r20 = pow(2,1.0/3);
   DFT_FFT v2(Nx, Ny, Nz);      
-  for(int ix=0;ix<Nx;ix++)
-    for(int iy=0;iy<Ny;iy++)
-      for(int iz=0;iz<Nz;iz++)
-	{
-	  long i = density.pos(ix,iy,iz);
-	  v2.Real().set(i, vReal0.get(i)*vReal0.get(i)+vReal1.get(i)*vReal1.get(i)+vReal2.get(i)*vReal2.get(i));
+  for(long i=0;i<Ntot;i++)
+    v2.Real().set(i, vReal0.get(i)*vReal0.get(i)+vReal1.get(i)*vReal1.get(i)+vReal2.get(i)*vReal2.get(i));
   v2.do_real_2_fourier();
-	}
-      
+
   // Construct surfactant density      
   surfactant_density_.Four().Schur(surfactant_potential_.Four(),v2.Four());
   surfactant_density_.do_fourier_2_real();
@@ -144,7 +138,7 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(Density& density
 
   if(bFixedN_)
     cout << "Number of surfactant atoms in cell = " << surfactant_density_.Real().accu()*dV << endl;
-
+  cout << "density " << surfactant_density_.Real().get(0) << endl;
   return F;
 }
 
