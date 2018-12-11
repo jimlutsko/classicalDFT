@@ -15,7 +15,9 @@ static const double SMALL_VALUE = 1e-18;
 
 #include "DFT_LinAlg.h"
 #include "Lattice.h"
- 
+
+
+
 /**
   *  @brief Base class for the density: basically, a wrapper for the array holding the density at each lattice site
   */  
@@ -31,12 +33,10 @@ class Density : public Lattice
   *   @return nothing 
   */  
  Density(double dx, double L[])
-   : Lattice(dx, L), Density_(), vWall_(), hsd_(-1.0)
+   : Lattice(dx, L), Density_(), vWall_()
     {
-      Density_.initialize(Nx_,Ny_,Nz_);
-      
+      Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
       vWall_.zeros(Ntot_);
-
     }
 
   /**
@@ -48,13 +48,9 @@ class Density : public Lattice
   Density(const Density &dd)
     : Lattice(dd), Density_(), vWall_()
     {
-      Density_.initialize(Nx_,Ny_,Nz_);
-      
+      Density_.initialize(Nx_,Ny_,Nz_);      
       vWall_ = dd.vWall_;
-      hsd_ = dd.hsd_;
     }
-
-
   
   /**
   *   @brief  Destructor for Density
@@ -74,7 +70,7 @@ class Density : public Lattice
   void initialize_from_file(const char *filename);
 
     /**
-  *   @brief Called to creqte initial density from a smaller geometry.
+  *   @brief Called to create initial density from a smaller geometry.
   *  
   *   @param  filename
   *   @return  none
@@ -97,22 +93,6 @@ class Density : public Lattice
   *   @return  Number of particles
   */  
   virtual double getNumberAtoms() const { return Density_.cReal().accu()*dV();}
-
-  /**
-  *   @brief  Set the hsd - this must be done.
-  *  
-  *   @param  input hsd
-  *   @return  none
-  */  
-  void setHSD(double d) { hsd_ = d;}
-
-/**
-  *   @brief  Get HSD
-  *  
-  *   @param  none
-  *   @return  HSD
-  */  
-  double getHSD() const { if(hsd_ < 0) throw std::runtime_error("HSD not set in Density ... aborting");  return hsd_;}
 
   
   /**
@@ -184,7 +164,16 @@ class Density : public Lattice
   *   @param  val: density of the given point
   *   @return none
   */  
-  void set_Density_Elem(int i, int j, int k, double val)  { Density_.Real().set(pos(i,j,k),val);}
+  void set_Density_Elem(int i, int j, int k, double val)   { set_Density_Elem(pos(i,j,k),val);}
+    //  { Density_.Real().set(pos(i,j,k),val);}
+
+  /**
+  *   @brief  set density at a given lattice position
+  *  
+  *   @param  i: multi-index lattice positionlattice position in x direction
+  *   @param  val: density of the given point
+  *   @return none
+  */    
   void set_Density_Elem(unsigned i, double val)  { Density_.Real().set(i,val);}
 
   /**
@@ -355,7 +344,7 @@ class Density : public Lattice
   DFT_Vec vWall_;            ///< Array holding wall potential at each lattice point: i = pos(ix,iy,iz)
 
  private:
-  double hsd_;  ///< Hard-sphere diameter, if relevant. Strictly hidden until confident of code restructuring.
+
 };
 
 #endif // __LUTSKO__DENSITY_ARRAY__

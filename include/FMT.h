@@ -33,7 +33,7 @@ class FMT
   *   @param  pointsFile contains the points for spherical integration
   *   @return nothing 
   */  
-  FMT(Lattice &lattice, string &pointsFile);
+  FMT(Lattice &lattice);
   /**
   *   @brief  Default  destrctur for FMT 
   *  
@@ -44,10 +44,10 @@ class FMT
   /**
   *   @brief  Add a species object
   *  
-  *   @param  species 
+  *   @param  species - the FMT_Species to be added
   *   @return nothing 
   */  
-  void addSpecies(FMT_Species *species) {AllSpecies_.push_back(species); AllSpecies_.back()->initialize(lattice_,pointsFile_);}
+  void addSpecies(FMT_Species *species) {AllSpecies_.push_back(species);} 
   
   /**
   *   @brief  EtaMax is the maximum value of eta for which the f1,f2_,f3_ functions are calculated "honestly". For larger values of eta, 
@@ -250,15 +250,6 @@ const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpe
  double calculateFreeEnergy(Density& density);
 
 
-  /**
-  *   @brief  Calculate dF(i) = dV * dPHI/drho(i)
-  *
-  *   @param  dd is the array of weighted densities 
-  *   @param  dV is the volume element
-  *   @param  dF is the vector to be filled.
-  */       
- void calculateFreeEnergyDerivatives(double dV, DFT_Vec &dF);
-
  /**
   *   @brief  name of model implemented by this class
   *
@@ -268,12 +259,6 @@ const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpe
 
  protected:
 
- double dx_; ///< spacing of lattice in x direction
- double dy_; ///< spacing of lattice in y direction
- double dz_; ///< spacing of lattice in z direction
-
- string& pointsFile_;
- 
  vector<FMT_Species*> AllSpecies_;
  
  DFT_FFT dPhi_; ///< dPHI/drho(i)
@@ -290,8 +275,8 @@ const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpe
 class WhiteBearI : public FMT
 {
  public:
- WhiteBearI(Lattice &lattice, string &pointsFile) 
-   : FMT(lattice, pointsFile){};
+ WhiteBearI(Lattice &lattice) 
+   : FMT(lattice){};
 
 
   virtual double f2_(double eta) const
@@ -349,8 +334,8 @@ class WhiteBearI : public FMT
 class RSLT : public FMT
 {
  public:
- RSLT(Lattice &lattice, string &pointsFile) 
-   : FMT(lattice, pointsFile){};
+ RSLT(Lattice &lattice) 
+   : FMT(lattice){};
 
 
   virtual double f2_(double eta) const
@@ -454,8 +439,8 @@ class RSLT : public FMT
 class RSLT2: public RSLT
 {
  public:
- RSLT2(Lattice &lattice, string &pointsFile) 
-   : RSLT(lattice, pointsFile){};
+ RSLT2(Lattice &lattice) 
+   : RSLT(lattice){};
 
 
   virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
@@ -495,8 +480,8 @@ class RSLT2: public RSLT
 class WhiteBearII : public WhiteBearI
 {
  public:
- WhiteBearII(Lattice &lattice, string &pointsFile) 
-   : WhiteBearI(lattice, pointsFile){};
+ WhiteBearII(Lattice &lattice) 
+   : WhiteBearI(lattice){};
 
   virtual double f2_(double x) const
   {

@@ -30,7 +30,7 @@ double sigma2 = 1e-4;
 
 
 FMT::FMT(Lattice &lattice)
-  : dx_(lattice.getDX()), dy_(lattice.getDY()), dz_(lattice.getDZ()), etaMax_(1e30), dPhi_(lattice.Nx(),lattice.Ny(),lattice.Nz()){}
+  : etaMax_(1e30), dPhi_(lattice.Nx(),lattice.Ny(),lattice.Nz()){}
 
 double FMT::dPHI(long i)
 {
@@ -170,27 +170,14 @@ double FMT::dPHI(long i)
 // MIXTURES NOT IMPLEMENTED
 double FMT::calculateFreeEnergy(Density &density)
 {
-
-
-  /*
   // Compute the FFT of density 
   density.doFFT();
-
-  // reference to Fourier-space array of density
-  const DFT_Vec_Complex &rho_k = density.getDK();
-
-  // This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
-  // ( so this computes the weighted densities n(r) = int w(r-r')rho(r')dr'). The results are all stored in parts of FMT_Weighted_Density
-  for(FMT_Weighted_Density &d: d0_)
-    d.convolute(rho_k);
-
-  */
-
+  
   AllSpecies_.front()->convolute(density);
 
   long   Ntot = density.Ntot();  
-    double F = doFreeEnergyLoop(Ntot);
-
+  double F = doFreeEnergyLoop(Ntot);
+  
   return F;
 }
 
@@ -239,34 +226,26 @@ double FMT::doFreeEnergyLoop(long Ntot)
 // It therefore FFT's both of these and adds them to dPhi_.Four.
 // Once this is done of all alpha, dPhi_ FFT's back to real space and the result is put into dF (with a factor of dV thrown in).
 
-void FMT::calculateFreeEnergyDerivatives(double dV, DFT_Vec& dF)
-{
-  dPhi_.Four().zeros();
-
-  AllSpecies_.front()->AccumulatedPhi(dPhi_.Four());
-  
-  //  for(FMT_Weighted_Density &d: dd)
-  //    d.add_to_dPhi(dPhi_.Four());
-
-  dPhi_.do_fourier_2_real();
-
-  dF.set(dPhi_.cReal());
-  dF.multBy(dV);
-}
-
-
 double FMT::calculateFreeEnergyAndDerivatives(Density& density, DFT_Vec& dF0) 
 {
   double F = 0;
+  double dV   = density.dV();
 
+  // First, F
   try {
     F = calculateFreeEnergy(density);
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
 
-  double dV   = density.dV();
-  calculateFreeEnergyDerivatives(dV, dF0);
+  // Then, its derivative
+  dPhi_.Four().zeros();
+  AllSpecies_.front()->Accumulate_dPhi(dPhi_.Four());
+  dPhi_.do_fourier_2_real();
+  dF0.set(dPhi_.cReal());
+  dF0.multBy(dV);
+  
+  //  calculateFreeEnergyDerivatives(dV, dF0);
   return F*dV;
 };
 

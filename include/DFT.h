@@ -210,11 +210,10 @@ template <class T> class DFT_FMT : public DFT
   *   @brief  Default  constructor for DFT_FMT
   *
   *   @param  density is the Density object
-  *   @param  pointsFile gives the location of the file containing the spherical-integration points
   *   @param  hsd is hard sphere diameter
   *   @return nothing 
   */  
-  DFT_FMT(Lattice &lattice, FMT_Species  *species, string& pointsFile);
+  DFT_FMT(Lattice &lattice, FMT_Species  *species);
   /**
   *   @brief  Default  destructor for DFT_FMT
   *  
@@ -268,7 +267,7 @@ template <class T> class DFT_FMT : public DFT
   *   @param  none
   *   @return hard sphere diameter
   */   
-  double HSD() const { return hsd_;}
+  double HSD() const { throw std::runtime_error("TODO: DFT_FMT.HSD()");} //return fmt_.getHSD(species);}
 
 /**
   *   @brief  Accessor for weighted density eta: local packing fraction
@@ -311,7 +310,6 @@ template <class T> class DFT_FMT : public DFT
 
  protected:
   T         fmt_;   ///< Hard-sphere FMT object
-  double    hsd_;       ///< Hard sphere diameter
 };
 
 
@@ -411,7 +409,7 @@ template <class T> class DFT_VDW : public DFT
   *   @param  none
   *   @return hsd
   */   
-  double HSD() const { return dft_fmt_->HSD();}
+  double HSD() const { return species_->getHSD();}
 
   /**
   *   @brief  Accessor for coexisting vdw parameter
