@@ -79,10 +79,9 @@ double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu
   }
   if(!onlyFex) // add in ideal gas and external field and chem potential
     {
-  // Ideal gas contribution to F and dF
+      // Ideal gas contribution to F and dF
       F += F_IdealGas(density, dF);
-   
-  // External field
+      // External field
       F += F_External(density, mu, dF);
     }
   return F;

@@ -12,6 +12,7 @@ ASurfactant = 80
 
 RhoSurfactant = 0.0002
 RhoSurfactant = 0.0001570
+RhoSurfactant = 0.0001500
 
 
 ForceTerminationCriterion = 1e-5
