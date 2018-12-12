@@ -1,4 +1,4 @@
-nCores = 1
+nCores = 20
 BulkDensity = 0.5925
 PointsPerHardSphere = 7
 
