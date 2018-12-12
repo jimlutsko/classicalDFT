@@ -56,37 +56,48 @@ class DFT
   ~DFT(){}
 
 
-  double getEta(int i, int species) const { return 0;}
+  void addSpecies(Species* s) {allSpecies_.push_back(s);}
+  int getNumberOfSpecies() const {return allSpecies_.size();}
 
-/**
-  *   @brief  Calculates the ideal gas contribution to the free energy. Also calculates forces if dF.size >= Density.Ntot.
+  double getNumberAtoms(int i) const {return allSpecies_[i]->getDensity().getNumberAtoms();}
+
+  const Lattice& lattice() const {return allSpecies_.front()->getLattice();}
+
+  double get_convergence_monitor() const { double d = 0; for(auto& s: allSpecies_) d += s->get_convergence_monitor(); return d;}
+  
+  const Density& getDensity(int i) const {return allSpecies_[i]->getDensity();}
+
+  DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
+  
+  void doDisplay(int i, string &title, string &file){ allSpecies_[i]->doDisplay(title,file);}
+  void set_density_from_amplitude(int i,DFT_Vec &x) {allSpecies_[i]->set_density_from_amplitude(x);}
+  void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
+
+  /**
+  *   @brief  Calculates the ideal gas contribution to the free energy. Also calculates forces if flag is true.
   *  
-  *   @param  density is current density
-  *   @param  force vector
-  *   @return total free energy of system
+  *   @param  bCalcForce is a flag telling whether or not to calculate the forces
+  *   @return ideal gas contribution to the free energy
   */  
-  double  F_IdealGas(Density& density, DFT_Vec& dF);
+  double  F_IdealGas(bool bCalcForce = true);
 
 
 /**
   *   @brief  Calculates the external potential to the free energy. Also calculates forces if dF.size >= Density.Ntot.
   *  
-  *   @param  density is current density
-  *   @param  mu is the chemical potential
-  *   @param  force vector
-  *   @return total free energy of system
+  *   @param  bCalcForce is a flag telling whether or not to calculate the forces
+  *   @return total external force contribution to the free energy
   */  
-  double F_External(Density& density, double mu, DFT_Vec& dF);
+  double F_External(bool bCalcForce = true);
 
   
 /**
   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
   *  
-  *   @param  density is current density
-  *   @param  mu is the chemical potential
+  *   @param  onlyFex : if true, the ideal and external contributions are not added
   *   @return total free energy of system
   */  
-  virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex) = 0;
+  virtual double calculateFreeEnergyAndDerivatives(bool onlyFex) = 0;
 
   /**
   *   @brief  Compute chemical potential/kT for a uniform system with the given density
@@ -97,7 +108,7 @@ class DFT
   virtual double Mu(double x) const  = 0;
 
 /**
-  *   @brief  Compute grand potenial/kT/V for a uniform system with the given density
+  *   @Brief  Compute grand potenial/kT/V for a uniform system with the given density
   *  
   *   @param  x is the density
   *   @return Omega/(kT * V)
@@ -128,8 +139,11 @@ class DFT
    */     
   virtual double Xliq_From_Mu(double mu) const {throw std::runtime_error("Not implemented");}
 
-};
+ protected:
+  vector<Species*> allSpecies_;
 
+  
+};
 
 /**
   *  @brief This represents an ideal gas. 
@@ -154,8 +168,6 @@ class DFT_IdealGas : public DFT
   ~DFT_IdealGas(){}
 
 
-  double getEta(int i, int species) const { return 0;}
-
 /**
   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
   *  
@@ -163,7 +175,7 @@ class DFT_IdealGas : public DFT
   *   @param  mu is the chemical potential
   *   @return total free energy of system
   */  
-  virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
+  virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
 /**
   *   @brief  Compute chemical potential/kT for given density
   *  
@@ -190,8 +202,6 @@ class DFT_IdealGas : public DFT
 
   virtual string Name() const { return string("DFT_IdealGas");}
 
-
-  double getDF_DRHO(Density &density, double mu, DFT_Vec &dF);
 };
 
 
@@ -209,11 +219,14 @@ template <class T> class DFT_FMT : public DFT
   /**
   *   @brief  Default  constructor for DFT_FMT
   *
-  *   @param  density is the Density object
-  *   @param  hsd is hard sphere diameter
   *   @return nothing 
   */  
-  DFT_FMT(Lattice &lattice, FMT_Species  *species);
+  
+  // External field
+  DFT_FMT(int Nx, int Ny, int Nz)
+    : fmt_(Nx,Ny,Nz) {}
+
+
   /**
   *   @brief  Default  destructor for DFT_FMT
   *  
@@ -228,7 +241,7 @@ template <class T> class DFT_FMT : public DFT
   *   @param  mu is the chemical potential
   *   @return total free energy of system
   */  
-  virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
+  virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
 /**
   *   @brief  Compute chemical potential/kT for given density
   *  
@@ -262,51 +275,16 @@ template <class T> class DFT_FMT : public DFT
   virtual double Fhelmholtz(double x) const {Enskog en(x); return x*en.freeEnergyCS();}
 
 /**
-  *   @brief  Accessor for hard sphere diameter
+  *   @brief  The name of this DFT object
   *  
-  *   @param  none
-  *   @return hard sphere diameter
+  *   @return name as string
   */   
-  double HSD() const { throw std::runtime_error("TODO: DFT_FMT.HSD()");} //return fmt_.getHSD(species);}
-
-/**
-  *   @brief  Accessor for weighted density eta: local packing fraction
-  *  
-  *   @param  position in array
-  *   @return eta
-  */   
-  double getEta(int i, int species) const { return fmt_.getEta(i,species);}
-
-  /**
-  *   @brief  Accessor for wek on FMT object
-  *  
-  *   @param  pos is lattice position
-  *   @return eta(pos)
-  */  
- const DFT_Vec_Complex& getWEK(int species) const { return fmt_.getWEK(species);}
-
- virtual string Name() const { return string("DFT_FMT : ") + fmt_.Name();}
+  virtual string Name() const { return string("DFT_FMT : ") + fmt_.Name();}
 
  /**
   *   @brief  This conveys information to the FMT object for models that use it.
   */     
  virtual void setEtaMax(double etaMax) {fmt_.setEtaMax(etaMax);}
-
- /**
-  *   @brief  Accessor for real-space FMT vector density
-  *  
-  *   @param  J is cartesian component
-  *   @return v - real space
-  */  
- const DFT_Vec &getV_Real(int J, int species = 0) const { return fmt_.getV_Real(J,species);}
-
-   /**
-  *   @brief  Accessor for kernal for FMT vector density
-  *  
-  *   @param  J is cartesian component
-  *   @return wv - infourier space
-  */  
- const DFT_Vec_Complex &getVweight_Four(int J, int species = 0) const { return fmt_.getVweight_Four(J,species);}
 
  protected:
   T         fmt_;   ///< Hard-sphere FMT object
@@ -321,25 +299,26 @@ template <class T> class DFT_FMT : public DFT
   *  
   */  
 
-template <class T> class DFT_VDW : public DFT
+template <class T> class DFT_VDW : public DFT_FMT<T>
 {
  public:
   /**
   *   @brief  Default  constructor for DFT 
   *  
   *   @param  density is the Density object
-  *   @param  potential is the particle-particle potential
-  *   @param  pointsFile gives the location of the file containing the spherical-integration points
   *   @return nothing 
   */  
-  DFT_VDW(Lattice &lattice, Potential1 &potential,  string& pointsFile, double kT);
+  DFT_VDW(int Nx, int Ny, int Nw);
   /**
   *   @brief  Default  destructor for DFT : deletes  fmt_ object. 
   *  
   *   @return nothing 
   */  
-  ~DFT_VDW(){if(dft_fmt_) delete dft_fmt_; if(species_) delete species_;}
+  ~DFT_VDW(){} //if(dft_fmt_) delete dft_fmt_;}
 
+
+  void addSpecies(VDW_Species* species,  double kT);
+  
 /**
   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
   *  
@@ -347,7 +326,7 @@ template <class T> class DFT_VDW : public DFT
   *   @param  mu is the chemical potential
   *   @return total free energy of system
   */  
-  virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
+  virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
 
 /**
   *   @brief  Compute chemical potential/kT for given density
@@ -419,20 +398,19 @@ template <class T> class DFT_VDW : public DFT
   */   
   double get_VDW_Param() const { return vdw_.get_VDW_Parameter();}
   
-  virtual string Name() const { return string("DFT_VDW : ") + dft_fmt_->Name();}
+  virtual string Name() const { return string("DFT_VDW : ") + DFT_FMT<T>::Name();} //dft_fmt_->Name();}
   
   /**
    *   @brief  This conveys information to the FMT object for models that use it.
    */     
-  virtual void setEtaMax(double etaMax) {dft_fmt_->setEtaMax(etaMax);}
+  //  virtual void setEtaMax(double etaMax) {dft_fmt_->setEtaMax(etaMax);}
 
   
  protected:
-  DFT_FFT w_att_;
   DFT_FFT v_mean_field_;
 
-  FMT_Species *species_;
-  DFT_FMT<T> *dft_fmt_; ///< The hard-sphere dft 
+  VDW_Species *species_;
+  //  DFT_FMT<T> *dft_fmt_; ///< The hard-sphere dft 
   VDW1 vdw_;
 };
 
@@ -450,11 +428,9 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   *   @brief  Default  constructor for DFT 
   *  
   *   @param  density is the Density object
-  *   @param  potential is the particle-particle potential
-  *   @param  pointsFile gives the location of the file containing the spherical-integration points
   *   @return nothing 
   */  
-  DFT_VDW_Surfactant(Lattice &lattice, Potential1 &potential,  string& pointsFile, double kT, double Asurf, double rhosurf);
+  DFT_VDW_Surfactant(int Nx, int Ny, int Nz, double Asurf, double rhosurf);
   /**
   *   @brief  Default  destructor for DFT : deletes  fmt_ object. 
   *  
@@ -462,12 +438,14 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   */  
   ~DFT_VDW_Surfactant(){}
 
-  virtual double calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex = false);
+  void addSpecies(VDW_Species *species, double kT);
+
+  virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
 
   void setSurfactant(double rhos, double A) {rho_surf_ = rhos; Asurf_ = A;}
   void setFixedN(bool flag) {bFixedN_ = flag;}
   
-  double getSurfactant(long i, Density &density) const {return surfactant_density_.cReal().get(i);}
+  double getSurfactant(long i) const {return surfactant_density_.cReal().get(i);}
   
   virtual double Mu(double x) const;
   virtual double Omega(double x) const;
@@ -477,7 +455,7 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   double findLiquidFromMu(double mu, double mu_coex, double xliq_coex) const;
 
 
-  virtual string Name() const { return string("DFT_VDW_Surfactant : ") +  DFT_VDW<T>::dft_fmt_->Name();}
+  virtual string Name() const { return string("DFT_VDW_Surfactant : ") +  DFT_VDW<T>::Name();} //dft_fmt_->Name();}
   
  protected:
   DFT_FFT surfactant_density_;   //< Arrays holding actual surfactant density and its FFT

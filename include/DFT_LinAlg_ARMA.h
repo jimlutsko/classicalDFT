@@ -88,25 +88,26 @@ class DFT_Vec_Complex
  public:
  DFT_Vec_Complex(unsigned N) : data_(N){}
   DFT_Vec_Complex(const DFT_Vec_Complex& c) { data_ = c.data_;}
- DFT_Vec_Complex() {}
+  DFT_Vec_Complex() {}
 
- void   set(unsigned pos, complex<double> val) { data_[pos] = val;}
- complex<double> get(unsigned pos) const { return data_[pos];}
+  void   set(const DFT_Vec_Complex& c) { data_ = c.data_;}
+  void   set(unsigned pos, complex<double> val) { data_[pos] = val;}
+  complex<double> get(unsigned pos) const { return data_[pos];}
 
- void scaleBy(double val) { data_ /= val;}
- void multBy(double val)  { data_ *= val;}
+  void scaleBy(double val) { data_ /= val;}
+  void multBy(double val)  { data_ *= val;}
   
- void Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false) { if(bUseConj) data_ = v1.data_%conj(v2.data_); else data_ = v1.data_%v2.data_;}
- void incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2) { data_ += v1.data_%v2.data_;}
+  void Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false) { if(bUseConj) data_ = v1.data_%conj(v2.data_); else data_ = v1.data_%v2.data_;}
+  void incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2) { data_ += v1.data_%v2.data_;}
  
- void resize(long N) {data_.resize(N);}
- void zeros(long N)  {data_.zeros(N);}
- void zeros()        {data_.zeros();}
+  void resize(long N) {data_.resize(N);}
+  void zeros(long N)  {data_.zeros(N);}
+  void zeros()        {data_.zeros();}
  
- complex<double> *memptr() { return data_.memptr();}
+  complex<double> *memptr() { return data_.memptr();}
  
- unsigned size() const { return data_.size();}
-  
+  unsigned size() const { return data_.size();}
+ 
  protected:
   cx_vec data_;
 };

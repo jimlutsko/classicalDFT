@@ -20,19 +20,27 @@ using namespace std;
 
 
 template <class T>
-DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(Lattice &lattice, Potential1 &potential,  string& pointsFile, double kT, double Asurf, double rhosurf)
-  : DFT_VDW<T>(lattice, potential, pointsFile, kT), Asurf_(Asurf), rho_surf_(rhosurf),
-  surfactant_density_(lattice.Nx(), lattice.Ny(), lattice.Nz()),
-  surfactant_potential_(lattice.Nx(), lattice.Ny(), lattice.Nz()), bFixedN_(false)
+DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(int Nx, int Ny, int Nz, double Asurf, double rhosurf)
+  : DFT_VDW<T>(Nx,Ny,Nz), Asurf_(Asurf), rho_surf_(rhosurf), bFixedN_(false)
+{}
+
+template <class T>
+void DFT_VDW_Surfactant<T>::addSpecies(VDW_Species *species, double kT)
 {
+  DFT_VDW<T>::addSpecies(species, kT);
+  
+  
+  int Nx = species->getLattice().Nx();
+  int Ny = species->getLattice().Ny();
+  int Nz = species->getLattice().Nz();
 
-  int Nx = lattice.Nx();
-  int Ny = lattice.Ny();
-  int Nz = lattice.Nz();
+  double dx = species->getLattice().getDX();
+  double dy = species->getLattice().getDY();
+  double dz = species->getLattice().getDZ();
 
-  double dx = lattice.getDX();
-  double dy = lattice.getDY();
-  double dz = lattice.getDZ();
+  surfactant_density_.initialize(Nx,Ny,Nz);
+  surfactant_potential_.initialize(Nx,Ny,Nz);
+
   
   // Construct surfactant potential
 
@@ -44,7 +52,7 @@ DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(Lattice &lattice, Potential1 &potentia
     for(int iy=0;iy<Ny;iy++)
       for(int iz=0;iz<Nz;iz++)
 	{
-	  long i = lattice.pos(ix,iy,iz);
+	  long i = species->getLattice().pos(ix,iy,iz);
 
 	  //	      double vpot = (i == 0 ? Asurf_*1/dV  : 0);
 
@@ -63,11 +71,20 @@ DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(Lattice &lattice, Potential1 &potentia
 
 }
 
+// Will fail for more than one species
+
 
 template <class T>
-double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex)
+double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
-  double F = DFT_VDW<T>::calculateFreeEnergyAndDerivatives(density, mu, dF,onlyFex);
+  if(DFT_VDW_Surfactant<T>::allSpecies_.size() > 1) throw std::runtime_error("DFT_VDW_Surfactant not implemented for multiple species ...");
+
+  VDW_Species &species = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_.front());
+  
+  const Density& density = species.getDensity();
+
+
+  double F = DFT_VDW<T>::calculateFreeEnergyAndDerivatives(onlyFex);
 
   int Nx = density.Nx();
   int Ny = density.Ny();
@@ -81,9 +98,9 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(Density& density
 
   double dV = density.dV();
 
-  const DFT_Vec& vReal0 = DFT_VDW<T>::dft_fmt_->getV_Real(0);
-  const DFT_Vec& vReal1 = DFT_VDW<T>::dft_fmt_->getV_Real(1);
-  const DFT_Vec& vReal2 = DFT_VDW<T>::dft_fmt_->getV_Real(2);
+  const DFT_Vec& vReal0 = species.getV_Real(0);
+  const DFT_Vec& vReal1 = species.getV_Real(1);
+  const DFT_Vec& vReal2 = species.getV_Real(2);
 
   cout << "Asurf = " << Asurf_ << " rho_surf_ = " << rho_surf_ << endl;
   
@@ -127,14 +144,14 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(Density& density
       DFT_FFT v_J(Nx, Ny, Nz);
       v_J.Real().Schur(Density_Conv_Potential.Real(), (J == 0 ? vReal0 : (J == 1 ? vReal1 : vReal2)));
       v_J.do_real_2_fourier();
-      dFs.Four().incrementSchur(v_J.Four(),DFT_VDW<T>::dft_fmt_->getVweight_Four(J));
+      dFs.Four().incrementSchur(v_J.Four(),species.getVweight_Four(J));
     }
   dFs.do_fourier_2_real();
   dFs.Real().multBy(2*dV); // N.B.: No factor of Ntot because it is already in wk() ...
 
   //Done! Add to acculated contributions from previous calculations
   F += Fs*dV; 
-  dF.Increment_And_Scale(dFs.cReal(),1.0); 
+  species.addToForce(dFs.cReal()); 
 
   if(bFixedN_)
     cout << "Number of surfactant atoms in cell = " << surfactant_density_.Real().accu()*dV << endl;

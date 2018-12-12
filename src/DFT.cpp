@@ -18,62 +18,59 @@ using namespace std;
 
 #include "DFT.h"
 
-//static double xmax = 1.4;
-//static int    Nmax = 200; 
-
-
-double DFT::F_IdealGas(Density& density, DFT_Vec& dF)
+double DFT::F_IdealGas(bool bCalcForces)
 {
   double Fideal = 0.0;
-  double dV = density.dV();
   
-  bool calcForces = (dF.size() >= density.Ntot());
-  
-  for(long i=0;i<density.Ntot();i++)
+  for(auto &species : allSpecies_)
     {
-      double d0 = density.getDensity(i);
-      if(d0 > -SMALL_VALUE)
+      const Density& density = species->getDensity();
+      double dV = density.dV();
+      
+      for(long i=0;i<density.Ntot();i++)
 	{
-	  Fideal += (d0*log(d0)-d0)*dV;
-	  if(calcForces) dF.addTo(i,log(d0)*dV);
-	} else {
-	if(calcForces) dF.addTo(i,log(SMALL_VALUE)*dV);
-      }
+	  double d0 = density.getDensity(i);
+	  if(d0 > -SMALL_VALUE)
+	    {
+	      Fideal += (d0*log(d0)-d0)*dV;
+	      if(bCalcForces) species->addToForce(i,log(d0)*dV);
+	    } else {
+	    if(bCalcForces) species->addToForce(i,log(SMALL_VALUE)*dV);
+	  }
+	}
     }
   return Fideal;
 }
 
-double DFT::F_External(Density& density, double mu, DFT_Vec& dF)
+double DFT::F_External(bool bCalcForces)
 {
-  double dV = density.dV();
-  double Fx = density.getExternalFieldEnergy()*dV - density.getNumberAtoms()*mu;
+  double Fx = 0.0;
   
-  if(dF.size() >= density.Ntot())
-    dF.Increment_Shift_And_Scale(density.getExternalField(),dV,mu);
+  for(auto &species : allSpecies_)
+    Fx += species->externalField(bCalcForces);
 
   return Fx;
 }
 
 
-template <class T> DFT_FMT<T>::DFT_FMT(Lattice &lattice, FMT_Species *species)
-  : fmt_(lattice) { fmt_.addSpecies(species);}
-
 template <class T>
-double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex)
+double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
   double F = 0;
-  dF.zeros(density.Ntot());
+  
+  //dF.zeros(density.Ntot());
 
   try{
-    F = fmt_.calculateFreeEnergyAndDerivatives(density,dF);
+    F += fmt_.calculateFreeEnergyAndDerivatives(allSpecies_);
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
   if(!onlyFex) // add in ideal gas and external field and chem potential
     {
-      F += F_IdealGas(density, dF);       // Ideal gas 
-      F += F_External(density, mu, dF);   // External field + chem potential
+      F += F_IdealGas(true);       // Ideal gas 
+      F += F_External(true);   // External field + chem potential
     }
+
   return F;
 }
 
@@ -102,90 +99,43 @@ double DFT_FMT<T>::Xliq_From_Mu(double mu) const
 #include "Potential1.h"
 
 template <class T>
-DFT_VDW<T>::DFT_VDW(Lattice& lattice,   Potential1& potential,  string& pointsFile, double kT)
-  : DFT(),  vdw_(0,0), species_(NULL)
+DFT_VDW<T>::DFT_VDW(int Nx, int Ny, int Nz)
+  : DFT_FMT<T>(Nx,Ny,Nz), vdw_(0,0)
 {
-  // The lattice
-  long Nx = lattice.Nx();
-  long Ny = lattice.Ny();
-  long Nz = lattice.Nz();
-
-  double dx = lattice.getDX();
-  double dy = lattice.getDY();
-  double dz = lattice.getDZ();
-  
-  // Set up the mean field potential
-
-  w_att_.initialize(Nx,Ny,Nz);
-
-  for(int nx = 0;nx<Nx;nx++)
-    for(int ny = 0;ny<Ny;ny++)
-      for(int nz = 0;nz<Nz;nz++)
-	{
-	  long pos = nz+Nz*(ny+Ny*nx);
-	  
-	  double x = nx*dx;
-	  double y = ny*dy;
-	  double z = nz*dz;
-
-	  if(nx > Nx/2) x -= Nx*dx;
-	  if(ny > Ny/2) y -= Ny*dy;
-	  if(nz > Nz/2) z -= Nz*dz;
-
-	  double r2 = x*x+y*y+z*z;
-	  w_att_.Real().addTo(pos,potential.Watt(sqrt(r2))/kT); 
- 	}
-  
-  w_att_.do_real_2_fourier();
-
-  // Set the parameters in the VDW object  
-  double hsd   = potential.getHSD(kT);
-  double a_vdw = 0.5*w_att_.Real().accu()*dx*dy*dz;
-
-  vdw_.set_VDW_Parameter(a_vdw);
-  vdw_.set_HardSphere_Diameter(hsd);
-
-  species_ = new FMT_Species(hsd,pointsFile);
-
-  // Create hard-sphere object
-  dft_fmt_ = new DFT_FMT<T>(lattice, species_); 
-
+  //  dft_fmt_ = new DFT_FMT<T>(Nx,Ny,Nz);
   // initialize working space for calculations ...
   v_mean_field_.initialize(Nx,Ny,Nz);
-
 }
 
 template <class T>
-double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool onlyFex)
+void DFT_VDW<T>::addSpecies(VDW_Species* species,  double kT)  
 {
-  long Nx = density.Nx();
-  long Ny = density.Ny();
-  long Nz = density.Nz();
+  DFT::addSpecies(species);
+  
+  double hsd   = species->getHSD();
+  double a_vdw = species->get_VDW_Constant();
+  
+  vdw_.set_VDW_Parameter(a_vdw);
+  vdw_.set_HardSphere_Diameter(hsd);
+}
 
-  long Ntot = density.Ntot();
-  long Nout = density.Nout();
-
-  double dV = density.dV();
-
-  dF.zeros(Ntot);
+template <class T>
+double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
+{
+  //  dF.zeros(Ntot);
   double F = 0;
 
   // Hard sphere contributions to F and dF
   try {
-    F = dft_fmt_->calculateFreeEnergyAndDerivatives(density,mu,dF,onlyFex);
+    F = DFT_FMT<T>::calculateFreeEnergyAndDerivatives(onlyFex);
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
 
   // Mean field contribution to F and dF
   // Divide by Ntot because of normalization of fft
-
-  v_mean_field_.Four().Schur(density.getDK(),w_att_.Four());
-  v_mean_field_.Four().multBy(dV*dV/Ntot);
-  v_mean_field_.do_fourier_2_real(); 
-
-  F  += 0.5*density.getInteractionEnergy(v_mean_field_.Real());
-  dF.IncrementBy(v_mean_field_.Real());
+  for(auto &s: DFT::allSpecies_)
+    F += ((VDW_Species *) s)->getInteractionEnergyAndForces(v_mean_field_);
 
   return F;
 }

@@ -17,10 +17,11 @@ using namespace std;
 class Minimizer
 {
  public:
- Minimizer(DFT &dft, Density &density, double mu) : dft_(dft), density_(density), mu_(mu), forceLimit_(0.1), err_(0.0), bFrozenBoundary_(false)
+ Minimizer(DFT &dft) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false)
   {
-    x_.resize(density_.Ntot());
-    dF_.resize(x_.size());
+    x_.resize(dft.getNumberOfSpecies());
+
+    for(auto &x: x_) x.resize(dft_.lattice().Ntot()); 
   }
 
   void setFrozenBoundaryFlag(bool f) {bFrozenBoundary_ = f;}
@@ -39,40 +40,34 @@ class Minimizer
 
     string title = ts.str();
     string file("image_current.png");
-    density_.doDisplay(title, file);
+    dft_.doDisplay(0,title, file);
 
   }
   virtual int draw_during() = 0;  // Display something during the minimization
   virtual void draw_after()  = 0;  // Display something after the minimization
 
-  const Density & getDensity() const { return density_;}
   int getCalls() const { return calls_;}
   double getF() const { return F_;}
-  double getErr() const { return err_;}
 
   double getForceTerminationCriterion() const {return forceLimit_;}
   void   setForceTerminationCriterion(double v) {forceLimit_ = v;}
 
-  Density & getDensity(){return density_;}
   
   virtual double getDF_DX();
 
-  virtual double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}
+  virtual double get_convergence_monitor() const { return dft_.get_convergence_monitor();}
+
 
   
  protected:
   DFT &dft_;
-  Density &density_;
-  double mu_;
-  double err_;
 
   // A hook to allow for graphical displays
   void (*display_)(Minimizer &minimizer);
   
   // Working space for the minimization
 
-  DFT_Vec dF_;
-  DFT_Vec x_;
+  vector<DFT_Vec> x_;
 
   int calls_ = 0;
   int step_counter_ = 0;
@@ -95,7 +90,7 @@ class Minimizer
 class Minimizer_Fixed_N : public Minimizer
 {
  public:
- Minimizer_Fixed_N(DFT &dft, Density &density, double Nfixed) : Minimizer(dft, density, 0.0), N_fixed_target_(Nfixed)
+ Minimizer_Fixed_N(DFT &dft, double Nfixed) : Minimizer(dft), N_fixed_target_(Nfixed)
   {}
 
   virtual void initialize();
@@ -104,151 +99,9 @@ class Minimizer_Fixed_N : public Minimizer
 
  protected:
   double mu_eff_;
-  double err_;
 
   double N_fixed_target_;
 };
-
-
-/**
-  *  @brief OBSOLETE:  a hand-coded CG minimizer with backtracking.
-  */  
-
-class ConjugateGradients2 : public Minimizer
-{
- public:
- ConjugateGradients2(DFT &dft, Density &density, double mu) : Minimizer(dft, density, mu) , Mixing_(1.0){}
-  
-  virtual void initialize();
-  
-  virtual double step();
-  double tryStep(double alpha, double &dalf, DFT_Vec &y, double &df);
-
-  void check(bool write);
-
-  virtual double getDF_DX();
-
-  virtual int draw_during();  // Display something during the minimization
-  virtual void draw_after();  // Display something after the minimization
-
-  double get_sigma_conj_grad_secant() const { return sigma_conj_grad_secant_;}
-  void   set_sigma_conj_grad_secant(double v) { sigma_conj_grad_secant_ = v;}
-
-  double get_df_limit_conj_grad() const { return df_limit_conj_grad_;}
-  void   set_df_limit_conj_grad(double v) { df_limit_conj_grad_= v;}
-
-  int  get_n_reset_conj_grad() const { return n_reset_conj_grad_;}
-  void set_n_reset_conj_grad(double v) { n_reset_conj_grad_ = v;}
-
-  double get_mixing_parameter() const {return Mixing_;}
-  void   set_mixing_parameter(double v) {Mixing_ = v;}
-
- protected:
-
-  // Working space for the minimization
-
-  DFT_Vec r_;
-  DFT_Vec d_;
-
-  double delta_new_ = 0.0;
-  double delta_0_   = 0.0;
-
-  // constants that control the minimization
-
-  double sigma_conj_grad_secant_ = 1;
-
-  int jmax_conj_grad_secant_ = 40;
-  int n_reset_conj_grad_ = 100;
-  double df_limit_conj_grad_ = 1e-10;
-
-  double Mixing_;
-};
-
-
-/**
-  *  @brief OBSOLETE:  a hand-coded CG minimizer with backtracking that includes a dynamic, graphical output.
-  */  
-class ConjugateGradients2_variable : public ConjugateGradients2
-{
- public:
- ConjugateGradients2_variable(DFT &dft, Density &density, double mu, bool showGraphics = true) : ConjugateGradients2(dft, density, mu)
-  {}
-
-  //  virtual int draw_during();
-  //  virtual void draw_after();
-
-  virtual void finish(const char *c)
-  {
-  }
-
- protected:
-};
-
-/**
-  *  @brief OBSOLETE:  a hand-coded CG minimizer with backtracking that works at fixed particle number..
-  *
-  * @detailed Here we minimize  F[rho0 + x*x*a] over x with a chosen to fix the total mass.
-  * There are a couple of problems.
-  * Since the total mass is fixed, there are really only Ntot-1 independent variables. We should 
-  * really reduce the size of the variable array by one to account for this ... 
-  */
-
-class ConjugateGradients2_Fixed : public ConjugateGradients2
-{
- public:
- ConjugateGradients2_Fixed(DFT &dft, Density &density, double Ntarget, bool showGraphics = true) : ConjugateGradients2(dft, density, 0.0), N_fixed_target_(Ntarget)
-  {}
-
-  virtual int draw_during();
-  virtual void draw_after();
-
-  virtual double getDF_DX();
-
-  virtual void finish(const char *c)
-  {
-  }
-
- protected:
-  double N_fixed_target_;
-  double mu_eff_;
-};
-
-
-/**
-  *  @brief OBSOLETE: Picard minimizer Class
-  *
-  */  
-
-class Picard : public Minimizer
-{
- public:
- Picard(DFT &dft, Density &density, double mu) : Minimizer(dft, density, mu) , Mixing_(1.0){}
-  
-  virtual void initialize();
-  
-  virtual double step();
-
-  virtual int draw_during(){ return 1;}  // Display something during the minimization
-  virtual void draw_after()  // Display something after the minimization
-  {
-    cout << "After picard step " << step_counter_ 
-	 << " F-mu*N = " << F_ 
-	 << " max(dF) = " << f_abs_max_
-	 << " and N = " << density_.getNumberAtoms() 
-	 << endl;
-  }
-
-  virtual void finish(const char *){}
-
-  double get_mixing_parameter() const {return Mixing_;}
-  void   set_mixing_parameter(double v) {Mixing_ = v;}
-
- protected:
-
-  double Mixing_;
-};
-
-
 
 
 /**
@@ -259,12 +112,13 @@ class Picard : public Minimizer
 class DDFT : public Minimizer
 {
  public:
- DDFT(DFT &dft, Density &density, Grace *g = NULL, bool showGraphics = true)
-   : Minimizer(dft, density, 0.0), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
+ DDFT(DFT &dft, Grace *g = NULL, bool showGraphics = true)
+   : Minimizer(dft), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
   {
-    dt_ = 10*0.1*density_.getDX() * density_.getDX();
-    dt_ = 0.0001*density_.getDX() * density_.getDX();
-    dtMax_ = density_.getDX() * density_.getDX();
+    double dx = dft_.lattice().getDX();
+    dt_ = 10*0.1*dx*dx;
+    dt_ = 0.0001*dx*dx;
+    dtMax_ = 1*dx*dx;
   }
   ~DDFT() {}
 
@@ -277,7 +131,7 @@ class DDFT : public Minimizer
     cout << "After DDFT step " << step_counter_ 
 	 << " F = " << F_ 
 	 << " max(dF) = " << f_abs_max_
-	 << " and N = " << density_.getNumberAtoms() 
+	 << " and N = " << dft_.getDensity(0).getNumberAtoms() 
 	 << endl;
   }
   virtual void finish(const char *c){};
@@ -286,7 +140,7 @@ class DDFT : public Minimizer
     
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
   void set_max_time_step(double t) { dtMax_ = t;}
-  void setTimeStep(double dt) { dt_ = dt;}
+ void setTimeStep(double dt) { dt_ = dt;}
 
   void setFixedBoundary() {fixedBorder_ = true;}
   void setModified() {modified_ = true;}
@@ -305,7 +159,7 @@ class DDFT : public Minimizer
   
   Grace *grace_;
   double dt_;
-  DFT_Vec oldF_;
+  //  DFT_Vec oldF_;
   double tolerence_fixed_point_;
 
   // control of adaptive time step
@@ -318,39 +172,6 @@ class DDFT : public Minimizer
 
 
 /**
-  *  @brief OBSOLETE: DDFT integrator using Douglas-Rachford and Douglas-Gun alternate directions (ADI) algorithm.
-  *
-  */  
-
-class DDFT_Discrete : public DDFT
-{
- public:
- DDFT_Discrete(DFT &dft, Density &density, bool bFixedBoundaries = false, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft, density, g, showGraphics), bFixedBoundaries_(bFixedBoundaries)
-  {}
-  ~DDFT_Discrete() {}
-
-  virtual void initialize();
-  
-  void sub_step_x(DFT_Vec &new_density, const Density &original_density, bool bFixedBoundaries = false);
-  void sub_step_y(DFT_Vec &new_density, const Density &original_density, bool bFixedBoundaries = false);
-  bool sub_step_z(DFT_Vec &new_density, const Density &origina_density,  bool bSelfConsistent = false, bool bFixedBoundaries = false);
-
-  virtual double step();
-
-  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
-
-  void   solv_tridiag(const DFT_Vec &b, DFT_Vec &RHS, double D, bool bFixedBoundaries = false);
-  void   solv_periodic_tridiag(DFT_Vec &RHS, double D);
-  void   solv_periodic_tridiag_2(DFT_Vec &b, DFT_Vec &RHS, double D);
-
-  void test_solv_tridiag();
-  
- protected:
-  bool bFixedBoundaries_;
-};
-
-/**
   *  @brief DDFT minimizer Class using integrating factor
   *
   *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
@@ -360,8 +181,8 @@ class DDFT_Discrete : public DDFT
 class DDFT_IF : public DDFT
 {
  public:
- DDFT_IF(DFT &dft, Density &density, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft, density, g, showGraphics)
+ DDFT_IF(DFT &dft, Grace *g = NULL, bool showGraphics = true)
+   : DDFT(dft,  g, showGraphics)
     {}
   ~DDFT_IF() {}
 
@@ -375,7 +196,8 @@ class DDFT_IF : public DDFT
   void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
   void restore_values_on_border(DFT_Vec& d1, const DFT_Vec &d0);
 
-  virtual double get_convergence_monitor() const { return fabs(dF_.max() - dF_.min())/density_.dV();}
+  virtual double get_convergence_monitor() const { return dft_.get_convergence_monitor();}
+
  protected:
 
   double largest_change_on_border_; // for reporting effect of restore_values_on_border()
@@ -390,8 +212,8 @@ class DDFT_IF : public DDFT
 class DDFT_IF_Open : public DDFT
 {
  public:
- DDFT_IF_Open(DFT &dft, Density &density, double background, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft, density, g, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
+ DDFT_IF_Open(DFT &dft, double background, Grace *g = NULL, bool showGraphics = true)
+   : DDFT(dft, g, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
     {
     }
   ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
@@ -425,60 +247,7 @@ class DDFT_IF_Open : public DDFT
   vector<double> Lamz;
 };
 
-/**
-  *  @brief OBSOLETE:  version of DDFT for an open system based on ADI and simply restoring the values of the density at the boundaries after each step.
-  */  
-class DDFT_Open : public DDFT
-{
- public:
- DDFT_Open(DFT &dft, Density &density, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft, density, g, showGraphics)
-    {}
-  ~DDFT_Open() {}
 
-  virtual void initialize();
-  
-  virtual double step();
-
-  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
-
-  double fftDiffusion(const Density &density,DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
-  void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
-
- protected:
-};
-
-
-/*
-**
-  *  @brief Minimizer using nlOpt library
-  *
-  *
-
-
-class nlOptMinimizer : public Minimizer
-{
- public:
- nlOptMinimizer(DFT &dft, Density &density, double Ntarget) :  Minimizer(dft, density, 0.0), N_fixed_target_(Ntarget) 
-  {
-  }
-  
-  //  virtual void initialize();
-
-  void run(string& logfile, long maxSteps = -1);
-
-  virtual double step() { return 1;}
-  virtual void finish(const char *) {}
-
-  virtual int draw_during() {return 1;}  // Display something during the minimization
-  virtual void draw_after() {}  // Display something after the minimization
-
-  double objectiveFunction(unsigned n, const double *x, double *grad);
-  
- protected:
-  double N_fixed_target_;
-};
-*/
 
 /**
   *  @brief Minimizer using FIRE algorithm
@@ -488,9 +257,11 @@ class nlOptMinimizer : public Minimizer
 class fireMinimizer : public Minimizer_Fixed_N
 {
  public:
- fireMinimizer(DFT &dft, Density &density, double Ntarget) :  Minimizer_Fixed_N(dft, density, Ntarget)
+ fireMinimizer(DFT &dft,  double Ntarget) :  Minimizer_Fixed_N(dft,  Ntarget)
   { 
-    v_.resize(density_.Ntot());
+    v_.resize(dft_.getNumberOfSpecies());
+    for(auto &v: v_) v.resize(dft_.lattice().Ntot());
+    
     //dt_ = 1e-3; // my guess
     dt_ = 1e-3; // my guess
     dt_max_ = 10*dt_;
@@ -520,7 +291,7 @@ class fireMinimizer : public Minimizer_Fixed_N
   void setAlphaFac(double a) { f_alf_ = a;}
 
  protected:
-  DFT_Vec v_;
+  vector<DFT_Vec> v_;
 
 
   double alpha_start_;
@@ -545,9 +316,11 @@ class fireMinimizer : public Minimizer_Fixed_N
 class fireMinimizer_Mu : public Minimizer
 {
  public:
- fireMinimizer_Mu(DFT &dft, Density &density, double mu) :  Minimizer(dft, density, mu)
-  { 
-    v_.resize(density_.Ntot());
+ fireMinimizer_Mu(DFT &dft) :  Minimizer(dft)
+  {
+    v_.resize(dft_.getNumberOfSpecies());
+    for(auto &v: v_) v.resize(dft_.lattice().Ntot());
+
     //dt_ = 1e-3; // my guess
     dt_ = 1e-3; // my guess
     dt_max_ = 10*dt_;
@@ -577,7 +350,7 @@ class fireMinimizer_Mu : public Minimizer
   void setAlphaFac(double a) { f_alf_ = a;}
 
  protected:
-  DFT_Vec v_;
+  vector<DFT_Vec> v_;
 
 
   double alpha_start_;
@@ -596,28 +369,4 @@ class fireMinimizer_Mu : public Minimizer
 
 
 
-/**
-  *  @brief Minimizer using Ceres library
-  *
-  */  
-/*
-class ceresOpt : public FirstOrderFunction
-{
- public:
- ceresOpt(DFT &dft, Density &density) :  FirstOrderFunction(), dft_(dft), density_(density) {}
-  
-  virtual ~ceresOpt() {}
-  virtual bool Evaluate(const double* const parameters,
-                         double* cost,
-                         double* gradient) const;
-  virtual int NumParameters() const {return density_.Ntot();}
-
-  
- protected:
-  DFT &dft_;
-  Density &density_;
-};
-
-
-*/
 #endif // sentinal

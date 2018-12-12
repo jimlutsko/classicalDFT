@@ -84,7 +84,7 @@ class Density : public Lattice
   *   @param  file the file to write to (if doing this)
   *   @return  none
   */  
-  virtual void doDisplay(string &title, string &file){}
+  virtual void doDisplay(string &title, string &file) const = 0; //{}
 
   /**
   *   @brief  Total number of particles

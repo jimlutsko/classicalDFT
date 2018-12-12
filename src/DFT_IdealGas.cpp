@@ -19,46 +19,15 @@ using namespace std;
 #include "DFT.h"
 
 
-double DFT_IdealGas::calculateFreeEnergyAndDerivatives(Density& density, double mu, DFT_Vec& dF, bool includeIdealGas)
+double DFT_IdealGas::calculateFreeEnergyAndDerivatives(bool includeIdealGas)
 {
-  double dV = density.dV();
-
   double F = 0;
-  dF.zeros(density.Ntot());
+  for(auto &s: allSpecies_)
+    s->zeroForce();
 
-  // Hard sphere contributions to F and dF
-  F = 0;
+  if(includeIdealGas) F += DFT::F_IdealGas();
+  F += F_External();
 
-  // Ideal gas contribution to F and dF
-  if(includeIdealGas)
-    for(long i=0;i<density.Ntot();i++)
-      {
-	double d0 = density.getDensity(i);
-	if(d0 > -SMALL_VALUE)
-	  {
-	    F += (d0*log(d0)-d0)*dV;
-	    dF.addTo(i,log(d0)*dV);
-	  } else {
-	  dF.addTo(i,log(SMALL_VALUE)*dV);
-	}
-      }
-  // External field
-  F  += density.getExternalFieldEnergy()*dV - density.getNumberAtoms()*mu;
-  dF.Increment_Shift_And_Scale(density.getExternalField(),dV,mu);
   return F;
 }
 
-double DFT_IdealGas::getDF_DRHO(Density &density, double mu, DFT_Vec& dF_dRho)
-{
-  double F = 0;
-
-  try {
-    F = calculateFreeEnergyAndDerivatives(density, mu,dF_dRho,true);
-  } catch( Eta_Too_Large_Exception &e) {
-     throw e;
-  }
-
-  dF_dRho.multBy(1.0/density.dV());
-
-  return F;
-}

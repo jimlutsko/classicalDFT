@@ -23,26 +23,19 @@ using namespace std;
 #include "FMT_Species.h"
 
 
-
-
-void FMT_Species::Initialize(Lattice &lattice)
+FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile): Species(density), hsd_(hsd), d_(11)
 {
-  long Nx = lattice.Nx();
-  long Ny = lattice.Ny();
-  long Nz = lattice.Nz();
+  long Nx = density_.Nx();
+  long Ny = density_.Ny();
+  long Nz = density_.Nz();
 
-  //  d_.resize(11);
-  
   for(FMT_Weighted_Density &d: d_)
     d.initialize(Nx, Ny, Nz);
 
-  generateWeights(lattice);
+  generateWeights(pointsFile);
 
   for(FMT_Weighted_Density &d: d_)
     d.transformWeights();
-
-  bInitialized_ = true;
-
 }
 
 // The idea here is as follows. Consider the s weighted density which is just an integral over a sphere of radius hsd/2.
@@ -52,7 +45,7 @@ void FMT_Species::Initialize(Lattice &lattice)
 //    s(r_i) ~ sum_{k} w(|r_i - r'_{k}*(hsd/2)|) rho(r'_{k}*(hsd/2)) ww_{k}
 // where I am assuming that the points r'_{k} are given for a unit sphere.
 // Next, we evaluate rho using trilinear interpolation. This will involve a sum over the 8 corners of the cubic cell
-// containing the integration point (i.e. its nearest neighbors on the lattice)
+// containing the integration point (i.e. its nearest neighbors on the density_)
 // with corresponding weights (which I call u):
 //    s(r_i) ~ sum_{k} w(|r_i - r'_{k}*(hsd/2)|) ww_{k} sum_{l \in nearest neighbors of r'_{k}*(hsd/2)} rho(r_{l}) u_{l}(r'_{k}*(hsd/2))
 // or
@@ -62,15 +55,15 @@ void FMT_Species::Initialize(Lattice &lattice)
 // with the understanding that the weight u_{l} is zero if l is not a nearest neighbor of the point r'_{k}*(hsd/2).
 // Finally, A is translationally invariant so we really just need it for i=0. It is the arrays A_{0,j} (i.e. the "weights") which are computed here. 
 
-void FMT_Species::generateWeights(Lattice &lattice)
+void FMT_Species::generateWeights(string &pointsFile)
 {
-  long Nx = lattice.Nx();
-  long Ny = lattice.Ny();
-  long Nz = lattice.Nz();
+  long Nx = density_.Nx();
+  long Ny = density_.Ny();
+  long Nz = density_.Nz();
 
-  double dx = lattice.getDX();
-  double dy = lattice.getDY();
-  double dz = lattice.getDZ();
+  double dx = density_.getDX();
+  double dy = density_.getDY();
+  double dz = density_.getDZ();
 
   
   // Generate integration points for spherical surface
@@ -84,7 +77,7 @@ void FMT_Species::generateWeights(Lattice &lattice)
 #ifndef USE_MPI  
   // Read points from file : C++ way
   
-  ifstream in(pointsFile_.c_str());
+  ifstream in(pointsFile.c_str());
   if(!in.good())
     throw std::runtime_error("input file cannot be opened");
 #else
@@ -92,7 +85,7 @@ void FMT_Species::generateWeights(Lattice &lattice)
     MPI_Status    status;
     MPI_File      fh;
 
-    int error = MPI_File_open(MPI_COMM_WORLD, pointsFile_.c_str(),
+    int error = MPI_File_open(MPI_COMM_WORLD, pointsFile.c_str(),
                   MPI_MODE_RDONLY, MPI_INFO_NULL, &fh);
     if(error != MPI_SUCCESS) 
       throw std::runtime_error("Could not open points file");
@@ -316,4 +309,46 @@ void FMT_Species::generateWeights(Lattice &lattice)
     }  
   cout << "/////  Finished.  " << endl;
   cout << "///////////////////////////////////////////////////////////" << endl;
+}
+
+
+VDW_Species::VDW_Species(Density& density, double hsd, string &pointsFile, Potential1& potential, double kT)
+  : FMT_Species(density,hsd,pointsFile), potential_(potential), a_vdw_(0)
+{
+  // The lattice
+  long Nx = density.Nx();
+  long Ny = density.Ny();
+  long Nz = density.Nz();
+
+  double dx = density.getDX();
+  double dy = density.getDY();
+  double dz = density.getDZ();
+  
+  // Set up the mean field potential
+  w_att_.initialize(Nx,Ny,Nz);
+
+  for(int nx = 0;nx<Nx;nx++)
+    for(int ny = 0;ny<Ny;ny++)
+      for(int nz = 0;nz<Nz;nz++)
+	{
+	  long pos = nz+Nz*(ny+Ny*nx);
+	  
+	  double x = nx*dx;
+	  double y = ny*dy;
+	  double z = nz*dz;
+
+	  if(nx > Nx/2) x -= Nx*dx;
+	  if(ny > Ny/2) y -= Ny*dy;
+	  if(nz > Nz/2) z -= Nz*dz;
+
+	  double r2 = x*x+y*y+z*z;
+	  w_att_.Real().addTo(pos,potential.Watt(sqrt(r2))/kT); 
+ 	}
+
+  // Set the parameters in the VDW object  
+  // Do this BEFORE the FFT which may corrupt the real-space part
+  a_vdw_ = 0.5*w_att_.Real().accu()*dx*dy*dz;
+
+  // Now save the FFT of the field  
+  w_att_.do_real_2_fourier();
 }

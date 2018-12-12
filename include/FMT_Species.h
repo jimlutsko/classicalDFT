@@ -1,9 +1,52 @@
 #ifndef __LUTSKO__SPECIES__
 #define __LUTSKO__SPECIES__
 
+
 #include "FMT_Weighted_Density.h"
-#include "Lattice.h"
+#include "Potential1.h"
 #include "Density.h"
+
+class Species
+{
+ public:
+ Species(Density &density, double mu = 0) : density_(density), dF_(density.Ntot()), mu_(mu){}
+  ~Species(){}
+
+  double getChemPotential() const {return mu_;}
+  void setChemPotential(double m) {mu_ = m;}
+
+  const Lattice& getLattice() const { return density_;}
+  const Density& getDensity() const { return density_;}
+
+  void doDisplay(string &title, string &file) const { density_.doDisplay(title,file);}
+  void set_density_from_amplitude(DFT_Vec &x) {density_.set_density_from_amplitude(x);}
+
+  void zeroForce() {dF_.zeros();}
+  void addToForce(long i, double v) {dF_.addTo(i,v);}
+  void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}
+  void setForce(const DFT_Vec &f) {dF_.set(f);}
+  void multForce(double f) {dF_.multBy(f);}
+
+  double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}
+  
+  DFT_Vec &getDF() {return dF_;}
+  
+  double externalField(bool bCalcForces)
+  {
+    double dV = density_.dV();
+    double Fx = density_.getExternalFieldEnergy()*dV - density_.getNumberAtoms()*mu_;
+    if(bCalcForces)
+	dF_.Increment_Shift_And_Scale(density_.getExternalField(),dV,mu_);
+    return Fx;
+  }
+
+  
+ protected:
+  Density &density_;
+  DFT_Vec dF_;
+  double mu_;
+};
+
 /**
   *  @brief Species Class: hard sphere diameters, etc.
   *
@@ -13,7 +56,7 @@
   *             Note that each of these, e.g. eta(N), is an N-dimensional vector holding the value of the weighted density at each point.
   */
 
-class FMT_Species
+class FMT_Species : public Species
 {
  public:
   /**
@@ -24,9 +67,7 @@ class FMT_Species
   *   @param  pointsFile contains the points for spherical integration
   *   @return nothing 
   */    
- FMT_Species(double hsd, string &pointsFile): hsd_(hsd), d_(11), bInitialized_(false), pointsFile_(pointsFile){}
-
-  void Initialize(Lattice &lattice);
+  FMT_Species(Density& density, double hsd, string &pointsFile);
 
   FMT_Species(const FMT_Species &) = delete;
   
@@ -112,12 +153,11 @@ class FMT_Species
   */        
   void Set_dPhi_T(int j, int k, long i,double val) {d_[TI(j,k)].Set_dPhi(i,val);}
 
-  void convolute(Density &density)
+  void convoluteDensities()
   {
-    if(!bInitialized_) Initialize(density);
-    
     // reference to Fourier-space array of density
-    const DFT_Vec_Complex &rho_k = density.getDK();
+    density_.doFFT();
+    const DFT_Vec_Complex &rho_k = density_.getDK();
 
     // This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
     // ( so this computes the weighted densities n(r) = int w(r-r')rho(r')dr'). The results are all stored in parts of FMT_Weighted_Density
@@ -148,7 +188,7 @@ protected:
   *   @param  Ny is the number of lattice points in the y-direction
   *   @param  Nz is the number of lattice points in the z-direction
   */        
- void generateWeights(Lattice &lattice);
+  void generateWeights(string &pointsFile);
 
  int EI() const {return 0;}
  int SI() const {return 1;}
@@ -163,12 +203,36 @@ protected:
 
  protected:
   double hsd_ = 0.0; ///< hard sphere diameter 
- 
   vector<FMT_Weighted_Density>  d_; ///< all weighted densities in real & fourier space
-
-  bool bInitialized_ = false;
-  string pointsFile_;
 };
 
+
+class VDW_Species : public FMT_Species
+{
+ public:
+  VDW_Species(Density& density, double hsd, string &pointsFile, Potential1& potential, double kT);
+
+  double get_VDW_Constant() const {return a_vdw_;}
+
+  double getInteractionEnergyAndForces(DFT_FFT &v)
+  {
+    long Ntot = density_.Ntot();
+    double dV = density_.dV();
+
+    v.Four().Schur(density_.getDK(),w_att_.Four());
+    v.Four().multBy(dV*dV/Ntot);
+    v.do_fourier_2_real(); 
+
+    dF_.IncrementBy(v.Real());
+    
+    return 0.5*density_.getInteractionEnergy(v.Real());
+  }
+  
+ protected:
+  Potential1& potential_;
+  double a_vdw_;
+  DFT_FFT w_att_;
+  
+};
 
 #endif // __LUTSKO__SPECIES__

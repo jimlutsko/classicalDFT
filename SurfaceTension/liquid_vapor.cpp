@@ -134,25 +134,31 @@ int main(int argc, char** argv)
 #endif
 
 
+
+  Grace *g = (showGraphics ? new Grace() : NULL);
+
   //////////////////////////////////////
-  ////// Create potential
+  ////// Create potential && effective hsd
 
   LJ potential(sigma, eps, rcut);
+  double hsd = potential.getHSD(kT);
 
   /////////////////////////////////////
   // Create density object
-
-  Grace *g = NULL;
-
-  if(showGraphics) g = new Grace();
   
   Periodic theDensity(dx, L, g);
 
   /////////////////////////////////////
+  // Create species object
+
+  VDW_Species species(theDensity,hsd,pointsFile, potential, kT);
+
+  
+  /////////////////////////////////////
   // DFT object
 
-  DFT_VDW_Surfactant<RSLT> dft(theDensity,potential,pointsFile,kT, Asurf,rho_surf);
-
+  DFT_VDW_Surfactant<RSLT> dft(theDensity.Nx(), theDensity.Ny(), theDensity.Nz(), Asurf,rho_surf);
+  dft.addSpecies(&species,kT);
  
   double xliq_coex;
   double xgas_coex;
@@ -175,7 +181,7 @@ int main(int argc, char** argv)
   if(! infile.empty())
     theDensity.readDensity(infile.c_str());
 
-  cout << "Hard sphere diameter  = " << dft.HSD() << endl;
+  cout << "Hard sphere diameter  = " << species.getHSD() << endl;
   cout << "Coexisting densities  = " << xliq_coex << " " << xgas_coex << endl;  
   cout << "Chemical potential(xliq)/kT = " << mu << endl;
   cout << "Chemical potential(xgas)/kT = " << dft.Mu(xgas_coex) << endl;
@@ -190,10 +196,10 @@ int main(int argc, char** argv)
   
   string s("log.dat");
 
-  //  solve(dft, xliq_coex, xgas_coex, rho_surf, Asurf, g);
-  //  exit(0);
+  species.setChemPotential(mu);
+
   
-  fireMinimizer_Mu minimizer(dft, theDensity, mu);
+  fireMinimizer_Mu minimizer(dft);
   minimizer.setForceTerminationCriterion(forceLimit);
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);

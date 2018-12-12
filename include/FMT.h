@@ -30,10 +30,9 @@ class FMT
   *   @brief  Default  constructor for FMT 
   *  
   *   @param  lattice is the Lattice object 
-  *   @param  pointsFile contains the points for spherical integration
   *   @return nothing 
   */  
-  FMT(Lattice &lattice);
+  FMT(int Nx, int Ny, int Nz)  : etaMax_(1e30), dPhi_(Nx,Ny,Nz){}
   /**
   *   @brief  Default  destrctur for FMT 
   *  
@@ -41,14 +40,6 @@ class FMT
   */  
   ~FMT(){}
 
-  /**
-  *   @brief  Add a species object
-  *  
-  *   @param  species - the FMT_Species to be added
-  *   @return nothing 
-  */  
-  void addSpecies(FMT_Species *species) {AllSpecies_.push_back(species);} 
-  
   /**
   *   @brief  EtaMax is the maximum value of eta for which the f1,f2_,f3_ functions are calculated "honestly". For larger values of eta, 
   *           the original, divergent forms are replaced by non-divergent quadratic forms. This is intended to allow for calculations without backtracking. It is only implemented for some models. 
@@ -65,9 +56,9 @@ class FMT
   *   @param  mu is the chemical potential
   *   @return total free energy of system
   */  
-  double calculateFreeEnergyAndDerivatives(Density& density, DFT_Vec &dF0);
+  double calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies);
 
-  double doFreeEnergyLoop(long Ntot);
+  double doFreeEnergyLoop(vector<Species*> &allSpecies);
   
   /**
   *   @brief  Calculate phi(i) and some derivative information. 
@@ -78,44 +69,8 @@ class FMT
   *   @param  i is lattice position
   *   @return phi(i)
   */  
-  double dPHI(long i);
+  double dPHI(long i, vector<Species*> &allSpecies);
 
-  /**
-  *   @brief  Accessor for weighted density eta
-  *  
-  *   @param  pos is lattice position
-  *   @param  species is the particle species (either 0 or 1).
-  *   @return eta(pos)
-  */  
-
-  double getEta(long pos, int species) const { return AllSpecies_[species]->getEta(pos);}
-
-  /**
-  *   @brief  Accessor the array holding the weight corresponding to eta, in fourier space. 
-  *  
-  *   @param  species is either 0 or 1.
-  *   @return wek for the requested species. 
-  */  
-  const DFT_Vec_Complex& getWEK(int species) const { return AllSpecies_[species]->getWEK();}
-
-/**
-  *   @brief  Accessor for weighted density v compontent J, real space
-  *  
-  *   @param  J is cartesian component
-  *   @param  species is the particle species (either 0 or 1).
-  *   @return eta(pos)
-  */  
-
-  const DFT_Vec &getV_Real(int J, int species = 0) const { return AllSpecies_[species]->getV_Real(J);}
-
-  /**
-  *   @brief  Accessor for weighted kernal v compontent J, fourier space
-  *  
-  *   @param  J is cartesian component
-  *   @param  species is the particle species (either 0 or 1).
-  *   @return eta(pos)
-  */  
-const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpecies_[species]->getVweight_Four(J);}
 
  /**
   *   @brief  calculate f1 cofactor in FMT PHI function.  This is the same for all models (log(1-eta)) and so is instantiated here.
@@ -247,7 +202,7 @@ const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpe
   *   @param  density is the Density object
   *   @return The total free energy
   */  
- double calculateFreeEnergy(Density& density);
+ double calculateFreeEnergy(vector<Species*> &allSpecies);
 
 
  /**
@@ -258,8 +213,6 @@ const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpe
  virtual string Name() const = 0;
 
  protected:
-
- vector<FMT_Species*> AllSpecies_;
  
  DFT_FFT dPhi_; ///< dPHI/drho(i)
 
@@ -275,8 +228,8 @@ const DFT_Vec_Complex& getVweight_Four(int J, int species) const { return AllSpe
 class WhiteBearI : public FMT
 {
  public:
- WhiteBearI(Lattice &lattice) 
-   : FMT(lattice){};
+ WhiteBearI(int Nx, int Ny, int Nz)
+   : FMT(Nx,Ny,Nz){};
 
 
   virtual double f2_(double eta) const
@@ -334,8 +287,8 @@ class WhiteBearI : public FMT
 class RSLT : public FMT
 {
  public:
- RSLT(Lattice &lattice) 
-   : FMT(lattice){};
+ RSLT(int Nx, int Ny, int Nz)
+   : FMT(Nx,Ny,Nz){};
 
 
   virtual double f2_(double eta) const
@@ -439,8 +392,8 @@ class RSLT : public FMT
 class RSLT2: public RSLT
 {
  public:
- RSLT2(Lattice &lattice) 
-   : RSLT(lattice){};
+ RSLT2(int Nx, int Ny, int Nz)
+   : RSLT(Nx,Ny,Nz){};
 
 
   virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
@@ -480,8 +433,8 @@ class RSLT2: public RSLT
 class WhiteBearII : public WhiteBearI
 {
  public:
- WhiteBearII(Lattice &lattice) 
-   : WhiteBearI(lattice){};
+ WhiteBearII(int Nx, int Ny, int Nz)
+   : WhiteBearI(Nx, Ny, Nz){};
 
   virtual double f2_(double x) const
   {

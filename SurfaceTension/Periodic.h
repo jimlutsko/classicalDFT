@@ -63,7 +63,7 @@ class Periodic : public Density
 	a.a[i+Nx_*j] = min(getDensity(i,j,Nz_/2),1.0);
   }
 
-  virtual void doDisplay(string &title, string &file)
+  virtual void doDisplay(string &title, string &file) const
   {
     if(g_ == NULL) return;
 
@@ -77,7 +77,7 @@ class Periodic : public Density
 	g_->addPoint(x,getDensity(Nx()/2,Ny()/2,i),0);
 	if(dft_)
 	  {
-	    double y = dft_->getSurfactant(pos(Nx()/2,Ny()/2,i), *this);
+	    double y = dft_->getSurfactant(pos(Nx()/2,Ny()/2,i));
 	    g_->addPoint(x,y,1);
 
 	  }
