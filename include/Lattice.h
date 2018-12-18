@@ -34,8 +34,10 @@ class Lattice
 
 
       if(fabs(L[0]-Nx_*dx_) > 1e-5*dx_)
-	throw std::runtime_error("Box length incommensurate with lattice in x direction");
-
+	{
+	  cout << "L[0] = " << L[0] << " L_[0] = " << L_[0] << " Nx*dx = " << Nx_*dx_ << endl;
+	  throw std::runtime_error("Box length incommensurate with lattice in x direction");
+	}
       if(fabs(L[1]-Ny_*dy_) > 1e-5*dy_)
 	throw std::runtime_error("Box length incommensurate with lattice in y direction");
 

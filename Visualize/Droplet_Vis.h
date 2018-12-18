@@ -27,6 +27,8 @@ class Droplet_VIS : public Density
   {
   }
 
+  virtual void doDisplay(string &title, string &file) const {}
+  
   /**
   *   @brief  Generates an intial guess at the density
   *  

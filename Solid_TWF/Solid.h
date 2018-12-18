@@ -1,13 +1,14 @@
 #ifndef __LUTSKO_PERIOIDC__
 #define __LUTSKO_PERIOIDC__
 
-#include "DensityArray.h"
+#include "Density.h"
+#include "Display.h"
  
 /**
   *  @brief Class that specializes DensityArray to a purely perdiodic box
   */  
 
-class Solid : public DensityArray
+class Solid : public Density
 {
  public:
   /**
@@ -19,7 +20,7 @@ class Solid : public DensityArray
   *   @return nothing 
   */  
  Solid(double dx, double L[], double a, int ncopy) 
-   : DensityArray(dx,L), a_(a), ncells_(ncopy) { vWall_.zeros(Ntot_); }
+   : Density(dx,L), a_(a), ncells_(ncopy), display(NULL) { vWall_.zeros(Ntot_); }
 
   /**
   *   @brief  This is always zero
@@ -37,11 +38,9 @@ class Solid : public DensityArray
   */  
   virtual void initialize(double alpha, double prefac)
   {
+    display = new Display(Nx_,Ny_);
+
     double atoms[4][3];
-
-    //    double a = L_[0];
-
-    cout << "a = " << a_ << endl;
 
     atoms[0][0] = 0.0;
     atoms[0][1] = 0.0;
@@ -59,10 +58,9 @@ class Solid : public DensityArray
     atoms[3][1] = a_/2;
     atoms[3][2] = a_/2;
 
-    cout << "Nx = " << Nx_ << " Ny = " << Ny_ << " Nz = " << Nz_ << endl;
-    cout << "Lx = " << L_[0] << " Ly = " << L_[1] << " Lz = " << L_[2] << endl;
-    cout << "atoms[3]: " << atoms[3][0] << " " << atoms[3][1] << " " << atoms[3][2] << endl;
 
+    cout << endl;
+    cout << "Density Initialization ..." << endl;
     cout << "alpha = " << alpha << " prefac = " << prefac << endl;
 
     for(int i=0;i<Nx_;i++)
@@ -87,31 +85,35 @@ class Solid : public DensityArray
 		      double r2 = dx*dx+dy*dy+dz*dz;
 		      dsum += prefac*pow(alpha/M_PI,1.5)*exp(-alpha*r2);
 		    }
-
-	    //	    dsum = 4/(a_*a_*a_);
+	    dsum = max(dsum, SMALL_VALUE);
 	    set_Density_Elem(i,j,k,dsum);
 	  }
-    cout << "Nx = " << Nx_ << " Ny = " << Ny_ << " Nz = " << Nz_ << endl;
-    cout << "Lx = " << L_[0] << " Ly = " << L_[1] << " Lz = " << L_[2] << endl;
-    cout << "a = " << a_ << endl;
-    cout << "Density = " << 4/(a_*a_*a_) << endl;
-    //    exit(0);
+    cout << endl;
   }
 
+  virtual void doDisplay(string &title, string &file) const
+  {
+    for(int i=0;i<Nx_;i++)
+      for(int j=0;j<Ny_;j++)
+	  display->setData(i+Nx_*j, getDensity(i,j,Nz_/2));
 
+    display->doDisplay(title,file);
+  }
+
+  
   virtual void initialize_2D_data( mglData& a) const {a.Create(Nx_,Ny_);}
   virtual void fill_2D_data(mglData& a) const 
   {  
     for(int i=0;i<Nx_;i++)
       for(int j=0;j<Ny_;j++)
-	//	a.a[i+Nx_*j] = min(getDensity(i,j,0.0),1.0);
 	a.a[i+Nx_*j] = min(getDensity(i,j,Nz_/2),1.0);
   }
 
  private:
   double a_;
   int ncells_;
-
+  Display *display;
+  
 };
 
 
