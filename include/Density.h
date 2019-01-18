@@ -1,3 +1,10 @@
+/* This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. 
+ * To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/4.0/.
+ *
+ * Author: James F. Lutsko
+ * www.lutsko.com
+ */
+
 #ifndef __LUTSKO__DENSITY_ARRAY__
 #define __LUTSKO__DENSITY_ARRAY__
 

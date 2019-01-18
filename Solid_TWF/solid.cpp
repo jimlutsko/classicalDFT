@@ -142,7 +142,7 @@ int main(int argc, char** argv)
   // Create density object
   
   Solid theDensity(dx, L, alatt, ncopy);
-  theDensity.initialize(InitializationInverseWidth, InitializationScaleFac);
+  theDensity.initialize(InitializationInverseWidth, InitializationScaleFac, Natoms);
 
   string sd("dump.dat");
   theDensity.writeDensity(sd);

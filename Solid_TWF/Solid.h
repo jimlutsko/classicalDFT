@@ -36,7 +36,7 @@ class Solid : public Density
   *   @param  f(z) gives the density as a function of position z
   *   @return  
   */  
-  virtual void initialize(double alpha, double prefac)
+  virtual void initialize(double alpha, double prefac, double Ntarget)
   {
     display = new Display(Nx_,Ny_);
 
@@ -63,6 +63,9 @@ class Solid : public Density
     cout << "Density Initialization ..." << endl;
     cout << "alpha = " << alpha << " prefac = " << prefac << endl;
 
+    long Nweak = 0; // number of cells with low density
+    double densityLimit = 0.01;
+    
     for(int i=0;i<Nx_;i++)
       for(int j=0;j<Ny_;j++)
 	for(int k=0;k<Nz_; k++)
@@ -87,9 +90,28 @@ class Solid : public Density
 		    }
 	    dsum = max(dsum, SMALL_VALUE);
 	    set_Density_Elem(i,j,k,dsum);
+	    if(dsum < densityLimit) Nweak++;
 	  }
+
+
+      // Adjust to have correct mass
+  double Ncurrent = getNumberAtoms();
+
+  double density_to_add = (Ntarget-Ncurrent)/(Nweak*dV());
+
+  cout << "Ntarget = " << Ntarget << " Ncurrent = " << Ncurrent << " density adjustment = " << density_to_add << endl;
+
+
+  for(int i=0;i<Nx_;i++)
+    for(int j=0;j<Ny_;j++)
+      for(int k=0;k<Nz_; k++)
+	if(getDensity(i,j,k) < densityLimit) set_Density_Elem(i,j,k,getDensity(i,j,k)+1e-2); //density_to_add);
+
+
+    
     cout << endl;
   }
+
 
   virtual void doDisplay(string &title, string &file) const
   {

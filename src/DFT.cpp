@@ -67,8 +67,9 @@ double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
   }
   if(!onlyFex) // add in ideal gas and external field and chem potential
     {
-      F += F_IdealGas(true);       // Ideal gas 
-      F += F_External(true);   // External field + chem potential
+      double fideal  = F_IdealGas(true);       // Ideal gas
+      double fext = F_External(true);   // External field + chem potential
+      F += fideal + fext;
     }
 
   return F;
@@ -135,8 +136,10 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
   // Mean field contribution to F and dF
   // Divide by Ntot because of normalization of fft
   for(auto &s: DFT::allSpecies_)
-    F += ((VDW_Species *) s)->getInteractionEnergyAndForces(v_mean_field_);
-
+    {
+      double ff = ((VDW_Species *) s)->getInteractionEnergyAndForces(v_mean_field_);
+      F += ff;
+    }
   return F;
 }
 
