@@ -116,7 +116,6 @@ int main(int argc, char** argv)
   cout << "L[0]          = " << L[0] << endl;
   cout << "alatt         = " << alatt << endl;
   cout << "Density       = " << Density << endl;
-
   cout << "Check: Natoms/a^3 = " << Natoms/(NumberOfCells*alatt*alatt*alatt) << endl;
 
 
@@ -125,6 +124,7 @@ int main(int argc, char** argv)
   log << "#alatt   = " << alatt << endl;
   log << "#L[0]    = " << L[0] << endl;
   log << "#dx      = " << dx << endl;
+
 
   if(L[0] < 2*rcut)
     {
@@ -138,6 +138,10 @@ int main(int argc, char** argv)
   tWF potential(sigma, eps, rcut);
   double hsd = potential.getHSD(kT);
 
+  cout << "Eta           = " << Density*hsd*hsd*hsd*M_PI/6;
+  log << "#Eta           = " << Density*hsd*hsd*hsd*M_PI/6;  
+
+  
   /////////////////////////////////////
   // Create density object
   
