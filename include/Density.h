@@ -91,7 +91,7 @@ class Density : public Lattice
   *   @param  file the file to write to (if doing this)
   *   @return  none
   */  
-  virtual void doDisplay(string &title, string &file) const = 0; //{}
+  virtual void doDisplay(string &title, string &file, int seq = 0) const = 0; //{}
 
   /**
   *   @brief  Total number of particles
@@ -344,6 +344,16 @@ class Density : public Lattice
   */  
   virtual double getFieldDeriv(int ix, int iy, int iz, int direction) const { return 0.0;}
 
+  /**
+  *   @brief  Detects clusters: e.g. particles
+  *  
+  *   @param  threshold is min density - all points with density below this are treated as noise
+  *   @param  vector of clusters: each cluster is a vector of indices corresponding to density poitns
+  *   @return none
+  */  
+  void detectClusters(double threshold, vector< vector<long> > &clusters);
+
+  
  protected:
 
   DFT_FFT Density_;  // The arrays for the real and fourier components of the density

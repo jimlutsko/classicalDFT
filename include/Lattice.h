@@ -119,6 +119,16 @@ class Lattice
    */  
   inline long pos(long i, long j, long k) const { return k + Nz_*(j +  Ny_*i);}
 
+    /**
+   *  @brief  Translated single index into cartesian indices
+   *  
+   *   @param pos - the input index
+   *   @param i - output x index
+   *   @param j - output y index
+   *   @param k - output z index
+   */  
+  inline long cartesian(long pos, long &i, long &j, long &k) const { k = pos%(Nz_); pos = (pos-k)/Nz_; j = pos%Ny_; i = pos/Ny_;}
+
   /**
    *  @brief  Accessor for (total) number of lattice points in x direction
    *  

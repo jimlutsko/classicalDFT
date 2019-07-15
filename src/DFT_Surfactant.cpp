@@ -162,21 +162,21 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
 
 
 template <class T>
-double DFT_VDW_Surfactant<T>::Mu(double x) const
+double DFT_VDW_Surfactant<T>::Mu(const vector<double> &x, int species) const
 {
-  return DFT_VDW<T>::Mu(x);
+  throw std::runtime_error("DFT_VDW_Surfactant::Mu not implemented"); //  return DFT_VDW<T>::Mu(x,species_,species);
 }
 
-template <class T>
-double DFT_VDW_Surfactant<T>::Omega(double x) const
-{
-  return DFT_VDW<T>::Omega(x);
-}
+//template <class T>
+//double DFT_VDW_Surfactant<T>::Omega(const vector<double> &x) const
+//{
+//  return DFT_VDW<T>::Omega(x);
+//}
 
 template <class T>
-double DFT_VDW_Surfactant<T>::Fhelmholtz(double x) const
+double DFT_VDW_Surfactant<T>::Fhelmholtz(const vector<double> &x) const
 {
-  return DFT_VDW<T>::Fhelmholtz(x);
+  throw std::runtime_error("DFT_VDW_Surfactant::Fhelmholtz not implemented"); //  return DFT_VDW<T>::Fhelmholtz(x,species_);
 }
 
 template <class T>

@@ -69,3 +69,47 @@ void Density::initialize_from_smaller_density(const Density &density)
 	      set_Density_Elem(ix,iy,iz,d);
 	    }
 }
+
+void Density::detectClusters(double threshold, vector< vector<long> > &clusters)
+{
+  /*
+  // Copy the density
+  DFT_Vec p(Density_.Real());
+
+  double m = threshold;
+  double i = -1;
+
+  for(int j=0;j<p.size();j++)
+    {
+      if(p.get(j) > m) {m = p.get(j); i = j;}
+
+      if(i < 0) break; // no more clusters
+
+      vector<long> new_cluster;
+
+      new_cluster.push_back(m);
+      p.set(m,0.0);
+      
+      // check each neighbor of each staged point
+      for(long j=0;j<stage.size();j++)
+	{
+	  long point = stage[j];
+	  long ix,iy,iz;
+	  cartesian(point,ix,iy,iz);
+
+	  for(int jx=-1;jx<=1;jx++)
+	    for(int jy=-1;jy<=1;jy++)
+	      for(int jz=-1;jz<=1;jz++)
+		{
+		  if(jx == 0 && jy == 0 && jz == 0) continue;
+		  long pos = get_PBC_Pos(ix+jx,iy+jy,iz+jz);
+		  if(p.get(pos) > threshold) {new_cluster.push_back(pos); p.set(pos,0.0);}
+		}
+	}
+      
+      clusters.push_back(new_cluster);
+    }
+  */
+  throw std::runtime_error("Density::detectClusters not implemented");
+
+}

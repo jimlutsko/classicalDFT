@@ -22,6 +22,7 @@ using namespace std;
 
 #include "FMT_Species.h"
 
+int Species::SequenceNumber_ = 0;
 
 FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile): Species(density), hsd_(hsd), d_(11)
 {

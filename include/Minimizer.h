@@ -40,7 +40,7 @@ class Minimizer
 
     string title = ts.str();
     string file("image_current.png");
-    dft_.doDisplay(0,title, file);
+    dft_.doDisplay(title, file);
 
   }
   virtual int draw_during() = 0;  // Display something during the minimization

@@ -9,7 +9,7 @@
 class Species
 {
  public:
- Species(Density &density, double mu = 0) : density_(density), dF_(density.Ntot()), mu_(mu){}
+ Species(Density &density, double mu = 0) : density_(density), dF_(density.Ntot()), mu_(mu){ seq_num_ = SequenceNumber_++;}
   ~Species(){}
 
   double getChemPotential() const {return mu_;}
@@ -18,7 +18,7 @@ class Species
   const Lattice& getLattice() const { return density_;}
   const Density& getDensity() const { return density_;}
 
-  void doDisplay(string &title, string &file) const { density_.doDisplay(title,file);}
+  void doDisplay(string &title, string &file) const { density_.doDisplay(title,file, seq_num_);}
   void set_density_from_amplitude(DFT_Vec &x) {density_.set_density_from_amplitude(x);}
 
   void zeroForce() {dF_.zeros();}
@@ -40,11 +40,16 @@ class Species
     return Fx;
   }
 
+  virtual double getHSD() const { return 0.0;}
+  
+ private:
+  static int SequenceNumber_;
   
  protected:
   Density &density_;
   DFT_Vec dF_;
   double mu_;
+  int seq_num_;
 };
 
 /**
@@ -79,7 +84,7 @@ class FMT_Species : public Species
   *   @param  none
   *   @return hsd_
   */      
-  double getHSD() const { return hsd_;}
+  virtual double getHSD() const { return hsd_;}
 
 /**
   *   @brief  get value of Eta at pos

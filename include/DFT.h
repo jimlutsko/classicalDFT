@@ -69,7 +69,17 @@ class DFT
 
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
   
-  void doDisplay(int i, string &title, string &file){ allSpecies_[i]->doDisplay(title,file);}
+  void doDisplay(string &title, string &file)
+  {
+    for(auto &x: allSpecies_) x->doDisplay(title,file);
+  }
+
+  /**
+  *   @brief  Sets the densities based on amplitudes by passing to the species object
+  *  
+  *   @param  i is the species
+  *   @param x is the amplitde
+  */  
   void set_density_from_amplitude(int i,DFT_Vec &x) {allSpecies_[i]->set_density_from_amplitude(x);}
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
 
@@ -102,26 +112,27 @@ class DFT
   /**
   *   @brief  Compute chemical potential/kT for a uniform system with the given density
   *  
-  *   @param  x is the density
+  *   @param  x is the array of densities
+  *   @param  species is the species for which we calculate the chemical potential
   *   @return mu/kT
   */   
-  virtual double Mu(double x) const  = 0;
+  virtual double Mu(const vector<double> &x, int species) const  = 0;
 
 /**
   *   @Brief  Compute grand potenial/kT/V for a uniform system with the given density
   *  
-  *   @param  x is the density
+  *   @param  x is the array of densities
   *   @return Omega/(kT * V)
   */   
-  virtual double Omega(double x) const = 0;
+  virtual double Omega(const vector<double> &x) const {double omega = Fhelmholtz(x); for(int i=0;i<allSpecies_.size();i++) omega -= x[i]*Mu(x,i); return omega;}
 
   /**
   *   @brief  Compute Helmholtz free energy/kT/V for a uniform system with the given density
   *  
-  *   @param  x is the density
+  *   @param  x is the array of densities
   *   @return F/(kT * V)
   */   
-  virtual double Fhelmholtz(double x) const = 0;
+  virtual double Fhelmholtz(const vector<double> &x) const = 0;
 
   /**
    *   @brief  Returns the name of the DFT object - i.e. identifies the model being used.
@@ -168,7 +179,7 @@ class DFT_IdealGas : public DFT
   ~DFT_IdealGas(){}
 
 
-/**
+  /**
   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
   *  
   *   @param  density is current density
@@ -176,29 +187,22 @@ class DFT_IdealGas : public DFT
   *   @return total free energy of system
   */  
   virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
-/**
+  /**
   *   @brief  Compute chemical potential/kT for given density
   *  
-  *   @param  x is the density
+  *   @param  x is the array of densities
+  *   @param  species is the species for which we calculate the chemical potential
   *   @return mu/kT
   */   
-  virtual double Mu(double x) const {return log(x);}
-
-/**
-  *   @brief  Compute grand potential/kT/V for given density
-  *  
-  *   @param  x is the density
-  *   @return Omega/(kT * V)
-  */   
-  virtual double Omega(double x) const {return -x;}
+  virtual double Mu(const vector<double> &x, int species) const {return log(x[species]);}
 
   /**
   *   @brief  Compute Helmholtz free energy/kT/V for given density
   *  
-  *   @param  x is the density
-  *   @return Omega/(kT * V)
+  *   @param  x is the array of densities
+  *   @return F/(kT * V)
   */   
-  virtual double Fhelmholtz(double x) const {return x*log(x)-x;}
+  virtual double Fhelmholtz(const vector<double> &x) const {double ret = 0.0; for(auto &y:x) ret += y*log(y)-y; return ret;}
 
   virtual string Name() const { return string("DFT_IdealGas");}
 
@@ -207,7 +211,7 @@ class DFT_IdealGas : public DFT
 
 
 /**
-  *  @brief DFT_FMT Class: A single-species hard-sphere object.
+  *  @brief DFT_FMT Class: A hard-sphere object.
   *
   *   @detailed A single-species hard-sphere object.
   *  
@@ -245,10 +249,20 @@ template <class T> class DFT_FMT : public DFT
 /**
   *   @brief  Compute chemical potential/kT for given density
   *  
-  *   @param  x is the density `
+  *   @param  x is the array of densities
+  *   @param  species is the species for which we calculate the chemcical potential
   *   @return mu/kT
   */   
-  virtual double Mu(double x) const { Enskog en(x); return en.chemPotentialCS();}
+  virtual double Mu(const vector<double> &x, int species) const {return log(x[species]) + fmt_.BulkMuex(x, allSpecies_, species);}
+
+/**
+  *   @brief  Compute Helmhltz Free Energy/kT/V for given density
+  *  
+  *   @param  x is the array of densities
+  *   @return F/(kT * V)
+  */   
+  virtual double Fhelmholtz(const vector<double> &x) const {double F = fmt_.BulkFex(x, allSpecies_); for(auto &y: x) F += y*log(y)-y; return F;}
+
 
 /**
   *   @brief  Find liquid with given chem potential/kT
@@ -258,22 +272,7 @@ template <class T> class DFT_FMT : public DFT
   */   
   virtual double Xliq_From_Mu(double mu) const;
 
-/**
-  *   @brief  Compute grand potenial/kT/V for given density
-  *  
-  *   @param  x is the density
-  *   @return Omega/(kT * V)
-  */   
-  virtual double Omega(double x) const {Enskog en(x); return x*(en.freeEnergyCS() - en.chemPotentialCS());}
-
-/**
-  *   @brief  Compute Helmhltz Free Energy/kT/V for given density
-  *  
-  *   @param  x is the density
-  *   @return F/(kT * V)
-  */   
-  virtual double Fhelmholtz(double x) const {Enskog en(x); return x*en.freeEnergyCS();}
-
+  
 /**
   *   @brief  The name of this DFT object
   *  
@@ -331,27 +330,20 @@ template <class T> class DFT_VDW : public DFT_FMT<T>
 /**
   *   @brief  Compute chemical potential/kT for given density
   *  
-  *   @param  x is the density
+  *   @param  x is the  array of densities
+  *   @param  species is the species for which we calculate the chemical potential
   *   @return mu/kT
   */   
-  virtual double Mu(double x) const { return vdw_.chemPotential(x);}
-
-/**
-  *   @brief  Compute grand potenial/kT/V for given density
-  *  
-  *   @param  x is the density
-  *   @return Omega/(kT * V) = -Pressure/kT
-  */   
-  virtual double Omega(double x) const {return -vdw_.pressure(x);}
+  virtual double Mu(const vector<double> &x, int species) const {throw std::runtime_error("Mu not implemented");} // { return vdw_.chemPotential(x);}
 
   /**
   *   @brief  Compute helmholtz free energy/kT/V for given density
   *  
-  *   @param  x is the density
+  *   @param  x is the  array of densities
   *   @return F/(kT * V)
   */   
   
-  virtual double Fhelmholtz(double x) const {return vdw_.helmholtzPerUnitVolume(x);}
+  virtual double Fhelmholtz(const vector<double> &x) const {throw std::runtime_error("Fhelmholtz not implemented");}  //return vdw_.helmholtzPerUnitVolume(x);}
 
 /**
   *   @brief  Get coexisting liquid and gas
@@ -447,9 +439,9 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   
   double getSurfactant(long i) const {return surfactant_density_.cReal().get(i);}
   
-  virtual double Mu(double x) const;
-  virtual double Omega(double x) const;
-  virtual double Fhelmholtz(double x) const; 
+  virtual double Mu(const vector<double> &x, int species) const;
+  //  virtual double Omega(const vector<double> &x) const;
+  virtual double Fhelmholtz(const vector<double> &x) const;
   void coexistence(double& xliq, double &xgas) const;
   void spinodal(double& xs1, double &xs2) const; 
   double findLiquidFromMu(double mu, double mu_coex, double xliq_coex) const;
