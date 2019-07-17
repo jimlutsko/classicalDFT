@@ -7,6 +7,7 @@
 
 /**
   *  @brief UTILITY: abstracts the FMT weighted densities. It has vectors to hold the weight functions and the resulting fundamental measures and knows how to do convolutions via FFT.
+  *         It also carries around a field dPhi_ which is d Phi/ d weighted_density_(i,j,k) where weighted_density_(i,j,k) is this weighted density. 
   */  
 
 class FMT_Weighted_Density
@@ -54,7 +55,7 @@ class FMT_Weighted_Density
   void   addToWeight(long pos, double x) {weight_.Real().addTo(pos,x);}
   void   Set_dPhi(long pos, double x) {dPhi_.Real().set(pos,x);} 
  
-  double r(long i) const { return weighted_density_.cReal().get(i); }
+  double real(long i) const { return weighted_density_.cReal().get(i); }
  
   const DFT_Vec_Complex &wk()   const {return weight_.cFour();}
   const DFT_Vec         &Real() const {return weighted_density_.cReal();}

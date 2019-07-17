@@ -103,7 +103,6 @@ template <class T>
 DFT_VDW<T>::DFT_VDW(int Nx, int Ny, int Nz)
   : DFT_FMT<T>(Nx,Ny,Nz), vdw_(0,0)
 {
-  //  dft_fmt_ = new DFT_FMT<T>(Nx,Ny,Nz);
   // initialize working space for calculations ...
   v_mean_field_.initialize(Nx,Ny,Nz);
 }
@@ -111,13 +110,35 @@ DFT_VDW<T>::DFT_VDW(int Nx, int Ny, int Nz)
 template <class T>
 void DFT_VDW<T>::addSpecies(VDW_Species* species,  double kT)  
 {
-  DFT::addSpecies(species);
+  DFT_FMT<T>::addSpecies(species);
   
   double hsd   = species->getHSD();
   double a_vdw = species->get_VDW_Constant();
   
   vdw_.set_VDW_Parameter(a_vdw);
   vdw_.set_HardSphere_Diameter(hsd);
+}
+
+template <class T>
+double DFT_VDW<T>::Mu(const vector<double> &x, int species) const
+{
+  double mu = DFT_FMT<T>::Mu(x,species);
+  VDW_Species *s = (VDW_Species*) (DFT_FMT<T>::allSpecies_[species]);
+  
+  mu += 2*s->get_VDW_Constant()*x[species];
+  return mu;
+}
+
+template <class T>
+double DFT_VDW<T>::Fhelmholtz(const vector<double> &x) const
+{
+  double f = DFT_FMT<T>::Fhelmholtz(x);
+  for(int s=0; s < DFT_FMT<T>::allSpecies_.size(); s++)
+    {
+      VDW_Species *sp = (VDW_Species*) (DFT_FMT<T>::allSpecies_[s]);
+      f += sp->get_VDW_Constant()*x[s]*x[s];
+    }
+  return f;
 }
 
 template <class T>

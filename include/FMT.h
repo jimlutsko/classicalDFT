@@ -301,7 +301,7 @@ class WhiteBearI : public FMT
 
    dPhi_dn3  = -(1.0/(18*M_PI))*(n2*n2*n2/(n3*n3*n3))*log(1-n3);
    dPhi_dn3 += -((1/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*(1.0/(1-n3));
-   dPhi_dn3 += (n1*n2/(1-n3));
+   dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
    dPhi_dn3 +=  (1.0/(36*M_PI))*((n2*n2*n2*(3*n3-1)/(n3*n3*(1-n3)*(1-n3)*(1-n3))));   
 
 
@@ -386,14 +386,13 @@ class RSLT : public FMT
 
     dPhi_dn3  = -(1.0/(18*M_PI))*(n2*n2*n2/(n3*n3*n3))*log(1-n3);
     dPhi_dn3 += -((1/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*(1.0/(1-n3));
-    dPhi_dn3 += (n1*n2/(1-n3));
+    dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
     dPhi_dn3 +=  (1.0/(36*M_PI))*((n2*n2*n2*(3*n3-1)/(n3*n3*(1-n3)*(1-n3)*(1-n3))));   
-
 
     double density = x[species];
     double hsd = allSpecies[species]->getHSD();
 
-    return log(density)+dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
+    return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
   }
 
   virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
@@ -592,7 +591,7 @@ class WhiteBearII : public WhiteBearI
     double density = x[species];
     double hsd = allSpecies[species]->getHSD();
 
-    return log(density)+dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd;
+    return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd;
       
   }
 

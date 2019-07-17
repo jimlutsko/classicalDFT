@@ -124,7 +124,7 @@ class DFT
   *   @param  x is the array of densities
   *   @return Omega/(kT * V)
   */   
-  virtual double Omega(const vector<double> &x) const {double omega = Fhelmholtz(x); for(int i=0;i<allSpecies_.size();i++) omega -= x[i]*Mu(x,i); return omega;}
+  virtual double Omega(const vector<double> &x) const {double omega = Fhelmholtz(x); for(int i=0;i<allSpecies_.size();i++) if(fabs(x[i]) > SMALL_VALUE) omega -= x[i]*Mu(x,i); return omega;}
 
   /**
   *   @brief  Compute Helmholtz free energy/kT/V for a uniform system with the given density
@@ -202,7 +202,7 @@ class DFT_IdealGas : public DFT
   *   @param  x is the array of densities
   *   @return F/(kT * V)
   */   
-  virtual double Fhelmholtz(const vector<double> &x) const {double ret = 0.0; for(auto &y:x) ret += y*log(y)-y; return ret;}
+  virtual double Fhelmholtz(const vector<double> &x) const {double ret = 0.0; for(auto &y:x) if(fabs(y) > SMALL_VALUE) ret +=  y*log(y)-y; return ret;}
 
   virtual string Name() const { return string("DFT_IdealGas");}
 
@@ -261,7 +261,7 @@ template <class T> class DFT_FMT : public DFT
   *   @param  x is the array of densities
   *   @return F/(kT * V)
   */   
-  virtual double Fhelmholtz(const vector<double> &x) const {double F = fmt_.BulkFex(x, allSpecies_); for(auto &y: x) F += y*log(y)-y; return F;}
+  virtual double Fhelmholtz(const vector<double> &x) const {double F = fmt_.BulkFex(x, allSpecies_); for(auto &y: x) if(fabs(y) > SMALL_VALUE) F += y*log(y)-y; return F;}
 
 
 /**
@@ -302,92 +302,93 @@ template <class T> class DFT_VDW : public DFT_FMT<T>
 {
  public:
   /**
-  *   @brief  Default  constructor for DFT 
-  *  
-  *   @param  density is the Density object
-  *   @return nothing 
-  */  
-  DFT_VDW(int Nx, int Ny, int Nw);
+   *   @brief  Default  constructor for DFT 
+   *  
+   *   @param  Nx is number of points in the x-direction
+   *   @param  Ny is number of points in the y-direction
+   *   @param  Nz is number of points in the z-direction
+   */  
+  DFT_VDW(int Nx, int Ny, int Nz);
   /**
-  *   @brief  Default  destructor for DFT : deletes  fmt_ object. 
-  *  
-  *   @return nothing 
-  */  
-  ~DFT_VDW(){} //if(dft_fmt_) delete dft_fmt_;}
+   *   @brief  Default  destructor for DFT 
+   *  
+   *   @return nothing 
+   */  
+  ~DFT_VDW(){} 
 
 
   void addSpecies(VDW_Species* species,  double kT);
   
-/**
-  *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
-  *  
-  *   @param  density is current density
-  *   @param  mu is the chemical potential
-  *   @return total free energy of system
-  */  
+  /**
+   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
+   *  
+   *   @param  density is current density
+   *   @param  mu is the chemical potential
+   *   @return total free energy of system
+   */  
   virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
-
-/**
-  *   @brief  Compute chemical potential/kT for given density
-  *  
-  *   @param  x is the  array of densities
-  *   @param  species is the species for which we calculate the chemical potential
-  *   @return mu/kT
-  */   
-  virtual double Mu(const vector<double> &x, int species) const {throw std::runtime_error("Mu not implemented");} // { return vdw_.chemPotential(x);}
+  
+  /**
+   *   @brief  Compute chemical potential/kT for given density: note that interspecies interaction fields are not supported.
+   *  
+   *   @param  x is the  array of densities
+   *   @param  species is the species for which we calculate the chemical potential
+   *   @return mu/kT
+   */   
+  virtual double Mu(const vector<double> &x, int species) const;
 
   /**
-  *   @brief  Compute helmholtz free energy/kT/V for given density
-  *  
-  *   @param  x is the  array of densities
-  *   @return F/(kT * V)
-  */   
+   *   @brief  Compute helmholtz free energy/kT/V for given density: note that interspecies interaction fields are not supported.
+   *  
+   *   @param  x is the  array of densities
+   *   @return F/(kT * V)
+   */   
   
-  virtual double Fhelmholtz(const vector<double> &x) const {throw std::runtime_error("Fhelmholtz not implemented");}  //return vdw_.helmholtzPerUnitVolume(x);}
+  virtual double Fhelmholtz(const vector<double> &x) const;
 
-/**
-  *   @brief  Get coexisting liquid and gas
-  *  
-  *   @param  references to liq and gas densities to be filled in. 
-  *   @return gas density in program units
-  */   
-  void coexistence(double& xliq, double &xgas) const {vdw_.findCoexistence(xliq,xgas);}
+  /**
+   *   @brief  Get coexisting liquid and gas
+   *  
+   *   @param  references to liq and gas densities to be filled in. 
+   *   @return gas density in program units
+   */   
+  void coexistence(double& xliq, double &xgas) const {throw std::runtime_error("DFT_VDW::coexistence not implemented");} //vdw_.findCoexistence(xliq,xgas);}
 
-/**
-  *   @brief  Find spinodals
-  *  
-  *   @param  references to spinodal densities to be filled in. 
-  *   @return nothing
-  */   
+  /**
+   *   @brief  Find spinodals
+   *  
+   *   @param  references to spinodal densities to be filled in. 
+   *   @return nothing
+   */   
   void spinodal(double& xs1, double &xs2) const {vdw_.spinodal(xs1,xs2);}
 
   //  void spinodals(double& x1, double& x2) const ;
 
-/**
-  *   @brief  find liquid density with given chemical potential/kT
-  *  
-  *   @param  mu is chem potential / kT
-  *   @param  mu_coex is chem potential / kT for coexistence
-  *   @param  xliq_coex  is coexisting liquid density
-  *   @return gas density in program units
-  */   
+  /**
+   *   @brief  find liquid density with given chemical potential/kT
+   *  
+   *   @param  mu is chem potential / kT
+   *   @param  mu_coex is chem potential / kT for coexistence
+   *   @param  xliq_coex  is coexisting liquid density
+   *   @return gas density in program units
+   */   
   double findLiquidFromMu(double mu, double mu_coex, double xliq_coex) const
   { return vdw_.findLiquidFromMu(mu,mu_coex,xliq_coex);}
 
-/**
-  *   @brief  Accessor for coexisting hsd
-  *  
-  *   @param  none
-  *   @return hsd
-  */   
+  /**
+   *   @brief  Accessor for coexisting hsd
+   *  
+   *   @param  none
+   *   @return hsd
+   */   
   double HSD() const { return species_->getHSD();}
 
   /**
-  *   @brief  Accessor for coexisting vdw parameter
-  *  
-  *   @param  none
-  *   @return vdw_.a_
-  */   
+   *   @brief  Accessor for coexisting vdw parameter
+   *  
+   *   @param  none
+   *   @return vdw_.a_
+   */   
   double get_VDW_Param() const { return vdw_.get_VDW_Parameter();}
   
   virtual string Name() const { return string("DFT_VDW : ") + DFT_FMT<T>::Name();} //dft_fmt_->Name();}
@@ -402,14 +403,14 @@ template <class T> class DFT_VDW : public DFT_FMT<T>
   DFT_FFT v_mean_field_;
 
   VDW_Species *species_;
-  //  DFT_FMT<T> *dft_fmt_; ///< The hard-sphere dft 
   VDW1 vdw_;
 };
 
 /**
-  *  @brief DFT_VDW Class
+  *  @brief DFT_VDW_Surfactant class
   *
-  *   @detailed A single-species mean-field DFT model. It holds a DFT_FMT object to do the hard-sphere stuff.
+  *   @detailed This extends DFT_VDW with functionality to model a surfactant. The additional contributions depend only on gradients
+  *              of the other species, so the bulk thermodynamics is just the same as that inherited from DFT_VDW. 
   *  
   */  
 
@@ -423,14 +424,14 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   *   @return nothing 
   */  
   DFT_VDW_Surfactant(int Nx, int Ny, int Nz, double Asurf, double rhosurf);
+
   /**
-  *   @brief  Default  destructor for DFT : deletes  fmt_ object. 
-  *  
-  *   @return nothing 
+  *   @brief  Default  destructor
   */  
   ~DFT_VDW_Surfactant(){}
 
-  void addSpecies(VDW_Species *species, double kT);
+  
+  void addSurfactantPotential(Potential1& pot, double kT);
 
   virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
 
@@ -439,8 +440,6 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   
   double getSurfactant(long i) const {return surfactant_density_.cReal().get(i);}
   
-  virtual double Mu(const vector<double> &x, int species) const;
-  //  virtual double Omega(const vector<double> &x) const;
   virtual double Fhelmholtz(const vector<double> &x) const;
   void coexistence(double& xliq, double &xgas) const;
   void spinodal(double& xs1, double &xs2) const; 
