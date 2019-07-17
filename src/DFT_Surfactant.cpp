@@ -62,11 +62,14 @@ void DFT_VDW_Surfactant<T>::addSurfactantPotential(Potential1 &pot, double kT)
 template <class T>
 double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
-  VDW_Species &species = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_.front());
-  
-  const Density& density = species.getDensity();
-
   double F = DFT_VDW<T>::calculateFreeEnergyAndDerivatives(onlyFex);
+
+  // I will assume that species 0 is the **water** and species 1 is the surfactant.
+
+  VDW_Species &water = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_[0]);
+  VDW_Species &surf = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_[1]);
+  
+  const Density& density = surf.getDensity();
 
   int Nx = density.Nx();
   int Ny = density.Ny();
@@ -80,18 +83,28 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
 
   double dV = density.dV();
 
-  const DFT_Vec& vReal0 = species.getV_Real(0);
-  const DFT_Vec& vReal1 = species.getV_Real(1);
-  const DFT_Vec& vReal2 = species.getV_Real(2);
+  ////////////////////////////////////////////////////////////////////////////
+  // Construct v2(r) for the water & do fft
 
-  cout << "Asurf = " << Asurf_ << " rho_surf_ = " << rho_surf_ << endl;
-  
-  // Construct v2
+  const DFT_Vec& vReal0 = water.getV_Real(0);
+  const DFT_Vec& vReal1 = water.getV_Real(1);
+  const DFT_Vec& vReal2 = water.getV_Real(2);
+
   DFT_FFT v2(Nx, Ny, Nz);      
   for(long i=0;i<Ntot;i++)
     v2.Real().set(i, vReal0.get(i)*vReal0.get(i)+vReal1.get(i)*vReal1.get(i)+vReal2.get(i)*vReal2.get(i));
   v2.do_real_2_fourier();
 
+  //////////////////////////////////////////////////////////////////////////
+  // Surfactant force is just convoluton of the potential and v2
+  // Lets do this the dumb way first:
+  DFT_FFT dF(Nx, Ny, Nz);      
+
+  dF.cFour().Schur(surfactant_potential_.cFour(),v2.cFour(),true);
+
+  
+  
+  
   // Free energy is convolution surf_density(1) vsurf(12) v2(2) = sum_k surf_density(-k) vsurf(k) v2(k)
 
 
