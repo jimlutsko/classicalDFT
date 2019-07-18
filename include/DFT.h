@@ -423,7 +423,7 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   *   @param  density is the Density object
   *   @return nothing 
   */  
-  DFT_VDW_Surfactant(int Nx, int Ny, int Nz, double Asurf, double rhosurf);
+  DFT_VDW_Surfactant(int Nx, int Ny, int Nz);
 
   /**
   *   @brief  Default  destructor
@@ -435,12 +435,10 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
 
   virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
 
-  void setSurfactant(double rhos, double A) {rho_surf_ = rhos; Asurf_ = A;}
   void setFixedN(bool flag) {bFixedN_ = flag;}
   
   double getSurfactant(long i) const {return surfactant_density_.cReal().get(i);}
   
-  virtual double Fhelmholtz(const vector<double> &x) const;
   void coexistence(double& xliq, double &xgas) const;
   void spinodal(double& xs1, double &xs2) const; 
   double findLiquidFromMu(double mu, double mu_coex, double xliq_coex) const;
@@ -451,9 +449,6 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
  protected:
   DFT_FFT surfactant_density_;   //< Arrays holding actual surfactant density and its FFT
   DFT_FFT surfactant_potential_; //< Arrays holding surfactant assymetric potential
-  double Asurf_;                     //< strength of assymetric (v^2 term) surfactant interaction
-  double rho_surf_;              //< parameter rho_0
-  double ax_;                    //< VDW parameter for symmetric part of surfactant interaction
   bool bFixedN_;                 ///< Fixed particle number flag
 };
 

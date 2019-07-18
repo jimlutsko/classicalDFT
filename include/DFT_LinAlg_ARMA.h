@@ -133,6 +133,8 @@ class DFT_FFT
       if(real_2_four_) fftw_destroy_plan(real_2_four_);
     }
 
+  void zeros() {RealSpace_.zeros(); FourierSpace_.zeros();}
+  
  void initialize(unsigned Nx, unsigned Ny, unsigned Nz)
     {
       RealSpace_.zeros(Nx*Ny*Nz);

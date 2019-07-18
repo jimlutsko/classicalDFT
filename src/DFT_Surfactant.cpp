@@ -20,8 +20,8 @@ using namespace std;
 
 
 template <class T>
-DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(int Nx, int Ny, int Nz, double Asurf, double rhosurf)
-  : DFT_VDW<T>(Nx,Ny,Nz), Asurf_(Asurf), rho_surf_(rhosurf), bFixedN_(false)
+DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(int Nx, int Ny, int Nz)
+  : DFT_VDW<T>(Nx,Ny,Nz),  bFixedN_(false)
 {}
 
 template <class T>
@@ -53,10 +53,9 @@ void DFT_VDW_Surfactant<T>::addSurfactantPotential(Potential1 &pot, double kT)
 
 	  double r =  sqrt(dix*dix*dx*dx+diy*diy*dy*dy+diz*diz*dz*dz);
 
-	  surfactant_potential_.Real().set(i, pot.V(r));	  
+	  surfactant_potential_.Real().set(i, pot.Watt(r));	  
 	}
   surfactant_potential_.do_real_2_fourier();
-
 }
 
 template <class T>
@@ -69,30 +68,30 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
   VDW_Species &water = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_[0]);
   VDW_Species &surf = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_[1]);
   
-  const Density& density = surf.getDensity();
+  const Density& surf_density = surf.getDensity();
 
-  int Nx = density.Nx();
-  int Ny = density.Ny();
-  int Nz = density.Nz();
-
-  double dx = density.getDX();
-  double dy = density.getDY();
-  double dz = density.getDZ();
+  int Nx = surf_density.Nx();
+  int Ny = surf_density.Ny();
+  int Nz = surf_density.Nz();
 
   long Ntot = Nx*Ny*Nz;
+  
+  double dx = surf_density.getDX();
+  double dy = surf_density.getDY();
+  double dz = surf_density.getDZ();
 
-  double dV = density.dV();
+  double dV = surf_density.dV();
 
   ////////////////////////////////////////////////////////////////////////////
   // Construct v2(r) for the water & do fft
 
-  const DFT_Vec& vReal0 = water.getV_Real(0);
-  const DFT_Vec& vReal1 = water.getV_Real(1);
-  const DFT_Vec& vReal2 = water.getV_Real(2);
+  const DFT_Vec& vRealx = water.getV_Real(0);
+  const DFT_Vec& vRealy = water.getV_Real(1);
+  const DFT_Vec& vRealz = water.getV_Real(2);
 
   DFT_FFT v2(Nx, Ny, Nz);      
   for(long i=0;i<Ntot;i++)
-    v2.Real().set(i, vReal0.get(i)*vReal0.get(i)+vReal1.get(i)*vReal1.get(i)+vReal2.get(i)*vReal2.get(i));
+    v2.Real().set(i, vRealx.get(i)*vRealx.get(i)+vRealy.get(i)*vRealy.get(i)+vRealz.get(i)*vRealz.get(i));
   v2.do_real_2_fourier();
 
   //////////////////////////////////////////////////////////////////////////
@@ -100,64 +99,41 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
   // Lets do this the dumb way first:
   DFT_FFT dF(Nx, Ny, Nz);      
 
-  dF.cFour().Schur(surfactant_potential_.cFour(),v2.cFour(),true);
+  dF.Four().Schur(surfactant_potential_.Four(),v2.Four(),false); //true);
+  dF.Four().scaleBy(dF.Real().size());  // FFTW's convention
+  dF.do_fourier_2_real();
+  dF.Real().multBy(dV*dV); // this is d F/d rho_i and so the factors of dV survive
 
+  surf.addToForce(dF.Real());
   
-  
-  
-  // Free energy is convolution surf_density(1) vsurf(12) v2(2) = sum_k surf_density(-k) vsurf(k) v2(k)
+  /////////////////////////////////////////////////////////////////////////////////
+  // Contribution to the free energy is this dotted with the surfactant density
+
+  F += surf_density.getInteractionEnergy(dF.Real());
 
 
-  
-  /*
-  // Construct surfactant density      
-  surfactant_density_.Four().Schur(surfactant_potential_.Four(),v2.Four());
-  surfactant_density_.do_fourier_2_real();
-  for(long i=0;i<Ntot;i++)
-    surfactant_density_.Real().set(i, exp(-surfactant_density_.Real().get(i)*dV/Ntot));
+  ////////////////////////////////////////////////////////////////////////
+  // Now we need the derivative wrt the water density
 
-  double rawSum = surfactant_density_.Real().accu();
+  for(int i=0;i<3;i++)
+    { 
+      dF.zeros();
+
+      dF.Four().Schur(surf_density.getDK(), surfactant_potential_.Four(),false);
+      dF.Four().scaleBy(dF.Real().size());  // FFTW's convention
+      dF.do_fourier_2_real();  
+
+      dF.Real().Schur(dF.Real(),water.getV_Real(i));
+
+      dF.do_real_2_fourier();
+      dF.Four().Schur(dF.Four(),water.getVweight_Four(i),false); // this includes the FFTW scale factor already
+      dF.do_fourier_2_real();
+
+      dF.Real().multBy(2*dV*dV);
       
-  if(bFixedN_)
-    surfactant_density_.Real().multBy(Ntot/rawSum);
-
-  surfactant_density_.Real().multBy(rho_surf_);      
-  surfactant_density_.do_real_2_fourier();
-  */
-
-
-  // Free energy is just the integral
-  double Fs = -(surfactant_density_.Real().accu() - rho_surf_*Ntot);
-  if(bFixedN_)
-    Fs = -rho_surf_*Ntot*log(rawSum/Ntot);
-      
-  // Construct conv(surfactant_density, surfactant_potential_) 
-  DFT_FFT Density_Conv_Potential(Nx,Ny,Nz);      
-  Density_Conv_Potential.Four().Schur(surfactant_density_.Four(),surfactant_potential_.Four());   
-  Density_Conv_Potential.do_fourier_2_real(); 
-  Density_Conv_Potential.Real().multBy(dV/Ntot);
-  
-  // Construct conv(surfactant_density, surfactant_potential_)(i) v(i)
-  // and convolute with vector weight function            
-  DFT_FFT dFs(Nx,Ny,Nz);
-  dFs.Four().zeros();            
-  for(int J=0;J<3;J++)
-    {
-      DFT_FFT v_J(Nx, Ny, Nz);
-      v_J.Real().Schur(Density_Conv_Potential.Real(), (J == 0 ? vReal0 : (J == 1 ? vReal1 : vReal2)));
-      v_J.do_real_2_fourier();
-      dFs.Four().incrementSchur(v_J.Four(),species.getVweight_Four(J));
+      water.addToForce(dF.cReal());
     }
-  dFs.do_fourier_2_real();
-  dFs.Real().multBy(2*dV); // N.B.: No factor of Ntot because it is already in wk() ...
 
-  //Done! Add to acculated contributions from previous calculations
-  F += Fs*dV; 
-  species.addToForce(dFs.cReal()); 
-
-  if(bFixedN_)
-    cout << "Number of surfactant atoms in cell = " << surfactant_density_.Real().accu()*dV << endl;
-  cout << "density " << surfactant_density_.Real().get(0) << endl;
   return F;
 }
 
