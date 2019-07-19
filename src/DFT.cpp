@@ -18,12 +18,27 @@ using namespace std;
 
 #include "DFT.h"
 
+
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
-  double F = 0.0;
   for(auto &species : allSpecies_)  
     species->zeroForce();
+  
+  for(auto &s: allSpecies_) s->beginForceCalculation();
 
+  double F = calculateFreeEnergyAndDerivatives_internal_(onlyFex);
+
+  for(auto &s: allSpecies_)
+    s->endForceCalculation();
+
+  return F;
+}
+
+
+double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
+{
+  double F = 0.0;
+  
   if(onlyFex) return F; // do nothing.
 
   for(auto &species : allSpecies_)
@@ -52,9 +67,9 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 }
 
 template <class T>
-double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
+double DFT_FMT<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
-  double F = DFT::calculateFreeEnergyAndDerivatives(onlyFex);
+  double F = DFT::calculateFreeEnergyAndDerivatives_internal_(onlyFex);
   
   try{
     F += fmt_.calculateFreeEnergyAndDerivatives(allSpecies_);
@@ -118,13 +133,13 @@ double DFT_VDW<T>::Fhelmholtz(const vector<double> &x) const
 }
 
 template <class T>
-double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
+double DFT_VDW<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
   double F = 0;
 
   // Hard sphere contributions to F and dF
   try {
-    F = DFT_FMT<T>::calculateFreeEnergyAndDerivatives(onlyFex);
+    F = DFT_FMT<T>::calculateFreeEnergyAndDerivatives_internal_(onlyFex);
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }

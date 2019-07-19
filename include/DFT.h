@@ -97,7 +97,7 @@ class DFT
    *   @param  onlyFex : if true, the ideal and external contributions are not added
    *   @return total free energy of system
    */  
-  virtual double calculateFreeEnergyAndDerivatives(bool onlyFex);
+  double calculateFreeEnergyAndDerivatives(bool onlyFex);
 
   /**
    *   @brief  Compute chemical potential/kT for a uniform system with the given density
@@ -141,6 +141,17 @@ class DFT
   virtual double Xliq_From_Mu(double mu) const {throw std::runtime_error("Not implemented");}
 
  protected:
+  
+  /**
+   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions. Here, this is just the ideal gas contribution.
+   *  
+   *   @param  onlyFex : if true, the ideal and external contributions are not added
+   *   @return total free energy of system
+   */  
+  virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex);
+
+
+ protected:
   vector<Species*> allSpecies_;
 
   
@@ -175,14 +186,7 @@ template <class T> class DFT_FMT : public DFT
   */  
   ~DFT_FMT(){}
 
-/**
-  *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
-  *  
-  *   @param  density is current density
-  *   @param  mu is the chemical potential
-  *   @return total free energy of system
-  */  
-  virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
+
 /**
   *   @brief  Compute chemical potential/kT for given density
   *  
@@ -223,6 +227,16 @@ template <class T> class DFT_FMT : public DFT
  virtual void setEtaMax(double etaMax) {fmt_.setEtaMax(etaMax);}
 
  protected:
+ /**
+  *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
+  *  
+  *   @param  density is current density
+  *   @param  mu is the chemical potential
+  *   @return total free energy of system
+  */  
+ virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex = false);
+ 
+ protected:
   T         fmt_;   ///< Hard-sphere FMT object
 };
 
@@ -255,15 +269,6 @@ template <class T> class DFT_VDW : public DFT_FMT<T>
   ~DFT_VDW(){} 
 
   /**
-   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
-   *  
-   *   @param  density is current density
-   *   @param  mu is the chemical potential
-   *   @return total free energy of system
-   */  
-  virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
-  
-  /**
    *   @brief  Compute chemical potential/kT for given density: note that interspecies interaction fields are not supported.
    *  
    *   @param  x is the  array of densities
@@ -282,6 +287,16 @@ template <class T> class DFT_VDW : public DFT_FMT<T>
 
   
   virtual string Name() const { return string("DFT_VDW : ") + DFT_FMT<T>::Name();} 
+
+ protected:
+  /**
+   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
+   *  
+   *   @param  density is current density
+   *   @param  mu is the chemical potential
+   *   @return total free energy of system
+   */  
+  virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex = false);    
   
  protected:
   DFT_FFT v_mean_field_;
@@ -316,9 +331,17 @@ template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
   
   void addSurfactantPotential(Potential1& pot, double kT);
 
-  virtual double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
-
   virtual string Name() const { return string("DFT_VDW_Surfactant : ") +  DFT_VDW<T>::Name();} 
+
+ protected:
+  /**
+   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
+   *  
+   *   @param  density is current density
+   *   @param  mu is the chemical potential
+   *   @return total free energy of system
+   */  
+  virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex = false);
   
  protected:
   DFT_FFT surfactant_potential_; //< Arrays holding surfactant assymetric potential

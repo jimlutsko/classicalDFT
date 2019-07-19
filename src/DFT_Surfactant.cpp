@@ -59,8 +59,10 @@ void DFT_VDW_Surfactant<T>::addSurfactantPotential(Potential1 &pot, double kT)
 }
 
 template <class T>
-double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
+double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
+  double F = DFT_VDW<T>::calculateFreeEnergyAndDerivatives_internal_(onlyFex);
+
   // I will assume that species 0 is the **water** and species 1 is the surfactant.
 
   VDW_Species &water = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_[0]);
@@ -74,13 +76,9 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
 
   long Ntot = Nx*Ny*Nz;
   
-  double dx = surf_density.getDX();
-  double dy = surf_density.getDY();
-  double dz = surf_density.getDZ();
-
   double dV = surf_density.dV();
 
-  for(auto &s: DFT_VDW_Surfactant<T>::allSpecies_) s->beginForceCalculation();
+  //  for(auto &s: DFT_VDW_Surfactant<T>::allSpecies_) s->beginForceCalculation();
   
   //  if(FixedN_ > 0)
   //    {
@@ -88,7 +86,6 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
   //surfactant.setChemPotential(0.0);
   //    }
 
-  double F = DFT_VDW<T>::calculateFreeEnergyAndDerivatives(onlyFex);
 
 
   ////////////////////////////////////////////////////////////////////////////
@@ -146,8 +143,8 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
   ////////////////////////////////////////////////////////////////////////////////
   // If the mass is supposed to be constant, we need to adjust the chemical potential
 
-  for(auto &s: DFT_VDW_Surfactant<T>::allSpecies_)
-    s->endForceCalculation();
+  //  for(auto &s: DFT_VDW_Surfactant<T>::allSpecies_)
+  //    s->endForceCalculation();
   /*
   if(FixedN_ > 0)
     {
