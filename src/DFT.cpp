@@ -105,12 +105,7 @@ double DFT_FMT<T>::Xliq_From_Mu(double mu) const
 #include "Potential1.h"
 
 template <class T>
-DFT_VDW<T>::DFT_VDW(int Nx, int Ny, int Nz)
-  : DFT_FMT<T>(Nx,Ny,Nz)
-{
-  // initialize working space for calculations ...
-  v_mean_field_.initialize(Nx,Ny,Nz);
-}
+DFT_VDW<T>::DFT_VDW(Species *s) : DFT_FMT<T>(s) {}
 
 template <class T>
 double DFT_VDW<T>::Mu(const vector<double> &x, int species) const
@@ -145,7 +140,7 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   }
   // Mean field contribution to F and dF
   for(auto &s: DFT::allSpecies_)
-      F += ((VDW_Species *) s)->getInteractionEnergyAndForces(v_mean_field_);
+      F += ((VDW_Species *) s)->getInteractionEnergyAndForces();
 
   return F;
 }

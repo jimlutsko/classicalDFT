@@ -66,7 +66,6 @@ class Species
 	for(long p=0;p<density_.Ntot();p++)
 	  dF_.set(p, dF_.get(p)-mu_);
       }
-    cout << "seq_num_ = " << seq_num_ << " mu = " << mu_ << " fixedMass_ = " << fixedMass_ << " Natoms = " << density_.getNumberAtoms() << endl;
   }
   
  private:
@@ -268,10 +267,12 @@ class Species
 
     double get_VDW_Constant() const {return a_vdw_;}
 
-    double getInteractionEnergyAndForces(DFT_FFT &v)
+    double getInteractionEnergyAndForces()
     {
       long Ntot = density_.Ntot();
       double dV = density_.dV();
+
+      DFT_FFT v(density_.Nx(), density_.Ny(), density_.Nz());      
 
       v.Four().Schur(density_.getDK(),w_att_.Four());
       v.Four().multBy(dV*dV/Ntot);

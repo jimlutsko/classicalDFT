@@ -32,7 +32,7 @@ class FMT
   *   @param  lattice is the Lattice object 
   *   @return nothing 
   */  
-  FMT(int Nx, int Ny, int Nz)  : etaMax_(1e30), dPhi_(Nx,Ny,Nz){}
+ FMT()  : etaMax_(1e30){} 
   /**
   *   @brief  Default  destrctur for FMT 
   *  
@@ -216,8 +216,6 @@ class FMT
 
  protected:
  
- DFT_FFT dPhi_; ///< dPHI/drho(i)
-
  double etaMax_; ///< cutoff used to control divergences
  
 };
@@ -230,8 +228,7 @@ class FMT
 class WhiteBearI : public FMT
 {
  public:
- WhiteBearI(int Nx, int Ny, int Nz)
-   : FMT(Nx,Ny,Nz){};
+  WhiteBearI() : FMT(){};
 
 
   virtual double f2_(double eta) const
@@ -346,8 +343,7 @@ class WhiteBearI : public FMT
 class RSLT : public FMT
 {
  public:
- RSLT(int Nx, int Ny, int Nz)
-   : FMT(Nx,Ny,Nz){};
+  RSLT() : FMT(){};
 
 
   virtual double f2_(double eta) const
@@ -507,8 +503,7 @@ class RSLT : public FMT
 class RSLT2: public RSLT
 {
  public:
- RSLT2(int Nx, int Ny, int Nz)
-   : RSLT(Nx,Ny,Nz){};
+  RSLT2() : RSLT(){};
 
 
   virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
@@ -558,8 +553,7 @@ class RSLT2: public RSLT
 class WhiteBearII : public WhiteBearI
 {
  public:
- WhiteBearII(int Nx, int Ny, int Nz)
-   : WhiteBearI(Nx, Ny, Nz){};
+  WhiteBearII() : WhiteBearI(){};
 
   virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
   {

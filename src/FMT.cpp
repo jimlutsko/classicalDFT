@@ -166,7 +166,6 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 }
 
 
-// MIXTURES NOT IMPLEMENTED
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
   // Compute the FFT of density
@@ -178,13 +177,11 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   return F;
 }
 
-// MIXTURES NOT IMPLEMENTED
 double FMT::doFreeEnergyLoop(vector<Species*> &allSpecies)
 {
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
 
-  long   Ntot = allSpecies.front()->getLattice().Ntot();  
-
+  long Ntot = allSpecies.front()->getLattice().Ntot();  
   
   double F = 0;
   int chunk = Ntot/20;
@@ -234,6 +231,10 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 
   // The  derivatives
   double dV = allSpecies.front()->getLattice().dV();
+
+  DFT_FFT dPhi_(allSpecies.front()->getLattice().Nx(),
+		allSpecies.front()->getLattice().Ny(),
+		allSpecies.front()->getLattice().Nz());
   
   for(auto &s: allSpecies)
     {
@@ -246,9 +247,6 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 
       dPhi_.Real().multBy(dV);
       species.addToForce(dPhi_.cReal());
-      
-      //      species.setForce(dPhi_.cReal());
-      //      species.multForce(dV);
     }
   
   return F*dV;

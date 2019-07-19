@@ -20,15 +20,9 @@ using namespace std;
 
 
 template <class T>
-DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(int Nx, int Ny, int Nz)
-  : DFT_VDW<T>(Nx,Ny,Nz)
-{}
-
-template <class T>
-void DFT_VDW_Surfactant<T>::addSurfactantPotential(Potential1 &pot, double kT)
+DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(Species *species, Potential1 &pot, double kT)
+  : DFT_VDW<T>(species)
 {
-  Species *species = ((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_.front());
-  
   int Nx = species->getLattice().Nx();
   int Ny = species->getLattice().Ny();
   int Nz = species->getLattice().Nz();
@@ -53,7 +47,7 @@ void DFT_VDW_Surfactant<T>::addSurfactantPotential(Potential1 &pot, double kT)
 
 	  double r =  sqrt(dix*dix*dx*dx+diy*diy*dy*dy+diz*diz*dz*dz);
 
-	  surfactant_potential_.Real().set(i, pot.Watt(r)); ///kT);	  
+	  surfactant_potential_.Real().set(i, pot.Watt(r)/kT);	  
 	}
   surfactant_potential_.do_real_2_fourier();
 }
