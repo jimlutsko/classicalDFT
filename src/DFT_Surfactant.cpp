@@ -21,7 +21,7 @@ using namespace std;
 
 template <class T>
 DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(int Nx, int Ny, int Nz)
-  : DFT_VDW<T>(Nx,Ny,Nz),  bFixedN_(false)
+  : DFT_VDW<T>(Nx,Ny,Nz)
 {}
 
 template <class T>
@@ -53,7 +53,7 @@ void DFT_VDW_Surfactant<T>::addSurfactantPotential(Potential1 &pot, double kT)
 
 	  double r =  sqrt(dix*dix*dx*dx+diy*diy*dy*dy+diz*diz*dz*dz);
 
-	  surfactant_potential_.Real().set(i, pot.Watt(r));	  
+	  surfactant_potential_.Real().set(i, pot.Watt(r)); ///kT);	  
 	}
   surfactant_potential_.do_real_2_fourier();
 }
@@ -61,14 +61,12 @@ void DFT_VDW_Surfactant<T>::addSurfactantPotential(Potential1 &pot, double kT)
 template <class T>
 double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
-  double F = DFT_VDW<T>::calculateFreeEnergyAndDerivatives(onlyFex);
-
   // I will assume that species 0 is the **water** and species 1 is the surfactant.
 
   VDW_Species &water = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_[0]);
-  VDW_Species &surf = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_[1]);
+  VDW_Species &surfactant = *((VDW_Species*) DFT_VDW_Surfactant<T>::allSpecies_[1]);
   
-  const Density& surf_density = surf.getDensity();
+  const Density& surf_density = surfactant.getDensity();
 
   int Nx = surf_density.Nx();
   int Ny = surf_density.Ny();
@@ -81,6 +79,17 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
   double dz = surf_density.getDZ();
 
   double dV = surf_density.dV();
+
+  for(auto &s: DFT_VDW_Surfactant<T>::allSpecies_) s->beginForceCalculation();
+  
+  //  if(FixedN_ > 0)
+  //    {
+  //      surfactant.scaleDensity(FixedN_/surf_density.getNumberAtoms());
+  //surfactant.setChemPotential(0.0);
+  //    }
+
+  double F = DFT_VDW<T>::calculateFreeEnergyAndDerivatives(onlyFex);
+
 
   ////////////////////////////////////////////////////////////////////////////
   // Construct v2(r) for the water & do fft
@@ -104,7 +113,7 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
   dF.do_fourier_2_real();
   dF.Real().multBy(dV*dV); // this is d F/d rho_i and so the factors of dV survive
 
-  surf.addToForce(dF.Real());
+  surfactant.addToForce(dF.Real());
   
   /////////////////////////////////////////////////////////////////////////////////
   // Contribution to the free energy is this dotted with the surfactant density
@@ -134,26 +143,31 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
       water.addToForce(dF.cReal());
     }
 
+  ////////////////////////////////////////////////////////////////////////////////
+  // If the mass is supposed to be constant, we need to adjust the chemical potential
+
+  for(auto &s: DFT_VDW_Surfactant<T>::allSpecies_)
+    s->endForceCalculation();
+  /*
+  if(FixedN_ > 0)
+    {
+      double mu = 0.0;
+      DFT_Vec &dF = surfactant.getDF();
+      
+      for(long p=0;p<Ntot;p++)
+	mu += dF.get(p)*surf_density.getDensity(p);
+      mu /= FixedN_;
+      surfactant.setChemPotential(mu);
+
+      for(long p=0;p<Ntot;p++)
+	dF.set(p, dF.get(p)-mu*dV);
+
+      cout << "Surfactant mu = " << mu << endl;
+    }
+  */
+
+  
   return F;
-}
-
-
-template <class T>
-void DFT_VDW_Surfactant<T>::coexistence(double& xliq, double &xgas) const
-{
-  DFT_VDW<T>::coexistence(xliq,xgas);
-}
-
-template <class T>
-void DFT_VDW_Surfactant<T>::spinodal(double& xs1, double &xs2) const
-{
-  DFT_VDW<T>::spinodal(xs1,xs2);
-}
-
-template <class T>
-double DFT_VDW_Surfactant<T>::findLiquidFromMu(double mu, double mu_coex, double xliq_coex) const
-{
-  return DFT_VDW<T>::findLiquidFromMu(mu, mu_coex, xliq_coex);
 }
 
 

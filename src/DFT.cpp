@@ -18,10 +18,14 @@ using namespace std;
 
 #include "DFT.h"
 
-double DFT::F_IdealGas(bool bCalcForces)
+double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
-  double Fideal = 0.0;
-  
+  double F = 0.0;
+  for(auto &species : allSpecies_)  
+    species->zeroForce();
+
+  if(onlyFex) return F; // do nothing.
+
   for(auto &species : allSpecies_)
     {
       const Density& density = species->getDensity();
@@ -32,45 +36,31 @@ double DFT::F_IdealGas(bool bCalcForces)
 	  double d0 = density.getDensity(i);
 	  if(d0 > -SMALL_VALUE)
 	    {
-	      Fideal += (d0*log(d0)-d0)*dV;
-	      if(bCalcForces) species->addToForce(i,log(d0)*dV);
+	      F += (d0*log(d0)-d0)*dV;
+	      species->addToForce(i,log(d0)*dV);
 	    } else {
-	    if(bCalcForces) species->addToForce(i,log(SMALL_VALUE)*dV);
+	    species->addToForce(i,log(SMALL_VALUE)*dV);
 	  }
 	}
     }
-  return Fideal;
-}
 
-double DFT::F_External(bool bCalcForces)
-{
-  double Fx = 0.0;
-  
   for(auto &species : allSpecies_)
-    Fx += species->externalField(bCalcForces);
+    F += species->externalField(true); // bCalcForces = true: obsolete?  
 
-  return Fx;
+  return F;
+  
 }
-
 
 template <class T>
 double DFT_FMT<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
-  double F = 0;
+  double F = DFT::calculateFreeEnergyAndDerivatives(onlyFex);
   
-  //dF.zeros(density.Ntot());
-
   try{
     F += fmt_.calculateFreeEnergyAndDerivatives(allSpecies_);
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  if(!onlyFex) // add in ideal gas and external field and chem potential
-    {
-      double fideal  = F_IdealGas(true);       // Ideal gas
-      double fext = F_External(true);   // External field + chem potential
-      F += fideal + fext;
-    }
 
   return F;
 }
@@ -101,32 +91,18 @@ double DFT_FMT<T>::Xliq_From_Mu(double mu) const
 
 template <class T>
 DFT_VDW<T>::DFT_VDW(int Nx, int Ny, int Nz)
-  : DFT_FMT<T>(Nx,Ny,Nz), vdw_(0,0)
+  : DFT_FMT<T>(Nx,Ny,Nz)
 {
   // initialize working space for calculations ...
   v_mean_field_.initialize(Nx,Ny,Nz);
 }
 
 template <class T>
-void DFT_VDW<T>::addSpecies(VDW_Species* species,  double kT)  
-{
-  DFT_FMT<T>::addSpecies(species);
-  
-  double hsd   = species->getHSD();
-  double a_vdw = species->get_VDW_Constant();
-  
-  vdw_.set_VDW_Parameter(a_vdw);
-  vdw_.set_HardSphere_Diameter(hsd);
-}
-
-template <class T>
 double DFT_VDW<T>::Mu(const vector<double> &x, int species) const
 {
-  double mu = DFT_FMT<T>::Mu(x,species);
-  VDW_Species *s = (VDW_Species*) (DFT_FMT<T>::allSpecies_[species]);
+  VDW_Species *s = (VDW_Species*) DFT_FMT<T>::allSpecies_[species];
   
-  mu += 2*s->get_VDW_Constant()*x[species];
-  return mu;
+  return DFT_FMT<T>::Mu(x,species) + 2*s->get_VDW_Constant()*x[species];
 }
 
 template <class T>
@@ -144,7 +120,6 @@ double DFT_VDW<T>::Fhelmholtz(const vector<double> &x) const
 template <class T>
 double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
-  //  dF.zeros(Ntot);
   double F = 0;
 
   // Hard sphere contributions to F and dF
@@ -153,14 +128,10 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives(bool onlyFex)
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-
   // Mean field contribution to F and dF
-  // Divide by Ntot because of normalization of fft
   for(auto &s: DFT::allSpecies_)
-    {
-      double ff = ((VDW_Species *) s)->getInteractionEnergyAndForces(v_mean_field_);
-      F += ff;
-    }
+      F += ((VDW_Species *) s)->getInteractionEnergyAndForces(v_mean_field_);
+
   return F;
 }
 

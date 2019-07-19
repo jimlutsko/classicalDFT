@@ -235,8 +235,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
   // The  derivatives
   double dV = allSpecies.front()->getLattice().dV();
   
-  for(int Jspecies = 0; Jspecies < allSpecies.size(); Jspecies++)
-    for(auto &s: allSpecies)
+  for(auto &s: allSpecies)
     {
       FMT_Species &species = *((FMT_Species*) s);
 
@@ -244,8 +243,12 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
       species.Accumulate_dPhi(dPhi_.Four());
 
       dPhi_.do_fourier_2_real();
-      species.setForce(dPhi_.cReal());
-      species.multForce(dV);
+
+      dPhi_.Real().multBy(dV);
+      species.addToForce(dPhi_.cReal());
+      
+      //      species.setForce(dPhi_.cReal());
+      //      species.multForce(dV);
     }
   
   return F*dV;
