@@ -63,7 +63,6 @@ class DFT
    */ 
   void addSpecies(Species* s) {allSpecies_.push_back(s);}
 
-
   int getNumberOfSpecies() const {return allSpecies_.size();}
 
   double getNumberAtoms(int i) const {return allSpecies_[i]->getDensity().getNumberAtoms();}
@@ -92,9 +91,10 @@ class DFT
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
 
   /**
-   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions. Here, this is just the ideal gas contribution.
+   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions. 
+   *            This is just a wrapper that calls calculateFreeEnergyAndDerivatives_internal_ which does the real work. 
    *  
-   *   @param  onlyFex : if true, the ideal and external contributions are not added
+   *   @param  onlyFex : if true, the ideal and external contributions are not added: IS THIS PARAMETER NEEDED???
    *   @return total free energy of system
    */  
   double calculateFreeEnergyAndDerivatives(bool onlyFex);
