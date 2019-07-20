@@ -357,6 +357,7 @@ void fireMinimizer::draw_after()
 int fireMinimizer::draw_during()
 {
   cout << "\t1D minimization F = " << F_  << " mu_eff = " << mu_eff_ << " F-mu*N = " << F_-mu_eff_*N_fixed_target_ << " N = " << dft_.getNumberAtoms(0) << " Ntarget = " << N_fixed_target_ << endl;
+  return 1;
 }
 
 
@@ -477,4 +478,5 @@ void fireMinimizer_Mu::draw_after()
 int fireMinimizer_Mu::draw_during()
 {
   cout << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
+  return 1;
 }
