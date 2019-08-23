@@ -154,8 +154,10 @@ template class DFT_FMT<WhiteBearI>;
 template class DFT_FMT<WhiteBearII>;
 template class DFT_FMT<RSLT>;
 template class DFT_FMT<RSLT2>;
+template class DFT_FMT<Rosenfeld>;
 
 template class DFT_VDW<WhiteBearI>;
 template class DFT_VDW<WhiteBearII>;
 template class DFT_VDW<RSLT>;
 template class DFT_VDW<RSLT2>;
+template class DFT_VDW<Rosenfeld>;

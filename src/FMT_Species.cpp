@@ -221,9 +221,13 @@ void FMT_Species::generateWeights(string &pointsFile)
 		    int ny = iy0+jo;
 		    int nz = iz0+ko;
 
-		    if(nx < 0) nx += Nx;
-		    if(ny < 0) ny += Ny;
-		    if(nz < 0) nz += Nz;
+		    while(nx < 0) nx += Nx;
+		    while(ny < 0) ny += Ny;
+		    while(nz < 0) nz += Nz;
+
+		    while(nx >= Nx) nx -= Nx;
+		    while(ny >= Ny) ny -= Ny;
+		    while(nz >= Nz) nz -= Nz;
 
 		    long pos = nz+Nz*(ny+Ny*nx);
 	      
@@ -285,10 +289,15 @@ void FMT_Species::generateWeights(string &pointsFile)
 			int ny = iy0+jo;
 			int nz = iz0+ko;
 
-			if(nx < 0) nx += Nx;
-			if(ny < 0) ny += Ny;
-			if(nz < 0) nz += Nz;
+			while(nx < 0) nx += Nx;
+			while(ny < 0) ny += Ny;
+			while(nz < 0) nz += Nz;
 
+			while(nx >= Nx) nx -= Nx;
+			while(ny >= Ny) ny -= Ny;
+			while(nz >= Nz) nz -= Nz;
+
+			
 			long pos = nz+Nz*(ny+Ny*nx);
 
 			double cc = (io == 0 ? 1-ddx : ddx)*(jo == 0 ? 1-ddy : ddy)*(ko == 0 ? 1-ddz : ddz); // trilinear interpolation

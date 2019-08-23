@@ -532,15 +532,41 @@ class RSLT2: public RSLT
 
  virtual string Name() const { return string("RSLT2");}
 
- virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
- {
-   throw std:: runtime_error("BulkMuex not implemented in RSLT2");
+};
+/**
+  *  @brief  Rosenfeld modified to give CS EOS.
+  *
+  */  
+
+
+class Rosenfeld: public RSLT
+{
+ public:
+  Rosenfeld() : RSLT(){};
+
+
+  virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
+  {
+    return (1.0/(36*M_PI))*(s2*s2*s2-s2*v2_v2);
+  }
+
+ virtual double dPhi3_dS2(double s2,double v2_v2,double vTv,double T2,double T3) const 
+ { 
+   return (1.0/(36*M_PI))*(3*s2*s2-v2_v2);
  }
 
- virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
- {
-   throw std:: runtime_error("BulkFex not implemented in RSLT2");
+ virtual double dPhi3_dV2(int k, double s2, double v2_v2, double v2[], double vT[]) const 
+ { 
+    return (1.0/(36*M_PI))*s2*2*v2[k];
  }
+
+ virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const 
+ { 
+   return 0;
+ }
+
+ virtual string Name() const { return string("Rosenfeld");}
+
 };
 
 
