@@ -41,7 +41,7 @@ class Minimizer
     string title = ts.str();
     string file("image_current.png");
     dft_.doDisplay(title, file);
-
+    return 1;
   }
   virtual int draw_during() = 0;  // Display something during the minimization
   virtual void draw_after()  = 0;  // Display something after the minimization
@@ -125,7 +125,7 @@ class DDFT : public Minimizer
   virtual void initialize();
   
   //  virtual int draw_before(); // Display something before the next step
-  virtual int draw_during(){}  // Display something during the minimization
+  virtual int draw_during(){ return 1;}  // Display something during the minimization
   virtual void draw_after()  // Display something after the minimization
   {
     cout << "After DDFT step " << step_counter_ 
