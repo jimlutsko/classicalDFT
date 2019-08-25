@@ -341,8 +341,8 @@ VDW_Species::VDW_Species(Density& density, double hsd, string &pointsFile, Poten
     for(int ny = 0;ny<Ny;ny++)
       for(int nz = 0;nz<Nz;nz++)
 	{
-	  long pos = nz+Nz*(ny+Ny*nx);
-	  
+	  long pos = nnz+Nz*(nny+Ny*nnx);
+
 	  double x = nx*dx;
 	  double y = ny*dy;
 	  double z = nz*dz;
