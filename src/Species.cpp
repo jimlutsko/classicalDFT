@@ -20,7 +20,7 @@ using namespace std;
 #include <mpi.h>  
 #endif
 
-#include "FMT_Species.h"
+#include "Species.h"
 
 int Species::SequenceNumber_ = 0;
 
@@ -289,15 +289,10 @@ void FMT_Species::generateWeights(string &pointsFile)
 			int ny = iy0+jo;
 			int nz = iz0+ko;
 
-			while(nx < 0) nx += Nx;
-			while(ny < 0) ny += Ny;
-			while(nz < 0) nz += Nz;
+			if(nx < 0) nx += Nx;
+			if(ny < 0) ny += Ny;
+			if(nz < 0) nz += Nz;
 
-			while(nx >= Nx) nx -= Nx;
-			while(ny >= Ny) ny -= Ny;
-			while(nz >= Nz) nz -= Nz;
-
-			
 			long pos = nz+Nz*(ny+Ny*nx);
 
 			double cc = (io == 0 ? 1-ddx : ddx)*(jo == 0 ? 1-ddy : ddy)*(ko == 0 ? 1-ddz : ddz); // trilinear interpolation
@@ -341,8 +336,8 @@ VDW_Species::VDW_Species(Density& density, double hsd, string &pointsFile, Poten
     for(int ny = 0;ny<Ny;ny++)
       for(int nz = 0;nz<Nz;nz++)
 	{
-	  long pos = nnz+Nz*(nny+Ny*nnx);
-
+	  long pos = nz+Nz*(ny+Ny*nx);
+	  
 	  double x = nx*dx;
 	  double y = ny*dy;
 	  double z = nz*dz;

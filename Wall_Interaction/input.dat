@@ -1,0 +1,48 @@
+nCores = 20
+
+PointsPerHardSphere = 30
+
+BulkEta1 = 0.21262
+BulkEta2 = 0.23409
+
+
+
+
+HSD1 = 1
+HSD2 = 0.1
+
+#Temperature
+kT = 0.8
+
+# The mean field potential
+eps1 = 0.0
+sigma1 = 1
+rcut1 = 3
+
+eps2 = 0.0
+sigma2 = 0.002
+rcut2 = 3
+
+eps_surf = 50
+sigma_surf = 0.2
+rcut_surf = 3
+
+#Box dimensions
+Lx = 1
+Ly = 1
+Lz = 41
+
+#Wall potential
+sigWall = 0.0001
+epsWall = 0.0001
+
+PointsPerHardSphere = 30
+PointsPerHardSphere = 32
+Lx = 1
+Ly = 1
+Lz = 42
+
+
+
+
+

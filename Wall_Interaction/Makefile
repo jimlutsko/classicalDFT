@@ -1,6 +1,6 @@
 all: prog
 
-INCLUDE= ../include
+INCLUDE=${HOME}/classicalDFT/include   -I../
 DEBUG= -O3
 
 # Name of text file containing build number.
@@ -24,13 +24,13 @@ ifeq ($(strip $(MACHINE)),$(I686))
 	PROCESSOR=pentium
 	COPTS= $(DEBUG)  -march=${PROCESSOR} 
 	CCC= g++
-	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR} -I ${INCLUDE}
+	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR} 
 	LIBINTEL= iode_ia32
 else
 	PROCESSOR=opteron
 	COPTS= $(DEBUG)  -march=${PROCESSOR} -fopenmp
 	CCC= g++
-	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR}  -I ${INCLUDE} -fopenmp  -D USE_OMP 
+	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR}  -fopenmp  -D USE_OMP 
 	LIBINTEL =iode_intel64
 endif
 
@@ -66,13 +66,12 @@ depsc= $(sourcesc:.c=.d)
 
 COMMON = ../
 
+#LIBS= ${HOME}/dev/physics.a ${HOME}/dev/applications/Interface/interface.a
 LIBS= 
 
 prog : $(OBS) $(LIBS) $(BUILD_NUMBER_FILE) common
-	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o $(PROG)   ../DFT.o ../Species.o ../FMT.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o $(OBS) $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lnlopt -lpthread -lm
+	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o $(PROG)   ../DFT.o ../DFT_Surfactant.o ../FMT.o ../Species.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o  ../Grace.o ../spliner.o $(OBS) $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lnlopt -lpthread -lm
 
-get_thermo : $(LIBS) $(BUILD_NUMBER_FILE) get_thermo.o common
-	${CCC} $(DEBUG)  -march=${PROCESSOR} $(BUILD_NUMBER_LDFLAGS) -o get_thermo   ../DFT.o ../FMT.o ../Density.o  ../Minimizer.o  ../options.o ../VDW1.o get_thermo.o  $(LIBS)  -lgomp -lgsl -lgslcblas  -lgrace_np -larmadillo -lmgl  -lfftw3_omp -lfftw3 -lnlopt -lpthread -lm
 
 .PHONY : clean
 clean :

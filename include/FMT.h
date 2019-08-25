@@ -8,7 +8,7 @@
 #include <cstring>
 #include <complex>
 
-#include "FMT_Species.h"
+#include "Species.h"
 #include "Density.h"
 #include "Point.h"
 
