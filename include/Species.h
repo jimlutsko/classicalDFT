@@ -201,6 +201,12 @@ class Species
 	d.convolute(rho_k);
     }
 
+    /**
+     *   @brief Loop over the weighted densities and ask each one to add its contribution to dPhi
+     *          In other words:   SUM_{a} d PHI/d n_{a}
+     *  
+     *   @return none
+     */  
     void Accumulate_dPhi(DFT_Vec_Complex& dPhi)
     {
       for(FMT_Weighted_Density &d: d_)

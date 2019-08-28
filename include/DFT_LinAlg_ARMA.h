@@ -59,7 +59,7 @@ class DFT_Vec
 
   void Schur(const DFT_Vec &v1, const DFT_Vec &v2) { data_ = v1.data_%v2.data_;}
 
-  void save(ofstream &of) const { data_.save(of);}
+  void save(ofstream &of) const {data_.save(of);}
   void load(ifstream &in) {data_.load(in);}
 
   void Increment_Shift_And_Scale(const DFT_Vec& v,double scale, double shift)

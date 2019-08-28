@@ -18,6 +18,8 @@
 #include "Density.h"
 #include "FMT.h"
 
+//#include "Interaction.h"
+
 
 /*! \mainpage classicalDFT: Finite Temperature Density Functional Theory in 3 dimensions
  *
@@ -62,6 +64,13 @@ class DFT
    *   @param  s is the Species object
    */ 
   void addSpecies(Species* s) {allSpecies_.push_back(s);}
+
+    /**
+   *   @brief  Tells the DFT that there is another interaction
+   *  
+   *   @param  I is the Interction object
+   */ 
+  //  void addInteraction(Interaction* Interaction) {Interactions_.push_back(Interaction);}
 
   /**
    *   @brief  Requests the number of species
@@ -165,6 +174,7 @@ class DFT
 
  protected:
   vector<Species*> allSpecies_; ///< array holding the species objects
+  //  vector<Interaction*> Interactions_; ///< array holding the interactions
 };
 
 

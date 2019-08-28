@@ -543,21 +543,31 @@ class Rosenfeld: public RSLT
 {
  public:
   Rosenfeld() : RSLT(){};
+  /*  
+  virtual double f3_(double eta) const
+  {
+    return 1.5/((1-eta)*(1-eta));
+  }
 
-
+  virtual double f3p_(double eta) const
+  {
+    return 1.5/((1-eta)*(1-eta)*(1-eta));
+  }
+  */
+  
   virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
   {
-    return (1.0/(36*M_PI))*(s2*s2*s2-s2*v2_v2);
+    return (1.0/(36*M_PI))*(s2*s2*s2-3*s2*v2_v2);
   }
 
  virtual double dPhi3_dS2(double s2,double v2_v2,double vTv,double T2,double T3) const 
  { 
-   return (1.0/(36*M_PI))*(3*s2*s2-v2_v2);
+   return (1.0/(36*M_PI))*(3*s2*s2-3*v2_v2);
  }
 
  virtual double dPhi3_dV2(int k, double s2, double v2_v2, double v2[], double vT[]) const 
  { 
-    return (1.0/(36*M_PI))*s2*2*v2[k];
+   return (1.0/(36*M_PI))*s2*(-6)*v2[k];
  }
 
  virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const 

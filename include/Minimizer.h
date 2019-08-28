@@ -86,7 +86,7 @@ class Minimizer
   * Since the total mass is fixed, there are really only Ntot-1 independent variables. We should 
   * really reduce the size of the variable array by one to account for this ... 
   */  
-
+/*
 class Minimizer_Fixed_N : public Minimizer
 {
  public:
@@ -102,7 +102,7 @@ class Minimizer_Fixed_N : public Minimizer
 
   double N_fixed_target_;
 };
-
+*/
 
 /**
   *  @brief Base class for a family of  finite elements ddft integrators. 
@@ -253,7 +253,7 @@ class DDFT_IF_Open : public DDFT
   *  @brief Minimizer using FIRE algorithm
   *
   */
-
+/*
 class fireMinimizer : public Minimizer_Fixed_N
 {
  public:
@@ -307,7 +307,7 @@ class fireMinimizer : public Minimizer_Fixed_N
   double alpha_;
 
 };
-
+*/
 /**
   *  @brief Minimizer using FIRE algorithm
   *
@@ -316,7 +316,7 @@ class fireMinimizer : public Minimizer_Fixed_N
 class fireMinimizer_Mu : public Minimizer
 {
  public:
- fireMinimizer_Mu(DFT &dft) :  Minimizer(dft)
+ fireMinimizer_Mu(DFT &dft) :  Minimizer(dft), onlyRelax_(-1)
   {
     v_.resize(dft_.getNumberOfSpecies());
     for(auto &v: v_) v.resize(dft_.lattice().Ntot());
@@ -332,6 +332,8 @@ class fireMinimizer_Mu : public Minimizer
     f_inc_ = 1.1;
     f_alf_ = 0.99;
   }
+
+  void onlyRelaxSpecies(int j) { onlyRelax_ = j;}
   
   virtual void initialize();
 
@@ -352,6 +354,7 @@ class fireMinimizer_Mu : public Minimizer
  protected:
   vector<DFT_Vec> v_;
 
+  int onlyRelax_;
 
   double alpha_start_;
   double f_dec_;

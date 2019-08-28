@@ -63,6 +63,9 @@ class FMT_Weighted_Density
  
   void setWk(long pos, double x, double y) {weight_.Four().set(pos, complex<double>(x,y));} 
 
+  void dump(ofstream &of){weight_.cReal().save(of);}
+  void load(ifstream &in){weight_.Real().load(in);}
+  
  protected:    
   DFT_FFT weighted_density_;
   DFT_FFT weight_;

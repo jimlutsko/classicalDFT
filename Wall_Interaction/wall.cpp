@@ -159,6 +159,36 @@ int main(int argc, char** argv)
   if(hsd1 < 0) hsd1 = potential1.getHSD(kT);
   if(hsd2 < 0) hsd2 = potential2.getHSD(kT);
 
+  
+  /////////////////////////////////////
+  // Create density objects
+  Wall theDensity1(dx, L, g, 0.001, 1, hsd1);
+  Wall theDensity2(dx, L, g, 0.001, 1, hsd2);
+
+  /////////////////////////////////////
+  // Create species objects
+
+  //  FMT_Species species1(theDensity1,hsd1,pointsFile);
+  //  FMT_Species species2(theDensity2,hsd2,pointsFile);
+
+  VDW_Species species1(theDensity1,hsd1,pointsFile, potential1, kT);
+  VDW_Species species2(theDensity2,hsd2,pointsFile, potential2, kT);
+
+  ///////////////////////////////////////////////////
+  // The surfactant potential
+  LJ surfactant_potential(sigma_surf, eps_surf, rcut_surf);
+
+  /////////////////////////////////////
+  // DFT object
+  DFT_VDW<RSLT> dft(species1);
+
+  //  DFT_FMT<RSLT> dft(&species1);
+
+  dft.addSpecies(&species2);
+
+
+  /////////////////////////////////////////////////////
+  // Report
   double density1 = 6*eta1/(M_PI*hsd1*hsd1*hsd1);
   double density2 = 6*eta2/(M_PI*hsd2*hsd2*hsd2);
 
@@ -173,33 +203,8 @@ int main(int argc, char** argv)
 
   log1 << "#HSD 1 = " << hsd1 << endl;
   log1 << "#HSD 2 = " << hsd2 << endl;
+
   
-  /////////////////////////////////////
-  // Create density objects
-  Wall theDensity1(dx, L, g, 0.001, 1, hsd1);
-  Wall theDensity2(dx, L, g, 0.001, 1, hsd2);
-
-  /////////////////////////////////////
-  // Create species objects
-
-  FMT_Species species1(theDensity1,hsd1,pointsFile);
-  FMT_Species species2(theDensity2,hsd2,pointsFile);
-
-  //  VDW_Species species1(theDensity1,hsd1,pointsFile, potential1, kT);
-  //  VDW_Species species2(theDensity2,hsd2,pointsFile, potential2, kT);
-
-  ///////////////////////////////////////////////////
-  // The surfactant potential
-  LJ surfactant_potential(sigma_surf, eps_surf, rcut_surf);
-
-  /////////////////////////////////////
-  // DFT object
-  //  DFT_VDW_Surfactant<RSLT> dft(&species1, surfactant_potential, kT);
-  //  DFT_VDW<RSLT> dft(species1);
-  DFT_FMT<RSLT> dft(&species1);
-
-  dft.addSpecies(&species2);
-
   /////////////////////////////////////////////////////
   // The thermodynamics
 

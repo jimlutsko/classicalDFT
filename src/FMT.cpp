@@ -43,8 +43,7 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 		     {0.0,0.0,0.0},
 		     {0.0,0.0,0.0}};
 
-  // Collect the contributions to the various weighted densities at lattice position i
-  // hsd1_ has to do with mixtures (this has not been fully implementd. hsd1_ > 0 is a flag for whether or not there is a second species).
+  // Collect the contributions to the various weighted densities at lattice position
   for(Species* &generic_species : allSpecies)
     {
       FMT_Species *species = (FMT_Species*) generic_species;
@@ -127,14 +126,14 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
       double f3p = f3p_(eta);
 
       double dPhi_dEta = 0;
-      dPhi_dEta -= (1/M_PI)*s0*f1p; ///(1-eta);
+      dPhi_dEta -= (1/M_PI)*s0*f1p; 
       dPhi_dEta += (1/(2*M_PI))*(s1*s2-v1_v2)*f2p;
       dPhi_dEta += Phi3(s2,v2_v2,vTv,T2,T3)*f3p; 
 
       double dPhi_dS2 = 0;
       dPhi_dS2 += -(1/M_PI)*f1/(hsd*hsd);
       dPhi_dS2 += (1/(2*M_PI))*((s2/hsd)+s1)*f2;
-      dPhi_dS2 += dPhi3_dS2(s2,v2_v2,vTv,T2,T3)*f3; //(1.0/(8*M_PI))*(-v2_v2+T2)*f3; 
+      dPhi_dS2 += dPhi3_dS2(s2,v2_v2,vTv,T2,T3)*f3; 
 
       double dPhi_dV0[3];
 	
@@ -142,14 +141,14 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 	{
 	  dPhi_dV0[k] = 0.0;
 	  dPhi_dV0[k] += (1/(2*M_PI))*(-v1[k]-v2[k]/hsd)*f2;
-	  dPhi_dV0[k] += dPhi3_dV2(k, s2, v2_v2, v2, vT)*f3; //(1.0/(8*M_PI))*(2*vT[k]-2*s2*v2[k])*f3;
+	  dPhi_dV0[k] += dPhi3_dV2(k, s2, v2_v2, v2, vT)*f3; 
 	}
 	
       double dPhi_dT[3][3];
 
       for(int k=0;k<3;k++)
 	for(int j=0;j<3;j++)
-	  dPhi_dT[j][k] = dPhi3_dT(j,k,s2,v2,T0, TT)*f3; // (1.0/(8*M_PI))*(v2[j]*v2[k]-3*TT(j,k)+2*s2*T0(j,k))*f3; 
+	  dPhi_dT[j][k] = dPhi3_dT(j,k,s2,v2,T0, TT)*f3; 
 		
       species->Set_dPhi_Eta(i,dPhi_dEta);
       species->Set_dPhi_S(i,dPhi_dS2);

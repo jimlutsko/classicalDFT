@@ -142,6 +142,10 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   for(auto &s: DFT::allSpecies_)
       F += ((VDW_Species *) s)->getInteractionEnergyAndForces();
 
+  // Mean field contribution to F and dF
+  //  for(auto &I: DFT::Interactions_)
+  //      F += I->getInteractionEnergyAndForces();  
+
   return F;
 }
 

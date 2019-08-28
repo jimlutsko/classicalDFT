@@ -16,7 +16,7 @@
 #include <complex>
 #include <complex.h>
 
-#include "FMT_Species.h"
+#include "Species.h"
 
 /**
   *  @brief This class encapsulates the interaction between two species (or one species with itself)
@@ -45,7 +45,7 @@ class Interaction
 	for(int ny = 0;ny<Ny;ny++)
 	  for(int nz = 0;nz<Nz;nz++)
 	    {
-	      long pos = nnz+Nz*(nny+Ny*nnx);
+	      long pos = nz+Nz*(ny+Ny*nx);
 
 	      double x = nx*dx;
 	      double y = ny*dy;
@@ -77,7 +77,7 @@ class Interaction
 
     DFT_FFT v(density1.Nx(), density1.Ny(), density1.Nz());      
     double E = 0;
-    
+    /*
     if(s1 == s2)
       {
 	v.Four().Schur(density1.getDK(),w_att_.Four());
@@ -98,7 +98,7 @@ class Interaction
 
 	E = 0.5*density1.getInteractionEnergy(v.Real());	
     }
-
+    */
 
 
       

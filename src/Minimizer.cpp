@@ -181,67 +181,7 @@ double Minimizer::getDF_DX()
     }
   return F;
 }
-
-
-void Minimizer_Fixed_N::initialize()
-{
-  Minimizer::initialize();
-}
-
-double Minimizer_Fixed_N::getDF_DX()
-{
-  calls_++;
-
-  double dV = dft_.lattice().dV();
-  vector<double> sum;
-  vector<double> a;
-
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    {
-      double N0 = x_[Jspecies].size()*SMALL_VALUE*dV;
-      sum.push_back(x_[Jspecies].dotWith(x_[Jspecies])); 
-
-      a.push_back((N_fixed_target_-N0)/(sum.back()*dV));
-
-      DFT_Vec y(x_[Jspecies]);
-      y.multBy(sqrt(a.back()));
-
-      dft_.set_density_from_amplitude(Jspecies, y);
-    }
-
-  double F = 0;
-
-  try {
-    F = dft_.calculateFreeEnergyAndDerivatives(false);   
-    cout.precision(12);
-  } catch( Eta_Too_Large_Exception &e) {
-    throw e;
-  }
-
-  double ff = 0;
-
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    {
-      DFT_Vec &df = dft_.getDF(Jspecies);
-      
-      mu_eff_ = 0.0;
-      for(long i=0;i<df.size();i++)
-	mu_eff_ += df.get(i)*x_[Jspecies].get(i)*x_[Jspecies].get(i);
-      mu_eff_ *= 1.0/sum[Jspecies];
-
-      for(int i=0;i<df.size();i++)
-	{
-	  double force = df.get(i)-mu_eff_;
-	  df.set(i,2*a[Jspecies]*force*x_[Jspecies].get(i));  
-	}
-
-    }
-  return F;
-}
-
-
-//static double mu1;
-
+/*
 void fireMinimizer::initialize()
 {
   Minimizer_Fixed_N::initialize();
@@ -359,7 +299,7 @@ int fireMinimizer::draw_during()
   cout << "\t1D minimization F = " << F_  << " mu_eff = " << mu_eff_ << " F-mu*N = " << F_-mu_eff_*N_fixed_target_ << " N = " << dft_.getNumberAtoms(0) << " Ntarget = " << N_fixed_target_ << endl;
   return 1;
 }
-
+*/
 
 void fireMinimizer_Mu::initialize()
 {
@@ -385,6 +325,9 @@ void fireMinimizer_Mu::verlet()
   try{
     for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
       {
+	if(onlyRelax_ >= 0)
+	  if(Jspecies != onlyRelax_)
+	    continue;
 	DFT_Vec &df = dft_.getDF(Jspecies);
 	
 	x_[Jspecies].Increment_And_Scale(v_[Jspecies],dt_);           // this gives x_(t+dt)
@@ -393,10 +336,17 @@ void fireMinimizer_Mu::verlet()
       }
     F_ = getDF_DX();                          // then get new forces    
     for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-      v_[Jspecies].Increment_And_Scale(dft_.getDF(Jspecies), -0.5*dt_);    // and finish velocity update
+      	if(onlyRelax_ >= 0)
+	  if(Jspecies != onlyRelax_)
+	    continue;
+	  else v_[Jspecies].Increment_And_Scale(dft_.getDF(Jspecies), -0.5*dt_);    // and finish velocity update
   } catch (Eta_Too_Large_Exception &e) {
     for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
       {
+	if(onlyRelax_ >= 0)
+	  if(Jspecies != onlyRelax_)
+	    continue;
+	
 	x_[Jspecies].set(y[Jspecies]);
 	v_[Jspecies].zeros(v_[Jspecies].size());
       }
@@ -426,6 +376,10 @@ double fireMinimizer_Mu::step()
 
   for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
     {
+      if(onlyRelax_ >= 0)
+	if(Jspecies != onlyRelax_)
+	  continue;
+	
       stringstream s;
       s << "snapshot_s" << Jspecies << ".dat";
       string of = s.str();
@@ -437,6 +391,10 @@ double fireMinimizer_Mu::step()
   
   for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
     {
+      if(onlyRelax_ >= 0)
+	if(Jspecies != onlyRelax_)
+	  continue;
+      
       p += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
       v_[Jspecies].multBy(1-alpha_);
     }
@@ -446,6 +404,10 @@ double fireMinimizer_Mu::step()
 
   for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
     {
+      if(onlyRelax_ >= 0)
+	if(Jspecies != onlyRelax_)
+	  continue;
+	
       double v = v_[Jspecies].euclidean_norm();
       double f = dft_.getDF(Jspecies).euclidean_norm();
       vnorm += v*v;
