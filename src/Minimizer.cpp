@@ -58,37 +58,8 @@ void Minimizer::run(string& logfile, long maxSteps)
 
     draw_after();
 
-    int oldprecision = cout.precision(12);
     cout << "F = " << F_ << " f_abs_max_ = " << f_abs_max_ << endl;
-    cout.precision(oldprecision);
 
-    if(step_counter_%20 == 1)
-      {
-	stringstream ss;
-	std::ios  state(NULL);
-	state.copyfmt(ss);
-	
-	ss << "image_";
-	ss << setfill ('0') << std::setw(8);
-	ss << image_counter;
-	ss.copyfmt(state);
-	ss <<".png";
-	finish(ss.str().c_str());
-	image_counter++;
-      } else {
-      	stringstream ss;
-	ss << "image_current" <<".png";
-	finish(ss.str().c_str());
-    }
-    /*
-    if(step_counter_%1000 == 1)
-      {
-	stringstream ss;
-	ss << "snapshot_" << step_counter_ <<".dat";
-	string s = ss.str();
-	density_.writeDensity(s); //s.str());
-      }
-    */
 
     if(f_abs_max_ < forceLimit_)
       {
@@ -102,7 +73,6 @@ void Minimizer::run(string& logfile, long maxSteps)
       }
   } while(1);
 
-  finish("final.png");
 }
 
 

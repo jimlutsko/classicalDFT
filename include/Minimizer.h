@@ -31,7 +31,6 @@ class Minimizer
   void run(string& logfile, long maxSteps = -1);
 
   virtual double step() = 0;
-  virtual void finish(const char *) = 0;
 
   virtual int draw_before() // Display something before the next step
   {
@@ -63,7 +62,7 @@ class Minimizer
   DFT &dft_;
 
   // A hook to allow for graphical displays
-  void (*display_)(Minimizer &minimizer);
+  //  void (*display_)(Minimizer &minimizer);
   
   // Working space for the minimization
 
@@ -77,32 +76,6 @@ class Minimizer
   double f_abs_max_; // max absolute value of dF_
   bool bFrozenBoundary_;
 };
-
-/**
-  *  @brief Minimizer_Fixed_N: specializes to the case of fixed number of particles
-  *
-  * @detailed Here we minimize  F[rho0 + x*x*a] over x with a chosen to fix the total mass.
-  * There are a couple of problems.
-  * Since the total mass is fixed, there are really only Ntot-1 independent variables. We should 
-  * really reduce the size of the variable array by one to account for this ... 
-  */  
-/*
-class Minimizer_Fixed_N : public Minimizer
-{
- public:
- Minimizer_Fixed_N(DFT &dft, double Nfixed) : Minimizer(dft), N_fixed_target_(Nfixed)
-  {}
-
-  virtual void initialize();
-  
-  virtual double getDF_DX();
-
- protected:
-  double mu_eff_;
-
-  double N_fixed_target_;
-};
-*/
 
 /**
   *  @brief Base class for a family of  finite elements ddft integrators. 
@@ -124,7 +97,6 @@ class DDFT : public Minimizer
 
   virtual void initialize();
   
-  //  virtual int draw_before(); // Display something before the next step
   virtual int draw_during(){ return 1;}  // Display something during the minimization
   virtual void draw_after()  // Display something after the minimization
   {
@@ -134,7 +106,6 @@ class DDFT : public Minimizer
 	 << " and N = " << dft_.getDensity(0).getNumberAtoms() 
 	 << endl;
   }
-  virtual void finish(const char *c){};
 
   void Display(double F, double dFmin, double dFmax, double N);
     
@@ -182,8 +153,8 @@ class DDFT_IF : public DDFT
 {
  public:
  DDFT_IF(DFT &dft, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft,  g, showGraphics)
-    {}
+   : DDFT(dft,  g, showGraphics) {}
+
   ~DDFT_IF() {}
 
   virtual void initialize();
@@ -214,8 +185,7 @@ class DDFT_IF_Open : public DDFT
  public:
  DDFT_IF_Open(DFT &dft, double background, Grace *g = NULL, bool showGraphics = true)
    : DDFT(dft, g, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
-    {
-    }
+    {}
   ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
 
   virtual void initialize();
@@ -226,7 +196,7 @@ class DDFT_IF_Open : public DDFT
 
   double fftDiffusion(const Density &density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1) {throw std::runtime_error("Need to adapt fftDiffusion for non-string application");}
   double fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform);
-  void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
+  void   calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
 
   void pack_for_sin_transform(const double *x, double val);
   
@@ -247,67 +217,6 @@ class DDFT_IF_Open : public DDFT
   vector<double> Lamz;
 };
 
-
-
-/**
-  *  @brief Minimizer using FIRE algorithm
-  *
-  */
-/*
-class fireMinimizer : public Minimizer_Fixed_N
-{
- public:
- fireMinimizer(DFT &dft,  double Ntarget) :  Minimizer_Fixed_N(dft,  Ntarget)
-  { 
-    v_.resize(dft_.getNumberOfSpecies());
-    for(auto &v: v_) v.resize(dft_.lattice().Ntot());
-    
-    //dt_ = 1e-3; // my guess
-    dt_ = 1e-3; // my guess
-    dt_max_ = 10*dt_;
-    
-    N_min_ = 5;
-  
-    alpha_start_ = 0.1;
-    f_dec_ = 0.5;
-    f_inc_ = 1.1;
-    f_alf_ = 0.99;
-  }
-  
-  virtual void initialize();
-
-  virtual double step();
-  virtual void finish(const char *) {}
-
-  virtual int draw_during();
-  virtual void draw_after();
-
-  void verlet();
-
-  void setTimeStep(double dt) { dt_ = dt;}
-  void setTimeStepMax(double dt) { dt_max_ = dt;}
-  
-  void setAlphaStart(double a) { alpha_start_ = a;}
-  void setAlphaFac(double a) { f_alf_ = a;}
-
- protected:
-  vector<DFT_Vec> v_;
-
-
-  double alpha_start_;
-  double f_dec_;
-  double f_inc_;
-  double f_alf_;
-  double dt_max_;
-  double dt_;
-
-  unsigned it_;
-  unsigned cut_;
-  int N_min_;
-  double alpha_;
-
-};
-*/
 /**
   *  @brief Minimizer using FIRE algorithm
   *
@@ -321,7 +230,6 @@ class fireMinimizer_Mu : public Minimizer
     v_.resize(dft_.getNumberOfSpecies());
     for(auto &v: v_) v.resize(dft_.lattice().Ntot());
 
-    //dt_ = 1e-3; // my guess
     dt_ = 1e-3; // my guess
     dt_max_ = 10*dt_;
     
@@ -338,18 +246,16 @@ class fireMinimizer_Mu : public Minimizer
   virtual void initialize();
 
   virtual double step();
-  virtual void finish(const char *) {}
 
-  virtual int draw_during();
+  virtual int  draw_during();
   virtual void draw_after();
 
   void verlet();
 
-  void setTimeStep(double dt) { dt_ = dt;}
-  void setTimeStepMax(double dt) { dt_max_ = dt;}
-  
-  void setAlphaStart(double a) { alpha_start_ = a;}
-  void setAlphaFac(double a) { f_alf_ = a;}
+  void setTimeStep(double dt)    { dt_ = dt;}
+  void setTimeStepMax(double dt) { dt_max_ = dt;}  
+  void setAlphaStart(double a)   { alpha_start_ = a;}
+  void setAlphaFac(double a)     { f_alf_ = a;}
 
  protected:
   vector<DFT_Vec> v_;
