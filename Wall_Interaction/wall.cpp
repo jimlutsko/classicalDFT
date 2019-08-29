@@ -139,6 +139,10 @@ int main(int argc, char** argv)
 
   double dx = 1.0/PointsPerHardSphere;
 
+  if(L[0] < 0) L[0] = dx;
+  if(L[1] < 0) L[1] = dx;
+  if(L[2] < 0) L[2] = dx;  
+  
 #ifdef USE_OMP    
   omp_set_dynamic(0);
   omp_set_num_threads(nCores);
@@ -167,25 +171,32 @@ int main(int argc, char** argv)
 
   /////////////////////////////////////
   // Create species objects
+  
+  FMT_Species species1(theDensity1,hsd1,pointsFile);
+  FMT_Species species2(theDensity2,hsd2,pointsFile);
 
-  //  FMT_Species species1(theDensity1,hsd1,pointsFile);
-  //  FMT_Species species2(theDensity2,hsd2,pointsFile);
+  Interaction i1(species1,species1,potential1,kT);
+  Interaction i2(species2,species2,potential2,kT);
+  
+  //VDW_Species species1(theDensity1,hsd1,pointsFile, potential1, kT);
+  //  VDW_Species species2(theDensity2,hsd2,pointsFile, potential2, kT);
 
-  VDW_Species species1(theDensity1,hsd1,pointsFile, potential1, kT);
-  VDW_Species species2(theDensity2,hsd2,pointsFile, potential2, kT);
-
+  
+  
   ///////////////////////////////////////////////////
   // The surfactant potential
-  LJ surfactant_potential(sigma_surf, eps_surf, rcut_surf);
+  //  LJ surfactant_potential(sigma_surf, eps_surf, rcut_surf);
 
   /////////////////////////////////////
   // DFT object
-  DFT_VDW<RSLT> dft(species1);
+  //  DFT_VDW<RSLT> dft(&species1);
 
-  //  DFT_FMT<RSLT> dft(&species1);
+  DFT_FMT<RSLT> dft(&species1);
 
   dft.addSpecies(&species2);
 
+  dft.addInteraction(&i1);
+  dft.addInteraction(&i2);
 
   /////////////////////////////////////////////////////
   // Report

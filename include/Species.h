@@ -12,6 +12,8 @@ class Species
  Species(Density &density, double mu = 0) : density_(density), dF_(density.Ntot()), mu_(mu), fixedMass_(-1) { seq_num_ = SequenceNumber_++;}
   ~Species(){}
 
+  int getSequenceNumber() const { return seq_num_;}
+  
   void setFixedMass(double m) { fixedMass_ = m; if(m > 0.0) mu_ = 0.0;}
 
   double getChemPotential() const {return mu_;}

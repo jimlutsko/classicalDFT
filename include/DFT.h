@@ -18,7 +18,7 @@
 #include "Density.h"
 #include "FMT.h"
 
-//#include "Interaction.h"
+#include "Interaction.h"
 
 
 /*! \mainpage classicalDFT: Finite Temperature Density Functional Theory in 3 dimensions
@@ -70,7 +70,7 @@ class DFT
    *  
    *   @param  I is the Interction object
    */ 
-  //  void addInteraction(Interaction* Interaction) {Interactions_.push_back(Interaction);}
+  void addInteraction(Interaction* Interaction) {Interactions_.push_back(Interaction);}
 
   /**
    *   @brief  Requests the number of species
@@ -127,7 +127,7 @@ class DFT
    *   @param  species is the species for which we calculate the chemical potential
    *   @return mu/kT
    */   
-  virtual double Mu(const vector<double> &x, int species) const {return log(x[species]);}
+  virtual double Mu(const vector<double> &x, int species) const;
 
   /**
    *   @Brief  Compute grand potenial/kT/V for a uniform system with the given density
@@ -135,7 +135,7 @@ class DFT
    *   @param  x is the array of densities
    *   @return Omega/(kT * V)
    */   
-  virtual double Omega(const vector<double> &x) const {double omega = Fhelmholtz(x); for(int i=0;i<allSpecies_.size();i++) if(fabs(x[i]) > SMALL_VALUE) omega -= x[i]*Mu(x,i); return omega;}
+  virtual double Omega(const vector<double> &x) const;
 
   /**
    *   @brief  Compute Helmholtz free energy/kT/V for a uniform system with the given density
@@ -143,7 +143,7 @@ class DFT
    *   @param  x is the array of densities
    *   @return F/(kT * V)
    */   
-  virtual double Fhelmholtz(const vector<double> &x) const {double F = 0.0; for(auto &y: x) if(fabs(y) > SMALL_VALUE) F += y*log(y)-y; return F;}  
+  virtual double Fhelmholtz(const vector<double> &x) const;
 
   /**
    *   @brief  Returns the name of the DFT object - i.e. identifies the model being used.
@@ -174,7 +174,7 @@ class DFT
 
  protected:
   vector<Species*> allSpecies_; ///< array holding the species objects
-  //  vector<Interaction*> Interactions_; ///< array holding the interactions
+  vector<Interaction*> Interactions_; ///< array holding the interactions
 };
 
 

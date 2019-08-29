@@ -25,9 +25,9 @@
 class Interaction
 {
  public:
- Interaction(Species &s1, Species &s2, Potential1 &v) : s1_(s1), s2_(s2)
+ Interaction(Species &s1, Species &s2, Potential1 &v, double kT) : s1_(s1), s2_(s2)
     {
-      Density &density = s1.getDensity();
+      const Density &density = s1.getDensity();
       
       // The lattice
       long Nx = density.Nx();
@@ -70,41 +70,56 @@ class Interaction
 
   double getInteractionEnergyAndForces()
   {
-    Density &density1 = s1_.getDensity();
+    const Density &density1 = s1_.getDensity();
     
     long Ntot = density1.Ntot();
     double dV = density1.dV();
 
     DFT_FFT v(density1.Nx(), density1.Ny(), density1.Nz());      
     double E = 0;
-    /*
-    if(s1 == s2)
+    
+    if(s1_.getSequenceNumber() == s2_.getSequenceNumber())
       {
 	v.Four().Schur(density1.getDK(),w_att_.Four());
 	v.Four().multBy(dV*dV/Ntot);
 	v.do_fourier_2_real(); 
-	s1_.IncrementBy(v.Real());
+	s1_.addToForce(v.Real());
 	E = 0.5*density1.getInteractionEnergy(v.Real());	
       } else {
 	v.Four().Schur(density1.getDK(),w_att_.Four());
 	v.Four().multBy(0.5*dV*dV/Ntot);
 	v.do_fourier_2_real(); 
-	s2_.IncrementBy(v.Real());
+	s2_.addToForce(v.Real());
+
+	const Density &density2 = s2_.getDensity();
 
 	v.Four().Schur(density2.getDK(),w_att_.Four());
 	v.Four().multBy(0.5*dV*dV/Ntot);
 	v.do_fourier_2_real(); 
-	s1_.IncrementBy(v.Real());
+	s1_.addToForce(v.Real());
 
 	E = 0.5*density1.getInteractionEnergy(v.Real());	
-    }
-    */
-
-
-      
+    }      
     return E;
   }
 
+  double Mu(const vector<double> &x, int species) const
+  {
+    double mu = 0.0;
+
+    if(s1_.getSequenceNumber() == species)
+      mu += a_vdw_*x[s2_.getSequenceNumber()];
+
+    if(s2_.getSequenceNumber() == species)
+      mu += a_vdw_*x[s1_.getSequenceNumber()];    
+
+    return mu;
+  }
+
+  double Fhelmholtz(const vector<double> &x) const
+  {
+    return a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];
+  }  
 
   
  private:

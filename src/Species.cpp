@@ -41,34 +41,37 @@ FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile): Spec
   ifstream in(ss1.str().c_str(), ios::binary);
   if(!in.good())
     {readWeights = false; cout << "\n" <<  "Could not open file with weights: generating weights" << endl;}
+  else {
+    string buf;
+    getline(in,buf);
 
-  string buf;
-  getline(in,buf);
+    stringstream ss2(buf);
+    int nx, ny, nz;
+    double d;
+    ss2 >> nx >> ny >> nz >> d;
 
-  stringstream ss2(buf);
-  int nx, ny, nz;
-  double d;
-  ss2 >> nx >> ny >> nz >> d;
+    if(nx != Nx)
+      {readWeights = false; cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
+    if(ny != Ny)
+      {readWeights = false; cout << "\n" <<  "Mismatch in Ny: expected " << Ny << " but read " << ny <<  endl;}
+    if(nz != Nz)
+      {readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
+    if(fabs(hsd_-d) > 1e-8*(hsd_+d))
+      {readWeights = false; cout << "\n" <<  "Mismatch in hsd: generating weights: expected " << hsd_ << " but read " << d << endl;}
 
-  if(nx != Nx)
-    {readWeights = false; cout << "\n" <<  "Mismatch in Nx: generating weights" << endl;}
-  if(ny != Ny)
-    {readWeights = false; cout << "\n" <<  "Mismatch in Ny: generating weights" << endl;}
-  if(nz != Nz)
-    {readWeights = false; cout << "\n" <<  "Mismatch in Nz: generating weights" << endl;}
-  if(fabs(hsd_-d) > 1e-8*(hsd_+d))
-    {readWeights = false; cout << "\n" <<  "Mismatch in hsd: generating weights" << endl;}
-
-  getline(in,buf);
-  stringstream ss3(buf);
-  if(ss3.str().compare(pointsFile) != 0)
-    {readWeights = false; cout << "\n" <<  "Mismatch in points file: generating weights" << endl;}	
-      
+    getline(in,buf);
+    stringstream ss3(buf);
+    if(ss3.str().compare(pointsFile) != 0)
+      {readWeights = false; cout << "\n" <<  "Mismatch in points file: expected " << pointsFile << " but read " << ss3.str() <<  endl;}
+  }
   if(readWeights)
     {
       for(auto& s: d_)
 	s.load(in);
-    } else generateWeights(pointsFile);
+    } else {
+    cout << "Generating weights ... " << endl;
+    generateWeights(pointsFile);
+  }
 
   for(FMT_Weighted_Density &d: d_)
     d.transformWeights();
@@ -363,6 +366,9 @@ void FMT_Species::generateWeights(string &pointsFile)
   stringstream ss;
   ss << "weights_" << seq_num_ << ".dat";
   ofstream of(ss.str().c_str(), ios::binary);
+
+  of.flags (std::ios::scientific);
+  of.precision (std::numeric_limits<double>::digits10 + 1);
 
   of << Nx << " " << Ny << " " << Nz << " " << hsd_ << endl;
   of << pointsFile << endl;

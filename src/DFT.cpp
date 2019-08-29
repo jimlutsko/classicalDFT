@@ -19,6 +19,36 @@ using namespace std;
 #include "DFT.h"
 
 
+double DFT::Mu(const vector<double> &x, int species) const
+{
+  double mu = log(x[species]);
+  for(auto &interaction: Interactions_)
+    mu += interaction->Mu(x,species);
+  return mu;
+}
+
+double DFT::Omega(const vector<double> &x) const
+{
+  double omega = Fhelmholtz(x);
+  for(int i=0;i<allSpecies_.size();i++)
+    if(fabs(x[i]) > SMALL_VALUE) omega -= x[i]*Mu(x,i);
+  return omega;
+}
+
+double DFT::Fhelmholtz(const vector<double> &x) const
+{
+  double F = 0.0;
+  for(auto &y: x)
+    if(fabs(y) > SMALL_VALUE)
+      F += y*log(y)-y;
+
+  for(auto &interaction: Interactions_)
+    F += interaction->Fhelmholtz(x);  
+
+  return F;  
+}  
+
+
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
   for(auto &species : allSpecies_)  
@@ -143,8 +173,8 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
       F += ((VDW_Species *) s)->getInteractionEnergyAndForces();
 
   // Mean field contribution to F and dF
-  //  for(auto &I: DFT::Interactions_)
-  //      F += I->getInteractionEnergyAndForces();  
+  for(auto &interaction: DFT::Interactions_)
+    F += interaction->getInteractionEnergyAndForces();  
 
   return F;
 }
