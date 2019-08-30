@@ -14,7 +14,6 @@
 #include "Enskog.h"
 
 #include "Potential1.h"
-#include "VDW1.h"
 #include "Density.h"
 #include "FMT.h"
 
@@ -49,14 +48,13 @@ class DFT
    *  
    *   @param s: the first species. It makes no sense to create a DFT object without at least one species.
    */  
-  DFT(Species *s) {allSpecies_.push_back(s);}
+ DFT(Species *s) : fmt_(NULL) {allSpecies_.push_back(s);}
   /**
    *   @brief  Default  destructor for DFT
    *  
    *   @return nothing 
    */  
   ~DFT(){}
-
 
   /**
    *   @brief  Tells the DFT that there is another species
@@ -65,12 +63,19 @@ class DFT
    */ 
   void addSpecies(Species* s) {allSpecies_.push_back(s);}
 
-    /**
+  /**
    *   @brief  Tells the DFT that there is another interaction
    *  
    *   @param  I is the Interction object
    */ 
   void addInteraction(Interaction* Interaction) {Interactions_.push_back(Interaction);}
+
+  /**
+   *   @brief  Specify a hard-sphere free energy functional
+   *  
+   *   @param  fmt is the FMT object
+   */ 
+  void addHardCoreContribution(FMT *fmt) {fmt_ = fmt;}  
 
   /**
    *   @brief  Requests the number of species
@@ -87,14 +92,31 @@ class DFT
    */ 
   double getNumberAtoms(int species) const {return allSpecies_[species]->getDensity().getNumberAtoms();}
 
-  
+  /**
+   *   @brief  Requests a read-only access to the Lattice object
+   *  
+   *   @returns a read-only reference to the Lattice object
+   */ 
   const Lattice& lattice() const {return allSpecies_.front()->getLattice();}
 
+  /**
+   *   @brief  Requests the value of the convergence criterion for free energy minimization
+   *  
+   *   @returns the value of the convergence criterion for free energy minimization
+   */   
   double get_convergence_monitor() const { double d = 0; for(auto& s: allSpecies_) d += s->get_convergence_monitor(); return d;}
-  
-  const Density& getDensity(int i) const {return allSpecies_[i]->getDensity();}
 
+  /**
+   *   @brief  Requests the Density object associated with one of the species
+   *  
+   *   @param   species: the species
+   *   @returns a read-only reference to the density object
+   */     
+  const Density& getDensity(int species) const {return allSpecies_[species]->getDensity();}
+
+  
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
+
   
   void doDisplay(string &title, string &file)
   {
@@ -175,145 +197,9 @@ class DFT
  protected:
   vector<Species*> allSpecies_; ///< array holding the species objects
   vector<Interaction*> Interactions_; ///< array holding the interactions
+  FMT *fmt_;
 };
 
-
-/**
-  *  @brief DFT_FMT Class: A wrapper for the FMT object.
-  *
-  */  
-
-template <class T> class DFT_FMT : public DFT
-{
- public:
-  /**
-   *   @brief  Default  constructor for DFT_FMT
-   *
-   *   @param s: the first species. It makes no sense to create a DFT object without at least one species.
-   *   @return nothing 
-   */  
- DFT_FMT(Species *s) : DFT(s), fmt_() {}
-
-  /**
-   *   @brief  Default  destructor for DFT_FMT
-   *  
-   *   @return nothing 
-   */  
-  ~DFT_FMT(){}
-
-  /**
-   *   @brief  Compute chemical potential/kT for given density
-   *  
-   *   @param  x is the array of densities
-   *   @param  species is the species for which we calculate the chemcical potential
-   *   @return mu/kT
-   */   
-  virtual double Mu(const vector<double> &x, int species) const {return DFT::Mu(x,species) + fmt_.BulkMuex(x, allSpecies_, species);}
-
-  /**
-   *   @brief  Compute Helmhltz Free Energy/kT/V for given density
-   *  
-   *   @param  x is the array of densities
-   *   @return F/(kT * V)
-   */   
-  virtual double Fhelmholtz(const vector<double> &x) const {return  DFT::Fhelmholtz(x) + fmt_.BulkFex(x, allSpecies_);}
-
-
-  /**
-   *   @brief  Find liquid with given chem potential/kT
-   *  
-   *   @param  mu is chem potential
-   *   @return mu/kT
-   */   
-  virtual double Xliq_From_Mu(double mu) const;
-  
-  /**
-   *   @brief  The name of this DFT object
-   *  
-   *   @return name as string
-   */   
-  virtual string Name() const { return string("DFT_FMT : ") + fmt_.Name();}
-
-  /**
-   *   @brief  This conveys information to the FMT object for models that use it.
-   */     
-  virtual void setEtaMax(double etaMax) {fmt_.setEtaMax(etaMax);}
-
- protected:
-  /**
-   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
-   *  
-   *   @param  density is current density
-   *   @param  mu is the chemical potential
-   *   @return total free energy of system
-   */  
-  virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex = false);
- 
- protected:
-  T  fmt_;   ///< Hard-sphere FMT object
-};
-
-
-
-/**
-  *  @brief FMT plus van der Waals mean field tail.
-  *
-  *   @detailed A single-species mean-field DFT model. It holds a DFT_FMT object to do the hard-sphere stuff.
-  *  
-  */  
-
-template <class T> class DFT_VDW : public DFT_FMT<T>
-{
- public:
-  /**
-   *   @brief  Default  constructor for DFT 
-   *  
-   *   @param s: the first species. It makes no sense to create a DFT object without at least one species.
-   */  
-  DFT_VDW(Species *s);
-
-  /**
-   *   @brief  Default  destructor for DFT 
-   *  
-   *   @return nothing 
-   */  
-  ~DFT_VDW(){} 
-
-  /**
-   *   @brief  Compute chemical potential/kT for given density: note that interspecies interaction fields are not supported.
-   *  
-   *   @param  x is the  array of densities
-   *   @param  species is the species for which we calculate the chemical potential
-   *   @return mu/kT
-   */   
-  virtual double Mu(const vector<double> &x, int species) const;
-
-  /**
-   *   @brief  Compute helmholtz free energy/kT/V for given density: note that interspecies interaction fields are not supported.
-   *  
-   *   @param  x is the  array of densities
-   *   @return F/(kT * V)
-   */     
-  virtual double Fhelmholtz(const vector<double> &x) const;
-
-  /**
-   *   @brief  The name of this DFT object
-   *  
-   *   @return name as string
-   */     
-  virtual string Name() const { return string("DFT_VDW : ") + DFT_FMT<T>::Name();} 
-
- protected:
-  /**
-   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
-   *  
-   *   @param  density is current density
-   *   @param  mu is the chemical potential
-   *   @return total free energy of system
-   */  
-  virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex = false);    
-  
-};
 
 /**
   *  @brief DFT_VDW_Surfactant class
@@ -322,44 +208,44 @@ template <class T> class DFT_VDW : public DFT_FMT<T>
   *              of the other species, so the bulk thermodynamics is just the same as that inherited from DFT_VDW. 
   *  
   */  
-
+/*
 template <class T> class DFT_VDW_Surfactant : public DFT_VDW<T>
 {
  public:
-  /**
+  **
   *   @brief  Default  constructor for DFT 
   *  
   *   @param s: the first species. It makes no sense to create a DFT object without at least one species. We assume that this is the "water".
   *   @param pot: the surfactant potential.
   *   @param kT: the temperature
   *   @return nothing 
-  */  
+  *  
   DFT_VDW_Surfactant(Species *species, Potential1 &pot, double kT);
 
-  /**
+  **
   *   @brief  Default  destructor
-  */  
+  *  
   ~DFT_VDW_Surfactant(){}
 
-  /**
+  **
    *   @brief  The name of this DFT object
    *  
    *   @return name as string
-   */   
+   *   
   virtual string Name() const { return string("DFT_VDW_Surfactant : ") +  DFT_VDW<T>::Name();} 
 
  protected:
-  /**
+  **
    *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
    *  
    *   @param  density is current density
    *   @param  mu is the chemical potential
    *   @return total free energy of system
-   */  
+   *  
   virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex = false);
   
  protected:
   DFT_FFT surfactant_potential_; //< Arrays holding surfactant assymetric potential
 };
-
+*/
 #endif // __LUTSKO_DFT__

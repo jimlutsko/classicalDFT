@@ -22,6 +22,10 @@ using namespace std;
 double DFT::Mu(const vector<double> &x, int species) const
 {
   double mu = log(x[species]);
+
+  if(fmt_)
+    mu += fmt_->BulkMuex(x, allSpecies_, species);
+  
   for(auto &interaction: Interactions_)
     mu += interaction->Mu(x,species);
   return mu;
@@ -41,6 +45,9 @@ double DFT::Fhelmholtz(const vector<double> &x) const
   for(auto &y: x)
     if(fabs(y) > SMALL_VALUE)
       F += y*log(y)-y;
+
+  if(fmt_)
+    F += fmt_->BulkFex(x, allSpecies_);
 
   for(auto &interaction: Interactions_)
     F += interaction->Fhelmholtz(x);  
@@ -92,25 +99,19 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   for(auto &species : allSpecies_)
     F += species->externalField(true); // bCalcForces = true: obsolete?  
 
+  if(fmt_)
+    {    
+      try{
+	F += fmt_->calculateFreeEnergyAndDerivatives(allSpecies_);
+      } catch( Eta_Too_Large_Exception &e) {
+	throw e;
+      }
+    }
+  
   return F;
   
 }
-
-template <class T>
-double DFT_FMT<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
-{
-  double F = DFT::calculateFreeEnergyAndDerivatives_internal_(onlyFex);
-  
-  try{
-    F += fmt_.calculateFreeEnergyAndDerivatives(allSpecies_);
-  } catch( Eta_Too_Large_Exception &e) {
-    throw e;
-  }
-
-  return F;
-}
-
-
+/*
 template <class T>
 double DFT_FMT<T>::Xliq_From_Mu(double mu) const 
 { 
@@ -131,32 +132,12 @@ double DFT_FMT<T>::Xliq_From_Mu(double mu) const
     }
   return (xa+xb)/2;
 }
+*/
+
+
 
 #include "Potential1.h"
-
-template <class T>
-DFT_VDW<T>::DFT_VDW(Species *s) : DFT_FMT<T>(s) {}
-
-template <class T>
-double DFT_VDW<T>::Mu(const vector<double> &x, int species) const
-{
-  VDW_Species *s = (VDW_Species*) DFT_FMT<T>::allSpecies_[species];
-  
-  return DFT_FMT<T>::Mu(x,species) + 2*s->get_VDW_Constant()*x[species];
-}
-
-template <class T>
-double DFT_VDW<T>::Fhelmholtz(const vector<double> &x) const
-{
-  double f = DFT_FMT<T>::Fhelmholtz(x);
-  for(int s=0; s < DFT_FMT<T>::allSpecies_.size(); s++)
-    {
-      VDW_Species *sp = (VDW_Species*) (DFT_FMT<T>::allSpecies_[s]);
-      f += sp->get_VDW_Constant()*x[s]*x[s];
-    }
-  return f;
-}
-
+/*
 template <class T>
 double DFT_VDW<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
@@ -179,19 +160,4 @@ double DFT_VDW<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   return F;
 }
 
-
-
-// These lines are needed to force instantiation of the relevant classes. 
-
-
-template class DFT_FMT<WhiteBearI>;
-template class DFT_FMT<WhiteBearII>;
-template class DFT_FMT<RSLT>;
-template class DFT_FMT<RSLT2>;
-template class DFT_FMT<Rosenfeld>;
-
-template class DFT_VDW<WhiteBearI>;
-template class DFT_VDW<WhiteBearII>;
-template class DFT_VDW<RSLT>;
-template class DFT_VDW<RSLT2>;
-template class DFT_VDW<Rosenfeld>;
+*/

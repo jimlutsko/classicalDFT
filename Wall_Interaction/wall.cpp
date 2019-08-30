@@ -170,17 +170,18 @@ int main(int argc, char** argv)
   Wall theDensity2(dx, L, g, 0.001, 1, hsd2);
 
   /////////////////////////////////////
-  // Create species objects
+  // Create the species objects
   
   FMT_Species species1(theDensity1,hsd1,pointsFile);
   FMT_Species species2(theDensity2,hsd2,pointsFile);
 
   Interaction i1(species1,species1,potential1,kT);
   Interaction i2(species2,species2,potential2,kT);
-  
-  //VDW_Species species1(theDensity1,hsd1,pointsFile, potential1, kT);
-  //  VDW_Species species2(theDensity2,hsd2,pointsFile, potential2, kT);
 
+
+  /////////////////////////////////////
+  // Create the hard-sphere object
+  RSLT fmt;
   
   
   ///////////////////////////////////////////////////
@@ -191,10 +192,11 @@ int main(int argc, char** argv)
   // DFT object
   //  DFT_VDW<RSLT> dft(&species1);
 
-  DFT_FMT<RSLT> dft(&species1);
+  //  DFT_FMT<RSLT> dft(&species1);
 
+  DFT dft(&species1);
   dft.addSpecies(&species2);
-
+  dft.addHardCoreContribution(&fmt);  
   dft.addInteraction(&i1);
   dft.addInteraction(&i2);
 

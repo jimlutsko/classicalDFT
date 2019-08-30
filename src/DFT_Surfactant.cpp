@@ -17,7 +17,7 @@ using namespace std;
 #endif
 
 #include "DFT.h"
-
+/*
 
 template <class T>
 DFT_VDW_Surfactant<T>::DFT_VDW_Surfactant(Species *species, Potential1 &pot, double kT)
@@ -139,7 +139,7 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives_internal_(bool o
 
   //  for(auto &s: DFT_VDW_Surfactant<T>::allSpecies_)
   //    s->endForceCalculation();
-  /*
+  *
   if(FixedN_ > 0)
     {
       double mu = 0.0;
@@ -155,7 +155,7 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives_internal_(bool o
 
       cout << "Surfactant mu = " << mu << endl;
     }
-  */
+  *
 
   
   return F;
@@ -166,3 +166,4 @@ template class DFT_VDW_Surfactant<WhiteBearI>;
 template class DFT_VDW_Surfactant<WhiteBearII>;
 template class DFT_VDW_Surfactant<RSLT>;
 template class DFT_VDW_Surfactant<RSLT2>;
+*/
