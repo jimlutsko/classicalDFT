@@ -13,18 +13,17 @@ using namespace std;
 #include "DFT.h"
 
 
-void Minimizer::run(string& logfile, long maxSteps)
+void Minimizer::run(long maxSteps)
 {
   initialize();
   
-  cout << "Initialized ... removing old images ... " << endl;
+  log_ << "Initialized ... removing old images ... " << endl;
 
-  ofstream log(logfile.c_str(),ios::app);
-  log << "#Initial free energy = " << F_ << endl;
-  log << "#step_counter\tF\tF/N\tF/V\tf_abs_max\tN\tDensity\tCalls" << endl;
-  log.close();
+  log_ << "Initial free energy = " << F_ << endl;
+  log_ << "step_counter\tF\tF/N\tF/V\tf_abs_max\tN\tDensity\tCalls" << endl;
 
-  int ret = system("rm image_*.png");
+
+  //  int ret = system("rm *_image_*.png");
   int image_counter = 0;
   do {
     draw_before();
@@ -38,9 +37,8 @@ void Minimizer::run(string& logfile, long maxSteps)
 
     f_abs_max_ = get_convergence_monitor();
 
-    ofstream log(logfile.c_str(), ios::app);
-    log.precision(12);
-    log << step_counter_ 
+    log_.precision(12);
+    log_ << step_counter_ 
 	<< "\t" << F_ 
 	<< "\t" << F_/Ntotal
 	<< "\t" << F_/Volume
@@ -50,25 +48,18 @@ void Minimizer::run(string& logfile, long maxSteps)
       	<< "\t" << calls_
 	<< endl;
     if(std::isnan(f_abs_max_))
-      {
-	log  << "INF detected" << endl; //: min = " << dF_.min() << " max = " << dF_.max() << endl;
-	cout << "INF detected" << endl; //: min = " << dF_.min() << " max = " << dF_.max() << endl;
-      }
-    log.close();
+	log_  << "INF detected" << endl; //: min = " << dF_.min() << " max = " << dF_.max() << endl;
 
     draw_after();
 
-    cout << "F = " << F_ << " f_abs_max_ = " << f_abs_max_ << endl;
-
-
     if(f_abs_max_ < forceLimit_)
       {
-	cout << "dF sufficiently small ... normal exit" << endl;
+	log_ << "dF sufficiently small ... normal exit" << endl;
 	break;
       }
     if(maxSteps > 0 && step_counter_ == maxSteps)
       {
-	cout << "maxSteps reached ... normal exit" << endl;
+	log_ << "maxSteps reached ... normal exit" << endl;
 	break;
       }
   } while(1);
@@ -151,125 +142,6 @@ double Minimizer::getDF_DX()
     }
   return F;
 }
-/*
-void fireMinimizer::initialize()
-{
-  Minimizer_Fixed_N::initialize();
-  
-  it_ = 0;
-  cut_ = 0;
-
-  alpha_ = alpha_start_;
-  
-  F_ = getDF_DX();
-
-  for(auto &v: v_)
-    v.zeros(v.size());
-}
-
-
-void fireMinimizer::verlet()
-{
-  vector<DFT_Vec> y;
-  for(auto &x: x_) y.push_back(x);
-    
-  try{
-    for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-      {
-	DFT_Vec &df = dft_.getDF(Jspecies);
-	
-	x_[Jspecies].Increment_And_Scale(v_[Jspecies],dt_);// this gives x_(t+dt)
-	x_[Jspecies].Increment_And_Scale(df,-0.5*dt_*dt_); // dF=dV/dx does not have minus sign ... 
-	v_[Jspecies].Increment_And_Scale(df,-0.5*dt_);     // now do half the v update
-      }
-    F_ = getDF_DX();                          // then get new forces    
-    for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-      v_[Jspecies].Increment_And_Scale(dft_.getDF(Jspecies), -0.5*dt_);    // and finish velocity update
-  } catch (Eta_Too_Large_Exception &e) {
-    for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-      {
-	x_[Jspecies].set(y[Jspecies]);
-	v_[Jspecies].zeros();
-      }
-    cout << "Backtrack .. " << endl;
-    throw e;
-  }
-}
-
-
-double fireMinimizer::step()
-{
-  it_++;
-
-  bool blewUp = false;
-  
-  do {  
-    try {
-      blewUp = false;
-      verlet();
-    } catch(Eta_Too_Large_Exception &e) {
-      dt_ /= 2;
-      dt_max_ /= 2;
-      blewUp = true;
-    }
-  } while(blewUp);
-
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    {
-      stringstream s;
-      s << "snapshot_s" << Jspecies << ".dat";
-      string of = s.str();
-      dft_.writeDensity(Jspecies,of);
-    }  
-  
-  // dF does not include the minus so we have to put it in by hand everywhere from here down:
-  double p = 0;
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    {
-      p += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
-      v_[Jspecies].multBy(1-alpha_);
-    }
-
-  double vnorm = 0;
-  double fnorm = 0;
-
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    {
-      double v = v_[Jspecies].euclidean_norm();
-      double f = dft_.getDF(Jspecies).euclidean_norm();
-      vnorm += v*v;
-      fnorm += f*f;
-    }
-
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)  
-    v_[Jspecies].Increment_And_Scale(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
-
-  if(p < 0)
-    {
-      cout << "\tp < 0 : reset" << endl;
-      for(auto &v: v_)
-	v.zeros(v.size());
-      cut_ = it_;
-      dt_ *= f_dec_;
-      alpha_ = alpha_start_;
-    } else if(it_-cut_>N_min_) {
-    dt_ = min(dt_*f_inc_,dt_max_);
-    alpha_ =alpha_*f_alf_;
-  }
-  return F_;
-}
-
-void fireMinimizer::draw_after()
-{
-  cout << "After FIRE step " << step_counter_ << " F = " << F_ << " N = " << dft_.getNumberAtoms(0) << " calls = " << calls_ << " dt_ = " << dt_ << " alpha = " << alpha_ << endl;
-}
-
-int fireMinimizer::draw_during()
-{
-  cout << "\t1D minimization F = " << F_  << " mu_eff = " << mu_eff_ << " F-mu*N = " << F_-mu_eff_*N_fixed_target_ << " N = " << dft_.getNumberAtoms(0) << " Ntarget = " << N_fixed_target_ << endl;
-  return 1;
-}
-*/
 
 void fireMinimizer_Mu::initialize()
 {
@@ -320,7 +192,7 @@ void fireMinimizer_Mu::verlet()
 	x_[Jspecies].set(y[Jspecies]);
 	v_[Jspecies].zeros(v_[Jspecies].size());
       }
-    cout << "Backtrack .. " << endl;
+   log_ << "Backtrack .. " << endl;
     throw e;
   }
 }
@@ -389,7 +261,6 @@ double fireMinimizer_Mu::step()
 
   if(p < 0)
     {
-      cout << "\tp < 0 : reset" << endl;
       for(auto &v: v_)
 	v.zeros(v.size());
       cut_ = it_;
@@ -404,11 +275,11 @@ double fireMinimizer_Mu::step()
 
 void fireMinimizer_Mu::draw_after()
 {
-  cout << "After FIRE step " << step_counter_ << " F = " << F_ << " N = " << dft_.getNumberAtoms(0) << " calls = " << calls_ << " dt_ = " << dt_ << " alpha = " << alpha_ << endl;
+  //  log_ << "After FIRE step " << step_counter_ << " F = " << F_ << " N = " << dft_.getNumberAtoms(0) << " calls = " << calls_ << " dt_ = " << dt_ << " alpha = " << alpha_ << endl;
 }
 
 int fireMinimizer_Mu::draw_during()
 {
-  cout << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
+  log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
   return 1;
 }

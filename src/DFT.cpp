@@ -107,57 +107,11 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	throw e;
       }
     }
-  
-  return F;
-  
-}
-/*
-template <class T>
-double DFT_FMT<T>::Xliq_From_Mu(double mu) const 
-{ 
-  double xa = 0.5;
-  double xb = 0.5;
-
-  while(Enskog(xa).chemPotentialCS() > mu) { xa /= 2;}
-
-  double xmax = 6/M_PI;
-
-  while(Enskog(xb).chemPotentialCS() < mu) { xb = (xmax+xb)/2; }
-
-  while(fabs(xa-xb) > 1e-8)
-    {
-      double x = (xa+xb)/2;
-      if(Enskog(x).chemPotentialCS() > mu) xb = x;
-      else xa = x;
-    }
-  return (xa+xb)/2;
-}
-*/
-
-
-
-#include "Potential1.h"
-/*
-template <class T>
-double DFT_VDW<T>::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
-{
-  double F = 0;
-
-  // Hard sphere contributions to F and dF
-  try {
-    F = DFT_FMT<T>::calculateFreeEnergyAndDerivatives_internal_(onlyFex);
-  } catch( Eta_Too_Large_Exception &e) {
-    throw e;
-  }
-  // Mean field contribution to F and dF
-  for(auto &s: DFT::allSpecies_)
-      F += ((VDW_Species *) s)->getInteractionEnergyAndForces();
 
   // Mean field contribution to F and dF
   for(auto &interaction: DFT::Interactions_)
     F += interaction->getInteractionEnergyAndForces();  
 
   return F;
+  
 }
-
-*/

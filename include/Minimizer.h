@@ -8,6 +8,7 @@ using namespace std;
 #include "Grace.h"
 
 #include "DFT.h"
+#include "Log.h"
 
 /**
   *  @brief Minimizer base class
@@ -17,7 +18,7 @@ using namespace std;
 class Minimizer
 {
  public:
- Minimizer(DFT &dft) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false)
+ Minimizer(DFT &dft, Log& log) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false), log_(log)
   {
     x_.resize(dft.getNumberOfSpecies());
 
@@ -28,7 +29,7 @@ class Minimizer
   
   virtual void initialize();
 
-  void run(string& logfile, long maxSteps = -1);
+  void run(long maxSteps = -1);
 
   virtual double step() = 0;
 
@@ -55,16 +56,9 @@ class Minimizer
   virtual double getDF_DX();
 
   virtual double get_convergence_monitor() const { return dft_.get_convergence_monitor();}
-
-
   
  protected:
   DFT &dft_;
-
-  // A hook to allow for graphical displays
-  //  void (*display_)(Minimizer &minimizer);
-  
-  // Working space for the minimization
 
   vector<DFT_Vec> x_;
 
@@ -75,6 +69,7 @@ class Minimizer
   double forceLimit_;
   double f_abs_max_; // max absolute value of dF_
   bool bFrozenBoundary_;
+  Log &log_;
 };
 
 /**
@@ -85,8 +80,8 @@ class Minimizer
 class DDFT : public Minimizer
 {
  public:
- DDFT(DFT &dft, Grace *g = NULL, bool showGraphics = true)
-   : Minimizer(dft), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
+ DDFT(DFT &dft, Log &log, Grace *g = NULL,  bool showGraphics = true)
+   : Minimizer(dft, log), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
   {
     double dx = dft_.lattice().getDX();
     dt_ = 10*0.1*dx*dx;
@@ -152,8 +147,8 @@ class DDFT : public Minimizer
 class DDFT_IF : public DDFT
 {
  public:
- DDFT_IF(DFT &dft, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft,  g, showGraphics) {}
+ DDFT_IF(DFT &dft, Log &log, Grace *g = NULL, bool showGraphics = true)
+   : DDFT(dft,  log, g, showGraphics) {}
 
   ~DDFT_IF() {}
 
@@ -183,8 +178,8 @@ class DDFT_IF : public DDFT
 class DDFT_IF_Open : public DDFT
 {
  public:
- DDFT_IF_Open(DFT &dft, double background, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft, g, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
+ DDFT_IF_Open(DFT &dft, double background, Log &log, Grace *g = NULL, bool showGraphics = true)
+   : DDFT(dft, log, g, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
     {}
   ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
 
@@ -225,7 +220,7 @@ class DDFT_IF_Open : public DDFT
 class fireMinimizer_Mu : public Minimizer
 {
  public:
- fireMinimizer_Mu(DFT &dft) :  Minimizer(dft), onlyRelax_(-1)
+ fireMinimizer_Mu(DFT &dft, Log &log) :  Minimizer(dft, log), onlyRelax_(-1)
   {
     v_.resize(dft_.getNumberOfSpecies());
     for(auto &v: v_) v.resize(dft_.lattice().Ntot());

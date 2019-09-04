@@ -121,6 +121,7 @@ class Interaction
     return a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];
   }  
 
+  double getVDWParameter() const { return a_vdw_;}
   
  private:
   Species &s1_;

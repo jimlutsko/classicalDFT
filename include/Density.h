@@ -16,8 +16,6 @@
 #include <complex>
 #include <complex.h>
 
-#include <mgl2/mgl.h>
-
 static const double SMALL_VALUE = 1e-18;
 
 #include "DFT_LinAlg.h"
@@ -283,24 +281,7 @@ class Density : public Lattice
   *  
   *   @return none
   */  
-  void doFFT() {Density_.do_real_2_fourier();} //fftw_execute(p_);}
-
-  /**
-   *   @brief  Allows derived classes to initialize an array for displaying two-d graphics since only they know the size and shape of array needed.
-   *  
-   *   @param  a: the array to be intitialized
-   *   @return none
-   */  
-  virtual void initialize_2D_data( mglData& a) const {throw std::runtime_error("Cannot be here: Density::initialize_2D_data");}
-
-  /**
-   *   @brief  Allows derived classes to populate an array for displaying two-d graphics
-   *  
-   *   @param  a: the array to be filled
-   *   @return none
-   */  
-  virtual void fill_2D_data(mglData& a) const {throw std::runtime_error("Cannot be here: Density::fill_2D_data");}
-
+  void doFFT() {Density_.do_real_2_fourier();} 
 
   /**
    *  @brief  Returns true for lattice points for which the external potential is infinite and the density is therefore zero:

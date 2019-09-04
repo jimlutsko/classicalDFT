@@ -86,7 +86,7 @@ void Options::read(char const * file, bool bPrint)
   if(bPrint) cout << endl << "++++++++++++++++++++ end parameters +++++++++++++++++++" << endl << endl;
 }
 
-void Options::write(ofstream &of) const
+void Options::write(ostream &of) const
 {
   map<string, int*>::const_iterator iter;
   for (iter=intOptions_.begin(); iter != intOptions_.end(); ++iter) 

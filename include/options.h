@@ -67,7 +67,7 @@ class Options
 
   void read(int argc, char ** argv, bool bPrint = true);
   void read(char const * file, bool bPrint  = true);
-  void write(ofstream &of) const;
+  void write(ostream &of) const;
 
   int getIntOption(string&  name) const 
     {
