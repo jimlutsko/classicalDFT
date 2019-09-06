@@ -266,7 +266,7 @@ double fireMinimizer_Mu::step()
       cut_ = it_;
       dt_ *= f_dec_;
       alpha_ = alpha_start_;
-    } else if(it_-cut_>N_min_) {
+    } else if(it_-cut_>N_delay_) {
     dt_ = min(dt_*f_inc_,dt_max_);
     alpha_ =alpha_*f_alf_;
   }
@@ -282,4 +282,132 @@ int fireMinimizer_Mu::draw_during()
 {
   log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
   return 1;
+}
+
+
+
+double fireMinimizer2::step()
+{
+  it_++;
+
+  int begin_relax = 0;
+  int end_relax   = dft_.getNumberOfSpecies();
+
+  if(onlyRelax_ >= 0) {begin_relax = onlyRelax_; end_relax = begin_relax+1;}
+
+  // dF does not include the minus so we have to put it in by hand everywhere from here down:
+  double P = 0;  
+  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+    P += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
+
+  if(P > 0)
+    {
+      N_P_positive_++;
+      N_P_negative_ = 0;
+      if(N_P_positive_ > N_delay_)
+	{
+	  dt_ = min(dt_*f_inc_,dt_max_);
+	  alpha_ =alpha_*f_alf_;
+	}
+    } else {
+    N_P_positive_ = 0;
+    N_P_negative_++;
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // This is the new, alternative stopping criterion: if there are too many steps in the wrong direction, hang up.
+    // This needs to be communicated up the ladder so that it can be dealt with accordingly ... 
+    if(N_P_negative_ > N_P_negative_max_) throw std::runtime_error("Cannot stop going uphill in Fire2");
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Here, there is the possiblity of an initial delay of Ndelay_ steps before beginning the decrease of dt and of alpha. 
+    if(!(initial_delay_ && it_ < N_delay_))
+      {
+	if(dt_*f_dec_ >= dt_min_)
+	  dt_ *= f_dec_;
+	alpha_ = alpha_start_;
+      }
+    for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+      {
+	x_[Jspecies].Increment_And_Scale(v_[Jspecies],-0.5*dt_);
+	v_[Jspecies].zeros(v_[Jspecies].size());
+      }
+  }
+
+  // integration step
+  
+  bool blewUp = false;
+  
+  do {  
+    try {
+      blewUp = false;
+      SemiImplicitEuler();
+    } catch(Eta_Too_Large_Exception &e) {
+      dt_ /= 2;
+      dt_max_ /= 2;
+      blewUp = true;
+    }
+  } while(blewUp);
+
+
+  // write a snapshot
+  
+  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+    {
+      stringstream s;
+      s << "snapshot_s" << Jspecies << ".dat";
+      string of = s.str();
+      dft_.writeDensity(Jspecies,of);
+    }
+  
+  return F_;
+}
+
+void fireMinimizer2::SemiImplicitEuler()
+{
+  int begin_relax = 0;
+  int end_relax   = dft_.getNumberOfSpecies();
+
+  if(onlyRelax_ >= 0) {begin_relax = onlyRelax_; end_relax = begin_relax+1;}
+
+  // update velocities and prepare for mixing
+  // N.B.: df is a gradient, not a force
+  double vnorm = 0.0;
+  double fnorm = 0.0;
+  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+    {
+      DFT_Vec &df = dft_.getDF(Jspecies);
+      v_[Jspecies].Increment_And_Scale(df, -dt_);    
+
+      double v = v_[Jspecies].euclidean_norm();
+      double f = df.euclidean_norm();
+
+      vnorm += v*v;
+      fnorm += f*f;
+    }
+
+  /// Do mixing
+  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+    {
+      v_[Jspecies].multBy(1-alpha_);      
+      v_[Jspecies].Increment_And_Scale(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
+    }
+
+  //Update x
+  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
+    x_[Jspecies].Increment_And_Scale(v_[Jspecies],dt_);           
+
+  // recalculate forces with back-tracking, if necessary
+  bool bSuccess = false;
+  while(!bSuccess)
+    {
+      try{  
+	F_ = getDF_DX();                          // then get new forces
+	bSuccess = true;
+      } catch (Eta_Too_Large_Exception &e) {
+	for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
+	  x_[Jspecies].Increment_And_Scale(v_[Jspecies],-0.5*dt_);
+	dt_ /= 2;
+
+	log_ << "Backtrack .. " << endl;
+      }
+    }
 }

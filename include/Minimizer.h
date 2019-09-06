@@ -228,7 +228,7 @@ class fireMinimizer_Mu : public Minimizer
     dt_ = 1e-3; // my guess
     dt_max_ = 10*dt_;
     
-    N_min_ = 5;
+    N_delay_ = 5;
   
     alpha_start_ = 0.1;
     f_dec_ = 0.5;
@@ -257,18 +257,45 @@ class fireMinimizer_Mu : public Minimizer
 
   int onlyRelax_;
 
-  double alpha_start_;
-  double f_dec_;
-  double f_inc_;
-  double f_alf_;
+  double alpha_start_ = 0.1;
+  double f_dec_    = 0.5;
+  double f_inc_    = 1.1;
+  double f_alf_    = 0.99;
   double dt_max_;
   double dt_;
 
-  unsigned it_;
-  unsigned cut_;
-  int N_min_;
+  unsigned it_;     ///< Loop counter
+  unsigned cut_;    ///< used to keep track of number of steps P >0
+  int N_delay_ = 5;
   double alpha_;
 
+};
+
+
+/**
+  *  @brief Minimizer using FIRE2 algorithm
+  *
+  */
+
+class fireMinimizer2 : public fireMinimizer_Mu
+{
+ public:
+ fireMinimizer2(DFT &dft, Log &log) :  fireMinimizer_Mu(dft, log) {}
+
+  virtual void   initialize(){ N_P_positive_ = N_P_negative_ = 0;}
+  virtual double step();
+
+ protected:
+  void SemiImplicitEuler();
+  
+ protected:
+  int N_P_positive_ = 0;
+  int N_P_negative_ = 0;
+
+  double dt_min_ = 0.0;        ///< minimum allowed timestep
+  bool initial_delay_ = true; ///< flag to allow for a warmup period
+  int N_P_negative_max_ = 20;
+  
 };
 
 
