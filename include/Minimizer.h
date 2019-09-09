@@ -282,7 +282,7 @@ class fireMinimizer2 : public fireMinimizer_Mu
  public:
  fireMinimizer2(DFT &dft, Log &log) :  fireMinimizer_Mu(dft, log) {}
 
-  virtual void   initialize(){ N_P_positive_ = N_P_negative_ = 0;}
+  virtual void   initialize(){ fireMinimizer_Mu::initialize(); N_P_positive_ = N_P_negative_ = 0;}
   virtual double step();
 
  protected:
