@@ -64,9 +64,10 @@ double f(double x)
       double P = 0;
       e = z[2*i];
       if(fabs(z[2*i+1]) < 1e-8)
-	P =  (e*(1+e+e*e-e*e*e)/(1-3*e+3*e*e-e*e*e)) - a*e*e;
-      
-      cout << z[2*i] << "\t" << z[2*i+1] << "\t" << P << endl;
+	{
+	  P =  (e*(1+e+e*e-e*e*e)/(1-3*e+3*e*e-e*e*e)) - a*e*e;
+	  cout << z[2*i] << "\t" << P << endl;
+	}
 
     }
   return 0;
