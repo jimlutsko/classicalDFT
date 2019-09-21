@@ -26,6 +26,52 @@ extern char   __BUILD_NUMBER;
 #include "Wall.h"
 #include "Minimizer.h"
 
+#include <gsl/gsl_poly.h>
+
+double a = 0;
+double d = 0;
+
+
+double f(double x)
+{
+  // first, get the pressure multiplied by the hs factor
+  double e = M_PI*x*d*d*d/6;
+  double aa = a*6/(M_PI*d*d*d);
+  
+  double P = e*(1+e+e*e-e*e*e)/(1-3*e+3*e*e-e*e*e);
+  P -= a*e*e;
+  
+  // second, the coefficients of the polynomial equation we need to solve
+  double c[6] = {-P,1+3*P,1-3*P-a,1+P+3*a,-1-3*a,a};
+
+  //sanity check:
+  cout << "x = " << x << " e = " << e << " P = " << P << " poly = " << c[0]+e*(c[1]+e*(c[2]+e*(c[3]+e*(c[4]+e*c[5])))) << endl;
+
+  // divide out the known root
+  for(int i=4;i>=0;i--)
+    c[i] += c[i+1]*e;
+
+  // now, find roots and print
+  double z[8];  
+  gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc(5);
+  gsl_poly_complex_solve (c, 5, w, z);
+  gsl_poly_complex_workspace_free(w);
+
+  cout << endl;
+    
+  for(int i = 0; i < 4; i++)
+    {
+      double P = 0;
+      e = z[2*i];
+      if(fabs(z[2*i+1]) < 1e-8)
+	P =  (e*(1+e+e*e-e*e*e)/(1-3*e+3*e*e-e*e*e)) - a*e*e;
+      
+      cout << z[2*i] << "\t" << z[2*i+1] << "\t" << P << endl;
+
+    }
+  return 0;
+}
+
 
 int main(int argc, char** argv)
 {
@@ -124,17 +170,17 @@ int main(int argc, char** argv)
 
   options.addOption("InputFile", &infile);
   
-  options.addOption("ShorGraphics", &showGraphics);
+  options.addOption("ShowGraphics", &showGraphics);
   
   options.read(argc, argv);
 
-  ofstream log1("log.dat");
+  Log log("log.dat");
   TimeStamp ts;
-  log1 << "# " << ts << endl;
-  log1 << "#=================================" << endl << "#" << endl;
-  log1 << "#Input parameters:" << endl <<  "#" << endl;
-  options.write(log1);
-  log1 << "#=================================" << endl;
+  log << ts << endl;
+  log << "=================================" << endl << " " << endl;
+  log << " Input parameters:" << endl <<  " " << endl;
+  options.write(log);
+  log << " =================================" << endl;
 
 
   double dx = 1.0/PointsPerHardSphere;
@@ -151,9 +197,6 @@ int main(int argc, char** argv)
   fftw_plan_with_nthreads(omp_get_max_threads());
 #endif
 
-  Grace *g = (showGraphics ? new Grace() : NULL);
-  
-
   //////////////////////////////////////
   ////// Create potential && effective hsd
 
@@ -166,144 +209,146 @@ int main(int argc, char** argv)
   
   /////////////////////////////////////
   // Create density objects
+
+  Grace *g = (showGraphics ? new Grace() : NULL);
+  
   Wall theDensity1(dx, L, g, 0.001, 1, hsd1);
   Wall theDensity2(dx, L, g, 0.001, 1, hsd2);
 
   /////////////////////////////////////
   // Create the species objects
+  try {
+    FMT_Species species1(theDensity1,hsd1,pointsFile);
+    FMT_Species species2(theDensity2,hsd2,pointsFile);
+
+    Interaction i1(species1,species1,potential1,kT);
+    Interaction i2(species2,species2,potential2,kT);
+
+
+    a = i1.getVDWParameter();
+    d = hsd1;
+    double r = f(0.002);
+    g->close();
+    delete g;
+    exit(0);
   
-  FMT_Species species1(theDensity1,hsd1,pointsFile);
-  FMT_Species species2(theDensity2,hsd2,pointsFile);
 
-  Interaction i1(species1,species1,potential1,kT);
-  Interaction i2(species2,species2,potential2,kT);
-
-
-  /////////////////////////////////////
-  // Create the hard-sphere object
-  RSLT fmt;
+    /////////////////////////////////////
+    // Create the hard-sphere object
+    RSLT fmt;
   
   
-  ///////////////////////////////////////////////////
-  // The surfactant potential
-  //  LJ surfactant_potential(sigma_surf, eps_surf, rcut_surf);
+    ///////////////////////////////////////////////////
+    // The surfactant potential
+    //  LJ surfactant_potential(sigma_surf, eps_surf, rcut_surf);
 
-  /////////////////////////////////////
-  // DFT object
-  //  DFT_VDW<RSLT> dft(&species1);
+    /////////////////////////////////////
+    // DFT object
+    //  DFT_VDW<RSLT> dft(&species1);
 
-  //  DFT_FMT<RSLT> dft(&species1);
+    //  DFT_FMT<RSLT> dft(&species1);
 
-  DFT dft(&species1);
-  dft.addSpecies(&species2);
-  dft.addHardCoreContribution(&fmt);  
-  dft.addInteraction(&i1);
-  dft.addInteraction(&i2);
+    DFT dft(&species1);
+    dft.addSpecies(&species2);
+    dft.addHardCoreContribution(&fmt);  
+    dft.addInteraction(&i1);
+    dft.addInteraction(&i2);
 
-  /////////////////////////////////////////////////////
-  // Report
-  double density1 = 6*eta1/(M_PI*hsd1*hsd1*hsd1);
-  double density2 = 6*eta2/(M_PI*hsd2*hsd2*hsd2);
+    /////////////////////////////////////////////////////
+    // Report
+    double density1 = 6*eta1/(M_PI*hsd1*hsd1*hsd1);
+    double density2 = 6*eta2/(M_PI*hsd2*hsd2*hsd2);
 
-  cout << "Density 1 = " << density1 << endl;
-  cout << "Density 2 = " << density2 << endl;
+    log << "Density 1 = " << density1 << endl;
+    log << "Density 2 = " << density2 << endl;
 
-  log1 << "#Density 1 = " << density1 << endl;
-  log1 << "#Density 2 = " << density2 << endl;
-
-  cout << "HSD 1 = " << hsd1 << endl;
-  cout << "HSD 2 = " << hsd2 << endl;
-
-  log1 << "#HSD 1 = " << hsd1 << endl;
-  log1 << "#HSD 2 = " << hsd2 << endl;
-
-  
-  /////////////////////////////////////////////////////
-  // The thermodynamics
-
-  vector<double> densities;
-  densities.push_back(density1);
-  densities.push_back(density2);
-
-  double mu1 = dft.Mu(densities,0);
-  double mu2 = dft.Mu(densities,1);
-
-  cout << "Omega/(V kT) = " << dft.Omega(densities) << endl;
-  cout << "mu1 = " << mu1 << endl;
-  cout << "mu2 = " << mu2 << endl;
-  log1 << "#Omega/(V kT) = " << dft.Omega(densities) << endl;  
-  log1 << "#mu1 = " << mu1 << endl;
-  log1 << "#mu2 = " << mu2 << endl;
-
-  theDensity1.initialize(density1, density1);
-  theDensity2.initialize(density2, density2);
-
-  double N = theDensity2.getNumberAtoms();
-
-  ///////////////////////////////////////////////
-  // Fix the mass of the surfactant species.
-  //species2.setFixedMass(N);
+    log << "HSD 1 = " << hsd1 << endl;
+    log << "HSD 2 = " << hsd2 << endl;
 
   
-  /*
-    /////////////////Check the thermodynamics
-  double eps = 1e-4;
+    /////////////////////////////////////////////////////
+    // The thermodynamics
 
-  densities[0] = density1*(1+eps);
-  double fp = dft.Fhelmholtz(densities);
+    vector<double> densities;
+    densities.push_back(density1);
+    densities.push_back(density2);
 
-  densities[0] = density1*(1-eps);
-  double fm = dft.Fhelmholtz(densities);
+    double mu1 = dft.Mu(densities,0);
+    double mu2 = dft.Mu(densities,1);
 
-  densities[0] = density1;
+    log << "Omega/(V kT) = " << dft.Omega(densities) << endl;  
+    log << "mu1 = " << mu1 << endl;
+    log << "mu2 = " << mu2 << endl;
 
-  cout << " mu1 = " << mu1 << " numeric: " << (fp-fm)/(2*eps*density1) << endl;
+    theDensity1.initialize(density1, density1);
+    theDensity2.initialize(density2, density2);
 
-  densities[1] = density2*(1+eps);
-  fp = dft.Fhelmholtz(densities);
+    double N = theDensity2.getNumberAtoms();
 
-  densities[1] = density2*(1-eps);
-  fm = dft.Fhelmholtz(densities);
+    ///////////////////////////////////////////////
+    // Fix the mass of the surfactant species.
+    //species2.setFixedMass(N);
 
-  densities[1] = density2;
   
-  cout << " mu2 = " << mu2 << " numeric: " << (fp-fm)/(2*eps*density2) << endl;
-  */
+    /*
+/////////////////Check the thermodynamics
+double eps = 1e-4;
 
-  /*
-  ///////////////// CHECK the derivatives
+densities[0] = density1*(1+eps);
+double fp = dft.Fhelmholtz(densities);
 
-  double F = dft.calculateFreeEnergyAndDerivatives(true);
-  DFT_Vec dF1 = species1.getDF();
-  DFT_Vec dF2 = species2.getDF();
-  double epsx = 1e-4;
+densities[0] = density1*(1-eps);
+double fm = dft.Fhelmholtz(densities);
 
-  int ix = theDensity1.Nx()/2;
-  int iy = theDensity1.Ny()/2;
-  double dV = theDensity1.dV();
+densities[0] = density1;
+
+cout << " mu1 = " << mu1 << " numeric: " << (fp-fm)/(2*eps*density1) << endl;
+
+densities[1] = density2*(1+eps);
+fp = dft.Fhelmholtz(densities);
+
+densities[1] = density2*(1-eps);
+fm = dft.Fhelmholtz(densities);
+
+densities[1] = density2;
   
-  for(int iz=0;iz<theDensity1.Nz();iz++)
-    {
-      long p = theDensity2.pos(ix,iy,iz);
+cout << " mu2 = " << mu2 << " numeric: " << (fp-fm)/(2*eps*density2) << endl;
+    */
+
+    /*
+///////////////// CHECK the derivatives
+
+double F = dft.calculateFreeEnergyAndDerivatives(true);
+DFT_Vec dF1 = species1.getDF();
+DFT_Vec dF2 = species2.getDF();
+double epsx = 1e-4;
+
+int ix = theDensity1.Nx()/2;
+int iy = theDensity1.Ny()/2;
+double dV = theDensity1.dV();
+  
+for(int iz=0;iz<theDensity1.Nz();iz++)
+{
+long p = theDensity2.pos(ix,iy,iz);
       
-      double d = theDensity2.getDensity(p);
+double d = theDensity2.getDensity(p);
 
-      if(d < 1e-6) continue;
+if(d < 1e-6) continue;
       
-      theDensity2.set_Density_Elem(p,d*(1+epsx));
-      double FP = dft.calculateFreeEnergyAndDerivatives(true);
+theDensity2.set_Density_Elem(p,d*(1+epsx));
+double FP = dft.calculateFreeEnergyAndDerivatives(true);
 
-      theDensity2.set_Density_Elem(p,d*(1-epsx));      
-      double FM = dft.calculateFreeEnergyAndDerivatives(true);
+theDensity2.set_Density_Elem(p,d*(1-epsx));      
+double FM = dft.calculateFreeEnergyAndDerivatives(true);
 
-      theDensity2.set_Density_Elem(p,d);      
+theDensity2.set_Density_Elem(p,d);      
 
-      cout << "iz = " << iz << " dF = " << dF2.get(p) << " " << (FP-FM)/(2*epsx*d) << "  difference: " << fabs(dF2.get(p)-(FP-FM)/(2*epsx*d)) << endl;
-    }
+cout << "iz = " << iz << " dF = " << dF2.get(p) << " " << (FP-FM)/(2*epsx*d) << "  difference: " << fabs(dF2.get(p)-(FP-FM)/(2*epsx*d)) << endl;
+}
 
-  g->close();
-  exit(0);
-  */
+g->close();
+exit(0);
+    */
     
   species1.setChemPotential(mu1);
   species2.setChemPotential(mu2);
@@ -311,40 +356,38 @@ int main(int argc, char** argv)
   if(! infile.empty())
     theDensity1.readDensity(infile.c_str());
 
-  log1.close();
-    
-  string s("log.dat");
-
-  fireMinimizer_Mu minimizer(dft);
+  fireMinimizer_Mu minimizer(dft,log);
   minimizer.setForceTerminationCriterion(forceLimit);
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
   minimizer.setAlphaFac(1.0);
-  minimizer.run(s);
+  minimizer.run();
 
   double Natoms = theDensity1.getNumberAtoms();
   double Omega = minimizer.getF();
   double dOmega = Omega-L[0]*L[1]*(L[2]-2)*dft.Omega(densities);
   double SurfaceTension = dOmega/(L[0]*L[1]);
 
-  cout << "dft.Omega = " << dft.Omega(densities) << endl;
-  cout << "Final Omega: " << Omega << endl;
-  cout << "Excess Omega = " << dOmega << endl;
-  cout << "Surface Tension = " << SurfaceTension << endl;
-
-  ofstream log2(s.c_str(),ios::app);
-  log2 << "#dft.Omega = " << dft.Omega(densities) << endl;  
-  log2 << "#=================================" << endl << "#" << endl;
-  log2 << "#Final Omega: " << Omega << endl;
-  log2 << "#Excess Omega = " << dOmega << endl;
-  log2 << "#Surface Tension = " << SurfaceTension << endl;
+  log << "dft.Omega = " << dft.Omega(densities) << endl;  
+  log << "=================================" << endl << " " << endl;
+  log << "Final Omega: " << Omega << endl;
+  log << "Excess Omega = " << dOmega << endl;
+  log << "Surface Tension = " << SurfaceTension << endl;
     
-
-  log2.close();
 
   g->redraw();
   g->pause();
+  } catch(const std::exception &e) {
+    log << " " << endl;
+    log << e.what() << endl;
+    log << " " << endl;
+    log << "ABORTING ..." << endl;
+    log << " " << endl;
+  }
+
   g->close();
+  delete g;
+
   return 1;
 }

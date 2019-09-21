@@ -118,7 +118,11 @@ void FMT_Species::generateWeights(string &pointsFile)
   
   ifstream in(pointsFile.c_str());
   if(!in.good())
-    throw std::runtime_error("input file cannot be opened");
+    {
+      stringstream ss;
+      ss << "File " << pointsFile << " could not be opened";
+      throw std::runtime_error(ss.str().c_str());
+    }
 #else
   // Read points from file : C code for use with MPI functions
   MPI_Status    status;

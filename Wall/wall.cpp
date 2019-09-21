@@ -210,7 +210,8 @@ int main(int argc, char** argv)
   /////////////////////////////////////
   // Create FMT object
   
-  WhiteBearI fmt;
+  //  WhiteBearI fmt;
+  RSLT fmt;
   
   /////////////////////////////////////
   // DFT object
@@ -240,6 +241,11 @@ int main(int argc, char** argv)
   theDensity1.initialize(density1, density1);
   theDensity2.initialize(density2, density2);
 
+  theDensity1.readDensity("density1_out.dat");
+  theDensity2.readDensity("density2_out.dat");
+  
+
+  
   double N = theDensity2.getNumberAtoms();
 
   ///////////////////////////////////////////////
@@ -291,6 +297,11 @@ int main(int argc, char** argv)
   minimizer.setAlphaFac(1.0);
   minimizer.run(s);
 
+  string sf("density1_out.dat");
+  theDensity1.writeDensity(sf);
+  sf = "density2_out.dat";
+  theDensity2.writeDensity(sf);
+  
   double Natoms = theDensity1.getNumberAtoms();
   double Omega = minimizer.getF();
   double dOmega = Omega-L[0]*L[1]*(L[2]-2)*dft.Omega(densities);
@@ -308,6 +319,7 @@ int main(int argc, char** argv)
   log2 << "#Excess Omega = " << dOmega << endl;
   log2 << "#Surface Tension = " << SurfaceTension << endl;
 
+  
 
   cout << "dF1.inf_norm() = " <<  species1.getDF().inf_norm() << " dF1.inf_norm()/density_.dV() = " << species1.getDF().inf_norm()/theDensity1.dV() << endl;
   cout << "dF2.inf_norm() = " <<  species2.getDF().inf_norm() << " dF2.inf_norm()/density_.dV() = " << species2.getDF().inf_norm()/theDensity1.dV() << endl;
@@ -320,6 +332,30 @@ int main(int argc, char** argv)
   char cc;
   cin >> cc;
 
+  ////////////// Densities
+
+  g->deleteDataSet(0);
+  g->deleteDataSet(1);
+  g->deleteDataSet(2);
+  g->deleteDataSet(3);
+  
+  int ix = theDensity1.Nx()/2;
+  int iy = theDensity1.Ny()/2;
+
+  for(int iz=0;iz<theDensity1.Nz();iz++)
+    {
+      long p = theDensity1.pos(ix,iy,iz);      
+      double d = theDensity1.getDensity(p);
+
+      int s = 0;
+      for(int i=0;i<3;i++)
+	for(int j=i;j<3;j++)
+	  g->addPoint(iz, species1.getT(i,j,p) + species2.getT(i,j,p), s++);
+    }
+
+  g->redraw();
+  g->pause();
+  
   ///////////////// CHECK the derivatives
 
 
@@ -335,8 +371,8 @@ int main(int argc, char** argv)
   DFT_Vec dF1 = species1.getDF();
   DFT_Vec dF2 = species2.getDF();
 
-  int ix = theDensity1.Nx()/2;
-  int iy = theDensity1.Ny()/2;
+  //  int ix = theDensity1.Nx()/2;
+  //  int iy = theDensity1.Ny()/2;
 
   for(int iz=0;iz<theDensity1.Nz();iz++)
     {

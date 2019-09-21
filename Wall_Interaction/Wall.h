@@ -1,8 +1,10 @@
 #ifndef __LUTSKO_SLIT_PORE2__
 #define __LUTSKO_SLIT_PORE2__
 
-#include "Density.h" //Array.h"
- 
+#include "Density.h" 
+
+#include <mgl2/mgl.h>
+
 /**
   *  @brief Class that specializes Density to a slit-pore geometry with a fixed spherical particle
   */  
@@ -50,9 +52,6 @@ class Wall : public Density
   }
 
 
-  //  void setDFT(DFT_FMT<RSLT> *d){dft_ = d;}
-
-  
   /**
   *   @brief  Generates an intial guess at the density
   *  
