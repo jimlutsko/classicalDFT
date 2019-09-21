@@ -48,18 +48,18 @@ double f(double x)
   cout << "x = " << x << " e = " << e << " P = " << P << " poly = " << c[0]+e*(c[1]+e*(c[2]+e*(c[3]+e*(c[4]+e*c[5])))) << endl;
 
   // divide out the known root
-  for(int i=4;i>=0;i--)
-    c[i] += c[i+1]*e;
+  //  for(int i=4;i>=0;i--)
+  //  c[i] += c[i+1]*e;
 
   // now, find roots and print
-  double z[8];  
-  gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc(5);
-  gsl_poly_complex_solve (c, 5, w, z);
+  double z[10];  
+  gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc(6);
+  gsl_poly_complex_solve (c, 6, w, z);
   gsl_poly_complex_workspace_free(w);
 
   cout << endl;
     
-  for(int i = 0; i < 4; i++)
+  for(int i = 0; i < 5; i++)
     {
       double P = 0;
       e = z[2*i];
@@ -225,12 +225,18 @@ int main(int argc, char** argv)
     Interaction i1(species1,species1,potential1,kT);
     Interaction i2(species2,species2,potential2,kT);
 
+        g->close();
+    delete g;
+
 
     a = i1.getVDWParameter();
     d = hsd1;
-    double r = f(0.002);
-    g->close();
-    delete g;
+    while(1)
+      {
+	double x;
+	cin >> x;
+    double r = f(x);
+      }
     exit(0);
   
 
