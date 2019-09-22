@@ -25,51 +25,70 @@ extern char   __BUILD_NUMBER;
 #include "DFT.h"
 #include "Wall.h"
 #include "Minimizer.h"
+#include "Log.h"
 
 #include <gsl/gsl_poly.h>
 
 double a = 0;
+double aa = 0;
 double d = 0;
+double x2 = 0;
 
+double P(double x)
+{
+  double e = M_PI*x*d*d*d/6;
+  double P = x*(1+e+e*e-e*e*e)*pow(1.0-e,-3)+ a*x*x;
+  return P;
+}
 
 double f(double x)
+{
+  double e = M_PI*x*d*d*d/6;
+  double f = log(x)-1 + e*(4.0-3.0*e)*pow(1-e,-2) + a*x;
+  return f;
+}
+
+double f1(double x)
 {
   // first, get the pressure multiplied by the hs factor
   double e = M_PI*x*d*d*d/6;
   double aa = a*6/(M_PI*d*d*d);
   
-  double P = e*(1+e+e*e-e*e*e)/(1-3*e+3*e*e-e*e*e);
-  P -= a*e*e;
+  double P1 = (M_PI*d*d*d/6)*P(x);
   
   // second, the coefficients of the polynomial equation we need to solve
-  double c[6] = {-P,1+3*P,1-3*P-a,1+P+3*a,-1-3*a,a};
+  double c[6] = {-P1,1+3*P1,1-3*P1+aa,1+P1-3*aa,-1+3*aa,-aa};
 
-  //sanity check:
-  cout << "x = " << x << " e = " << e << " P = " << P << " poly = " << c[0]+e*(c[1]+e*(c[2]+e*(c[3]+e*(c[4]+e*c[5])))) << endl;
-
-  // divide out the known root
-  //  for(int i=4;i>=0;i--)
-  //  c[i] += c[i+1]*e;
+  //divide out the known root
+    for(int i=4;i>=0;i--)
+    c[i] += c[i+1]*e;
 
   // now, find roots and print
   double z[10];  
-  gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc(6);
-  gsl_poly_complex_solve (c, 6, w, z);
+  gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc(5);
+  gsl_poly_complex_solve (c+1, 5, w, z);
   gsl_poly_complex_workspace_free(w);
 
-  cout << endl;
-    
-  for(int i = 0; i < 5; i++)
+  double emin = 0;
+  double immin = 1e30;
+  for(int i = 0; i < 4; i++)
     {
-      double P = 0;
-      e = z[2*i];
-      if(fabs(z[2*i+1]) < 1e-8)
-	{
-	  P =  (e*(1+e+e*e-e*e*e)/(1-3*e+3*e*e-e*e*e)) - a*e*e;
-	  cout << z[2*i] << "\t" << P << endl;
-	}
-
+      double e = z[2*i];
+      double ei = z[2*i+1];
+      double dPde = (1+4*e+4*e*e-4*e*e*e+e*e*e*e)*pow(1-e,-4)+2*aa*e;
+      
+      if(dPde > 0)
+	if(fabs(ei) < immin) { immin = fabs(ei); emin = e;}
     }
+
+  e = emin;
+  x2 = 6*emin/(M_PI*d*d*d);
+  
+  double mu1 = f(x)+P(x)/x;
+  double mu2 = f(x2)+P(x2)/x;
+  
+  cout << "emin = " << emin << " P = " << P(x2) << " dmu = " << mu1-mu2 << endl;
+  
   return 0;
 }
 
@@ -225,7 +244,7 @@ int main(int argc, char** argv)
     Interaction i1(species1,species1,potential1,kT);
     Interaction i2(species2,species2,potential2,kT);
 
-        g->close();
+    g->close();
     delete g;
 
 
@@ -235,7 +254,7 @@ int main(int argc, char** argv)
       {
 	double x;
 	cin >> x;
-    double r = f(x);
+	double r = f1(x);
       }
     exit(0);
   

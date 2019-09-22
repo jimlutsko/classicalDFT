@@ -58,7 +58,6 @@ class Interaction
 	      double r2 = x*x+y*y+z*z;
 	      w_att_.Real().addTo(pos,v.Watt(sqrt(r2))/kT);
 	    }
-
       // Set the parameters in the VDW object  
       // Do this BEFORE the FFT which may corrupt the real-space part
       a_vdw_ = 0.5*w_att_.Real().accu()*dx*dy*dz;
