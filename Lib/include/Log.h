@@ -25,10 +25,13 @@
 #ifndef __LUTSKO__LOG__
 #define __LUTSKO__LOG__
 
-#include "options.h"
-#include "TimeStamp.h"
-
+#include <chrono>
+#include <ctime>
 #include <sstream>
+
+#include "options.h"
+#include "timestamp.h"
+#include "config.h"
 
 // Write a stream buffer that prefixes each line with Plop
 class LogStreamBuf: public std::stringbuf
@@ -99,12 +102,16 @@ class Log: public std::ostream
    */    
  Log(const char *name, int Major = -1, int Minor = -1, char *prog = NULL, int numtasks = -1, bool isNew = true) : log_(name,(isNew ? ios::trunc : ios::app)), buffer(log_), ostream(&buffer)    
     {
-      TimeStamp ts;
-      *this << "******************************************************************" << endl;
+      auto now = std::chrono::system_clock::now();
+      std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+
+      *this << "*****************************************************************" << endl;
       if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
-      *this << ts << endl;
+      *this << std::ctime(&now_time) << endl;
+      *this << "Library " << PROJECT_NAME << " version " << PROJECT_VER << endl;
+      *this << "Library built " << _TIMEZ_  << endl;
       if(numtasks > 0) *this << " MPI: numtasks = " << numtasks << endl;
-      *this << "******************************************************************" << endl  << endl;      
+      *this << "*****************************************************************" << endl  << endl;      
     }
 
   /**
