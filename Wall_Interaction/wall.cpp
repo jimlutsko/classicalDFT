@@ -9,8 +9,8 @@
 
 using namespace std;
 
-extern char   __BUILD_DATE;
-extern char   __BUILD_NUMBER;
+//extern char   __BUILD_DATE;
+//extern char   __BUILD_NUMBER;
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -95,8 +95,8 @@ double f1(double x)
 
 int main(int argc, char** argv)
 {
-  cout << "Build date  : " <<  (unsigned long) &__BUILD_DATE << endl;
-  cout << "Build number: " << (unsigned long) & __BUILD_NUMBER << endl;
+  //  cout << "Build date  : " <<  (unsigned long) &__BUILD_DATE << endl;
+  //  cout << "Build number: " << (unsigned long) & __BUILD_NUMBER << endl;
 
   double L[3] = {10,10,10};
   int PointsPerHardSphere = 5;

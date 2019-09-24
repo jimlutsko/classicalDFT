@@ -30,8 +30,9 @@
 #include <sstream>
 
 #include "options.h"
-#include "timestamp.h"
+//#include "timestamp.h"
 #include "config.h"
+#include "GitSHA1.h"
 
 // Write a stream buffer that prefixes each line with Plop
 class LogStreamBuf: public std::stringbuf
@@ -108,8 +109,10 @@ class Log: public std::ostream
       *this << "*****************************************************************" << endl;
       if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
       *this << std::ctime(&now_time) << endl;
-      *this << "Library " << PROJECT_NAME << " version " << PROJECT_VER << endl;
-      *this << "Library built " << _TIMEZ_  << endl;
+      *this << "Library:\t" << PROJECT_NAME << endl
+	    << "\tversion: " << PROJECT_VER << endl
+	    << "\tgit revision: " << g_GIT_SHA1 << endl;
+      //      *this << "Library built " << _TIMEZ_  << endl;
       if(numtasks > 0) *this << " MPI: numtasks = " << numtasks << endl;
       *this << "*****************************************************************" << endl  << endl;      
     }
