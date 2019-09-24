@@ -238,8 +238,11 @@ int main(int argc, char** argv)
   /////////////////////////////////////
   // Create the species objects
   try {
-    FMT_Species species1(theDensity1,hsd1,pointsFile);
-    FMT_Species species2(theDensity2,hsd2,pointsFile);
+    Species species1(theDensity1);
+    Species species2(theDensity2);
+
+    //    FMT_Species species1(theDensity1,hsd1,pointsFile);
+    //    FMT_Species species2(theDensity2,hsd2,pointsFile);    
 
     Interaction i1(species1,species1,potential1,kT);
     Interaction i2(species2,species2,potential2,kT);
@@ -248,6 +251,9 @@ int main(int argc, char** argv)
     delete g;
 
 
+    log << "Hsd = " << hsd1 << endl;
+    log << "a vdw = " << i1.getVDWParameter() << endl;
+    
     a = i1.getVDWParameter();
     d = hsd1;
     while(1)
