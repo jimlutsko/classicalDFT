@@ -1,6 +1,6 @@
 nCores = 20
 
-IntegrationPointsFile = ..//SS31-Mar-2016//ss109.05998
+IntegrationPointsFile = ..//..//SS31-Mar-2016//ss109.05998
 #IntegrationPointsFile = ..//..//SS31-Mar-2016//ss325.52978
 
 Interior_Density = 0.730425
