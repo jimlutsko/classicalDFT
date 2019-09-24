@@ -100,11 +100,11 @@ class Log: public std::ostream
  Log(const char *name, int Major = -1, int Minor = -1, char *prog = NULL, int numtasks = -1, bool isNew = true) : log_(name,(isNew ? ios::trunc : ios::app)), buffer(log_), ostream(&buffer)    
     {
       TimeStamp ts;
-      *this << "*****************************************************************" << endl;
+      *this << "******************************************************************" << endl;
       if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
       *this << ts << endl;
       if(numtasks > 0) *this << " MPI: numtasks = " << numtasks << endl;
-      *this << "*****************************************************************" << endl  << endl;      
+      *this << "******************************************************************" << endl  << endl;      
     }
 
   /**
