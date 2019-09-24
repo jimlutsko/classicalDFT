@@ -87,7 +87,7 @@ double f1(double x)
   double mu1 = f(x)+P(x)/x;
   double mu2 = f(x2)+P(x2)/x;
   
-  cout << "emin = " << emin << " P = " << P(x2) << " dmu = " << mu1-mu2 << endl;
+  cout << "emin = " << emin << " xmin = " << (emin*6/(M_PI*d*d*d)) << " bP = " << P(x2) << " bmu = " << mu1 << " dmu = " << mu1-mu2 << endl;
   
   return 0;
 }
