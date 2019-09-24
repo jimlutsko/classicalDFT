@@ -90,23 +90,23 @@ void Options::write(ostream &of) const
 {
   map<string, int*>::const_iterator iter;
   for (iter=intOptions_.begin(); iter != intOptions_.end(); ++iter) 
-    of << "#" <<  iter->first << " = " << *(iter->second) << endl;
+    of <<  iter->first << " = " << *(iter->second) << endl;
 
   map<string, long*>::const_iterator iterl;
   for (iterl=longOptions_.begin(); iterl != longOptions_.end(); ++iterl) 
-    of << "#" <<  iterl->first << " = " << *(iterl->second) << endl;
+    of <<  iterl->first << " = " << *(iterl->second) << endl;
 
   map<string, double*>::const_iterator iter1;
   for (iter1=dOptions_.begin(); iter1 != dOptions_.end(); ++iter1) 
-    of << "#" <<  iter1->first << " = " << *(iter1->second) << endl;
+    of <<  iter1->first << " = " << *(iter1->second) << endl;
 
   map<string, string*>::const_iterator iter2;
   for (iter2=cOptions_.begin(); iter2 != cOptions_.end(); ++iter2) 
-    of << "#" <<  iter2->first << " = " << (iter2->second == NULL ? "" : *(iter2->second)) << endl;
+    of <<  iter2->first << " = " << (iter2->second == NULL ? "" : *(iter2->second)) << endl;
     
   map<string, bool*>::const_iterator iterb;
   for (iterb=bOptions_.begin(); iterb != bOptions_.end(); ++iterb) 
-    of << "#" <<  iterb->first << " = " << *(iterb->second) << endl;
+    of <<  iterb->first << " = " << *(iterb->second) << endl;
 
-  of << "#" <<  endl;
+  of <<  endl;
 }

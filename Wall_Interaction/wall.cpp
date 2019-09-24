@@ -192,15 +192,12 @@ int main(int argc, char** argv)
   
   options.addOption("ShowGraphics", &showGraphics);
   
-  options.read(argc, argv);
+  options.read(argc, argv, false);
 
   Log log("log.dat");
-  TimeStamp ts;
-  log << ts << endl;
-  log << "=================================" << endl << " " << endl;
   log << " Input parameters:" << endl <<  " " << endl;
   options.write(log);
-  log << " =================================" << endl;
+  log << "**************************************************" << endl;
 
 
   double dx = 1.0/PointsPerHardSphere;

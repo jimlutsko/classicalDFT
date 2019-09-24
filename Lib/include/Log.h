@@ -109,7 +109,7 @@ class Log: public std::ostream
       *this << "*****************************************************************" << endl;
       if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
       *this << std::ctime(&now_time) << endl;
-      *this << "Library:\t" << PROJECT_NAME << endl
+      *this << "Using:\tLib " << PROJECT_NAME << endl
 	    << "\tversion: " << PROJECT_VER << endl
 	    << "\tgit revision: " << g_GIT_SHA1 << endl;
       //      *this << "Library built " << _TIMEZ_  << endl;
