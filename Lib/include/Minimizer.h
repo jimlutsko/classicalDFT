@@ -8,7 +8,6 @@ using namespace std;
 #include "Grace.h"
 
 #include "DFT.h"
-#include "Log.h"
 
 /**
   *  @brief Minimizer base class
@@ -18,7 +17,7 @@ using namespace std;
 class Minimizer
 {
  public:
- Minimizer(DFT &dft, Log& log) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false), log_(log)
+ Minimizer(DFT &dft, ostream& log) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false), log_(log)
   {
     x_.resize(dft.getNumberOfSpecies());
 
@@ -69,7 +68,7 @@ class Minimizer
   double forceLimit_;
   double f_abs_max_; // max absolute value of dF_
   bool bFrozenBoundary_;
-  Log &log_;
+  ostream &log_;
 };
 
 /**
@@ -80,7 +79,7 @@ class Minimizer
 class DDFT : public Minimizer
 {
  public:
- DDFT(DFT &dft, Log &log, Grace *g = NULL,  bool showGraphics = true)
+ DDFT(DFT &dft, ostream &log, Grace *g = NULL,  bool showGraphics = true)
    : Minimizer(dft, log), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
   {
     double dx = dft_.lattice().getDX();
@@ -147,7 +146,7 @@ class DDFT : public Minimizer
 class DDFT_IF : public DDFT
 {
  public:
- DDFT_IF(DFT &dft, Log &log, Grace *g = NULL, bool showGraphics = true)
+ DDFT_IF(DFT &dft, ostream &log, Grace *g = NULL, bool showGraphics = true)
    : DDFT(dft,  log, g, showGraphics) {}
 
   ~DDFT_IF() {}
@@ -178,7 +177,7 @@ class DDFT_IF : public DDFT
 class DDFT_IF_Open : public DDFT
 {
  public:
- DDFT_IF_Open(DFT &dft, double background, Log &log, Grace *g = NULL, bool showGraphics = true)
+ DDFT_IF_Open(DFT &dft, double background, ostream &log, Grace *g = NULL, bool showGraphics = true)
    : DDFT(dft, log, g, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
     {}
   ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
@@ -220,7 +219,7 @@ class DDFT_IF_Open : public DDFT
 class fireMinimizer_Mu : public Minimizer
 {
  public:
- fireMinimizer_Mu(DFT &dft, Log &log) :  Minimizer(dft, log), onlyRelax_(-1)
+ fireMinimizer_Mu(DFT &dft, ostream &log) :  Minimizer(dft, log), onlyRelax_(-1)
   {
     v_.resize(dft_.getNumberOfSpecies());
     for(auto &v: v_) v.resize(dft_.lattice().Ntot());
@@ -280,7 +279,7 @@ class fireMinimizer_Mu : public Minimizer
 class fireMinimizer2 : public fireMinimizer_Mu
 {
  public:
- fireMinimizer2(DFT &dft, Log &log) :  fireMinimizer_Mu(dft, log) {}
+ fireMinimizer2(DFT &dft, ostream &log) :  fireMinimizer_Mu(dft, log) {}
 
   virtual void   initialize(){ fireMinimizer_Mu::initialize(); N_P_positive_ = N_P_negative_ = 0;}
   virtual double step();
