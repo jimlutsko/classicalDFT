@@ -2,7 +2,7 @@
 
 This is a suite of code for doing classical DFT calculations.
 
-Installation
+#H1 Installation
 
 1. Switch to the branch MultiSpecies (command "git checkout MultiSpecies").
 
