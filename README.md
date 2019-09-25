@@ -30,7 +30,7 @@ You can cd into TEST and run using ../Droplet input.dat.
    * "clean" causes a clean build (all objects are first deleted)
    * "debug" performs a debug build
    * "lib" causes the libraries to be rebuilt also.
-3. Note that "dft_make.sh debug lib" causes both the app and the libraries to be built in debug mode. Similarly, "dft_make.sh lib" causes both to be built in release mode.
+   * Note that "dft_make.sh debug lib" causes both the app and the libraries to be built in debug mode. Similarly, "dft_make.sh lib" causes both to be built in release mode.
 
 4. The first few lines of CMakeLists.txt contain information that you will want to modify if this is used as a model to create another application.
 
