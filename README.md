@@ -2,7 +2,7 @@
 
 This is a suite of code for doing classical DFT calculations.
 
-#H1 Installation
+# Installation
 
 1. Switch to the branch MultiSpecies (command "git checkout MultiSpecies").
 
@@ -21,7 +21,7 @@ cd ../Droplet
 
 You can cd into TEST and run using ../Droplet input.dat.
 
-Notes:
+# Notes:
 1. The Config.sh command is only run the first time the application is created. It configures things for cmake.
 
 2. Rebuild using ../dft_make.sh. Note that this also takes three possible arguments in any order: "clean", "debug" and "lib". Their effects are as follows:
