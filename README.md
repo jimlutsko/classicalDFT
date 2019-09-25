@@ -14,9 +14,12 @@ This is a suite of code for doing classical DFT calculations.
 >../dft_make.sh
 
 3. To build the model application do the following
-cd ../Droplet
-../Config.sh
-../dft_make.sh'
+
+>cd ../Droplet
+
+>../Config.sh
+
+>../dft_make.sh'
 
 
 You can cd into TEST and run using ../Droplet input.dat.
