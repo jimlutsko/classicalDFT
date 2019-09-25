@@ -11,13 +11,7 @@
 
 using namespace std;
 
-
-#ifdef USE_OMP
-#include <omp.h>
-#endif
-
 #include "DFT.h"
-
 
 double DFT::Mu(const vector<double> &x, int species) const
 {

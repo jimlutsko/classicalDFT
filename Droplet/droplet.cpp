@@ -15,7 +15,6 @@ using namespace std;
 
 #include <gsl/gsl_sf_lambert.h>
 
-#include "Grace.h"
 #include "options.h"
 #include "TimeStamp.h"
 
@@ -123,11 +122,10 @@ int main(int argc, char** argv)
 
   int fftw_init_threads();
   fftw_plan_with_nthreads(omp_get_max_threads());
+  log << "omp max threads = " << omp_get_max_threads() << endl;
 #endif
 
-  Grace *g = (showGraphics ? new Grace() : NULL);
   
-
   //////////////////////////////////////
   ////// Create potential && effective hsd
 
@@ -137,7 +135,7 @@ int main(int argc, char** argv)
   
   /////////////////////////////////////
   // Create density objects
-  Droplet theDensity1(dx, L, g, hsd1);
+  Droplet theDensity1(dx, L, hsd1);
 
   /////////////////////////////////////
   // Create the species objects
@@ -209,9 +207,5 @@ int main(int argc, char** argv)
   log << "Excess Omega = " << dOmega << endl;
   log << "Surface Tension = " << SurfaceTension << endl;
     
-
-  g->redraw();
-  g->pause();
-  g->close();
   return 1;
 }

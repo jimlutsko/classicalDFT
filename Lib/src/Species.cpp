@@ -5,16 +5,10 @@
 #include <complex>
 #include <stdexcept>
 #include <vector>
-//#include <time.h>
 
 #include <gsl/gsl_integration.h>
-//#include <gsl/gsl_sf_bessel.h>
 
 using namespace std;
-
-#ifdef USE_OMP
-#include <omp.h>
-#endif
 
 #ifdef USE_MPI
 #include <mpi.h>  

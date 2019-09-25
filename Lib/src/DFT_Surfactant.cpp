@@ -12,10 +12,6 @@
 using namespace std;
 
 
-#ifdef USE_OMP
-#include <omp.h>
-#endif
-
 #include "DFT.h"
 /*
 

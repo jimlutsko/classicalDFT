@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
 
+# This name is irrelevant
 project(Wall_Interaction)
+# This is the only important app-specific instruction
+add_executable(${PROJECT_NAME}  ${PROJECT_SOURCE_DIR}/wall.cpp)
 
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 
 ## Set up the compilation
-add_executable(${PROJECT_NAME}  ${PROJECT_SOURCE_DIR}/wall.cpp)
 set(CMAKE_CXX_EXTENSIONS ON)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OMP)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 
 ## Find packages needed
 find_package(GSL REQUIRED)

@@ -11,10 +11,6 @@
 
 using namespace std;
 
-#ifdef USE_OMP
-#include <omp.h>
-#endif
-
 #include "Density.h"
 
 void Density::initialize_from_file(const char *filename)

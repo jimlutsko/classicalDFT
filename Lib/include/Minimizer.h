@@ -5,8 +5,6 @@
 
 using namespace std;
 
-#include "Grace.h"
-
 #include "DFT.h"
 
 /**
@@ -79,8 +77,8 @@ class Minimizer
 class DDFT : public Minimizer
 {
  public:
- DDFT(DFT &dft, ostream &log, Grace *g = NULL,  bool showGraphics = true)
-   : Minimizer(dft, log), show_(showGraphics) ,grace_(g), tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
+ DDFT(DFT &dft, ostream &log,   bool showGraphics = true)
+   : Minimizer(dft, log), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
   {
     double dx = dft_.lattice().getDX();
     dt_ = 10*0.1*dx*dx;
@@ -122,7 +120,6 @@ class DDFT : public Minimizer
 
   bool show_;
   
-  Grace *grace_;
   double dt_;
   //  DFT_Vec oldF_;
   double tolerence_fixed_point_;
@@ -146,8 +143,8 @@ class DDFT : public Minimizer
 class DDFT_IF : public DDFT
 {
  public:
- DDFT_IF(DFT &dft, ostream &log, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft,  log, g, showGraphics) {}
+ DDFT_IF(DFT &dft, ostream &log,  bool showGraphics = true)
+   : DDFT(dft,  log, showGraphics) {}
 
   ~DDFT_IF() {}
 
@@ -177,8 +174,8 @@ class DDFT_IF : public DDFT
 class DDFT_IF_Open : public DDFT
 {
  public:
- DDFT_IF_Open(DFT &dft, double background, ostream &log, Grace *g = NULL, bool showGraphics = true)
-   : DDFT(dft, log, g, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
+ DDFT_IF_Open(DFT &dft, double background, ostream &log,  bool showGraphics = true)
+   : DDFT(dft, log, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
     {}
   ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
 

@@ -12,7 +12,6 @@ using namespace std;
 #include "Minimizer.h"
 #include "DFT.h"
 
-
 void Minimizer::run(long maxSteps)
 {
   initialize();

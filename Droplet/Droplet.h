@@ -3,7 +3,12 @@
 
 #include "Density.h"
 #include "Display.h" 
- 
+
+#ifdef USE_GRACE
+#include "Grace.h"
+#endif
+  
+
 /**
   *  @brief Class that specializes Density to a slit-pore geometry with a fixed spherical particle
   */  
@@ -20,9 +25,21 @@ class Droplet : public Density
    *   @param  epsV is the energy scale of the wall potential
    *   @return nothing 
    */  
- Droplet(double dx, double L[], Grace *g, double hsd)
-   : Density(dx,L),  g_(g), hsd_(hsd){}
-  
+ Droplet(double dx, double L[], double hsd)
+   : Density(dx,L),  hsd_(hsd)
+   {
+#ifdef USE_GRACE
+      grace_ = new Grace();
+#endif
+   }
+
+   ~Droplet()
+   {
+#ifdef USE_GRACE
+     if(grace_  != NULL) delete grace_;
+#endif
+   }
+   
   /**
    *   @brief  Generates an intial guess at the density
    *  
@@ -57,19 +74,20 @@ class Droplet : public Density
   
   virtual void doDisplay(string &title, string &file, int seq) const
   {
+#ifdef USE_GRACE    
     // Write to a grace window
-    if(g_ == NULL) return;
+    if(grace_ == NULL) return;
 
-    g_->deleteDataSet(seq);
+    grace_->deleteDataSet(seq);
 
     for(int i= 0; i < Nz(); i++)
       {
 	double x = getZ(i);
-	g_->addPoint(x,getDensity(Nx()/2,Ny()/2,i),seq);
+	grace_->addPoint(x,getDensity(Nx()/2,Ny()/2,i),seq);
       }
-    g_->setTitle(title.c_str());
-    g_->redraw();
-
+    grace_->setTitle(title.c_str());
+    grace_->redraw();
+#endif    
     // make a png snapshot
     
     for(int i=0;i<Nx_;i++)
@@ -86,10 +104,14 @@ class Droplet : public Density
   }  
 
  protected:
-  Grace *g_;
   int sequence_;
   double hsd_;
   Display *display_;
+
+#ifdef USE_GRACE  
+  Grace *grace_ = NULL;
+#endif  
+
 };
 
 
