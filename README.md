@@ -6,9 +6,13 @@ This is a suite of code for doing classical DFT calculations.
 
 1. Switch to the branch MultiSpecies (command "git checkout MultiSpecies").
 2. erform the following to setup and compile the library:
+
 >cd Lib
+
 >../Config.sh
+
 >../dft_make.sh
+
 3. To build the model application do the following
 cd ../Droplet
 ../Config.sh
