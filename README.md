@@ -5,7 +5,7 @@ This is a suite of code for doing classical DFT calculations.
 # Installation
 
 1. Switch to the branch MultiSpecies (command "git checkout MultiSpecies").
-2. erform the following to setup and compile the library:
+2. Perform the following to setup and compile the library:
 
 >cd Lib
 
