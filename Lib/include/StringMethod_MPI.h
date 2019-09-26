@@ -34,7 +34,6 @@ class StringMethod_MPI_Master : public StringMethod_MPI
    : StringMethod_MPI(mu, freeEnd), finalDensity_(finalDensity), background_density_(bav), grace_(g), termination_criterion_(terminationCriterion), interpolation_tolerence_(1e-6), archive_frequency_(1)
     {
       Ntot_ = finalDensity.Ntot();
-      gr_ = new mglGraph;
       Images_.resize(Nimages);
 
       dF_.resize(Nimages);
@@ -49,7 +48,7 @@ class StringMethod_MPI_Master : public StringMethod_MPI
       //We just need one density to set up the array which is then shared by all
       finalDensity.initialize_2D_data(data_2D_);
   }
-  ~StringMethod_MPI_Master(){if(gr_) delete gr_;}
+  ~StringMethod_MPI_Master(){}
 
   virtual void run(string& logfile);
   double interpolate();
@@ -82,9 +81,6 @@ class StringMethod_MPI_Master : public StringMethod_MPI
     double termination_criterion_;
     double interpolation_tolerence_;
     int archive_frequency_;
-    
-    mglGraph *gr_;
-    mglData data_2D_;
 };
 
 /**

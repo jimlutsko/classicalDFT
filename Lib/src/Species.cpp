@@ -360,6 +360,19 @@ void FMT_Species::generateWeights(string &pointsFile)
   cout << "///////////////////////////////////////////////////////////" << endl;
 
 
+  size_t Npos = density_.Ntot();
+  
+  for(int i=0;i<11;i++)
+    {
+      size_t nonzero = 0;
+      for(size_t pos = 0; pos < Npos; pos++)
+	if(fabs(d_[i].getWeight(pos)) > 1e-10)
+	  nonzero++;
+
+      cout << "Weight " << i << " has " << nonzero << " non-zero elements out of a total of " << Npos << " or a fraction of " << double(nonzero)/Npos << endl;
+    }
+
+  
   /// Dump the weights
   stringstream ss;
   ss << "weights_" << seq_num_ << ".dat";
@@ -409,7 +422,7 @@ VDW_Species::VDW_Species(Density& density, double hsd, string &pointsFile, Poten
 	  if(nz > Nz/2) z -= Nz*dz;
 
 	  double r2 = x*x+y*y+z*z;
-	  w_att_.Real().addTo(pos,potential.Watt(sqrt(r2))/kT); 
+	  w_att_.Real().IncrementBy(pos,potential.Watt(sqrt(r2))/kT); 
  	}
 
   // Set the parameters in the VDW object  

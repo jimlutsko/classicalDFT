@@ -1,8 +1,6 @@
 #ifndef __LUTSKO_CONJUG2__
 #define __LUTSKO_CONJUG2__
 
-#include <mgl2/mgl.h>
-
 using namespace std;
 
 #include "DFT.h"

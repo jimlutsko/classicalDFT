@@ -31,8 +31,8 @@ class DimerMethod
     dV_ = density.dV();
     Nfixed_ = density.getNumberAtoms();
 
-    R1_.set(R0_);  R1_.Increment_And_Scale(N_,dR_);
-    R2_.set(R0_);  R2_.Increment_And_Scale(N_,-dR_);
+    R1_.set(R0_);  R1_.IncrementBy_Scaled_Vector(N_,dR_);
+    R2_.set(R0_);  R2_.IncrementBy_Scaled_Vector(N_,-dR_);
   }
   
   ~DimerMethod(){}
@@ -71,7 +71,7 @@ class DimerMethod
     T_.DecrementBy(F0_);
 
     double F10_dot_N = T_.dotWith(N_);
-    T_.Increment_And_Scale(N_,-F10_dot_N);
+    T_.IncrementBy_Scaled_Vector(N_,-F10_dot_N);
     double T_norm = T_.euclidean_norm(); // we need this below
     T_.normalise();
     
@@ -90,7 +90,7 @@ class DimerMethod
     T_.DecrementBy(F2_);
 
     double F12_dot_N = T_.dotWith(N_);
-    T_.Increment_And_Scale(N_,-F12_dot_N);
+    T_.IncrementBy_Scaled_Vector(N_,-F12_dot_N);
     double T_norm = T_.euclidean_norm()/2; // we need this below
     T_.normalise();
     double E0 = E1_+E2_;
@@ -101,11 +101,11 @@ class DimerMethod
     double phi1 = 0.1; //0.5*atan(-dC_dPhi_0/(2*C0));
 
     DFT_Vec N_rotated(N_);
-    N_rotated.multBy(cos(phi1));
-    N_rotated.Increment_And_Scale(T_,sin(phi1));
+    N_rotated.MultBy(cos(phi1));
+    N_rotated.IncrementBy_Scaled_Vector(T_,sin(phi1));
     
     DFT_Vec R1_rotated(R0_);
-    R1_rotated.Increment_And_Scale(N_rotated,dR_);
+    R1_rotated.IncrementBy_Scaled_Vector(N_rotated,dR_);
 
     double E1_rotated;
     DFT_Vec F1_rotated; F1_rotated.zeros(F1_.size());
@@ -117,7 +117,7 @@ class DimerMethod
     //    double Ephi = 2*E0_-0.5*dR_*F12_dot_N_rotated;
 
     DFT_Vec R2_rotated(R0_);
-    R2_rotated.Increment_And_Scale(N_rotated,-dR_);
+    R2_rotated.IncrementBy_Scaled_Vector(N_rotated,-dR_);
 
     double E2_rotated;
     DFT_Vec F2_rotated; F2_rotated.zeros(F2_.size());
@@ -148,12 +148,12 @@ class DimerMethod
 
     DFT_Vec y; y.zeros(N_.size());
 
-    y.Increment_And_Scale(N_,cos(phi_min));
-    y.Increment_And_Scale(T_,sin(phi_min));
+    y.IncrementBy_Scaled_Vector(N_,cos(phi_min));
+    y.IncrementBy_Scaled_Vector(T_,sin(phi_min));
     y.normalise();
 
-    R1_.set(R0_);  R1_.Increment_And_Scale(y,dR_);
-    R2_.set(R0_);  R2_.Increment_And_Scale(y,-dR_);
+    R1_.set(R0_);  R1_.IncrementBy_Scaled_Vector(y,dR_);
+    R2_.set(R0_);  R2_.IncrementBy_Scaled_Vector(y,-dR_);
 
     DFT_Vec t(T_);
     Rotate(t,phi_min);
@@ -161,8 +161,8 @@ class DimerMethod
     T_.normalise();
 
     N_.set(R1_);
-    N_.Increment_And_Scale(R2_,-1);
-    N_.multBy(1.0/(2*dR_));
+    N_.IncrementBy_Scaled_Vector(R2_,-1);
+    N_.MultBy(1.0/(2*dR_));
     
     // Final check:
     if(doCheck)
@@ -195,7 +195,7 @@ class DimerMethod
     double a = (Nfixed_-N0)/(sum*dV_);
 
     DFT_Vec y(v);
-    y.multBy(sqrt(a));
+    y.MultBy(sqrt(a));
 
     density_.set_density_from_amplitude(y);
 
@@ -224,18 +224,18 @@ class DimerMethod
     double vN_rot = vN*cos(theta)-vT*sin(theta);
     double vT_rot = vN*sin(theta)+vT*cos(theta);
 
-    v.Increment_And_Scale(N_,vN_rot-vN);
-    v.Increment_And_Scale(T_,vT_rot-vT);
+    v.IncrementBy_Scaled_Vector(N_,vN_rot-vN);
+    v.IncrementBy_Scaled_Vector(T_,vT_rot-vT);
   }
 
   double AngularForce(double dtheta, double &E) const 
   {
     DFT_Vec R1(R0_);
-    R1.Increment_And_Scale(N_,dR_*cos(dtheta));
-    R1.Increment_And_Scale(T_,dR_*sin(dtheta));
+    R1.IncrementBy_Scaled_Vector(N_,dR_*cos(dtheta));
+    R1.IncrementBy_Scaled_Vector(T_,dR_*sin(dtheta));
 
     DFT_Vec R2(R0_);
-    R2.multBy(2);
+    R2.MultBy(2);
     R2.DecrementBy(R1);
     
     double E1rot,E2rot;
@@ -252,7 +252,7 @@ class DimerMethod
     ThetaStar.normalise();
 
     DFT_Vec fPerp_Rotated(dE1rot);
-    fPerp_Rotated.Increment_And_Scale(dE2rot,-1);
+    fPerp_Rotated.IncrementBy_Scaled_Vector(dE2rot,-1);
 
     // minus to give the forces (not the gradients)
     double fP = -fPerp_Rotated.dotWith(ThetaStar)*dR_;
@@ -279,23 +279,23 @@ class DimerMethod
     if(C > 0)
       {
 	F.set(N_);
-	F.multBy(-FN);
-      } else F.Increment_And_Scale(N_,-2*FN);
+	F.MultBy(-FN);
+      } else F.IncrementBy_Scaled_Vector(N_,-2*FN);
 
     DFT_Vec dV(F);
-    dV.multBy(dt);
+    dV.MultBy(dt);
 
     double dprod = V_.dotWith(dV);
     double dV2  = dV.dotWith(dV);
 
     V_.set(dV);
-    V_.multBy(1+dprod/dV2);
+    V_.MultBy(1+dprod/dV2);
     if(V_.dotWith(F) <0)V_.set(dV);    
 
     
-    R0_.Increment_And_Scale(V_,dt);
-    R1_.Increment_And_Scale(V_,dt);
-    R2_.Increment_And_Scale(V_,dt);
+    R0_.IncrementBy_Scaled_Vector(V_,dt);
+    R1_.IncrementBy_Scaled_Vector(V_,dt);
+    R2_.IncrementBy_Scaled_Vector(V_,dt);
 
     double E1 = Energy(R1_);
     double E2 = Energy(R2_);

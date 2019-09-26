@@ -187,8 +187,8 @@ int main(int argc, char** argv)
   if(! infile.empty())
     theDensity1.readDensity(infile.c_str());
 
-  fireMinimizer_Mu minimizer(dft,log);
-  //fireMinimizer2 minimizer(dft,log);
+  //fireMinimizer_Mu minimizer(dft,log);
+  fireMinimizer2 minimizer(dft,log);
   minimizer.setForceTerminationCriterion(forceLimit);
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);

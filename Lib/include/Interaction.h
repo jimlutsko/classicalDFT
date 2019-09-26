@@ -56,7 +56,7 @@ class Interaction
 	      if(nz > Nz/2) z -= Nz*dz;
 
 	      double r2 = x*x+y*y+z*z;
-	      w_att_.Real().addTo(pos,v.Watt(sqrt(r2))/kT);
+	      w_att_.Real().IncrementBy(pos,v.Watt(sqrt(r2))/kT);
 	    }
       // Set the parameters in the VDW object  
       // Do this BEFORE the FFT which may corrupt the real-space part
@@ -80,20 +80,20 @@ class Interaction
     if(s1_.getSequenceNumber() == s2_.getSequenceNumber())
       {
 	v.Four().Schur(density1.getDK(),w_att_.Four());
-	v.Four().multBy(dV*dV/Ntot);
+	v.Four().MultBy(dV*dV/Ntot);
 	v.do_fourier_2_real(); 
 	s1_.addToForce(v.Real());
 	E = 0.5*density1.getInteractionEnergy(v.Real());	
       } else {
 	v.Four().Schur(density1.getDK(),w_att_.Four());
-	v.Four().multBy(0.5*dV*dV/Ntot);
+	v.Four().MultBy(0.5*dV*dV/Ntot);
 	v.do_fourier_2_real(); 
 	s2_.addToForce(v.Real());
 
 	const Density &density2 = s2_.getDensity();
 
 	v.Four().Schur(density2.getDK(),w_att_.Four());
-	v.Four().multBy(0.5*dV*dV/Ntot);
+	v.Four().MultBy(0.5*dV*dV/Ntot);
 	v.do_fourier_2_real(); 
 	s1_.addToForce(v.Real());
 

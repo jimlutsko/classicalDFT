@@ -95,7 +95,7 @@ double Minimizer::getDF_DX()
   }
 
   //  dF_.Schur(x_,dF_);
-  //  dF_.multBy(2);
+  //  dF_.MultBy(2);
 
   double dV = dft_.lattice().dV();
 
@@ -171,16 +171,16 @@ void fireMinimizer_Mu::verlet()
 	    continue;
 	DFT_Vec &df = dft_.getDF(Jspecies);
 	
-	x_[Jspecies].Increment_And_Scale(v_[Jspecies],dt_);           // this gives x_(t+dt)
-	x_[Jspecies].Increment_And_Scale(df,-0.5*dt_*dt_); // dF=dV/dx does not have minus sign ... 
-	v_[Jspecies].Increment_And_Scale(df, -0.5*dt_);    // now do half the v update
+	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);           // this gives x_(t+dt)
+	x_[Jspecies].IncrementBy_Scaled_Vector(df,-0.5*dt_*dt_); // dF=dV/dx does not have minus sign ... 
+	v_[Jspecies].IncrementBy_Scaled_Vector(df, -0.5*dt_);    // now do half the v update
       }
     F_ = getDF_DX();                          // then get new forces    
     for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
       	if(onlyRelax_ >= 0)
 	  if(Jspecies != onlyRelax_)
 	    continue;
-	  else v_[Jspecies].Increment_And_Scale(dft_.getDF(Jspecies), -0.5*dt_);    // and finish velocity update
+	  else v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -0.5*dt_);    // and finish velocity update
   } catch (Eta_Too_Large_Exception &e) {
     for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
       {
@@ -237,7 +237,7 @@ double fireMinimizer_Mu::step()
 	  continue;
       
       p += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
-      v_[Jspecies].multBy(1-alpha_);
+      v_[Jspecies].MultBy(1-alpha_);
     }
 
   double vnorm = 0;
@@ -256,7 +256,7 @@ double fireMinimizer_Mu::step()
     }
 
   for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)  
-    v_[Jspecies].Increment_And_Scale(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
+    v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
 
   if(p < 0)
     {
@@ -326,7 +326,7 @@ double fireMinimizer2::step()
       }
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
-	x_[Jspecies].Increment_And_Scale(v_[Jspecies],-0.5*dt_);
+	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-0.5*dt_);
 	v_[Jspecies].zeros(v_[Jspecies].size());
       }
   }
@@ -374,7 +374,7 @@ void fireMinimizer2::SemiImplicitEuler()
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       DFT_Vec &df = dft_.getDF(Jspecies);
-      v_[Jspecies].Increment_And_Scale(df, -dt_);    
+      v_[Jspecies].IncrementBy_Scaled_Vector(df, -dt_);    
 
       double v = v_[Jspecies].euclidean_norm();
       double f = df.euclidean_norm();
@@ -386,13 +386,13 @@ void fireMinimizer2::SemiImplicitEuler()
   /// Do mixing
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
-      v_[Jspecies].multBy(1-alpha_);      
-      v_[Jspecies].Increment_And_Scale(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
+      v_[Jspecies].MultBy(1-alpha_);      
+      v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
     }
 
   //Update x
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
-    x_[Jspecies].Increment_And_Scale(v_[Jspecies],dt_);           
+    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);           
 
   // recalculate forces with back-tracking, if necessary
   bool bSuccess = false;
@@ -403,7 +403,7 @@ void fireMinimizer2::SemiImplicitEuler()
 	bSuccess = true;
       } catch (Eta_Too_Large_Exception &e) {
 	for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
-	  x_[Jspecies].Increment_And_Scale(v_[Jspecies],-0.5*dt_);
+	  x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-0.5*dt_);
 	dt_ /= 2;
 
 	log_ << "Backtrack .. " << endl;

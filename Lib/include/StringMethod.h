@@ -14,11 +14,10 @@ class StringMethod
  public:
  StringMethod(DDFT &ddft, vector<Density*> string, double Time_Step_Max = 1e-2, Grace *g = NULL,bool freeEnd = false) : ddft_(ddft), string_(string), grace_(g), Time_Step_Max_(Time_Step_Max), freeEnd_(freeEnd), Jclimb_(-1)
   {
-    gr_ = new mglGraph;
     DT_.resize(string_.size(),0.0);
   }
   
-  ~StringMethod(){if(gr_) delete gr_;}
+  ~StringMethod(){} 
 
   void setClimbingImage(int J) { Jclimb_ = J; tangent_.zeros(string_[0]->Ntot());}
 
@@ -46,9 +45,6 @@ class StringMethod
 
   int Jclimb_;
   
-  mglGraph *gr_;
-  mglData data_2D_;
-
   double mu_;
   double Time_Step_Max_;
 };

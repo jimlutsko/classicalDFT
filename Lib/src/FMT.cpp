@@ -244,7 +244,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 
       dPhi_.do_fourier_2_real();
 
-      dPhi_.Real().multBy(dV);
+      dPhi_.Real().MultBy(dV);
       species.addToForce(dPhi_.cReal());
     }
   

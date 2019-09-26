@@ -30,18 +30,13 @@ class DFT_Vec
 
   void set(const double *x, unsigned n) { data_.set_size(n); memcpy(data_.memptr(),x,sizeof(double)*n);} 
   
-  void addTo(unsigned pos, double val) { data_[pos] += val;}
-  void addTo(double val) { data_ += val;}
-
-  void addTo(DFT_Vec &v) { data_ += v.data_;}
-  
   void resize(long N) {data_.resize(N);}
   void zeros(long N)  {data_.zeros(N);}
   void zeros()  {data_.zeros();}
 
   double inf_norm() const { return arma::norm(data_,"inf");}
   double euclidean_norm() const { return arma::norm(data_);}
-  void normalise() { multBy(1.0/euclidean_norm());}
+  void normalise() { MultBy(1.0/euclidean_norm());}
   
   double min() const { return arma::min(data_);}
   double max() const { return arma::max(data_);}
@@ -52,9 +47,6 @@ class DFT_Vec
   
   double dotWith(const DFT_Vec &v) const { return dot(v.data_,data_);}
 
-  void multBy(double val) { data_ *= val;}
-  void scaleBy(long pos, double val) { data_[pos] /= val;}
-
   double accu() const { return arma::accu(data_);}
 
   void Schur(const DFT_Vec &v1, const DFT_Vec &v2) { data_ = v1.data_%v2.data_;}
@@ -62,19 +54,15 @@ class DFT_Vec
   void save(ofstream &of) const {data_.save(of);}
   void load(ifstream &in) {data_.load(in);}
 
-  void Increment_Shift_And_Scale(const DFT_Vec& v,double scale, double shift)
-  {
-    data_ += v.data_*scale-shift*scale;
-  }
-
-  void Increment_And_Scale(const DFT_Vec& v,double scale)
-  {
-    data_ += v.data_*scale;
-  }
-
+  void MultBy(double val)            { data_ *= val;}
   void IncrementBy(const DFT_Vec& v) { data_ += v.data_;}
-  void DecrementBy(const DFT_Vec& v) { data_ -= v.data_;}
+  void DecrementBy(const DFT_Vec& v) { data_ -= v.data_;}  
+  void ShiftBy(double shift)         { data_ += -shift;}
 
+  void IncrementBy(unsigned pos, double val) { data_[pos] += val;}
+    
+  void IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale) {data_ += v.data_*scale;}
+  
  protected:
   vec data_;
 };
@@ -94,8 +82,8 @@ class DFT_Vec_Complex
   void   set(unsigned pos, complex<double> val) { data_[pos] = val;}
   complex<double> get(unsigned pos) const { return data_[pos];}
 
-  void scaleBy(double val) { data_ /= val;}
-  void multBy(double val)  { data_ *= val;}
+  //  void scaleBy(double val) { data_ /= val;}
+  void MultBy(double val)  { data_ *= val;}
   
   void Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false) { if(bUseConj) data_ = v1.data_%conj(v2.data_); else data_ = v1.data_%v2.data_;}
   void incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2) { data_ += v1.data_%v2.data_;}
@@ -125,7 +113,6 @@ class DFT_FFT
     };
 
  DFT_FFT() : four_2_real_(NULL), real_2_four_(NULL){};
-  //  DFT_FFT(const DFT_FFT& c) { RealSpace_ = c.RealSpace_; FourierSpace_ = c.FourierSpace_; four_2_real_ = real_2_four_ = 0;}
   
   ~DFT_FFT()
     {
@@ -135,13 +122,13 @@ class DFT_FFT
 
   void zeros() {RealSpace_.zeros(); FourierSpace_.zeros();}
   
- void initialize(unsigned Nx, unsigned Ny, unsigned Nz)
-    {
-      RealSpace_.zeros(Nx*Ny*Nz);
-      FourierSpace_.zeros(Nx*Ny*((Nz/2)+1));
-      four_2_real_ = fftw_plan_dft_c2r_3d(Nx, Ny, Nz, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
-      real_2_four_ = fftw_plan_dft_r2c_3d(Nx, Ny, Nz, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
-    };
+  void initialize(unsigned Nx, unsigned Ny, unsigned Nz)
+  {
+    RealSpace_.zeros(Nx*Ny*Nz);
+    FourierSpace_.zeros(Nx*Ny*((Nz/2)+1));
+    four_2_real_ = fftw_plan_dft_c2r_3d(Nx, Ny, Nz, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
+    real_2_four_ = fftw_plan_dft_r2c_3d(Nx, Ny, Nz, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
+  };
   
   DFT_Vec &Real() { return RealSpace_;}
   DFT_Vec_Complex &Four() { return FourierSpace_;}

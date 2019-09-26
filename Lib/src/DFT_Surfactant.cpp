@@ -96,9 +96,9 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives_internal_(bool o
   DFT_FFT dF(Nx, Ny, Nz);      
 
   dF.Four().Schur(surfactant_potential_.Four(),v2.Four(),false); //true);
-  dF.Four().scaleBy(dF.Real().size());  // FFTW's convention
+  dF.Four().MultBy(1.0/dF.Real().size());  // FFTW's convention
   dF.do_fourier_2_real();
-  dF.Real().multBy(dV*dV); // this is d F/d rho_i and so the factors of dV survive
+  dF.Real().MultBy(dV*dV); // this is d F/d rho_i and so the factors of dV survive
 
   surfactant.addToForce(dF.Real());
   
@@ -116,7 +116,7 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives_internal_(bool o
       dF.zeros();
 
       dF.Four().Schur(surf_density.getDK(), surfactant_potential_.Four(),false);
-      dF.Four().scaleBy(dF.Real().size());  // FFTW's convention
+      dF.Four().MultBy(1.0/dF.Real().size());  // FFTW's convention
       dF.do_fourier_2_real();  
 
       dF.Real().Schur(dF.Real(),water.getV_Real(i));
@@ -125,7 +125,7 @@ double DFT_VDW_Surfactant<T>::calculateFreeEnergyAndDerivatives_internal_(bool o
       dF.Four().Schur(dF.Four(),water.getVweight_Four(i),false); // this includes the FFTW scale factor already
       dF.do_fourier_2_real();
 
-      dF.Real().multBy(2*dV*dV);
+      dF.Real().MultBy(2*dV*dV);
       
       water.addToForce(dF.cReal());
     }

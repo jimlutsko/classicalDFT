@@ -18,10 +18,10 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/../scripts)
 
 find_package(GSL REQUIRED)
-find_package(Armadillo  REQUIRED)
 find_package(OpenMP)
 find_package(MathGL2 REQUIRED)
-#find_package(GRACE REQUIRED)
+find_package(Armadillo  REQUIRED)
+
 
 ## Get the classicalDFT library and headers
 find_library(CLASSICALDFT classicalDFT  PATHS ${PROJECT_SOURCE_DIR}/../Lib)

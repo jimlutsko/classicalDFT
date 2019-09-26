@@ -26,10 +26,10 @@ class Species
   void set_density_from_amplitude(DFT_Vec &x) {density_.set_density_from_amplitude(x);}
 
   void zeroForce() {dF_.zeros();}
-  void addToForce(long i, double v) {dF_.addTo(i,v);}
+  void addToForce(long i, double v) {dF_.IncrementBy(i,v);}
   void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}
   void setForce(const DFT_Vec &f) {dF_.set(f);}
-  void multForce(double f) {dF_.multBy(f);}  
+  void multForce(double f) {dF_.MultBy(f);}  
   
   double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}
   
@@ -40,7 +40,10 @@ class Species
     double dV = density_.dV();
     double Fx = density_.getExternalFieldEnergy()*dV - density_.getNumberAtoms()*mu_;
     if(bCalcForces)
-      dF_.Increment_Shift_And_Scale(density_.getExternalField(),dV,mu_);
+      {
+	dF_.IncrementBy_Scaled_Vector(density_.getExternalField(),dV);
+	dF_.ShiftBy(mu_*dV);
+      }
     return Fx;
   }
 
@@ -283,7 +286,7 @@ class Species
       DFT_FFT v(density_.Nx(), density_.Ny(), density_.Nz());      
 
       v.Four().Schur(density_.getDK(),w_att_.Four());
-      v.Four().multBy(dV*dV/Ntot);
+      v.Four().MultBy(dV*dV/Ntot);
       v.do_fourier_2_real(); 
 
       dF_.IncrementBy(v.Real());

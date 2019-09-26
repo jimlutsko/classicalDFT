@@ -33,7 +33,7 @@ class FMT_Weighted_Density
   void transformWeights()
   {
     weight_.do_real_2_fourier();
-    weight_.Four().scaleBy(weight_.Real().size());
+    weight_.Four().MultBy(1.0/weight_.Real().size());
   }
 
   // Tricky point: here, we have to use the conjugates because the original expression has the form
@@ -52,7 +52,7 @@ class FMT_Weighted_Density
     
   void   setWeight(long pos, double x) {weight_.Real().set(pos,x);} 
   double getWeight(long pos) const {return weight_.cReal().get(pos);}
-  void   addToWeight(long pos, double x) {weight_.Real().addTo(pos,x);}
+  void   addToWeight(long pos, double x) {weight_.Real().IncrementBy(pos,x);}
   void   Set_dPhi(long pos, double x) {dPhi_.Real().set(pos,x);} 
  
   double real(long i) const { return weighted_density_.cReal().get(i); }
