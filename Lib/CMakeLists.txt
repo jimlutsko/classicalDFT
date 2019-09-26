@@ -9,9 +9,6 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/GitSHA1.cpp.in" "${CMAKE_CURRENT
 # Project name and a few useful settings. Other commands can pick up the results
 project(classicalDFT VERSION 1.0 DESCRIPTION "classical DFT library and apps" LANGUAGES CXX)
 
-set(ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
-
-
 #Version information
 configure_file (
   "${PROJECT_SOURCE_DIR}/src/config.h.in"
@@ -23,7 +20,6 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 file(GLOB all_SRCS "${PROJECT_SOURCE_DIR}/src/*.cpp")
 
 add_library(${PROJECT_NAME} STATIC ${all_SRCS})
-
 
 # All users of this library will need at least C++11
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
