@@ -167,11 +167,23 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
+  std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+
+  
   // Compute the FFT of density
   for(auto s: allSpecies)
     ((FMT_Species*)s)->convoluteDensities();
-    
+
+  std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = now-start;    
+  
   double F = doFreeEnergyLoop(allSpecies);
+
+  std::chrono::time_point<std::chrono::system_clock> later = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds1 =later-now;    
+
+  cout << "Elapsed time1 " << elapsed_seconds.count()  << " Elapsed time2 " << elapsed_seconds1.count() << endl;
+
   
   return F;
 }
@@ -189,11 +201,11 @@ double FMT::doFreeEnergyLoop(vector<Species*> &allSpecies)
   // There is a problem throwing exceptions from an OMP loop - I think that only the affected thread stops and the others continue.
   // So we eat the exception, remember it, and rethrow it when all loops are finished.
   bool hadCatch = false;
-
-  #pragma omp parallel for		\
-    shared( chunk, allSpecies )				\
-    private(i)					\
-    schedule(static,chunk)			\
+  
+   #pragma omp parallel for	  \
+    shared( chunk)	  \
+    private(i)			  \
+    schedule(static,chunk)	  \
     reduction(+:F)
   for(i=0;i<Ntot;i++)
     {

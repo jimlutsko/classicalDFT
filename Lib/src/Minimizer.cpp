@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <vector>
 #include <time.h>
+#include <chrono>
 
 using namespace std;
 
@@ -24,6 +25,9 @@ void Minimizer::run(long maxSteps)
 
   //  int ret = system("rm *_image_*.png");
   int image_counter = 0;
+
+
+
   do {
     draw_before();
 
@@ -46,6 +50,8 @@ void Minimizer::run(long maxSteps)
 	<< "\t" << Ntotal/Volume
       	<< "\t" << calls_
 	<< endl;
+
+    
     if(std::isnan(f_abs_max_))
 	log_  << "INF detected" << endl; //: min = " << dF_.min() << " max = " << dF_.max() << endl;
 

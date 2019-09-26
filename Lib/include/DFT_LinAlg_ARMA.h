@@ -4,9 +4,6 @@
 
 #include <armadillo>
 
-using namespace arma;
-
-
 #include "FMT_FFTW.h"
 
 
@@ -36,20 +33,18 @@ class DFT_Vec
 
   double inf_norm() const { return arma::norm(data_,"inf");}
   double euclidean_norm() const { return arma::norm(data_);}
-  void normalise() { MultBy(1.0/euclidean_norm());}
+  void normalise() { MultBy(1.0/euclidean_norm());} // better data_ = arma::normalise(data_) ???
   
-  double min() const { return arma::min(data_);}
-  double max() const { return arma::max(data_);}
+  double min() const { return data_.min();} //arma::min(data_);}
+  double max() const { return data_.max();} //arma::max(data_);}
 
   double *memptr() { return data_.memptr();}
 
   unsigned size() const { return data_.size();}
   
-  double dotWith(const DFT_Vec &v) const { return dot(v.data_,data_);}
+  double dotWith(const DFT_Vec &v) const { return arma::dot(v.data_,data_);}
 
   double accu() const { return arma::accu(data_);}
-
-  void Schur(const DFT_Vec &v1, const DFT_Vec &v2) { data_ = v1.data_%v2.data_;}
 
   void save(ofstream &of) const {data_.save(of);}
   void load(ifstream &in) {data_.load(in);}
@@ -62,9 +57,11 @@ class DFT_Vec
   void IncrementBy(unsigned pos, double val) { data_[pos] += val;}
     
   void IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale) {data_ += v.data_*scale;}
+
+  void Schur(const DFT_Vec &v1, const DFT_Vec &v2) { data_ = v1.data_%v2.data_;}
   
  protected:
-  vec data_;
+  arma::vec data_;
 };
 
 
@@ -82,7 +79,6 @@ class DFT_Vec_Complex
   void   set(unsigned pos, complex<double> val) { data_[pos] = val;}
   complex<double> get(unsigned pos) const { return data_[pos];}
 
-  //  void scaleBy(double val) { data_ /= val;}
   void MultBy(double val)  { data_ *= val;}
   
   void Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false) { if(bUseConj) data_ = v1.data_%conj(v2.data_); else data_ = v1.data_%v2.data_;}
@@ -97,7 +93,7 @@ class DFT_Vec_Complex
   unsigned size() const { return data_.size();}
  
  protected:
-  cx_vec data_;
+  arma::cx_vec data_;
 };
 
 /**

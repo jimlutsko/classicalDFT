@@ -2,7 +2,10 @@
 #define __LUTSKO_DROPLET__
 
 #include "Density.h"
+
+#ifdef USE_MGL
 #include "Display.h" 
+#endif
 
 #ifdef USE_GRACE
 #include "Grace.h"
@@ -66,8 +69,10 @@ class Droplet : public Density
 
 	    set_Density_Elem(i,j,k,dd);
 	  }
+#ifdef USE_MGL
     // This is an object that writes a png snapshot whenever doDisplay gets called.
     display_ = new Display(Nx_,Ny_);
+#endif
   }
 
   // This gets called after every update and for each species: seq is the species number. 
@@ -87,7 +92,8 @@ class Droplet : public Density
       }
     grace_->setTitle(title.c_str());
     grace_->redraw();
-#endif    
+#endif
+#ifdef USE_MGL
     // make a png snapshot
     
     for(int i=0;i<Nx_;i++)
@@ -101,12 +107,17 @@ class Droplet : public Density
     string f1 = file1.str();
     
     display_->doDisplay(t1, f1);
+#endif        
   }  
 
  protected:
   int sequence_;
   double hsd_;
+
+#ifdef USE_MGL
   Display *display_;
+#endif  
+  
 
 #ifdef USE_GRACE  
   Grace *grace_ = NULL;

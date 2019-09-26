@@ -1,6 +1,6 @@
 #! /bin/sh
 mkdir build
-cd build
+cd build -DCMAKE_BUILD_TYPE=Release ..
 cmake ..
 cd ..
 mkdir debug

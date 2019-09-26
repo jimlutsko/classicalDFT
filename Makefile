@@ -26,13 +26,13 @@ ifeq ($(strip $(MACHINE)),$(I686))
 	COPTS= $(DEBUG)  -march=${PROCESSOR} 
 	CCC= mpic++
 	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR} -MMD
-	LIBINTEL= iode_ia32
+#	LIBINTEL= iode_ia32
 else
 	PROCESSOR=opteron
 	COPTS= $(DEBUG)  -march=${PROCESSOR} -fopenmp -MMD
 	CCC= mpic++
 	CCOPTS= $(DEBUG) -std=gnu++11 -march=${PROCESSOR}  -MMD -fopenmp  -D USE_OMP 
-	LIBINTEL =iode_intel64
+#	LIBINTEL =iode_intel64
 endif
 
 ###########################################################################

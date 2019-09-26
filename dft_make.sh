@@ -30,7 +30,7 @@ then
     cd $here
 fi
 
-echo cmake --build $DIR1 $FLAG1
+echo cmake --build $DIR1 $FLAG1 
 cmake --build $DIR1 $FLAG1
 
 
