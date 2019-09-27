@@ -10,16 +10,10 @@ set(PATH_TO_DFT_LIB ${PROJECT_SOURCE_DIR}/../Lib)
 add_executable(${PROJECT_NAME}  ${PROJECT_SOURCE_DIR}/droplet.cpp)
 
 #MODIFY: enable these lines if you want to use Grace (Grace.h, Grace.cpp)
-#target_compile_definitions(${PROJECT_NAME} PUBLIC USE_GRACE)
-#target_sources(${PROJECT_NAME} PUBLIC ${PATH_TO_DFT_LIB}/additionalCode/Grace.cpp)
-#target_include_directories(${PROJECT_NAME} PUBLIC ${PATH_TO_DFT_LIB}/additionalCode)
-#target_link_libraries(${PROJECT_NAME} PUBLIC "grace_np")
+#set(USE_GRACE true)
 
 #MODIFY: enable these lines if you want to use Display object (Display.h: creates png images)
-#target_compile_definitions(${PROJECT_NAME} PUBLIC USE_MGL)
-#target_include_directories(${PROJECT_NAME} PUBLIC ${PATH_TO_DFT_LIB}/additionalCode)
-#find_package(MathGL2 REQUIRED)
-#target_link_libraries(${PROJECT_NAME} PUBLIC "mgl")
+#set(USE_MGL true)
 
 ################### End of customizations
 
@@ -53,3 +47,16 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   "fftw3"
   )
 
+if(USE_MGL)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC USE_MGL)
+  target_include_directories(${PROJECT_NAME} PUBLIC ${PATH_TO_DFT_LIB}/additionalCode)
+  find_package(MathGL2 REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC "mgl")
+endif()
+
+if(USE_GRACE)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC USE_GRACE)
+  target_sources(${PROJECT_NAME} PUBLIC ${PATH_TO_DFT_LIB}/additionalCode/Grace.cpp)
+  target_include_directories(${PROJECT_NAME} PUBLIC ${PATH_TO_DFT_LIB}/additionalCode)
+  target_link_libraries(${PROJECT_NAME} PUBLIC "grace_np")
+endif()
