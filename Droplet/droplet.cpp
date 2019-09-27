@@ -144,7 +144,7 @@ int main(int argc, char** argv)
   
   FMT_Species species1(theDensity1,hsd1,pointsFile);
 
-  Interaction i1(species1,species1,potential1,kT);
+  Interaction i1(species1,species1,potential1,kT,log);
 
   /////////////////////////////////////
   // Create the hard-sphere object

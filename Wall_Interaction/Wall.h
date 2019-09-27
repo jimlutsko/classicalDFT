@@ -97,7 +97,8 @@ grace_ = (Grace*) grace;
       {
 	double x = getZ(i);
 	//	grace_->addPoint(x,(M_PI*hsd_*hsd_*hsd_/6)*getDensity(Nx()/2,Ny()/2,i),seq+2);
-	grace_->addPoint(x,(M_PI*hsd_*hsd_*hsd_/6)*getDensity(3*Nx()/4,3*Ny()/4,i),seq);
+	//	grace_->addPoint(x,(M_PI*hsd_*hsd_*hsd_/6)*getDensity(3*Nx()/4,3*Ny()/4,i),seq);
+	grace_->addPoint(x,getDensity(3*Nx()/4,3*Ny()/4,i),seq);
 	emax = max(emax,(M_PI*hsd_*hsd_*hsd_/6)*getDensity(Nx()/2,Ny()/2,i));
 	/*	if(dft_)
 	  {
@@ -107,7 +108,6 @@ grace_ = (Grace*) grace;
 	  }
 	*/
       }
-    cout << "emax = " << emax << " Natoms = " << getNumberAtoms() << " hsd = " << hsd_ <<  endl;
       grace_->setTitle(title.c_str());
     //    grace_->setColor(2,1);
     grace_->redraw();

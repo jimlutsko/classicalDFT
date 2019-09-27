@@ -240,7 +240,7 @@ int main(int argc, char** argv)
     FMT_Species species1(theDensity1,hsd1,pointsFile);
     //    FMT_Species species2(theDensity2,hsd2,pointsFile);    
 
-    Interaction i1(species1,species1,potential1,kT);
+    Interaction i1(species1,species1,potential1,kT,log);
     //    Interaction i2(species2,species2,potential2,kT);
 
     log << "Hsd = " << hsd1 << endl;
@@ -296,8 +296,9 @@ int main(int argc, char** argv)
     log << "mu1 = " << mu1 << endl;
     //    log << "mu2 = " << mu2 << endl;
 
-    mu1 = 1.0; //429419757366029; ///kT;
-    
+    mu1 =  -3.429419757366029/kT;
+
+    log << "now mu1 = " << mu1 << endl;    
 
     theDensity1.initialize(density1, density1);
     //    theDensity2.initialize(density2, density2);
@@ -394,7 +395,7 @@ exit(0);
   log << "Final Omega: " << Omega << endl;
   log << "Excess Omega = " << dOmega << endl;
   log << "Surface Tension = " << SurfaceTension << endl;
-    
+
   } catch(const std::exception &e) {
     log << " " << endl;
     log << e.what() << endl;
@@ -404,8 +405,12 @@ exit(0);
   }
 
 #ifdef USE_GRACE
-  ((Grace*) grace)->pause();
-  if(grace != NULL) delete (Grace*) grace;
+  if(grace != NULL)
+    {
+      ((Grace*) grace)->pause();
+      ((Grace*) grace)->close();
+      delete (Grace*) grace;
+    }
 #endif
   return 1;
 }

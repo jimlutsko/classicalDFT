@@ -17,6 +17,7 @@
 #include <complex.h>
 
 #include "Species.h"
+#include "Log.h"
 
 /**
   *  @brief This class encapsulates the interaction between two species (or one species with itself)
@@ -25,8 +26,9 @@
 class Interaction
 {
  public:
- Interaction(Species &s1, Species &s2, Potential1 &v, double kT) : s1_(s1), s2_(s2)
+ Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) : s1_(s1), s2_(s2)
     {
+      log << "Calculating mean field potential ... this may take a while ..." << endl;
       const Density &density = s1.getDensity();
       
       // The lattice
@@ -39,65 +41,51 @@ class Interaction
       double dz = density.getDZ();
   
       // Set up the mean field potential
-      w_att_.initialize(Nx,Ny,Nz);
+      // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
+      // This may mean going beyond nearest neighbors in certain conditions.
+      // We also compute the vdw parameter at the same time.
+      
+      double Rc = v.getRcut();
 
-      for(int nx = 0;nx<Nx;nx++)
-	for(int ny = 0;ny<Ny;ny++)
-	  for(int nz = 0;nz<Nz;nz++)
+      w_att_.initialize(Nx,Ny,Nz);      
+      a_vdw_ = 0.0;
+
+      for(double x = -Rc; x < Rc; x += dx)
+	{
+	  long nx = x/dx;
+	  if(nx >= Nx || nx < 0) nx -= Nx*int(nx/Nx);
+	  while(nx >=  Nx) nx -= Nx;
+	  while(nx <   0) nx += Nx;
+
+	  for(double y = -Rc; y < Rc; y += dy)
+	  {
+	    long ny = y/dy;
+	    if(ny >= Ny || ny < 0) ny -= Ny*int(ny/Ny);
+	    while(ny >=  Ny) ny -= Ny;
+	    while(ny <   0) ny += Ny;
+	    
+	    for(double z = -Rc; z < Rc; z += dz)	    
 	    {
+	      long nz = z/dz;
+	      if(nz >= Nz || nz < 0) nz -= Nz*int(nz/Nz);
+
+	      while(nz >=  Nz) nz -= Nz;
+	      while(nz <   0) nz += Nz;
+
 	      long pos = nz+Nz*(ny+Ny*nx);
-
-	      double x = nx*dx;
-	      double y = ny*dy;
-	      double z = nz*dz;
-
-	      if(nx > Nx/2) x -= Nx*dx;
-	      if(ny > Ny/2) y -= Ny*dy;
-	      if(nz > Nz/2) z -= Nz*dz;
 
 	      double r2 = x*x+y*y+z*z;
-	      w_att_.Real().IncrementBy(pos,v.Watt(sqrt(r2))/kT);
-	    }
-      // Set the parameters in the VDW object  
-      // Do this BEFORE the FFT which may corrupt the real-space part
-
-      a_vdw_ = 0.0;
-      double Rc = v.getRcut();
-      
-      for(int nx = 0;nx<Nx;nx++)
-	for(int ny = 0;ny<Ny;ny++)
-	  for(int nz = 0;nz<Nz;nz++)
-	    {
-	      long pos = nz+Nz*(ny+Ny*nx);
-
-	      double x0 = nx*dx;
-	      double y0 = ny*dy;
-	      double z0 = nz*dz;
-
-	      if(nx > Nx/2) x0 -= Nx*dx;
-	      if(ny > Ny/2) y0 -= Ny*dy;
-	      if(nz > Nz/2) z0 -= Nz*dz;
-
-	      for(int imx = -int(Rc/(Nx*dx))-1; imx <= int(Rc/(Nx*dx))+1; imx++)
-		for(int imy = -int(Rc/(Ny*dy))-1; imy <= int(Rc/(Ny*dy))+1; imy++)
-		  for(int imz = -int(Rc/(Nz*dz))-1; imz <= int(Rc/(Nz*dz))+1; imz++)
-		    {
-		      double x = x0 + imx*Nx*dx;
-		      double y = y0 + imy*Ny*dy;
-		      double z = z0 + imz*Nz*dz;		      
-	      
-		      double r2 = x*x+y*y+z*z;
-		      a_vdw_ += v.Watt(sqrt(r2))/kT;
-		    }
-	    }
-
+	      double w = v.Watt(sqrt(r2))/kT;
+	      a_vdw_ += w;
+	      w_att_.Real().IncrementBy(pos,w);
+	    }	   
+	  }
+	}
+      log << endl;
       a_vdw_ *= 0.5*dx*dy*dz;
-      
-      //      a_vdw_ = 0.5*w_att_.Real().accu()*dx*dy*dz;
 
       // Now save the FFT of the field  
       w_att_.do_real_2_fourier();     
-
     }
 
   double getInteractionEnergyAndForces()
@@ -131,7 +119,7 @@ class Interaction
 	s1_.addToForce(v.Real());
 
 	E = 0.5*density1.getInteractionEnergy(v.Real());	
-    }      
+    }
     return E;
   }
 
