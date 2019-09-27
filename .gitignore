@@ -1,0 +1,8 @@
+*
+!*.*
+!*/
+*.dat
+*.a
+*GitSHA1.cpp
+*build
+*debug
