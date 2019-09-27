@@ -60,7 +60,40 @@ class Interaction
 	    }
       // Set the parameters in the VDW object  
       // Do this BEFORE the FFT which may corrupt the real-space part
-      a_vdw_ = 0.5*w_att_.Real().accu()*dx*dy*dz;
+
+      a_vdw_ = 0.0;
+      double Rc = v.getRcut();
+      
+      for(int nx = 0;nx<Nx;nx++)
+	for(int ny = 0;ny<Ny;ny++)
+	  for(int nz = 0;nz<Nz;nz++)
+	    {
+	      long pos = nz+Nz*(ny+Ny*nx);
+
+	      double x0 = nx*dx;
+	      double y0 = ny*dy;
+	      double z0 = nz*dz;
+
+	      if(nx > Nx/2) x0 -= Nx*dx;
+	      if(ny > Ny/2) y0 -= Ny*dy;
+	      if(nz > Nz/2) z0 -= Nz*dz;
+
+	      for(int imx = -int(Rc/(Nx*dx))-1; imx <= int(Rc/(Nx*dx))+1; imx++)
+		for(int imy = -int(Rc/(Ny*dy))-1; imy <= int(Rc/(Ny*dy))+1; imy++)
+		  for(int imz = -int(Rc/(Nz*dz))-1; imz <= int(Rc/(Nz*dz))+1; imz++)
+		    {
+		      double x = x0 + imx*Nx*dx;
+		      double y = y0 + imy*Ny*dy;
+		      double z = z0 + imz*Nz*dz;		      
+	      
+		      double r2 = x*x+y*y+z*z;
+		      a_vdw_ += v.Watt(sqrt(r2))/kT;
+		    }
+	    }
+
+      a_vdw_ *= 0.5*dx*dy*dz;
+      
+      //      a_vdw_ = 0.5*w_att_.Real().accu()*dx*dy*dz;
 
       // Now save the FFT of the field  
       w_att_.do_real_2_fourier();     

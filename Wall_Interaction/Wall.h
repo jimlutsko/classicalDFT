@@ -1,9 +1,15 @@
 #ifndef __LUTSKO_SLIT_PORE2__
 #define __LUTSKO_SLIT_PORE2__
 
-#include "Density.h" 
+#include "Density.h"
 
-#include <mgl2/mgl.h>
+#ifdef USE_MGL
+#include "Display.h" 
+#endif
+
+#ifdef USE_GRACE
+#include "Grace.h"
+#endif
 
 /**
   *  @brief Class that specializes Density to a slit-pore geometry with a fixed spherical particle
@@ -21,9 +27,13 @@ class Wall : public Density
   *   @param  epsV is the energy scale of the wall potential
   *   @return nothing 
   */  
- Wall(double dx, double L[], Grace *g,  double sigV, double epsV, double hsd) 
-   : Density(dx,L),  g_(g), sigV_(sigV), epsV_(epsV), hsd_(hsd)
+Wall(double dx, double L[], double sigV, double epsV, double hsd, void *grace) 
+: Density(dx,L),  sigV_(sigV), epsV_(epsV), hsd_(hsd)
   {
+#ifdef USE_GRACE
+grace_ = (Grace*) grace;
+#endif
+
     for(int ix=0;ix<Nx_;ix++)
       for(int iy=0;iy<Ny_;iy++)
 	for(int iz=0;iz<Nz_;iz++)
@@ -73,64 +83,48 @@ class Wall : public Density
 	  }
   }
 
-  // Used to generate 2D graphics: this holds the data to be displayed
-  virtual void initialize_2D_data( mglData& a) const {a.Create(Nx_,Ny_);}
-
-  // Used to generate 2D graphics: this is called to load the data to be displayed. 
-  virtual void fill_2D_data(mglData& a) const 
-  {
-    for(int i=0;i<Nx_;i++)
-      for(int j=0;j<Ny_;j++)
-	a.a[i+Nx_*j] = min(getDensity(i,j,Nz_/2),1.0);
-
-    /*
-    for(int i=0;i<Nx_;i++)
-      for(int j=0;j<Nz_;j++)
-	a.a[i+Nx_*j] = min(getDensity(i,Ny_/2,j-1),1.0);
-
-    for(int i=0;i<Nx_;i++)
-      for(int j=Nz_;j<Nz_+5;j++)
-	a.a[i+Nx_*j] = 10.0;
-    */
-  }
-
-
   virtual void doDisplay(string &title, string &file, int seq) const
   {
-    if(g_ == NULL) return;
+#ifdef USE_GRACE
+    if(grace_ == NULL) return;
 
-    g_->deleteDataSet(seq);
-    //    g_->deleteDataSet(seq+2);
+    grace_->deleteDataSet(seq);
+    //    grace_->deleteDataSet(seq+2);
 
     double emax = 0;
     
     for(int i= 0; i < Nz(); i++)
       {
 	double x = getZ(i);
-	//	g_->addPoint(x,(M_PI*hsd_*hsd_*hsd_/6)*getDensity(Nx()/2,Ny()/2,i),seq+2);
-	g_->addPoint(x,(M_PI*hsd_*hsd_*hsd_/6)*getDensity(3*Nx()/4,3*Ny()/4,i),seq);
+	//	grace_->addPoint(x,(M_PI*hsd_*hsd_*hsd_/6)*getDensity(Nx()/2,Ny()/2,i),seq+2);
+	grace_->addPoint(x,(M_PI*hsd_*hsd_*hsd_/6)*getDensity(3*Nx()/4,3*Ny()/4,i),seq);
 	emax = max(emax,(M_PI*hsd_*hsd_*hsd_/6)*getDensity(Nx()/2,Ny()/2,i));
 	/*	if(dft_)
 	  {
 	    double y = dft_->getSurfactant(pos(Nx()/2,Ny()/2,i));
-	    g_->addPoint(x,y,1);
+	    grace_->addPoint(x,y,1);
 
 	  }
 	*/
       }
     cout << "emax = " << emax << " Natoms = " << getNumberAtoms() << " hsd = " << hsd_ <<  endl;
-      g_->setTitle(title.c_str());
-    //    g_->setColor(2,1);
-    g_->redraw();
+      grace_->setTitle(title.c_str());
+    //    grace_->setColor(2,1);
+    grace_->redraw();
+
+#endif    
+    
   }  
 
  protected:
   double sigV_;     ///< length scale of wall potential
   double epsV_;     ///< energy scale of wall potential
-  Grace *g_;
   int sequence_;
   double hsd_;
-  //  DFT_FMT<RSLT> *dft_;  
+
+#ifdef USE_GRACE
+      Grace *grace_;
+#endif
 };
 
 

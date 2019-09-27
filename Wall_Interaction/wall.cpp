@@ -9,18 +9,13 @@
 
 using namespace std;
 
-//extern char   __BUILD_DATE;
-//extern char   __BUILD_NUMBER;
-
 #ifdef USE_OMP
 #include <omp.h>
 #endif
 
 #include <gsl/gsl_sf_lambert.h>
 
-#include "Grace.h"
 #include "options.h"
-#include "TimeStamp.h"
 
 #include "DFT.h"
 #include "Wall.h"
@@ -214,6 +209,14 @@ int main(int argc, char** argv)
   fftw_plan_with_nthreads(omp_get_max_threads());
 #endif
 
+  void *grace = NULL;
+  
+#ifdef USE_GRACE
+  grace = new Grace();
+#endif
+  
+
+  
   //////////////////////////////////////
   ////// Create potential && effective hsd
 
@@ -226,11 +229,9 @@ int main(int argc, char** argv)
   
   /////////////////////////////////////
   // Create density objects
-
-  Grace *g = (showGraphics ? new Grace() : NULL);
   
-  Wall theDensity1(dx, L, g, 0.001, 1, hsd1);
-  Wall theDensity2(dx, L, g, 0.001, 1, hsd2);
+  Wall theDensity1(dx, L, 0.001, 1, hsd1, grace);
+  Wall theDensity2(dx, L, 0.001, 1, hsd2, grace);
 
   /////////////////////////////////////
   // Create the species objects
@@ -243,10 +244,6 @@ int main(int argc, char** argv)
 
     Interaction i1(species1,species1,potential1,kT);
     Interaction i2(species2,species2,potential2,kT);
-
-    g->close();
-    delete g;
-
 
     log << "Hsd = " << hsd1 << endl;
     log << "a vdw = " << i1.getVDWParameter() << endl;
@@ -385,7 +382,8 @@ exit(0);
   if(! infile.empty())
     theDensity1.readDensity(infile.c_str());
 
-  fireMinimizer_Mu minimizer(dft,log);
+  //  fireMinimizer_Mu minimizer(dft,log);
+  fireMinimizer2 minimizer(dft,log);
   minimizer.setForceTerminationCriterion(forceLimit);
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
@@ -404,9 +402,6 @@ exit(0);
   log << "Excess Omega = " << dOmega << endl;
   log << "Surface Tension = " << SurfaceTension << endl;
     
-
-  g->redraw();
-  g->pause();
   } catch(const std::exception &e) {
     log << " " << endl;
     log << e.what() << endl;
@@ -415,8 +410,8 @@ exit(0);
     log << " " << endl;
   }
 
-  g->close();
-  delete g;
-
+#ifdef USE_GRACE
+  if(grace != NULL) delete (Grace*) grace;
+#endif
   return 1;
 }

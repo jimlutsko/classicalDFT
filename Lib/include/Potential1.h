@@ -14,6 +14,7 @@ class Potential1
 
   virtual double getRmin() const = 0;
   virtual double getHardCore() const = 0;
+  double getRcut() const { return rcut_;}
   
   double V(double r) const { return vr(r)-shift_;}
 

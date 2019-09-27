@@ -15,7 +15,7 @@ kT = 0.8
 # The mean field potential
 eps1 = 1.0
 sigma1 = 1
-rcut1 = 3
+rcut1 = 5
 
 eps2 = 0.5
 sigma2 = 0.5
