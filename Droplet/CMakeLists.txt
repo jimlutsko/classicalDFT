@@ -18,6 +18,7 @@ add_executable(${PROJECT_NAME}  ${PROJECT_SOURCE_DIR}/droplet.cpp)
 #MODIFY: enable these lines if you want to use Display object (Display.h: creates png images)
 #target_compile_definitions(${PROJECT_NAME} PUBLIC USE_MGL)
 #target_include_directories(${PROJECT_NAME} PUBLIC ${PATH_TO_DFT_LIB}/additionalCode)
+#find_package(MathGL2 REQUIRED)
 #target_link_libraries(${PROJECT_NAME} PUBLIC "mgl")
 
 ################### End of customizations
@@ -32,7 +33,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/../scripts)
 
 find_package(GSL REQUIRED)
 find_package(OpenMP)
-find_package(MathGL2 REQUIRED)
 find_package(Armadillo  REQUIRED)
 
 if(OpenMP_CXX_FOUND)
