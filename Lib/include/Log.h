@@ -30,9 +30,9 @@
 #include <sstream>
 
 #include "options.h"
-//#include "timestamp.h"
 #include "config.h"
 #include "GitSHA1.h"
+
 
 // Write a stream buffer that prefixes each line with Plop
 class LogStreamBuf: public std::stringbuf
@@ -65,9 +65,8 @@ class LogStreamBuf: public std::stringbuf
 };
 
 
-
 /**
-  *  @brief A utility object that sends output to a log file
+  *  @Brief A utility object that sends output to a log file
   */  
 class Log: public std::ostream
 {
@@ -101,14 +100,15 @@ class Log: public std::ostream
    *   @param numtasks is the number of MPI tasks (-1 means no mpi)
    *   @param isNew : will create new log file if true, will try to append to existing file if false
    */    
- Log(const char *name, int Major = -1, int Minor = -1, char *prog = NULL, int numtasks = -1, bool isNew = true) : log_(name,(isNew ? ios::trunc : ios::app)), buffer(log_), ostream(&buffer)    
+ Log(const char *name, int Major = -1, int Minor = -1, char *prog = NULL, int numtasks = -1, bool isNew = true)
+   : log_(name,(isNew ? ios::trunc : ios::app)), buffer(log_), ostream(&buffer)    
     {
       auto now = std::chrono::system_clock::now();
       std::time_t now_time = std::chrono::system_clock::to_time_t(now);
 
       *this << "*****************************************************************" << endl;
       if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
-      *this << std::ctime(&now_time) << endl;
+      *this << std::ctime(&now_time) << " " << endl;
       *this << "Using:\tLib " << PROJECT_NAME << endl
 	    << "\tversion: " << PROJECT_VER << endl
 	    << "\tgit revision: " << g_GIT_SHA1 << endl;

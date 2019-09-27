@@ -20,7 +20,15 @@ void Minimizer::run(long maxSteps)
   log_ << "Initialized ... removing old images ... " << endl;
 
   log_ << "Initial free energy = " << F_ << endl;
-  log_ << "step_counter\tF\tF/N\tF/V\tf_abs_max\tN\tDensity\tCalls" << endl;
+  log_ << setw(12) <<"step_counter"
+       << setw(20) << "F    "
+       << setw(20) << "F/N    "
+       << setw(20) << "F/V    "
+       << setw(20) << "f_abs_max    "
+       << setw(20) << "N    "
+       << setw(20) << "Density    "
+    //       << setw(20) << "Calls    "
+       << endl;
 
 
   //  int ret = system("rm *_image_*.png");
@@ -40,16 +48,16 @@ void Minimizer::run(long maxSteps)
 
     f_abs_max_ = get_convergence_monitor();
 
-    log_.precision(12);
-    log_ << step_counter_ 
-	<< "\t" << F_ 
-	<< "\t" << F_/Ntotal
-	<< "\t" << F_/Volume
-	<< "\t" << f_abs_max_
-	<< "\t" << Ntotal
-	<< "\t" << Ntotal/Volume
-      	<< "\t" << calls_
-	<< endl;
+    log_.precision(12);    
+    log_ << setw(12) << step_counter_ 
+	 << setw(20) << F_ 
+	 << setw(20) << F_/Ntotal
+	 << setw(20) << F_/Volume
+	 << setw(20) << f_abs_max_
+	 << setw(20) << Ntotal
+	 << setw(20) << Ntotal/Volume
+      //	 << setw(20) << calls_
+	 << endl;
 
     
     if(std::isnan(f_abs_max_))

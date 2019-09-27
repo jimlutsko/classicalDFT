@@ -22,6 +22,8 @@ using namespace std;
 #include "Droplet.h"
 #include "Minimizer.h"
 #include "Log.h"
+#include "myColor.h"
+
 
 int main(int argc, char** argv)
 {
@@ -103,12 +105,12 @@ int main(int argc, char** argv)
   options.read(argc, argv);
 
   Log log("log.dat");
-  TimeStamp ts;
-  log << " " << ts << endl;
-  log << "=================================" << endl << "#" << endl;
-  log << "Input parameters:" << endl <<  "#" << endl;
+  log << myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
+
+  log << myColor::RED << myColor::BOLD << "Input parameters:" << myColor::RESET << endl <<  "#" << endl;
+
   options.write(log);
-  log << "=================================" << endl;
+  log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
 
   double dx = 1.0/PointsPerHardSphere;
 
@@ -187,6 +189,8 @@ int main(int argc, char** argv)
   if(! infile.empty())
     theDensity1.readDensity(infile.c_str());
 
+  log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+  
   //fireMinimizer_Mu minimizer(dft,log);
   fireMinimizer2 minimizer(dft,log);
   minimizer.setForceTerminationCriterion(forceLimit);
@@ -202,7 +206,7 @@ int main(int argc, char** argv)
   double SurfaceTension = dOmega/(L[0]*L[1]);
 
   log << "dft.Omega = " << dft.Omega(densities) << endl;  
-  log << "=================================" << endl << "#" << endl;
+  log <<  myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
   log << "Final Omega: " << Omega << endl;
   log << "Excess Omega = " << dOmega << endl;
   log << "Surface Tension = " << SurfaceTension << endl;

@@ -167,22 +167,22 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
-  std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+  //  std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
 
   
   // Compute the FFT of density
   for(auto s: allSpecies)
     ((FMT_Species*)s)->convoluteDensities();
 
-  std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-  std::chrono::duration<double> elapsed_seconds = now-start;    
+  //  std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+  //  std::chrono::duration<double> elapsed_seconds = now-start;    
   
   double F = doFreeEnergyLoop(allSpecies);
 
-  std::chrono::time_point<std::chrono::system_clock> later = std::chrono::system_clock::now();
-  std::chrono::duration<double> elapsed_seconds1 =later-now;    
+  //  std::chrono::time_point<std::chrono::system_clock> later = std::chrono::system_clock::now();
+  //  std::chrono::duration<double> elapsed_seconds1 =later-now;    
 
-  cout << "Elapsed time1 " << elapsed_seconds.count()  << " Elapsed time2 " << elapsed_seconds1.count() << endl;
+  //  cout << "Elapsed time1 " << elapsed_seconds.count()  << " Elapsed time2 " << elapsed_seconds1.count() << endl;
 
   
   return F;
@@ -202,12 +202,6 @@ double FMT::doFreeEnergyLoop(vector<Species*> &allSpecies)
   // So we eat the exception, remember it, and rethrow it when all loops are finished.
   bool hadCatch = false;
 
-#ifdef USE_OMP
-  cout << "Using omp1 chunk = " << chunk << endl;
-#else
-    cout << "Not using omp" << endl;
-#endif
-    
   
   #pragma omp parallel for		\
     shared( chunk, allSpecies )				\
