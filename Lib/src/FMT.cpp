@@ -167,24 +167,13 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
-  //  std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
-
   
   // Compute the FFT of density
   for(auto s: allSpecies)
     ((FMT_Species*)s)->convoluteDensities();
-
-  //  std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-  //  std::chrono::duration<double> elapsed_seconds = now-start;    
   
   double F = doFreeEnergyLoop(allSpecies);
 
-  //  std::chrono::time_point<std::chrono::system_clock> later = std::chrono::system_clock::now();
-  //  std::chrono::duration<double> elapsed_seconds1 =later-now;    
-
-  //  cout << "Elapsed time1 " << elapsed_seconds.count()  << " Elapsed time2 " << elapsed_seconds1.count() << endl;
-
-  
   return F;
 }
 

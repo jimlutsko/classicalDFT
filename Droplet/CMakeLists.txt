@@ -26,8 +26,6 @@ add_executable(${PROJECT_NAME}  ${PROJECT_SOURCE_DIR}/droplet.cpp)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 set(CMAKE_CXX_EXTENSIONS ON)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
-target_compile_options(${PROJECT_NAME} PUBLIC -O3 -MMD)
-
 
 ## Find other packages needed
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/../scripts)
@@ -39,7 +37,6 @@ find_package(Armadillo  REQUIRED)
 
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OMP)
-  target_compile_options(${PROJECT_NAME} PUBLIC -fopenmp)
   target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 endif()
 

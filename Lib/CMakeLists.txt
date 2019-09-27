@@ -17,13 +17,25 @@ configure_file (
 
 include_directories(${PROJECT_SOURCE_DIR}/include) 
 
-file(GLOB all_SRCS "${PROJECT_SOURCE_DIR}/src/*.cpp")
+#file(GLOB all_SRCS "${PROJECT_SOURCE_DIR}/src/*.cpp")
+set(all_SRCS
+  ${PROJECT_SOURCE_DIR}/src/Density.cpp
+  ${PROJECT_SOURCE_DIR}/src/DFT.cpp
+  ${PROJECT_SOURCE_DIR}/src/DFT_Surfactant.cpp
+  ${PROJECT_SOURCE_DIR}/src/FMT.cpp
+  ${PROJECT_SOURCE_DIR}/src/Minimizer.cpp
+  ${PROJECT_SOURCE_DIR}/src/Species.cpp
+  ${PROJECT_SOURCE_DIR}/src/GitSHA1.cpp
+  ${PROJECT_SOURCE_DIR}/src/myColor.cpp
+  ${PROJECT_SOURCE_DIR}/src/options.cpp
+  ${PROJECT_SOURCE_DIR}/src/Table.cpp
+)
 
 add_library(${PROJECT_NAME} STATIC ${all_SRCS})
 
 # All users of this library will need at least C++11
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
-target_compile_options(${PROJECT_NAME} PUBLIC -O3 -MMD)
+#target_compile_options(${PROJECT_NAME} PUBLIC ${CMAKE_CXX} -O3 -MMD)
 
 
 # enable omp if it exists
@@ -31,7 +43,7 @@ find_package(OpenMP)
 
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OMP)
-  target_compile_options(${PROJECT_NAME} PUBLIC -fopenmp)
+#  target_compile_options(${PROJECT_NAME} PUBLIC -fopenmp1)
   target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 endif()
 

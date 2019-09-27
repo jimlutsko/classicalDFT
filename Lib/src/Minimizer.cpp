@@ -12,6 +12,7 @@ using namespace std;
 
 #include "Minimizer.h"
 #include "DFT.h"
+#include "myColor.h"
 
 void Minimizer::run(long maxSteps)
 {
@@ -21,26 +22,27 @@ void Minimizer::run(long maxSteps)
 
   log_ << "Initial free energy = " << F_ << endl;
   log_ << setw(12) <<"step_counter"
-       << setw(20) << "F    "
+       << setw(20) << myColor::YELLOW << "F    "  << myColor::RESET
        << setw(20) << "F/N    "
        << setw(20) << "F/V    "
-       << setw(20) << "f_abs_max    "
+       << setw(20) << myColor::RED << "f_abs_max    "  << myColor::RESET
        << setw(20) << "N    "
        << setw(20) << "Density    "
-    //       << setw(20) << "Calls    "
+       << setw(10) << myColor::RED << "Time(sec)"  << myColor::RESET
        << endl;
-
-
-  //  int ret = system("rm *_image_*.png");
+  
   int image_counter = 0;
-
-
 
   do {
     draw_before();
 
+    std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+    
     F_ = step();
 
+    std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = now-start;
+    
     step_counter_++;
 
     double Ntotal = dft_.getNumberAtoms(0);
@@ -50,13 +52,14 @@ void Minimizer::run(long maxSteps)
 
     log_.precision(12);    
     log_ << setw(12) << step_counter_ 
-	 << setw(20) << F_ 
+	 << setw(20) << myColor::YELLOW << F_  << myColor::RESET
 	 << setw(20) << F_/Ntotal
 	 << setw(20) << F_/Volume
-	 << setw(20) << f_abs_max_
+	 << setw(20) << myColor::RED << f_abs_max_  << myColor::RESET
 	 << setw(20) << Ntotal
-	 << setw(20) << Ntotal/Volume
-      //	 << setw(20) << calls_
+	 << setw(20) << Ntotal/Volume;
+    log_.precision(4);        
+    log_ << setw(10) << myColor::RED << elapsed_seconds.count() << myColor::RESET
 	 << endl;
 
     
