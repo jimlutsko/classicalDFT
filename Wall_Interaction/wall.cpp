@@ -214,9 +214,7 @@ int main(int argc, char** argv)
 #ifdef USE_GRACE
   grace = new Grace();
 #endif
-  
-
-  
+    
   //////////////////////////////////////
   ////// Create potential && effective hsd
 
@@ -236,29 +234,18 @@ int main(int argc, char** argv)
   /////////////////////////////////////
   // Create the species objects
   try {
-    Species species1(theDensity1);
-    Species species2(theDensity2);
+    //    Species species1(theDensity1);
+    //    Species species2(theDensity2);
 
-    //    FMT_Species species1(theDensity1,hsd1,pointsFile);
+    FMT_Species species1(theDensity1,hsd1,pointsFile);
     //    FMT_Species species2(theDensity2,hsd2,pointsFile);    
 
     Interaction i1(species1,species1,potential1,kT);
-    Interaction i2(species2,species2,potential2,kT);
+    //    Interaction i2(species2,species2,potential2,kT);
 
     log << "Hsd = " << hsd1 << endl;
     log << "a vdw = " << i1.getVDWParameter() << endl;
     
-    a = i1.getVDWParameter();
-    d = hsd1;
-    while(1)
-      {
-	double x;
-	cin >> x;
-	double r = f1(x);
-      }
-    exit(0);
-  
-
     /////////////////////////////////////
     // Create the hard-sphere object
     RSLT fmt;
@@ -270,15 +257,11 @@ int main(int argc, char** argv)
 
     /////////////////////////////////////
     // DFT object
-    //  DFT_VDW<RSLT> dft(&species1);
-
-    //  DFT_FMT<RSLT> dft(&species1);
-
     DFT dft(&species1);
-    dft.addSpecies(&species2);
+    //    dft.addSpecies(&species2);
     dft.addHardCoreContribution(&fmt);  
     dft.addInteraction(&i1);
-    dft.addInteraction(&i2);
+    //    dft.addInteraction(&i2);
 
     /////////////////////////////////////////////////////
     // Report
@@ -295,21 +278,31 @@ int main(int argc, char** argv)
     /////////////////////////////////////////////////////
     // The thermodynamics
 
+    a = i1.getVDWParameter();
+    d = hsd1;
+    density1 = 0.75;
+    cout <<     f1(density1) ;
+    //    exit(0);
+    
     vector<double> densities;
     densities.push_back(density1);
-    densities.push_back(density2);
+    //    densities.push_back(density2);
 
     double mu1 = dft.Mu(densities,0);
-    double mu2 = dft.Mu(densities,1);
+    //    double mu2 = dft.Mu(densities,1);
 
+    
     log << "Omega/(V kT) = " << dft.Omega(densities) << endl;  
     log << "mu1 = " << mu1 << endl;
-    log << "mu2 = " << mu2 << endl;
+    //    log << "mu2 = " << mu2 << endl;
+
+    mu1 = 1.0; //429419757366029; ///kT;
+    
 
     theDensity1.initialize(density1, density1);
-    theDensity2.initialize(density2, density2);
+    //    theDensity2.initialize(density2, density2);
 
-    double N = theDensity2.getNumberAtoms();
+    //    double N = theDensity2.getNumberAtoms();
 
     ///////////////////////////////////////////////
     // Fix the mass of the surfactant species.
@@ -377,7 +370,7 @@ exit(0);
     */
     
   species1.setChemPotential(mu1);
-  species2.setChemPotential(mu2);
+  //  species2.setChemPotential(mu2);
   
   if(! infile.empty())
     theDensity1.readDensity(infile.c_str());
@@ -411,6 +404,7 @@ exit(0);
   }
 
 #ifdef USE_GRACE
+  ((Grace*) grace)->pause();
   if(grace != NULL) delete (Grace*) grace;
 #endif
   return 1;
