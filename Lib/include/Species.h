@@ -13,6 +13,8 @@ class Species
   ~Species(){}
 
   int getSequenceNumber() const { return seq_num_;}
+
+  void doFFT(){ density_.doFFT();}
   
   void setFixedMass(double m) { fixedMass_ = m; if(m > 0.0) mu_ = 0.0;}
 
@@ -34,6 +36,7 @@ class Species
   double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}
   
   DFT_Vec &getDF() {return dF_;}
+  void setDF(DFT_Vec &df) {return dF_.set(df);}
   
   double externalField(bool bCalcForces)
   {

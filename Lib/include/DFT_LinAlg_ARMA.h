@@ -87,7 +87,9 @@ class DFT_Vec_Complex
   void resize(long N) {data_.resize(N);}
   void zeros(long N)  {data_.zeros(N);}
   void zeros()        {data_.zeros();}
- 
+
+  complex<double> max() const { return data_.max();}
+  
   complex<double> *memptr() { return data_.memptr();}
  
   unsigned size() const { return data_.size();}

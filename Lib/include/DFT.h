@@ -116,6 +116,7 @@ class DFT
 
   
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
+  void setDF(int i, DFT_Vec &df) {return allSpecies_[i]->setDF(df);}
 
   
   void doDisplay(string &title, string &file)

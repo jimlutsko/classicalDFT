@@ -291,7 +291,7 @@ double fireMinimizer_Mu::step()
 
 void fireMinimizer_Mu::draw_after()
 {
-  //  log_ << "After FIRE step " << step_counter_ << " F = " << F_ << " N = " << dft_.getNumberAtoms(0) << " calls = " << calls_ << " dt_ = " << dt_ << " alpha = " << alpha_ << endl;
+  //  log_ << "After FIRE step " << step_counter_ << " F = " << F_ << " N = " << dft_.getNumberAtoms(0) << " calls = " << calls_ << " dt_ = " << dt_ << " alpha = " << alpha_ << " f_alf_ = " << f_alf_ << endl;
 }
 
 int fireMinimizer_Mu::draw_during()
@@ -316,6 +316,20 @@ double fireMinimizer2::step()
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     P += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
 
+
+  int numSpecies = dft_.getNumberOfSpecies();  
+  vector<DFT_Vec> x_rem(numSpecies);
+  vector<DFT_Vec> v_rem(numSpecies);
+  vector<DFT_Vec> dF_rem(numSpecies);
+
+  for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
+    {
+      x_rem[Jspecies].set(x_[Jspecies]);
+      v_rem[Jspecies].set(v_[Jspecies]);
+      dF_rem[Jspecies].set(dft_.getDF(Jspecies));
+    }
+
+  
   if(P > 0)
     {
       N_P_positive_++;
@@ -341,31 +355,33 @@ double fireMinimizer2::step()
 	  dt_ *= f_dec_;
 	alpha_ = alpha_start_;
       }
+
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
-	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-0.5*dt_);
+	//	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-0.5*dt_);
+	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-dt_);
 	v_[Jspecies].zeros(v_[Jspecies].size());
       }
+    cout << "backup" << endl;
   }
 
   // integration step
+  // Changed handling of backtracking 21/10/2019
   
-  bool blewUp = false;
-  
-  do {  
-    try {
-      blewUp = false;
-      SemiImplicitEuler();
-    } catch(Eta_Too_Large_Exception &e) {
-      dt_ /= 2;
-      dt_max_ /= 2;
-      blewUp = true;
-    }
-  } while(blewUp);
+  try {
+    SemiImplicitEuler();
+  } catch(Eta_Too_Large_Exception &e) {
+    for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+      {
+	//	    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-0.5*dt_);
+	x_[Jspecies].set(x_rem[Jspecies]);
+	v_[Jspecies].set(v_rem[Jspecies]);
+	dft_.setDF(Jspecies,dF_rem[Jspecies]);
+      }
+    dt_ /= 10; // This was previously 2
+  }
 
-
-  // write a snapshot
-  
+  // write a snapshot  
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       stringstream s;
@@ -373,14 +389,17 @@ double fireMinimizer2::step()
       string of = s.str();
       dft_.writeDensity(Jspecies,of);
     }
-  
+
+  cout << "dt = " << dt_ << " dt_max_ = " << dt_max_ << " alpha = " << alpha_ << " f_alf_ = " << f_alf_ << endl;
   return F_;
 }
 
 void fireMinimizer2::SemiImplicitEuler()
 {
+  int numSpecies = dft_.getNumberOfSpecies();
+  
   int begin_relax = 0;
-  int end_relax   = dft_.getNumberOfSpecies();
+  int end_relax   = numSpecies;
 
   if(onlyRelax_ >= 0) {begin_relax = onlyRelax_; end_relax = begin_relax+1;}
 
@@ -408,22 +427,33 @@ void fireMinimizer2::SemiImplicitEuler()
     }
 
   //Update x
-  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
-    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);           
+  //  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
+  //    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
 
+  long smax;
+    double fmax = 0;
+  
+  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+    for(long i = 0; i<x_[Jspecies].size(); i++)
+      {
+	//	x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(1.0,fabs(x_[Jspecies].get(i))));
+	x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_);
+      double ff = fabs(dft_.getDF(Jspecies).get(i));
+      if(ff > fmax) {fmax = ff; smax = i;}
+      }
+  cout << "smax = " << smax << " fmax = " << fmax << " density = " << dft_.getDensity(0).getDensity(smax) << endl;
+  //    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);           
+    
   // recalculate forces with back-tracking, if necessary
   bool bSuccess = false;
-  while(!bSuccess)
-    {
+  //  while(!bSuccess)
+  //    {
       try{  
 	F_ = getDF_DX();                          // then get new forces
 	bSuccess = true;
       } catch (Eta_Too_Large_Exception &e) {
-	for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
-	  x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-0.5*dt_);
-	dt_ /= 2;
-
 	log_ << "Backtrack .. " << endl;
+	throw(e);
       }
-    }
+      //    }
 }

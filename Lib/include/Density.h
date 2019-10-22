@@ -64,8 +64,6 @@ class Density : public Lattice
   */  
   ~Density(){}
 
-  virtual void initialize(double density, double d2) {}
-  
   /**
   *   @brief Called to read initial density from file. This will fail if one attempts to read a density object of a different size. 
   *  

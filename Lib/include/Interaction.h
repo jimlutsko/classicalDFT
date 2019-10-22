@@ -27,66 +27,66 @@ class Interaction
 {
  public:
  Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) : s1_(s1), s2_(s2)
-    {
-      log << "Calculating mean field potential ... this may take a while ..." << endl;
-      const Density &density = s1.getDensity();
+  {
+    log << "Calculating mean field potential ... this may take a while ..." << endl;
+    const Density &density = s1.getDensity();
       
-      // The lattice
-      long Nx = density.Nx();
-      long Ny = density.Ny();
-      long Nz = density.Nz();
+    // The lattice
+    long Nx = density.Nx();
+    long Ny = density.Ny();
+    long Nz = density.Nz();
 
-      double dx = density.getDX();
-      double dy = density.getDY();
-      double dz = density.getDZ();
+    double dx = density.getDX();
+    double dy = density.getDY();
+    double dz = density.getDZ();
   
-      // Set up the mean field potential
-      // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
-      // This may mean going beyond nearest neighbors in certain conditions.
-      // We also compute the vdw parameter at the same time.
+    // Set up the mean field potential
+    // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
+    // This may mean going beyond nearest neighbors in certain conditions.
+    // We also compute the vdw parameter at the same time.
       
-      double Rc = v.getRcut();
+    double Rc = v.getRcut();
 
-      w_att_.initialize(Nx,Ny,Nz);      
-      a_vdw_ = 0.0;
+    w_att_.initialize(Nx,Ny,Nz);      
+    a_vdw_ = 0.0;
 
-      for(double x = -Rc; x < Rc; x += dx)
-	{
-	  long nx = x/dx;
-	  if(nx >= Nx || nx < 0) nx -= Nx*int(nx/Nx);
-	  while(nx >=  Nx) nx -= Nx;
-	  while(nx <   0) nx += Nx;
+    for(double x = -Rc; x <= Rc; x += dx)
+      {
+	long nx = x/dx;
+	if(nx >= Nx || nx < 0) nx -= Nx*int(nx/Nx);
+	while(nx >=  Nx) nx -= Nx;
+	while(nx <   0) nx += Nx;
 
-	  for(double y = -Rc; y < Rc; y += dy)
+	for(double y = -Rc; y <= Rc; y += dy)
 	  {
-	    long ny = y/dy;
+	    long ny = y/dy; 
 	    if(ny >= Ny || ny < 0) ny -= Ny*int(ny/Ny);
 	    while(ny >=  Ny) ny -= Ny;
 	    while(ny <   0) ny += Ny;
 	    
-	    for(double z = -Rc; z < Rc; z += dz)	    
-	    {
-	      long nz = z/dz;
-	      if(nz >= Nz || nz < 0) nz -= Nz*int(nz/Nz);
+	    for(double z = -Rc; z <= Rc; z += dz)	    
+	      {
+		long nz = z/dz; 
+		if(nz >= Nz || nz < 0) nz -= Nz*int(nz/Nz);
 
-	      while(nz >=  Nz) nz -= Nz;
-	      while(nz <   0) nz += Nz;
+		while(nz >=  Nz) nz -= Nz;
+		while(nz <   0) nz += Nz;
 
-	      long pos = nz+Nz*(ny+Ny*nx);
+		long pos = nz+Nz*(ny+Ny*nx);
 
-	      double r2 = x*x+y*y+z*z;
-	      double w = v.Watt(sqrt(r2))/kT;
-	      a_vdw_ += w;
-	      w_att_.Real().IncrementBy(pos,w);
-	    }	   
+		double r2 = x*x+y*y+z*z;
+		double w = v.Watt(sqrt(r2))/kT;
+		a_vdw_ += w;
+		w_att_.Real().IncrementBy(pos,w);
+	      }	   
 	  }
-	}
-      log << endl;
-      a_vdw_ *= 0.5*dx*dy*dz;
+      }
+    log << endl;
+    a_vdw_ *= 0.5*dx*dy*dz;
 
-      // Now save the FFT of the field  
-      w_att_.do_real_2_fourier();     
-    }
+    // Now save the FFT of the field  
+    w_att_.do_real_2_fourier();     
+  }
 
   double getInteractionEnergyAndForces()
   {
@@ -100,28 +100,29 @@ class Interaction
     
     if(s1_.getSequenceNumber() == s2_.getSequenceNumber())
       {
-	v.Four().Schur(density1.getDK(),w_att_.Four());
+	v.Four().Schur(density1.getDK(),w_att_.Four(),false);
 	v.Four().MultBy(dV*dV/Ntot);
-	v.do_fourier_2_real(); 
+	v.do_fourier_2_real();
 	s1_.addToForce(v.Real());
-	E = 0.5*density1.getInteractionEnergy(v.Real());	
+	E = 0.5*density1.getInteractionEnergy(v.Real());
       } else {
-	v.Four().Schur(density1.getDK(),w_att_.Four());
-	v.Four().MultBy(0.5*dV*dV/Ntot);
-	v.do_fourier_2_real(); 
-	s2_.addToForce(v.Real());
+      v.Four().Schur(density1.getDK(),w_att_.Four());
+      v.Four().MultBy(0.5*dV*dV/Ntot);
+      v.do_fourier_2_real(); 
+      s2_.addToForce(v.Real());
 
-	const Density &density2 = s2_.getDensity();
+      const Density &density2 = s2_.getDensity();
 
-	v.Four().Schur(density2.getDK(),w_att_.Four());
-	v.Four().MultBy(0.5*dV*dV/Ntot);
-	v.do_fourier_2_real(); 
-	s1_.addToForce(v.Real());
+      v.Four().Schur(density2.getDK(),w_att_.Four());
+      v.Four().MultBy(0.5*dV*dV/Ntot);
+      v.do_fourier_2_real(); 
+      s1_.addToForce(v.Real());
 
-	E = 0.5*density1.getInteractionEnergy(v.Real());	
+      E = 0.5*density1.getInteractionEnergy(v.Real());	
     }
     return E;
   }
+
 
   double Mu(const vector<double> &x, int species) const
   {
