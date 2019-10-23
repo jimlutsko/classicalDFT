@@ -82,7 +82,7 @@ class myColor
 
   friend std::ostream &operator<<(std::ostream& os, const myColor& c)
   {
-    os.flush(); 
+    os.flush();
     if(c.isAllowed()) std::cout  << "\e[" << static_cast<int>(c.code()) << "m";
     return os;
   }

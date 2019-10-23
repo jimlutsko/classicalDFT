@@ -51,10 +51,25 @@ class LogStreamBuf: public std::stringbuf
   {
     // Called by destructor.
     // destructor can not call virtual methods.
-    cout << str();
-    if(str().front() != '-' && !isdigit(str().front()))
-      log_ << "#";
-    log_ << str();
+    const string &s = str();
+    cout << s;
+
+    if(atNewLine_)
+      {
+	std::wstring::size_type pos = s.find_first_not_of(" \t");
+	if(pos != string::npos)
+	  {
+	    char c = s[pos];
+	    if(c != '-' && !isdigit(c))
+	      {
+		log_ << "#";
+	      }
+	  }
+      }
+    log_ << s;
+    if(s.back() == '\n') atNewLine_ = true;
+    else atNewLine_ = false;
+    
     str("");
     cout.flush();
     log_.flush();
@@ -62,6 +77,7 @@ class LogStreamBuf: public std::stringbuf
 
  private:
   ofstream &log_;
+  bool atNewLine_ = true;
 };
 
 
