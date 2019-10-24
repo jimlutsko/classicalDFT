@@ -95,7 +95,8 @@ class Interaction
     long Ntot = density1.Ntot();
     double dV = density1.dV();
 
-    DFT_FFT v(density1.Nx(), density1.Ny(), density1.Nz());      
+    DFT_FFT v(density1.Nx(), density1.Ny(), density1.Nz());
+    v.zeros();
     double E = 0;
     
     if(s1_.getSequenceNumber() == s2_.getSequenceNumber())
@@ -123,6 +124,58 @@ class Interaction
     return E;
   }
 
+  double checkCalc(int jx, int jy, int jz)
+  {
+    const Density &density1 = s1_.getDensity();
+    
+    long Ntot = density1.Ntot();
+    double dV = density1.dV();
+    
+    int Nx = density1.Nx();
+    int Ny = density1.Ny();
+    int Nz = density1.Nz();
+
+
+    
+    //    int jx = 0;
+    //    int jy = 66;
+    //    int jz = 14;
+
+    /*
+    double EE = 0.0;
+    
+    for(int jx=0; jx<Nx; jx++)
+      for(int jy=0; jy<Ny; jy++)
+	for(int jz=0; jz<Nz; jz++)
+	  {
+    */
+	    long sj = density1.pos(jx,jy,jz);
+	    double dd = 0.0;    
+	    for(int ix=0;ix<Nx; ix++)
+	      for(int iy=0;iy<Ny; iy++)
+		for(int iz=0;iz<Nz; iz++)
+		  {
+		    int kx = jx-ix;  while(kx < 0) kx += Nx; while (kx > Nx) kx -= Nx;
+		    int ky = jy-iy;  while(ky < 0) ky += Ny; while (ky > Ny) ky -= Ny;
+		    int kz = jz-iz;  while(kz < 0) kz += Nz; while (kz > Nz) kz -= Nz;
+		    
+		    long si = density1.pos(ix,iy,iz);
+		    long sk = density1.pos(kx,ky,kz);
+		    
+		    dd += w_att_.Real().get(sk)*density1.getDensity(si);
+		  }
+	    //	    EE += dd*density1.getDensity(sj);
+	    //	      }
+	    //	    cout << "Direct calc of dF[" << jx << "," << jy << "," << jz << "] = " << dd*dV*dV  << endl;
+	    //    EE *= 0.5*dV*dV;
+	    //    cout << setprecision(20) << "E        = " << E << endl;
+	    //    cout << setprecision(20) << "E-direct = " << EE << endl;
+	    //    cout << setprecision(20) << "diff     = " << E - EE << endl;
+    
+    return dd*dV*dV;
+  }
+
+  double getW(long s)  { return w_att_.Real().get(s);}
 
   double Mu(const vector<double> &x, int species) const
   {

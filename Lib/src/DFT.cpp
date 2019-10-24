@@ -71,7 +71,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   double F = 0.0;
   
   if(onlyFex) return F; // do nothing.
-    
+
   for(auto &species : allSpecies_)
     {
       const Density& density = species->getDensity();
@@ -103,14 +103,15 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	throw e;
       }
     }
-  
+
   // Mean field contribution to F and dF
-  /*
-  for(auto &species : allSpecies_)
-    {
-      species->doFFT();
-    }
-  */
+  // Need the following only if the fmt object is not called
+  if(!fmt_)
+    for(auto &species : allSpecies_)
+      {
+	species->doFFT();
+      }
+  
   
   for(auto &interaction: DFT::Interactions_)
     F += interaction->getInteractionEnergyAndForces();
