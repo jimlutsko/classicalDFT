@@ -102,8 +102,9 @@ class Interaction
     if(s1_.getSequenceNumber() == s2_.getSequenceNumber())
       {
 	v.Four().Schur(density1.getDK(),w_att_.Four(),false);
-	v.Four().MultBy(dV*dV/Ntot);
+	v.Four().MultBy(dV); //*dV/Ntot);
 	v.do_fourier_2_real();
+	v.Real().MultBy(dV/Ntot);
 	s1_.addToForce(v.Real());
 	E = 0.5*density1.getInteractionEnergy(v.Real());
       } else {
