@@ -313,9 +313,13 @@ double fireMinimizer2::step()
   if(onlyRelax_ >= 0) {begin_relax = onlyRelax_; end_relax = begin_relax+1;}
 
   // dF does not include the minus so we have to put it in by hand everywhere from here down:
-  double P = 0;  
+  Summation P;  
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    P += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
+    {
+      //P += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
+      for(long i=0;i<v_[Jspecies].size();i++)
+	P += -v_[Jspecies].get(i) * dft_.getDF(Jspecies).get(i);
+    }  
 
   
   cout << "P = " << P << " f-fold = " << F_-fold << endl;

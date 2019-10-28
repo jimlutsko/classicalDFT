@@ -199,14 +199,16 @@ class Species
      *  
      *   @return none
      */        
-    void convoluteDensities()
+    void convoluteDensities(bool needsTensor)
     {
       // reference to Fourier-space array of density
       density_.doFFT();
       const DFT_Vec_Complex &rho_k = density_.getDK();
-    
-      for(FMT_Weighted_Density &d: d_)
-	d.convolute(rho_k);
+
+      int imax = (needsTensor ? d_.size() : 5);
+
+      for(int i=0;i<imax;i++)
+	d_[i].convolute(rho_k);      
     }
 
     /**
@@ -215,10 +217,12 @@ class Species
      *  
      *   @return none
      */  
-    void Accumulate_dPhi(DFT_Vec_Complex& dPhi)
+    void Accumulate_dPhi(DFT_Vec_Complex& dPhi, bool needsTensor)
     {
-      for(FMT_Weighted_Density &d: d_)
-	d.add_to_dPhi(dPhi);
+      int imax = (needsTensor ? d_.size() : 5);
+
+      for(int i=0;i<imax;i++)      
+	d_[i].add_to_dPhi(dPhi);
     }
 
     // Used in DFT_Surfactant ...

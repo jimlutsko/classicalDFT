@@ -44,6 +44,12 @@ class Summation
       return *this;
     }
 
+  Summation& operator=(double val) 
+    {
+      sum_ = val;
+      c_= 0.0; // what other option?
+      return *this;
+    }
   
  protected:
   double  sum_;

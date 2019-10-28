@@ -145,10 +145,10 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 	}
 	
       double dPhi_dT[3][3];
-
-      for(int k=0;k<3;k++)
-	for(int j=0;j<3;j++)
-	  dPhi_dT[j][k] = dPhi3_dT(j,k,s2,v2,T0, TT)*f3; 
+      if(needsTensor())	
+	for(int k=0;k<3;k++)
+	  for(int j=0;j<3;j++)
+	    dPhi_dT[j][k] = dPhi3_dT(j,k,s2,v2,T0, TT)*f3; 
 		
       species->Set_dPhi_Eta(i,dPhi_dEta);
       species->Set_dPhi_S(i,dPhi_dS2);
@@ -156,8 +156,9 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
       for(int j=0;j<3;j++)
 	{
 	  species->Set_dPhi_V(j,i,dPhi_dV0[j]);
-	  for(int k=j;k<3;k++)	   
-	    species->Set_dPhi_T(j,k,i,(j ==k ? 1 : 2)*dPhi_dT[j][k]); // taking account that we only use half the entries
+	  if(needsTensor())
+	    for(int k=j;k<3;k++)	   
+	      species->Set_dPhi_T(j,k,i,(j ==k ? 1 : 2)*dPhi_dT[j][k]); // taking account that we only use half the entries
 	}
     }
 
@@ -170,8 +171,8 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   
   // Compute the FFT of density
   for(auto s: allSpecies)
-    ((FMT_Species*)s)->convoluteDensities();
-  
+    ((FMT_Species*)s)->convoluteDensities(needsTensor());
+
   double F = doFreeEnergyLoop(allSpecies);
 
   return F;
@@ -244,7 +245,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
       FMT_Species &species = *((FMT_Species*) s);
 
       dPhi_.Four().zeros();
-      species.Accumulate_dPhi(dPhi_.Four());
+      species.Accumulate_dPhi(dPhi_.Four(), needsTensor());
 
       dPhi_.do_fourier_2_real();
 

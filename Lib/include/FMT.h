@@ -196,6 +196,8 @@ class FMT
  virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const = 0;
 
 
+ virtual bool needsTensor() const { return true;}
+ 
  protected:
 
 /**
@@ -229,6 +231,8 @@ class WhiteBearI : public FMT
 {
  public:
   WhiteBearI() : FMT(){};
+
+   virtual bool needsTensor() const { return true;}
 
 
   virtual double f2_(double eta) const
@@ -346,6 +350,8 @@ class RSLT : public FMT
   RSLT() : FMT(){};
 
 
+ virtual bool needsTensor() const { return false;}
+  
   virtual double f2_(double eta) const
   {
     if(eta > etaMax_)
@@ -505,6 +511,7 @@ class RSLT2: public RSLT
  public:
   RSLT2() : RSLT(){};
 
+  virtual bool needsTensor() const { return false;}
 
   virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
   {
@@ -554,6 +561,8 @@ class Rosenfeld: public RSLT
     return 1.5/((1-eta)*(1-eta)*(1-eta));
   }
   */
+
+ virtual bool needsTensor() const { return false;}  
   
   virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
   {
@@ -591,6 +600,8 @@ class WhiteBearII : public WhiteBearI
  public:
   WhiteBearII() : WhiteBearI(){};
 
+ virtual bool needsTensor() const { return true;}
+  
   virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
   {
     double n0 = 0.0;
