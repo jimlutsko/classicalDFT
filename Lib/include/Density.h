@@ -20,6 +20,7 @@ static const double SMALL_VALUE = 1e-18;
 
 #include "DFT_LinAlg.h"
 #include "Lattice.h"
+#include "Summation.h"
 
 
 
@@ -95,7 +96,16 @@ class Density : public Lattice
   *   @param  none
   *   @return  Number of particles
   */  
-  virtual double getNumberAtoms() const { return Density_.cReal().accu()*dV();}
+  virtual double getNumberAtoms() const //{ return Density_.cReal().accu()*dV();}
+  {
+
+    double dV1 = dV();
+    Summation s;
+    for(long i=0;i<Ntot(); i++)
+      s.add(Density_.cReal().get(i)*dV1);
+    return s;
+
+  }
 
   
   /**
@@ -310,7 +320,15 @@ class Density : public Lattice
    *  
    *   @return returns sum_i Density_.Real()[i] vdr[i]
    */  
-  double getInteractionEnergy(DFT_Vec &vdr) const { return Density_.cReal().dotWith(vdr);}
+  double getInteractionEnergy(DFT_Vec &vdr) const
+  {
+    Summation s;
+    for(long i=0;i<Ntot(); i++)
+      s.add(Density_.cReal().get(i)*vdr.get(i));
+    return s;
+    
+    //    return Density_.cReal().dotWith(vdr);
+  }
 
   /**
   *   @brief  Get the value of the derivative of the external field in a given direction. This is needed for DDFT calculations.

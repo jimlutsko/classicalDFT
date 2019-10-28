@@ -177,26 +177,28 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   return F;
 }
 
+#pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
+
 double FMT::doFreeEnergyLoop(vector<Species*> &allSpecies)
 {
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
 
   long Ntot = allSpecies.front()->getLattice().Ntot();  
   
-  double F = 0;
-  int chunk = Ntot/20;
-  long i;
 
   // There is a problem throwing exceptions from an OMP loop - I think that only the affected thread stops and the others continue.
   // So we eat the exception, remember it, and rethrow it when all loops are finished.
   bool hadCatch = false;
 
+  Summation F;
+  int chunk = Ntot/20;
+  long i;
   
   #pragma omp parallel for		\
     shared( chunk, allSpecies )				\
     private(i)					\
     schedule(static,chunk)			\
-    reduction(+:F)
+    reduction(SummationPlus:F)
   for(i=0;i<Ntot;i++)
     {
       try {

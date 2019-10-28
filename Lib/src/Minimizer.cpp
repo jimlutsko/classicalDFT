@@ -389,7 +389,9 @@ double fireMinimizer2::step()
     dt_ /= 10; // This was previously 2
   }
 
-  // write a snapshot  
+  // write a snapshot
+  static int ic = 0;
+  if(ic % 10 == 0)
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       stringstream s;
@@ -397,7 +399,8 @@ double fireMinimizer2::step()
       string of = s.str();
       dft_.writeDensity(Jspecies,of);
     }
-
+  ic++;
+  
   cout << "dt = " << dt_ << " dt_max_ = " << dt_max_ << " alpha = " << alpha_ << " f_alf_ = " << f_alf_ << endl;
   return F_;
 }
@@ -414,7 +417,7 @@ void fireMinimizer2::SemiImplicitEuler()
   // update velocities and prepare for mixing
   // N.B.: df is a gradient, not a force
   double vnorm = 0.0;
-  double fnorm = 0.0;
+  double fnorm = 0.0;  
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       DFT_Vec &df = dft_.getDF(Jspecies);
@@ -444,6 +447,8 @@ void fireMinimizer2::SemiImplicitEuler()
       v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
     }
 
+
+  
   //Update x
   //  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
   //    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
@@ -459,7 +464,7 @@ void fireMinimizer2::SemiImplicitEuler()
       double ff = fabs(dft_.getDF(Jspecies).get(i));
       if(ff > fmax) {fmax = ff; smax = i;}
       }
-  cout << "smax = " << smax << " fmax = " << fmax << " density = " << dft_.getDensity(0).getDensity(smax) << endl;
+  cout << "smax = " << smax << " fmax = " << fmax << " density = " << dft_.getDensity(0).getDensity(smax) << " rms force: " << sqrt(fnorm/((1+end_relax-begin_relax)*dft_.getDF(0).size())) << endl;
 
     
   // recalculate forces with back-tracking, if necessary
