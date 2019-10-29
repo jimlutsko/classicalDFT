@@ -51,7 +51,7 @@ void Minimizer::run(long maxSteps)
     f_abs_max_ = get_convergence_monitor();
 
     log_.precision(12);    
-    log_ << setw(12) << step_counter_ 
+    log_ << setw(12) << step_counter_
 	 << setw(20) << myColor::YELLOW << F_  << myColor::RESET
 	 << setw(20) << F_/Ntotal
 	 << setw(20) << F_/Volume
@@ -64,7 +64,7 @@ void Minimizer::run(long maxSteps)
 
     
     if(std::isnan(f_abs_max_))
-	log_  << "INF detected" << endl; //: min = " << dF_.min() << " max = " << dF_.max() << endl;
+	log_  << "INF detected" << endl; 
 
     draw_after();
 
@@ -321,8 +321,6 @@ double fireMinimizer2::step()
 	P += -v_[Jspecies].get(i) * dft_.getDF(Jspecies).get(i);
     }  
 
-  
-  cout << "P = " << P << " f-fold = " << F_-fold << endl;
   if(F_ - fold > 1e-10) P = -1;
   fold = F_;
 
@@ -374,7 +372,6 @@ double fireMinimizer2::step()
 	//	  x_[Jspecies].set(i, x_[Jspecies].get(i) - v_[Jspecies].get(i)*dt_/max(1.0,fabs(x_[Jspecies].get(i))));
 	v_[Jspecies].zeros(v_[Jspecies].size());
       }
-    cout << "backup" << endl;
   }
 
   // integration step
@@ -405,7 +402,6 @@ double fireMinimizer2::step()
     }
   ic++;
   
-  cout << "dt = " << dt_ << " dt_max_ = " << dt_max_ << " alpha = " << alpha_ << " f_alf_ = " << f_alf_ << endl;
   return F_;
 }
 
@@ -457,30 +453,20 @@ void fireMinimizer2::SemiImplicitEuler()
   //  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
   //    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
 
-  long smax;
-  double fmax = 0;
-  
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     for(long i = 0; i<x_[Jspecies].size(); i++)
       {
 	x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(1.0,fabs(x_[Jspecies].get(i))));
 	//x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_);
-      double ff = fabs(dft_.getDF(Jspecies).get(i));
-      if(ff > fmax) {fmax = ff; smax = i;}
       }
-  cout << "smax = " << smax << " fmax = " << fmax << " density = " << dft_.getDensity(0).getDensity(smax) << " rms force: " << sqrt(fnorm/((1+end_relax-begin_relax)*dft_.getDF(0).size())) << endl;
-
     
   // recalculate forces with back-tracking, if necessary
   bool bSuccess = false;
-  //  while(!bSuccess)
-  //    {
-      try{  
-	F_ = getDF_DX();                          // then get new forces
-	bSuccess = true;
-      } catch (Eta_Too_Large_Exception &e) {
-	log_ << "Backtrack .. " << endl;
-	throw(e);
-      }
-      //    }
+  try{  
+    F_ = getDF_DX(); // get new forces
+    bSuccess = true;
+  } catch (Eta_Too_Large_Exception &e) {
+    log_ << "Backtrack .. " << endl;
+    throw(e);
+  }
 }

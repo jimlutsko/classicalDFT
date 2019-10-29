@@ -15,6 +15,7 @@ using namespace std;
 #endif
 
 #include "Species.h"
+#include "myColor.h"
 
 int Species::SequenceNumber_ = 0;
 
@@ -102,6 +103,7 @@ void FMT_Species::generateWeights(string &pointsFile)
   // Generate integration points for spherical surface
 
   cout << endl;
+  cout << myColor::GREEN;
   cout << "///////////////////////////////////////////////////////////" << endl;
   cout << "/////  Generating integration points on sphere " << endl;
 
@@ -176,14 +178,17 @@ void FMT_Species::generateWeights(string &pointsFile)
 
   cout << "/////  Finished: there are " << points.size() << " points " << endl;
   cout << "///////////////////////////////////////////////////////////" << endl;
+  cout << myColor::RESET << endl;
 
 
   // Add up the weights for each point.
   // We throw in all permutations (iperm loop) of the integration points and all reflections (is loop)
   // to establish as much symmetry as possible. Probably unnecessary.    
   cout << endl;
+  cout << myColor::GREEN;
   cout << "///////////////////////////////////////////////////////////" << endl;
   cout << "/////  Generating integration points for sphere volume " << endl;
+  cout << myColor::RESET << endl;
 
   // This is for the radial integral
   int Nr = 128*4;
@@ -194,7 +199,8 @@ void FMT_Species::generateWeights(string &pointsFile)
   long count = 0;
   for(int pos=0;pos < points.size(); pos++)
     {
-      if(pos%1000 == 0) cout << pos << endl;
+      
+      if(pos%1000 == 0) {if(pos > 0) cout << '\r'; cout << "\t" << int(double(pos)*100.0/points.size()) << "% finished: " << pos << " out of " << points.size(); cout.flush();}
       for(int iperm = 0; iperm < 6; iperm++)      // add permutations
 	{
 	  int ii = 0;
@@ -355,10 +361,11 @@ void FMT_Species::generateWeights(string &pointsFile)
 	  d_[TI(1,1)].setWeight(pos, d_[TI(1,1)].getWeight(pos)*d_[SI()].getWeight(pos)/sum);
 	  d_[TI(2,2)].setWeight(pos, d_[TI(2,2)].getWeight(pos)*d_[SI()].getWeight(pos)/sum);
 	}
-    }  
+    }
+  cout << myColor::GREEN;
   cout << "/////  Finished.  " << endl;
   cout << "///////////////////////////////////////////////////////////" << endl;
-
+  cout << myColor::RESET << endl;
 
   size_t Npos = density_.Ntot();
   

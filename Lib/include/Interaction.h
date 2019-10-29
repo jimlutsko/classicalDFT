@@ -28,7 +28,7 @@ class Interaction
  public:
  Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) : s1_(s1), s2_(s2)
   {
-    log << "Calculating mean field potential ... this may take a while ..." << endl;
+    log << "Calculating mean field potential ... " << endl;
     const Density &density = s1.getDensity();
       
     // The lattice
@@ -50,6 +50,9 @@ class Interaction
     w_att_.initialize(Nx,Ny,Nz);      
     a_vdw_ = 0.0;
 
+    long ntot = long(2*Rc/dx) * long(2*Rc/dy) * long(2*Rc/dz);
+    long count = 0;
+    
     for(double x = -Rc; x <= Rc; x += dx)
       {
 	long nx = x/dx;
@@ -78,6 +81,11 @@ class Interaction
 		double w = v.Watt(sqrt(r2))/kT;
 		a_vdw_ += w;
 		w_att_.Real().IncrementBy(pos,w);
+
+		if(count % 10000 == 0)
+		  {if(count > 0) cout << '\r'; cout << "\t" << int(double(count)*100.0/ntot) << "% finished: " << count << " out of " << ntot; cout.flush();}
+		count++;
+		
 	      }	   
 	  }
       }

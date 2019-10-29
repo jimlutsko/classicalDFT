@@ -278,7 +278,8 @@ class fireMinimizer2 : public fireMinimizer_Mu
 
   virtual void   initialize(){ fireMinimizer_Mu::initialize(); N_P_positive_ = N_P_negative_ = 0;}
   virtual double step();
-
+  virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
+  
  protected:
   void SemiImplicitEuler();
   
