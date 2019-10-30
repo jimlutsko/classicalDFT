@@ -114,46 +114,14 @@ double Minimizer::getDF_DX()
   //  dF_.Schur(x_,dF_);
   //  dF_.MultBy(2);
 
-  double dV = dft_.lattice().dV();
-
-  double ff = 0;
-  double im = 0;
-
-  int ix = 0;
-  int iy = 0;
-  int iz = 0;
 
   for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
     {
       auto &f = dft_.getDF(Jspecies);
       for(long i=0;i<f.size();i++)
 	{
-	  bool onBoundary = false;
-
-	  if(bFrozenBoundary_)
-	    {
-	      iz++;
-	      if(iz == dft_.lattice().Nz())
-		{
-		  iz = 0;
-		  iy++;
-		  if(iy == dft_.lattice().Ny())
-		    {
-		      iy = 0;
-		      ix++;		  
-		    }
-		}
-      
-	      if(ix == 0 || iy == 0 || iz == 0)
-		onBoundary = true;
-	    }
-
-      
 	  double force = f.get(i);
-
-	  if(!onBoundary)
-	    f.set(i,2*force*x_[Jspecies].get(i));
-	  else f.set(i,0.0);	
+	  f.set(i,2*force*x_[Jspecies].get(i));
 	}
     }
   return F;
@@ -315,22 +283,18 @@ double fireMinimizer2::step()
   // dF does not include the minus so we have to put it in by hand everywhere from here down:
   Summation P;  
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    {
-      //P += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
-      for(long i=0;i<v_[Jspecies].size();i++)
-	P += -v_[Jspecies].get(i) * dft_.getDF(Jspecies).get(i);
-    }  
+    for(long i=0;i<v_[Jspecies].size();i++)
+      P += -v_[Jspecies].get(i) * dft_.getDF(Jspecies).get(i);
 
   if(F_ - fold > 1e-10) P = -1;
   fold = F_;
 
-  
-  int numSpecies = dft_.getNumberOfSpecies();  
+  int numSpecies = end_relax-begin_relax;
   vector<DFT_Vec> x_rem(numSpecies);
   vector<DFT_Vec> v_rem(numSpecies);
   vector<DFT_Vec> dF_rem(numSpecies);
 
-  for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
+  for(int Jspecies = begin_relax; Jspecies < end_relax; Jspecies++)
     {
       x_rem[Jspecies].set(x_[Jspecies]);
       v_rem[Jspecies].set(v_[Jspecies]);
@@ -365,24 +329,16 @@ double fireMinimizer2::step()
       }
 
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-      {
-	//	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-0.5*dt_);
-	//	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-dt_);
-	//	for(long i = 0; i<x_[Jspecies].size(); i++) //here
-	//	  x_[Jspecies].set(i, x_[Jspecies].get(i) - v_[Jspecies].get(i)*dt_/max(1.0,fabs(x_[Jspecies].get(i))));
 	v_[Jspecies].zeros(v_[Jspecies].size());
-      }
   }
 
   // integration step
-  // Changed handling of backtracking 21/10/2019
-  
+  // Changed handling of backtracking 21/10/2019  
   try {
-    SemiImplicitEuler();
+    SemiImplicitEuler(begin_relax, end_relax);
   } catch(Eta_Too_Large_Exception &e) {
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
-	//	    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],-0.5*dt_);
 	x_[Jspecies].set(x_rem[Jspecies]);
 	v_[Jspecies].set(v_rem[Jspecies]);
 	dft_.setDF(Jspecies,dF_rem[Jspecies]);
@@ -405,15 +361,8 @@ double fireMinimizer2::step()
   return F_;
 }
 
-void fireMinimizer2::SemiImplicitEuler()
+void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
 {
-  int numSpecies = dft_.getNumberOfSpecies();
-  
-  int begin_relax = 0;
-  int end_relax   = numSpecies;
-
-  if(onlyRelax_ >= 0) {begin_relax = onlyRelax_; end_relax = begin_relax+1;}
-
   // update velocities and prepare for mixing
   // N.B.: df is a gradient, not a force
   double vnorm = 0.0;
@@ -423,15 +372,6 @@ void fireMinimizer2::SemiImplicitEuler()
       DFT_Vec &df = dft_.getDF(Jspecies);
 
       v_[Jspecies].IncrementBy_Scaled_Vector(df, -dt_);
-      /*
-      for(long i = 0; i<x_[Jspecies].size(); i++)
-      	{
-	  double vi = v_[Jspecies].get(i);
-	  double xi = x_[Jspecies].get(i);
-	  double fi = df.get(i);
-	  v_[Jspecies].set(i, vi - dt_*fi/max(1.0, fabs(xi)));
-	}
-      */
 	  
       double v = v_[Jspecies].euclidean_norm();
       double f = df.euclidean_norm();
@@ -446,19 +386,11 @@ void fireMinimizer2::SemiImplicitEuler()
       v_[Jspecies].MultBy(1-alpha_);      
       v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
     }
-
-
   
   //Update x
-  //  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)  
-  //    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
-
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     for(long i = 0; i<x_[Jspecies].size(); i++)
-      {
-	x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(1.0,fabs(x_[Jspecies].get(i))));
-	//x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_);
-      }
+      x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(1.0,fabs(x_[Jspecies].get(i))));
     
   // recalculate forces with back-tracking, if necessary
   bool bSuccess = false;
