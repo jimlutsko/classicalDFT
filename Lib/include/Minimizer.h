@@ -119,7 +119,6 @@ class DDFT : public Minimizer
   bool show_;
   
   double dt_;
-  //  DFT_Vec oldF_;
   double tolerence_fixed_point_;
 
   // control of adaptive time step
@@ -214,7 +213,7 @@ class DDFT_IF_Open : public DDFT
 class fireMinimizer_Mu : public Minimizer
 {
  public:
- fireMinimizer_Mu(DFT &dft, ostream &log) :  Minimizer(dft, log), onlyRelax_(-1)
+ fireMinimizer_Mu(DFT &dft, ostream &log) :  Minimizer(dft, log)
   {
     v_.resize(dft_.getNumberOfSpecies());
     for(auto &v: v_) v.resize(dft_.lattice().Ntot());
@@ -249,7 +248,7 @@ class fireMinimizer_Mu : public Minimizer
  protected:
   vector<DFT_Vec> v_;
 
-  int onlyRelax_;
+  int onlyRelax_ = -1;
 
   double alpha_start_ = 0.1;
   double f_dec_    = 0.5;
@@ -281,7 +280,7 @@ class fireMinimizer2 : public fireMinimizer_Mu
   virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
   
  protected:
-  void SemiImplicitEuler();
+  void SemiImplicitEuler(int begin, int end);
   
  protected:
   int N_P_positive_ = 0;
