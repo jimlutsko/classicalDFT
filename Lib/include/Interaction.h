@@ -18,10 +18,12 @@
 
 #include "Species.h"
 #include "Log.h"
+#include "myColor.h"
 
 /**
   *  @brief This class encapsulates the interaction between two species (or one species with itself)
   */  
+
 
 class Interaction
 {
@@ -79,6 +81,11 @@ class Interaction
 
 		double r2 = x*x+y*y+z*z;
 		double w = v.Watt(sqrt(r2))/kT;
+		//		double w = -exp(-v.V(sqrt(r2))/kT);
+		//		if(r2 > 1.03*1.03) w += 1; 
+
+		w *= dx*dy*dz;
+		
 		a_vdw_ += w;
 		w_att_.Real().IncrementBy(pos,w);
 
@@ -90,12 +97,289 @@ class Interaction
 	  }
       }
     log << endl;
-    a_vdw_ *= 0.5*dx*dy*dz;
 
     // Now save the FFT of the field  
     w_att_.do_real_2_fourier();     
   }
 
+ Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, string &pointsFile) : s1_(s1), s2_(s2)
+  {
+    const Density &density = s1.getDensity();
+    long Nx = density.Nx();
+    long Ny = density.Ny();
+    long Nz = density.Nz();
+
+    w_att_.initialize(Nx,Ny,Nz);      
+    a_vdw_ = 0.0;
+  
+    // First, try to read the weights from a file
+    
+    stringstream ss1;
+    ss1 << "weights_" << s1_.getSequenceNumber() << "_" << s2_.getSequenceNumber() << ".dat";
+  
+    bool readWeights = true;
+    
+    ifstream in(ss1.str().c_str(), ios::binary);
+    if(!in.good())
+      {readWeights = false;     cout << myColor::GREEN  << "\n" <<  "Could not open file with potential kernal: it will be generated" << myColor::RESET << endl;}
+    else {
+      string buf;
+      getline(in,buf);
+
+      stringstream ss2(buf);
+      int nx, ny, nz;
+      double Rc;
+      ss2 >> nx >> ny >> nz >> Rc;
+
+      if(nx != Nx)
+	{readWeights = false; cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
+      if(ny != Ny)
+	{readWeights = false; cout << "\n" <<  "Mismatch in Ny: expected " << Ny << " but read " << ny <<  endl;}
+      if(nz != Nz)
+	{readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
+      if(fabs(v.getRcut()-Rc) > 1e-8*(v.getRcut()+Rc))
+	{readWeights = false; cout << "\n" <<  "Mismatch in cutoff: generating weights: expected " << v.getRcut() << " but read " << Rc << endl;}
+
+      getline(in,buf);
+      stringstream ss3(buf);
+      if(ss3.str().compare(pointsFile) != 0)
+	{readWeights = false; cout << "\n" <<  "Mismatch in points file: expected " << pointsFile << " but read " << ss3.str() <<  endl;}
+    }
+
+    if(readWeights)
+      {
+	w_att_.Real().load(in);
+	a_vdw_ = w_att_.Real().accu();	
+      } else {
+      generateWeights(pointsFile,v, ss1, log, kT);
+    }
+    // Now generate the FFT of the field  
+    w_att_.do_real_2_fourier();     
+  }    
+
+
+
+  void generateWeights(string &pointsFile, Potential1 &v, stringstream &ss, Log& log, double kT)
+  {    
+    log << "Calculating mean field potential ... " << endl;
+    const Density &density = s1_.getDensity();
+      
+    // The lattice
+    long Nx = density.Nx();
+    long Ny = density.Ny();
+    long Nz = density.Nz();
+
+    double dx = density.getDX();
+    double dy = density.getDY();
+    double dz = density.getDZ();
+  
+    // Set up the mean field potential
+    // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
+    // This may mean going beyond nearest neighbors in certain conditions.
+    // We also compute the vdw parameter at the same time.
+      
+    double Rc = v.getRcut();
+
+    // Generate integration points for spherical surface
+
+    cout << endl;
+    cout << myColor::GREEN;
+
+    vector < vector<double> > points; 
+
+#ifndef USE_MPI  
+    // Read points from file : C++ way
+  
+    ifstream in(pointsFile.c_str());
+    if(!in.good())
+      {
+	stringstream ss;
+	ss << "File " << pointsFile << " could not be opened";
+	throw std::runtime_error(ss.str().c_str());
+      }
+#else
+    // Read points from file : C code for use with MPI functions
+    MPI_Status    status;
+    MPI_File      fh;
+
+    int error = MPI_File_open(MPI_COMM_WORLD, pointsFile.c_str(),
+			      MPI_MODE_RDONLY, MPI_INFO_NULL, &fh);
+    if(error != MPI_SUCCESS) 
+      throw std::runtime_error("Could not open points file");
+
+    // get num bytes
+    MPI_Offset numbytes;
+    error = MPI_File_get_size(fh, &numbytes);
+    if(error != MPI_SUCCESS) 
+      throw std::runtime_error("Could not get points file size");
+
+    // allocate buffer
+    char *buffer = (char*)calloc(numbytes, sizeof(char));	
+
+    if(buffer == NULL)
+      throw std::runtime_error("could not allocate buffer for points file");
+
+    // copy
+    MPI_File_seek(fh, 0, MPI_SEEK_SET);
+    error = MPI_File_read(fh, buffer, numbytes, MPI_BYTE, &status);
+    if(error != MPI_SUCCESS) 
+      throw std::runtime_error("Could not read points file");
+
+    MPI_File_close(&fh);
+  
+    string sbuffer(buffer,numbytes/sizeof(char));
+
+    delete buffer;
+    istringstream in(sbuffer);
+#endif
+  
+    for(string buf; getline(in,buf);)
+      {
+	vector<double> line;
+      
+	stringstream st(buf);
+	double d;
+	while(st >> d) {line.push_back(d);}
+	line.push_back(4*M_PI); // the weight
+
+	double r2 = line[0]*line[0]+line[1]*line[1]+line[2]*line[2];
+	double r = sqrt(r2);
+	line[0] /= r;
+	line[1] /= r;
+	line[2] /= r;
+
+	points.push_back(line); // points includes the weights as the fourth entry
+      }
+    // adjust the weights
+    for(vector<double> &point : points)
+      point[3] /= points.size();
+
+    cout << myColor::RESET << endl;
+
+
+    // Add up the weights for each point.
+    // We throw in all permutations (iperm loop) of the integration points and all reflections (is loop)
+    // to establish as much symmetry as possible. Probably unnecessary.    
+    cout << endl;
+    cout << myColor::GREEN;
+    cout << "///////////////////////////////////////////////////////////" << endl;
+    cout << "/////  Generating integration points for sphere volume " << endl;
+    cout << myColor::RESET << endl;
+
+    // Get some Gauss-Lagrange integration points and weights for the radial integral
+    int Nr = 128*4;
+    gsl_integration_glfixed_table *tr = gsl_integration_glfixed_table_alloc(Nr);
+
+    // Decide whether or not to do the permuations:
+    int iperm_max = 6; // 1 or 6
+    int is_max = 8; // 1 or 8
+    double inorm = iperm_max*is_max;
+    
+    for(int pos=0;pos < points.size(); pos++)
+      {
+      	if(pos%1000 == 0) {if(pos > 0) cout << '\r'; cout << "\t" << int(double(pos)*100.0/points.size()) << "% finished: " << pos << " out of " << points.size(); cout.flush();}
+
+	for(int iperm = 0; iperm < iperm_max; iperm++)      // add permutations
+	  {
+	    int ii = 0;
+	    int jj = 1;
+	    int kk = 2;
+	    if(iperm == 0) {ii = 0; jj = 1; kk = 2;}
+	    if(iperm == 1) {ii = 0; jj = 2; kk = 1;}
+	    if(iperm == 2) {ii = 1; jj = 0; kk = 2;}
+	    if(iperm == 3) {ii = 1; jj = 2; kk = 0;}
+	    if(iperm == 4) {ii = 2; jj = 0; kk = 1;}
+	    if(iperm == 5) {ii = 2; jj = 1; kk = 0;}
+
+	    for(int is=0;is<is_max;is++) // add in reflections too
+	      {
+		for(int k=0;k<Nr;k++)
+		  {
+		    double r;
+		    double wr;
+	      
+		    gsl_integration_glfixed_point(0, Rc, k, &r, &wr, tr);
+		  
+		    double watt = v.Watt(r)/kT; 
+		  
+		    double x = r*points[pos][0];
+		    double y = r*points[pos][1];
+		    double z = r*points[pos][2];
+		  
+		    // is = 0: do nothing
+		    if(is == 1) {x = -x;}
+		    if(is == 2) {y = -y;}
+		    if(is == 3) {z = -z;}
+		    if(is == 4) {x = -x; y = -y;}
+		    if(is == 5) {x = -x; z = -z;}
+		    if(is == 6) {y = -y; z = -z;}
+		    if(is == 7) {x = -x; y = -y; z = -z;}
+		  	    
+		    double ww = points[pos][3]/inorm;
+	    
+		    // Find the cube that contains this point. 
+		    int ix0 = int(x/dx);
+		    int iy0 = int(y/dy);
+		    int iz0 = int(z/dz);
+
+		    if(x < 0) ix0 -=1;
+		    if(y < 0) iy0 -=1;
+		    if(z < 0) iz0 -=1;
+
+		    double ddx = (x/dx)-ix0;
+		    double ddy = (y/dy)-iy0;
+		    double ddz = (z/dz)-iz0;
+
+		    for(int io=0;io<2;io++)
+		      for(int jo=0;jo<2;jo++)
+			for(int ko=0;ko<2;ko++)		  
+			  {
+			    int nx = ix0+io;
+			    int ny = iy0+jo;
+			    int nz = iz0+ko;
+
+			    while(nx < 0) nx += Nx;
+			    while(ny < 0) ny += Ny;
+			    while(nz < 0) nz += Nz;
+			
+			    while(nx >= Nx) nx -= Nx;
+			    while(ny >= Ny) ny -= Ny;
+			    while(nz >= Nz) nz -= Nz;			
+
+			    long pos = nz+Nz*(ny+Ny*nx);
+
+			    double cc = (io == 0 ? 1-ddx : ddx)*(jo == 0 ? 1-ddy : ddy)*(ko == 0 ? 1-ddz : ddz); // trilinear interpolation
+
+			    double w = cc*ww*wr*r*r*watt;     
+			    a_vdw_ += w;
+			    w_att_.Real().IncrementBy(pos,w);
+			  }
+		  }
+	      }
+	  }
+      }
+    cout << myColor::GREEN;
+    cout << "/////  Finished.  " << endl;
+    cout << "///////////////////////////////////////////////////////////" << endl;
+    cout << myColor::RESET << endl;
+   
+    /// Dump the weights
+    ofstream of(ss.str().c_str(), ios::binary);
+
+    of.flags (std::ios::scientific);
+    of.precision (std::numeric_limits<double>::digits10 + 1);
+
+    of << Nx << " " << Ny << " " << Nz << " " << Rc << endl;
+    of << pointsFile << endl;
+
+    cout << "Writing: " << Ny << " " << Nz << " " << Rc << endl;
+    cout << "Writing: " << pointsFile << endl;
+
+    w_att_.Real().save(of);
+  }
+  
+  
+  // Note that the matrix w already contains a factor of dV
   double getInteractionEnergyAndForces()
   {
     const Density &density1 = s1_.getDensity();
@@ -110,14 +394,13 @@ class Interaction
     if(s1_.getSequenceNumber() == s2_.getSequenceNumber())
       {
 	v.Four().Schur(density1.getDK(),w_att_.Four(),false);
-	v.Four().MultBy(dV); //*dV/Ntot);
 	v.do_fourier_2_real();
 	v.Real().MultBy(dV/Ntot);
 	s1_.addToForce(v.Real());
 	E = 0.5*density1.getInteractionEnergy(v.Real());
       } else {
       v.Four().Schur(density1.getDK(),w_att_.Four());
-      v.Four().MultBy(0.5*dV*dV/Ntot);
+      v.Four().MultBy(0.5*dV/Ntot);
       v.do_fourier_2_real(); 
       s2_.addToForce(v.Real());
 
@@ -151,35 +434,35 @@ class Interaction
     //    int jz = 14;
 
     /*
-    double EE = 0.0;
+      double EE = 0.0;
     
-    for(int jx=0; jx<Nx; jx++)
+      for(int jx=0; jx<Nx; jx++)
       for(int jy=0; jy<Ny; jy++)
-	for(int jz=0; jz<Nz; jz++)
-	  {
+      for(int jz=0; jz<Nz; jz++)
+      {
     */
-	    long sj = density1.pos(jx,jy,jz);
-	    double dd = 0.0;    
-	    for(int ix=0;ix<Nx; ix++)
-	      for(int iy=0;iy<Ny; iy++)
-		for(int iz=0;iz<Nz; iz++)
-		  {
-		    int kx = jx-ix;  while(kx < 0) kx += Nx; while (kx > Nx) kx -= Nx;
-		    int ky = jy-iy;  while(ky < 0) ky += Ny; while (ky > Ny) ky -= Ny;
-		    int kz = jz-iz;  while(kz < 0) kz += Nz; while (kz > Nz) kz -= Nz;
+    long sj = density1.pos(jx,jy,jz);
+    double dd = 0.0;    
+    for(int ix=0;ix<Nx; ix++)
+      for(int iy=0;iy<Ny; iy++)
+	for(int iz=0;iz<Nz; iz++)
+	  {
+	    int kx = jx-ix;  while(kx < 0) kx += Nx; while (kx > Nx) kx -= Nx;
+	    int ky = jy-iy;  while(ky < 0) ky += Ny; while (ky > Ny) ky -= Ny;
+	    int kz = jz-iz;  while(kz < 0) kz += Nz; while (kz > Nz) kz -= Nz;
 		    
-		    long si = density1.pos(ix,iy,iz);
-		    long sk = density1.pos(kx,ky,kz);
+	    long si = density1.pos(ix,iy,iz);
+	    long sk = density1.pos(kx,ky,kz);
 		    
-		    dd += w_att_.Real().get(sk)*density1.getDensity(si);
-		  }
-	    //	    EE += dd*density1.getDensity(sj);
-	    //	      }
-	    //	    cout << "Direct calc of dF[" << jx << "," << jy << "," << jz << "] = " << dd*dV*dV  << endl;
-	    //    EE *= 0.5*dV*dV;
-	    //    cout << setprecision(20) << "E        = " << E << endl;
-	    //    cout << setprecision(20) << "E-direct = " << EE << endl;
-	    //    cout << setprecision(20) << "diff     = " << E - EE << endl;
+	    dd += w_att_.Real().get(sk)*density1.getDensity(si);
+	  }
+    //	    EE += dd*density1.getDensity(sj);
+    //	      }
+    //	    cout << "Direct calc of dF[" << jx << "," << jy << "," << jz << "] = " << dd*dV*dV  << endl;
+    //    EE *= 0.5*dV*dV;
+    //    cout << setprecision(20) << "E        = " << E << endl;
+    //    cout << setprecision(20) << "E-direct = " << EE << endl;
+    //    cout << setprecision(20) << "diff     = " << E - EE << endl;
     
     return dd*dV*dV;
   }
@@ -214,7 +497,5 @@ class Interaction
   DFT_FFT w_att_;  
 
 };
-
-
 
 #endif // __LUTSKO__INTERACTION__

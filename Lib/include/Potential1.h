@@ -30,7 +30,6 @@ class Potential1
     return hc + II.integrateFinite(hc,rmin_);
   }
 
-
   // This is $a = \frac{1}{2}\int Watt(r)/kT d{\bf r}$
   // I assume that $kT = k_{B}T/\eps$
   virtual double getVDW_Parameter(double kT) const = 0;
@@ -132,7 +131,40 @@ class tWF : public Potential1
   double alpha_;
 };
 
+/**
+  *  @brief Frenkel's potential from https://arxiv.org/pdf/1910.05746.pdf
+  */
+class WHDF : public Potential1
+{
+ public:
+ WHDF(double sigma, double eps, double rcut) : Potential1(sigma, eps, rcut)
+  {
+    eps_ *= 2*pow(rcut/sigma,2)*pow(2*((rcut/sigma)*(rcut/sigma)-1)/3.0,-3.0);
+    
+    shift_ = vr(rcut_);
+    rmin_  = getRmin(); 
+    Vmin_  = V(rmin_);
+    
+  }
 
+  virtual double getRmin() const { return rcut_*pow((1.0+2.0*(rcut_/sigma_)*(rcut_/sigma_))/3.0,-0.5);}
+  virtual double getHardCore() const { return 0.0;}
+  virtual double getVDW_Parameter(double kT) const
+  {
+    double yc = rcut_/sigma_;
+    double ym = getRmin()/rcut_;
+    
+    return (4*M_PI*eps_/3)*sigma_*sigma_*sigma_*pow(yc/(yc*yc-1),3)*(54*(1+yc*yc)-2*(ym*ym*ym)*(1+2*yc*yc)*(1+2*yc*yc)*(5+yc*yc));
+  }
+
+ protected:
+  virtual double vr(double r) const
+  {
+    double y = sigma_/r;
+    double z = rcut_/r;
+    return eps_*(y*y-1)*(z*z-1);
+  }
+};
 
 
 

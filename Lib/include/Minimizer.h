@@ -281,7 +281,7 @@ class fireMinimizer2 : public fireMinimizer_Mu
   virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
   
  protected:
-  void SemiImplicitEuler();
+  void SemiImplicitEuler(int begin_s, int end_s);
   
  protected:
   int N_P_positive_ = 0;

@@ -196,12 +196,17 @@ void FMT_Species::generateWeights(string &pointsFile)
   // Get some Gauss-Lagrange integration points and weights for the radial integral
   gsl_integration_glfixed_table *tr = gsl_integration_glfixed_table_alloc(Nr);
 
+  // Decide whether or not to do the permuations:
+  int iperm_max = 6; // 1 or 6
+  int is_max = 8; // 1 or 8
+  double inorm = iperm_max*is_max;
+  
   long count = 0;
   for(int pos=0;pos < points.size(); pos++)
     {
       
       if(pos%1000 == 0) {if(pos > 0) cout << '\r'; cout << "\t" << int(double(pos)*100.0/points.size()) << "% finished: " << pos << " out of " << points.size(); cout.flush();}
-      for(int iperm = 0; iperm < 6; iperm++)      // add permutations
+      for(int iperm = 0; iperm < iperm_max; iperm++)      // add permutations
 	{
 	  int ii = 0;
 	  int jj = 1;
@@ -217,7 +222,7 @@ void FMT_Species::generateWeights(string &pointsFile)
 	  double y0 = r*points[pos][jj];
 	  double z0 = r*points[pos][kk];
 
-	  for(int is=0;is<8;is++) // add in reflections too
+	  for(int is=0;is<is_max;is++) // add in reflections too
 	    {
 	      double x = x0;
 	      double y = y0;
@@ -233,7 +238,7 @@ void FMT_Species::generateWeights(string &pointsFile)
 
 
 	      // scale the original weight by the number of redundancies (6 x 7 or 6 x 8 depending on if we keep the last reflection)
-	      double ww = points[pos][3]/48.0;
+	      double ww = points[pos][3]/inorm;
 
 	      double v[3]; // used for the vector and tensor densities
 	      v[0] = x/r;
@@ -309,7 +314,7 @@ void FMT_Species::generateWeights(string &pointsFile)
 		  if(is == 6) {y = -y; z = -z;}
 		  if(is == 7) {x = -x; y = -y; z = -z;}
 
-		  double ww = points[pos][3]/48.0;
+		  double ww = points[pos][3]/inorm;
 	      
 		  // Find the cube that contains this point. 
 		  int ix0 = int(x/dx);

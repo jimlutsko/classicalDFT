@@ -85,10 +85,9 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	    species->addToForce(i,log(d0)*dV);
 	  }
       }
-    
   for(auto &species : allSpecies_)
     F += species->externalField(true); // bCalcForces = true: obsolete?  
-    
+
   if(fmt_)
     {    
       try{
@@ -97,7 +96,6 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	throw e;
       }
     }
-
   // Mean field contribution to F and dF
   // Need the following only if the fmt object is not called
   if(!fmt_)
@@ -106,10 +104,8 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	species->doFFT();
       }
   
-  
   for(auto &interaction: DFT::Interactions_)
     F += interaction->getInteractionEnergyAndForces();
 
-  return F.sum();
-  
+  return F.sum();  
 }
