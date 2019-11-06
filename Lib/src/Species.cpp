@@ -403,7 +403,7 @@ void FMT_Species::generateWeights(string &pointsFile)
     s.dump(of);  
 }
 
-
+/*
 VDW_Species::VDW_Species(Density& density, double hsd, string &pointsFile, Potential1& potential, double kT)
   : FMT_Species(density,hsd,pointsFile), potential_(potential), a_vdw_(0)
 {
@@ -444,3 +444,4 @@ VDW_Species::VDW_Species(Density& density, double hsd, string &pointsFile, Poten
   // Now save the FFT of the field  
   w_att_.do_real_2_fourier();
 }
+*/
