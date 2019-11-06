@@ -257,10 +257,7 @@ double fireMinimizer_Mu::step()
   return F_;
 }
 
-void fireMinimizer_Mu::draw_after()
-{
-  //  log_ << "After FIRE step " << step_counter_ << " F = " << F_ << " N = " << dft_.getNumberAtoms(0) << " calls = " << calls_ << " dt_ = " << dt_ << " alpha = " << alpha_ << " f_alf_ = " << f_alf_ << endl;
-}
+void fireMinimizer_Mu::draw_after() {}
 
 int fireMinimizer_Mu::draw_during()
 {
