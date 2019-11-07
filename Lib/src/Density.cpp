@@ -12,6 +12,7 @@
 using namespace std;
 
 #include "Density.h"
+#include "visit_writer.h"
 
 void Density::initialize_from_file(const char *filename)
 {
@@ -108,4 +109,34 @@ void Density::detectClusters(double threshold, vector< vector<long> > &clusters)
   */
   throw std::runtime_error("Density::detectClusters not implemented");
 
+}
+
+void Density::write_VTK_File(string &filename)
+{
+  // I don't understand why it has to be plus 1 ...
+  int dims[] = {int(Nx_+1), int(Ny_+1), int(Nz_+1)};
+
+  int nvars = 1;
+  int vardims[] = {1};
+  int centering[] = {0};
+  const char *varnames[] = {"density"};
+
+  unsigned Nmax = Ntot();
+  
+  float *density = new float[Nmax];
+  float *vars[] = {(float *)density};
+
+  /* Create zonal variable */
+  unsigned pos = 0;
+  for(int k = 0; k < Nz_; ++k)
+    for(int j = 0; j < Ny_; ++j)
+      for(int i = 0; i < Nx_; ++i)
+	{
+	  density[pos] = getDensity(i,j,k);
+	  pos++;
+	}
+  /* Use visit_writer to write a regular mesh with data. */
+  write_regular_mesh(filename.c_str(), 0, dims, nvars, vardims,
+		     centering, varnames, vars);
+  delete density;
 }

@@ -29,6 +29,7 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/myColor.cpp
   ${PROJECT_SOURCE_DIR}/src/options.cpp
   ${PROJECT_SOURCE_DIR}/src/Table.cpp
+  ${PROJECT_SOURCE_DIR}/src/visit_writer.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${all_SRCS})

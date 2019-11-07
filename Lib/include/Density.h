@@ -350,6 +350,13 @@ class Density : public Lattice
   */  
   void detectClusters(double threshold, vector< vector<long> > &clusters);
 
+  /**
+  *   @brief  Write the density into a vtk-readable file
+  *  
+  *   @param  filename: name of file (should end in .vtk).
+  *   @return none
+  */  
+  void write_VTK_File(string &filename);
   
  protected:
 
