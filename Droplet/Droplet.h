@@ -30,18 +30,18 @@ class Droplet : public Density
    */  
  Droplet(double dx, double L[], double hsd)
    : Density(dx,L),  hsd_(hsd)
-   {
+  {
 #ifdef USE_GRACE
-      grace_ = new Grace();
+    grace_ = new Grace();
 #endif
-   }
+  }
 
-   ~Droplet()
-   {
+  ~Droplet()
+    {
 #ifdef USE_GRACE
-     if(grace_  != NULL) delete grace_;
+      if(grace_  != NULL) delete grace_;
 #endif
-   }
+    }
    
   /**
    *   @brief  Generates an intial guess at the density
@@ -53,7 +53,7 @@ class Droplet : public Density
    */  
   virtual void initialize(double density_inside, double density_outside, double R)
   {
-    Density::initialize(density_inside,density_outside);
+    //    Density::initialize(density_inside,density_outside);
 
     for(int i=0;i<Nx_;i++)
       for(int j=0;j<Ny_;j++)
@@ -73,6 +73,13 @@ class Droplet : public Density
     // This is an object that writes a png snapshot whenever doDisplay gets called.
     display_ = new Display(Nx_,Ny_);
 #endif
+  }
+
+  virtual void scaleTo(double N)
+  {
+    double N0 = getNumberAtoms();
+    for(long i=0;i<Ntot();i++)
+      set_Density_Elem(i, getDensity(i)*N/N0);
   }
 
   // This gets called after every update and for each species: seq is the species number. 

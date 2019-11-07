@@ -33,6 +33,9 @@ class Potential1
   // This is $a = \frac{1}{2}\int Watt(r)/kT d{\bf r}$
   // I assume that $kT = k_{B}T/\eps$
   virtual double getVDW_Parameter(double kT) const = 0;
+
+  virtual string getIdentifier() const = 0;
+
   
  protected:
   virtual double vr(double r) const = 0;
@@ -72,6 +75,14 @@ class LJ : public Potential1
     return (16*M_PI/9)*sigma_*sigma_*sigma_*(2*pow(y0,9)-3*pow(y0,3)+3*pow(yc,3)-2*pow(yc,9))/kT;
   }
 
+
+  virtual string getIdentifier() const
+  {
+    stringstream ss;
+    ss << "LJ_" << sigma_ << "_" << eps_ << "_" << rcut_;
+    return ss.str();    
+  }
+  
  protected:
   virtual double vr(double r) const
   {
@@ -116,6 +127,13 @@ class tWF : public Potential1
     return (2*M_PI/kT)*sigma_*sigma_*sigma_*((xm*xm*xm/3)*vr(xm)-(xc*xc*xc/3)*vr(xc)+(4*eps_/(alpha_*alpha_))*(gc-gm));
   }
 
+  virtual string getIdentifier() const
+  {
+    stringstream ss;
+    ss << "TWF_" << sigma_ << "_" << eps_ << "_" << alpha_ << "_" << rcut_;
+    return ss.str();    
+  }
+  
  protected:
   virtual double vr(double r) const
   {
@@ -156,6 +174,13 @@ class WHDF : public Potential1
     
     return (4*M_PI*eps_/3)*sigma_*sigma_*sigma_*pow(yc/(yc*yc-1),3)*(54*(1+yc*yc)-2*(ym*ym*ym)*(1+2*yc*yc)*(1+2*yc*yc)*(5+yc*yc));
   }
+
+  virtual string getIdentifier() const
+  {
+    stringstream ss;
+    ss << "WHDF_" << sigma_ << "_" << eps_ << "_" << rcut_;
+    return ss.str();    
+  }  
 
  protected:
   virtual double vr(double r) const

@@ -68,7 +68,8 @@ int main(int argc, char** argv)
   double alpha_start = 0.01;
 
   bool showGraphics = true;
-
+  double Nfixed = -1;
+  
   double Asurf = 0;
   double rho_surf = -1;
   
@@ -77,6 +78,8 @@ int main(int argc, char** argv)
   options.addOption("nCores", &nCores);
   options.addOption("Interior_Density", &density_inside_1);
   options.addOption("Exterior_Density", &density_outside_1);
+
+  options.addOption("Nfixed", &Nfixed);  
 
   options.addOption("PointsPerHardSphere", &PointsPerHardSphere);
 
@@ -144,7 +147,7 @@ int main(int argc, char** argv)
   
   FMT_Species species1(theDensity1,hsd1,pointsFile);
 
-  Interaction i1(species1,species1,potential1,kT,log);
+  Interaction i1(species1,species1,potential1,kT,log,pointsFile);
 
   /////////////////////////////////////
   // Create the hard-sphere object
@@ -175,7 +178,7 @@ int main(int argc, char** argv)
   log << "mu1 = " << mu1 << endl;
 
   theDensity1.initialize(density_inside_1, density_outside_1, 5);
-
+  if(Nfixed > 0) theDensity1.scaleTo(Nfixed);
 
   ///////////////////////////////////////////////
   // Fix the mass of the surfactant species.

@@ -128,8 +128,8 @@ class Interaction
 
       stringstream ss2(buf);
       int nx, ny, nz;
-      double Rc;
-      ss2 >> nx >> ny >> nz >> Rc;
+      double temp;
+      ss2 >> nx >> ny >> nz >> temp;
 
       if(nx != Nx)
 	{readWeights = false; cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
@@ -137,8 +137,17 @@ class Interaction
 	{readWeights = false; cout << "\n" <<  "Mismatch in Ny: expected " << Ny << " but read " << ny <<  endl;}
       if(nz != Nz)
 	{readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
-      if(fabs(v.getRcut()-Rc) > 1e-8*(v.getRcut()+Rc))
-	{readWeights = false; cout << "\n" <<  "Mismatch in cutoff: generating weights: expected " << v.getRcut() << " but read " << Rc << endl;}
+      if(fabs(temp - kT) > 1e-8*fabs(temp+kT))
+	{readWeights = false; cout << "\n" <<  "Mismatch in kT: expected " << kT << " but read " << temp <<  endl;}      
+
+      getline(in,buf);
+      stringstream ss4(buf);      
+      string identifier;
+      ss4 >> identifier;
+      string pot = v.getIdentifier();
+      if(identifier.compare(pot) != 0)
+	{readWeights = false; cout << "\n" <<  "Mismatch in potential: expected " << pot << " but read " << identifier <<  endl;}
+      
 
       getline(in,buf);
       stringstream ss3(buf);
@@ -369,11 +378,9 @@ class Interaction
     of.flags (std::ios::scientific);
     of.precision (std::numeric_limits<double>::digits10 + 1);
 
-    of << Nx << " " << Ny << " " << Nz << " " << Rc << endl;
+    of << Nx << " " << Ny << " " << Nz << " " << kT << endl;
+    of << v.getIdentifier() << endl;
     of << pointsFile << endl;
-
-    cout << "Writing: " << Ny << " " << Nz << " " << Rc << endl;
-    cout << "Writing: " << pointsFile << endl;
 
     w_att_.Real().save(of);
   }

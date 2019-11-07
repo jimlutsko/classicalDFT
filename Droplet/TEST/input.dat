@@ -25,7 +25,9 @@ Lx = 20
 Ly = 20
 Lz = 20
 
-PointsPerHardSphere = 8
+PointsPerHardSphere = 20
+
+InputFile = snapshot_s0.dat
 
 
 
