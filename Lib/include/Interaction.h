@@ -129,7 +129,8 @@ class Interaction
       stringstream ss2(buf);
       int nx, ny, nz;
       double temp;
-      ss2 >> nx >> ny >> nz >> temp;
+      double dx;
+      ss2 >> nx >> ny >> nz >> temp >> dx;
 
       if(nx != Nx)
 	{readWeights = false; cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
@@ -138,7 +139,9 @@ class Interaction
       if(nz != Nz)
 	{readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
       if(fabs(temp - kT) > 1e-8*fabs(temp+kT))
-	{readWeights = false; cout << "\n" <<  "Mismatch in kT: expected " << kT << " but read " << temp <<  endl;}      
+	{readWeights = false; cout << "\n" <<  "Mismatch in kT: expected " << kT << " but read " << temp <<  endl;}
+      if(fabs(density.getDX()-dx) > 1e-8*(density.getDX()+dx))
+	{readWeights = false; cout << "\n" <<  "Mismatch in Dx: generating weights: expected " << density.getDX() << " but read " << dx << endl;}      
 
       getline(in,buf);
       stringstream ss4(buf);      
@@ -378,7 +381,7 @@ class Interaction
     of.flags (std::ios::scientific);
     of.precision (std::numeric_limits<double>::digits10 + 1);
 
-    of << Nx << " " << Ny << " " << Nz << " " << kT << endl;
+    of << Nx << " " << Ny << " " << Nz << " " << kT << " " << density.getDX() << endl;
     of << v.getIdentifier() << endl;
     of << pointsFile << endl;
 
@@ -491,7 +494,7 @@ class Interaction
 
   double Fhelmholtz(const vector<double> &x) const
   {
-    return a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];
+    return 0.5*a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];
   }  
 
   double getVDWParameter() const { return a_vdw_;}

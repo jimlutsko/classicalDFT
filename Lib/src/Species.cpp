@@ -42,8 +42,8 @@ FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile): Spec
 
     stringstream ss2(buf);
     int nx, ny, nz;
-    double d;
-    ss2 >> nx >> ny >> nz >> d;
+    double d, dx;
+    ss2 >> nx >> ny >> nz >> d >> dx;
 
     if(nx != Nx)
       {readWeights = false; cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
@@ -53,6 +53,8 @@ FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile): Spec
       {readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
     if(fabs(hsd_-d) > 1e-8*(hsd_+d))
       {readWeights = false; cout << "\n" <<  "Mismatch in hsd: generating weights: expected " << hsd_ << " but read " << d << endl;}
+    if(fabs(density_.getDX()-dx) > 1e-8*(density_.getDX()+dx))
+      {readWeights = false; cout << "\n" <<  "Mismatch in Dx: generating weights: expected " << density_.getDX() << " but read " << dx << endl;}
 
     getline(in,buf);
     stringstream ss3(buf);
@@ -393,11 +395,8 @@ void FMT_Species::generateWeights(string &pointsFile)
   of.flags (std::ios::scientific);
   of.precision (std::numeric_limits<double>::digits10 + 1);
 
-  of << Nx << " " << Ny << " " << Nz << " " << hsd_ << endl;
+  of << Nx << " " << Ny << " " << Nz << " " << hsd_ << " " << density_.getDX() << endl;
   of << pointsFile << endl;
-
-  cout << "Writing: " << Ny << " " << Nz << " " << hsd_ << endl;
-  cout << "Writing: " << pointsFile << endl;
   
   for(auto& s: d_)
     s.dump(of);  

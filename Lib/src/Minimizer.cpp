@@ -280,8 +280,7 @@ double fireMinimizer2::step()
   // dF does not include the minus so we have to put it in by hand everywhere from here down:
   Summation P;  
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    for(long i=0;i<v_[Jspecies].size();i++)
-      P += -v_[Jspecies].get(i) * dft_.getDF(Jspecies).get(i);
+    P += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
 
   if(F_ - fold > 1e-10) P = -1;
   fold = F_;
@@ -386,9 +385,19 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   
   //Update x
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    for(long i = 0; i<x_[Jspecies].size(); i++)
-      x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(1.0,fabs(x_[Jspecies].get(i))));
-    
+    {
+      long Ntot = x_[Jspecies].size();
+	int chunk = Ntot/20;
+	long i;
+
+#pragma omp parallel for					\
+            shared( chunk, Jspecies, v_)				\
+            private(i)						\
+            schedule(static,chunk)				
+	for(i = 0; i<Ntot; i++)
+	  x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(1.0,fabs(x_[Jspecies].get(i))));
+    }
+  
   // recalculate forces with back-tracking, if necessary
   bool bSuccess = false;
   try{  
