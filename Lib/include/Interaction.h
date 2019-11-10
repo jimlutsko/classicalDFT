@@ -170,6 +170,23 @@ class Interaction
   }    
 
 
+  void reset(Potential1 &v, double kT, Log &log, string &pointsFile)
+  {
+    const Density &density = s1_.getDensity();
+    long Nx = density.Nx();
+    long Ny = density.Ny();
+    long Nz = density.Nz();
+    
+    w_att_.initialize(Nx,Ny,Nz);      
+    a_vdw_ = 0.0;
+
+    stringstream ss1;
+    ss1 << "weights_" << s1_.getSequenceNumber() << "_" << s2_.getSequenceNumber() << ".dat";
+    
+    generateWeights(pointsFile,v, ss1, log, kT);
+    w_att_.do_real_2_fourier();           
+  }
+
 
   void generateWeights(string &pointsFile, Potential1 &v, stringstream &ss, Log& log, double kT)
   {    

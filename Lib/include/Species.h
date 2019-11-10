@@ -113,6 +113,8 @@ public:
   
   ~FMT_Species(){}
 
+  void reset(string& pointsFile);
+  
   /**
    *   @brief  Accessor for hard sphere diameter
    *  

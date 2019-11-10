@@ -74,6 +74,21 @@ FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile): Spec
     d.transformWeights();
 }
 
+void FMT_Species::reset(string& pointsFile)
+{
+  long Nx = density_.Nx();
+  long Ny = density_.Ny();
+  long Nz = density_.Nz();
+
+  for(FMT_Weighted_Density &d: d_)
+    d.initialize(Nx, Ny, Nz);
+
+  generateWeights(pointsFile);
+
+  for(FMT_Weighted_Density &d: d_)
+    d.transformWeights();  
+}
+
 // The idea here is as follows. Consider the s weighted density which is just an integral over a sphere of radius hsd/2.
 // In principle, we will need the volume integral
 //    s(r_i) = int w(|r_i - r'|) rho(r') delta(r'-(hsd/2)) dr'

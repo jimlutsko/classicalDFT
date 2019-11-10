@@ -71,6 +71,7 @@ class Lattice
       L_[2] = ref.L_[2];
     }
 
+
   /**
   *   @brief  Translate a (Cartesian) x-index into a position in the cubic box.
   *  
