@@ -1,0 +1,263 @@
+\documentclass[aps,preprint]{revtex4-1}%
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{graphicx}%
+\setcounter{MaxMatrixCols}{30}
+%TCIDATA{OutputFilter=latex2.dll}
+%TCIDATA{Version=5.50.0.2960}
+%TCIDATA{CSTFile=revtex4-1.cst}
+%TCIDATA{Created=Friday, November 01, 2019 09:56:59}
+%TCIDATA{LastRevised=Friday, November 01, 2019 12:34:31}
+%TCIDATA{<META NAME="GraphicsSave" CONTENT="32">}
+%TCIDATA{<META NAME="SaveForMode" CONTENT="1">}
+%TCIDATA{BibliographyScheme=Manual}
+%TCIDATA{<META NAME="DocumentShell" CONTENT="Articles\SW\REVTeX 4-1">}
+%BeginMSIPreambleData
+\providecommand{\U}[1]{\protect\rule{.1in}{.1in}}
+%EndMSIPreambleData
+\newtheorem{theorem}{Theorem}
+\newtheorem{acknowledgement}[theorem]{Acknowledgement}
+\newtheorem{algorithm}[theorem]{Algorithm}
+\newtheorem{axiom}[theorem]{Axiom}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{conclusion}[theorem]{Conclusion}
+\newtheorem{condition}[theorem]{Condition}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{criterion}[theorem]{Criterion}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{exercise}[theorem]{Exercise}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{notation}[theorem]{Notation}
+\newtheorem{problem}[theorem]{Problem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{solution}[theorem]{Solution}
+\newtheorem{summary}[theorem]{Summary}
+\newenvironment{proof}[1][Proof]{\noindent\textbf{#1.} }{\ \rule{0.5em}{0.5em}}
+\begin{document}
+\preprint{HEP/123-qed}
+\title[Short title for running header]{REV\TeX 4-1}
+\author{First Author}
+\affiliation{My Institution}
+\author{Second Author}
+\affiliation{My Institution}
+\author{Third Author}
+\affiliation{Other Institution}
+\keywords{one two three}
+\pacs{PACS number}
+
+\begin{abstract}
+Shell document for REV\TeX\ 4-1.
+
+\end{abstract}
+\volumeyear{year}
+\volumenumber{number}
+\issuenumber{number}
+\eid{identifier}
+\date[Date text]{date}
+\received[Received text]{date}
+
+\revised[Revised text]{date}
+
+\accepted[Accepted text]{date}
+
+\published[Published text]{date}
+
+\startpage{101}
+\endpage{102}
+\maketitle
+
+
+The standard DFT model, or van der Waals model, for a given pair potential
+$v\left(  r\right)  $ is
+\begin{equation}
+F\left[  \rho\right]  =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[
+\rho\right]  \right)  +\frac{1}{2}\int\rho\left(  \mathbf{r}_{1}\right)
+\rho\left(  \mathbf{r}_{2}\right)  w_{\text{att}}\left(  r_{12}\right)
+d\mathbf{r}_{1}d\mathbf{r}_{2}%
+\end{equation}
+where the potential is separted into a short-ranged repulsive part,
+$v_{0}\left(  r\right)  $ , and a long-ranged attrative part, $w_{\text{att}%
+}\left(  r_{12}\right)  $ where the former is used to calculate an effective
+hard-sphere radius $d$ . There are two problems with this model. First, we
+know the exact form of the functional for small densities, $\rho\left(
+\mathbf{r}_{1}\right)  \rightarrow0$ , and this does not give the correct
+limit. Second, it does not give a particularly good equation of state in the
+uniform limit. It is therefore interesting to try to correct these problems. I
+assume that an accurate equation of state is known for the uniform
+system:\ i.e., that we know lim$_{\rho\left(  \mathbf{r}\right)
+\rightarrow\overline{\rho}}F\left[  \rho\right]  \equiv F\left(
+\overline{\rho}\right)  $ .
+
+Assuming standrd FMT treatment of the hard-sphere part, this gives the
+uniform-system eos%
+\begin{equation}
+\frac{1}{V}\beta F_{\text{ex}}\left(  \rho\right)  =\rho\frac{\eta\left(
+4-3\eta\right)  }{\left(  1-\eta\right)  ^{2}}+\frac{1}{2}a\left[  v\right]
+\rho^{2}%
+\end{equation}
+and the low-density functional%
+\begin{equation}
+\frac{1}{V}\beta F_{\text{ex}}\left[  \rho\right]  =\frac{1}{2V}\int%
+\rho\left(  \mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)  \left\{
+\Theta\left(  d\left[  v\right]  -r_{12}\right)  +\beta w_{\text{att}}\left(
+r_{12}\right)  \right\}  d\mathbf{r}_{1}d\mathbf{r}_{2}+O\left[  \rho
+^{3}\right]
+\end{equation}
+Now, we know that the exact limit is
+\begin{equation}
+\frac{1}{V}\beta F_{\text{ex}}\left[  \rho\right]  =\frac{1}{2V}\int%
+\rho\left(  \mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)  f\left(
+r_{12};\left[  v\right]  \right)  d\mathbf{r}_{1}d\mathbf{r}_{2}+O\left[
+\rho^{3}\right]
+\end{equation}
+where%
+\begin{equation}
+f\left(  r;\left[  v\right]  \right)  =1-e^{-\beta v\left(  r\right)  }.
+\end{equation}
+This could be recovered by replacing
+\begin{equation}
+\beta w_{\text{att}}\left(  r_{12}\right)  \rightarrow\beta w_{\text{eff}%
+}\left(  r_{12}\right)  \equiv f\left(  r_{12};\left[  v\right]  \right)
+-\Theta\left(  d\left[  v\right]  -r_{12}\right)
+\end{equation}
+giving what I will call Model A. It clearly has the virtue of achieving the
+zero-density limit in the most natural way. However, this forces
+$w_{\text{eff}}$ to be zero inside the core (i.e. for $r$ near zero) which is
+quite different from  $\beta w_{\text{att}}$ and could lead to problems.
+Alternatively, we could introduce this correction more heuristically as%
+\begin{align}
+F_{\text{ex}}\left[  \rho\right]    & =F_{\text{ex}}^{\text{HS}}\left(
+d\left[  v\right]  ;\left[  \rho\right]  \right)  +\frac{1}{2}\int\rho\left(
+\mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)  w_{\text{att}%
+}\left(  r_{12}\right)  d\mathbf{r}_{1}d\mathbf{r}_{2}\\
+& +A\left(  \frac{1}{2V}\int\rho\left(  \mathbf{r}_{1}\right)  \rho\left(
+\mathbf{r}_{2}\right)  \beta w_{\text{att}}\left(  r_{12}\right)
+d\mathbf{r}_{1}d\mathbf{r}_{2}\right)  \nonumber\\
+& \times\left\{  \frac{1}{2V}\int\rho\left(  \mathbf{r}_{1}\right)
+\rho\left(  \mathbf{r}_{2}\right)  \left\{  f\left(  r_{12};\left[  v\right]
+\right)  -\Theta\left(  d\left[  v\right]  -r_{12}\right)  -\beta
+w_{\text{att}}\left(  r_{12}\right)  \right\}  d\mathbf{r}_{1}d\mathbf{r}%
+_{2}\right\}  \nonumber
+\end{align}
+The idea is that we do not touch the hard sphere part, we allow the vdW part
+to at least have the possiblity of recovering the "usual" form at high
+densities (simply by haveing $A$ go to zero) and  the zero-density limit just
+says that $A(0)=1$ . This is Model B. Finally, we could forget the explicit
+form of the zero-density dcf altogether and simply write
+\begin{equation}
+F_{\text{ex}}\left[  \rho\right]  =F_{\text{ex}}^{\text{HS}}\left(  d\left[
+v\right]  ;\left[  \rho\right]  \right)  +A\left(  \frac{1}{2V}\int\rho\left(
+\mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)  \beta w_{\text{att}%
+}\left(  r_{12}\right)  d\mathbf{r}_{1}d\mathbf{r}_{2}\right)
+\end{equation}
+which I call Model C. The advantage here is that this is simpler than Model B,
+can still go over to the vdW model and the mean field term is completely
+independent of the hard sphere stuff. 
+
+The uniform limit of these three models are
+\begin{align}
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{A}\right)  }\left(  \rho\right)
+& =\rho\frac{\eta^{2}\left(  5-4\eta\right)  }{\left(  1-\eta\right)  ^{2}%
+}+\rho^{2}B_{2}\left[  v\right]  \\
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{B}\right)  }\left(  \rho\right)
+& =\rho\frac{\eta\left(  4-3\eta\right)  }{\left(  1-\eta\right)  ^{2}}%
++\frac{1}{2}\rho^{2}a^{\left(  \text{vdW}\right)  }+A\left(  \frac{1}{2}%
+\rho^{2}a^{\left(  \text{vdW}\right)  }\right)  \left\{  -4\eta\rho-\frac
+{1}{2}\rho^{2}a^{\left(  \text{vdW}\right)  }+\rho^{2}B_{2}\right\}
+\nonumber\\
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{C}\right)  }\left(  \rho\right)
+& =\rho\frac{\eta\left(  4-3\eta\right)  }{\left(  1-\eta\right)  ^{2}%
+}+A\left(  \frac{1}{2}\rho^{2}a^{\left(  \text{vdW}\right)  }\right)
+\nonumber
+\end{align}
+with%
+\begin{align}
+a^{\left(  \text{vdW}\right)  }  & =\int\beta w_{\text{att}}\left(  r\right)
+d\mathbf{r}\\
+B_{2}\left[  v\right]    & =\frac{1}{2}\int f\left(  r_{12};\left[  v\right]
+\right)  d\mathbf{r}\nonumber
+\end{align}
+To summarize%
+\begin{align}
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{vdW}\right)  }\left[
+\rho\right]    & =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[
+\rho\right]  \right)  +\frac{1}{2}\int\rho\left(  \mathbf{r}_{1}\right)
+\rho\left(  \mathbf{r}_{2}\right)  w_{\text{att}}\left(  r_{12}\right)
+d\mathbf{r}_{1}d\mathbf{r}_{2}\\
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{A}\right)  }\left[  \rho\right]
+& =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
++\frac{1}{2}\int\rho\left(  \mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}%
+_{2}\right)  \left\{  f\left(  r_{12};\left[  v\right]  \right)
+-\Theta\left(  d\left[  v\right]  -r_{12}\right)  \right\}  d\mathbf{r}%
+_{1}d\mathbf{r}_{2}\nonumber\\
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{B}\right)  }\left[  \rho\right]
+& =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
++\frac{1}{2}\int\rho\left(  \mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}%
+_{2}\right)  w_{\text{att}}\left(  r_{12}\right)  d\mathbf{r}_{1}%
+d\mathbf{r}_{2}\nonumber\\
+& +A\left[  \rho\right]  \left\{  \frac{1}{2V}\int\rho\left(  \mathbf{r}%
+_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)  \left\{  f\left(
+r_{12};\left[  v\right]  \right)  -\Theta\left(  d\left[  v\right]
+-r_{12}\right)  -\beta w_{\text{att}}\left(  r_{12}\right)  \right\}
+d\mathbf{r}_{1}d\mathbf{r}_{2}\right\}  \nonumber\\
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{C}\right)  }\left[  \rho\right]
+& =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
++A\left[  \rho\right]  \nonumber
+\end{align}
+with%
+\begin{equation}
+A\left[  \rho\right]  =A\left(  \frac{1}{2V}\int\rho\left(  \mathbf{r}%
+_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)  \beta w_{\text{att}}\left(
+r_{12}\right)  d\mathbf{r}_{1}d\mathbf{r}_{2}\right)
+\end{equation}
+One last possibility suggests itself: we could get rid of the attractive
+potential altogether and simply write%
+\begin{equation}
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{D}\right)  }\left[  \rho\right]
+=F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
++B\left[  \rho\right]
+\end{equation}
+with%
+\begin{equation}
+B^{\left(  \text{D1}\right)  }\left[  \rho\right]  =B\left(  \frac{1}{2V}%
+\int\rho\left(  \mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)
+\left\{  f\left(  r_{12};\left[  v\right]  \right)  -\Theta\left(  d\left[
+v\right]  -r_{12}\right)  \right\}  d\mathbf{r}_{1}d\mathbf{r}_{2}\right)
+\end{equation}
+to get the zero-density limit correctly or, more simply,
+\begin{equation}
+B^{\left(  \text{D2}\right)  }\left[  \rho\right]  =B\left(  \frac{1}{2V}%
+\int\rho\left(  \mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)
+f\left(  r_{12};\left[  v\right]  \right)  d\mathbf{r}_{1}d\mathbf{r}%
+_{2}\right)
+\end{equation}
+with uniform limits%
+\begin{equation}
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{D1}\right)  }\left(
+\rho\right)  =\rho\frac{\eta\left(  4-3\eta\right)  }{\left(  1-\eta\right)
+^{2}}+B\left(  B_{2}\rho^{2}-4\eta\rho\right)
+\end{equation}
+and%
+\begin{equation}
+\frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{D2}\right)  }\left(
+\rho\right)  =\rho\frac{\eta\left(  4-3\eta\right)  }{\left(  1-\eta\right)
+^{2}}+B\left(  B_{2}\rho^{2}\right)
+\end{equation}
+respectively.
+
+So, given all these possibilities, what is the best?\ First, despite the
+different lengths of the expressions, all of these involve pretty much the
+same computational (and coding) effort: just the typical two-body terms. Model
+B is a little worse since we would have to compute, effectively, two
+potentials. Otherwise, it seems to me that model B, while somewhat
+complicated, is the most conservative since it gives the correct low-density
+limit while not changing too much the high-density behaviour from the standard
+vDW model. On the other hand, model D1 seems conceptually the nicest - it
+gives the correct low-density limit while introducing the fewest ad hoc
+elements. Finally, of all of these proposals, model C is the minimal change
+from the vDW model.
+\end{document}

@@ -14,7 +14,6 @@ class DFT_Vec
 {
  public:
  DFT_Vec(unsigned N) : data_(N){}
-  // DFT_Vec(unsigned N, double val) : data_(N,val){}
   DFT_Vec(const DFT_Vec& c) { data_ = c.data_;}
   DFT_Vec() {}
   
