@@ -19,7 +19,7 @@ using namespace std;
 
 int Species::SequenceNumber_ = 0;
 
-FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile): Species(density), hsd_(hsd), d_(11)
+FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile, double mu, int seq): Species(density,mu,seq), hsd_(hsd), d_(11)
 {
   long Nx = density_.Nx();
   long Ny = density_.Ny();

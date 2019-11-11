@@ -9,7 +9,7 @@
 class Species
 {
  public:
- Species(Density &density, double mu = 0) : density_(density), dF_(density.Ntot()), mu_(mu), fixedMass_(-1) { seq_num_ = SequenceNumber_++;}
+  Species(Density &density, double mu = 0, int seq = -1) : density_(density), dF_(density.Ntot()), mu_(mu), fixedMass_(-1) { if(seq >=0) seq_num_ = seq; else seq_num_ = SequenceNumber_++;}
   ~Species(){}
 
   int getSequenceNumber() const { return seq_num_;}
@@ -107,7 +107,7 @@ public:
    *   @param  pointsFile contains the points for spherical integration
    *   @return nothing 
    */    
-  FMT_Species(Density& density, double hsd, string &pointsFile);
+  FMT_Species(Density& density, double hsd, string &pointsFile, double mu = 0, int seq = -1);
 
   FMT_Species(const FMT_Species &) = delete;
   

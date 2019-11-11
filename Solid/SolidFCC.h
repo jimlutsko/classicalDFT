@@ -36,6 +36,11 @@ class SolidFCC : public Density
 #ifdef USE_GRACE
       grace_ = new Grace();
 #endif
+#ifdef USE_MGL
+    // This is an object that writes a png snapshot whenever doDisplay gets called.
+    display_ = new Display(Nx_,Ny_);
+#endif
+      
    }
 
    ~SolidFCC()
@@ -58,8 +63,10 @@ class SolidFCC : public Density
    *   @param  number of atoms in the FCC unit cell (taking vacancies into account)
    *   @return  
    */  
-  virtual void initialize2(double alpha, double a_latt, int ncells, double prefac)
+  virtual void initialize(double alpha, int ncells, double prefac)
   {
+    double a_latt = L_[0]/ncells;
+    
     double atoms[4][3];
 
     atoms[0][0] = 0.0;
@@ -104,11 +111,17 @@ class SolidFCC : public Density
 	    set_Density_Elem(i,j,k,dsum);
 	  }
     
-#ifdef USE_MGL
-    // This is an object that writes a png snapshot whenever doDisplay gets called.
-    display_ = new Display(Nx_,Ny_);
-#endif
   }
+
+  virtual void initializeUniform(double density)
+  {
+    for(int i=0;i<Nx_;i++)
+      for(int j=0;j<Ny_;j++)
+	for(int k=0;k<Nz_; k++)
+	  {
+	    set_Density_Elem(i,j,k,density);
+	  }
+  }  
 
   // This gets called after every update and for each species: seq is the species number. 
   

@@ -75,7 +75,7 @@ void Minimizer::run(long maxSteps)
       }
     if(maxSteps > 0 && step_counter_ == maxSteps)
       {
-	log_ << "maxSteps reached ... normal exit" << endl;
+	log_ << "maxSteps = " << maxSteps << " reached ... normal exit" << endl;
 	break;
       }
   } while(1);

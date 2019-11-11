@@ -5,15 +5,13 @@
 #include <complex>
 #include <stdexcept>
 #include <vector>
-#include <time.h>
+//#include <time.h>
 
 using namespace std;
 
 #ifdef USE_OMP
 #include <omp.h>
 #endif
-
-#include <gsl/gsl_sf_lambert.h>
 
 #include "options.h"
 #include "TimeStamp.h"
@@ -33,10 +31,6 @@ double hsd1 = -1;
   
 double kT = 1;
 
-double eps1   = 1;
-double sigma1 = 1;
-double rcut1  = 3;
-
 string pointsFile("..//SS31-Mar-2016//ss109.05998");
 string outfile("dump.dat");
 string infile;
@@ -50,18 +44,20 @@ bool showGraphics = true;
 
 int maxSteps = -1;
 
-
 double prefac = 1;
 double Nvac = 0;
-  double dx = 0.1;
+double dx = 0.1;
 double alpha = 50;
 double alphaFac = 1;
 
-bool doCalc(double Mu, int Npoints, Potential1 &potential, Log &log, double &F);
+bool doCalc(double Mu, int Npoints, Potential1 &potential, Log &log, double &F, double &Cvac);
+bool doUniform(double Mu, int Npoints, Potential1 &potential1, Log& log, double &Fret, double &Dret);
 
 int main(int argc, char** argv)
 {
-
+  double eps1   = 1;
+  double sigma1 = 1;
+  double rcut1  = 3;
 
   int Npoints = 1;  
   double Mu = -1.0;
@@ -128,61 +124,118 @@ int main(int argc, char** argv)
   LJ potential1(sigma1, eps1, rcut1);
 
   if(hsd1 < 0) hsd1 = potential1.getHSD(kT);
-
-  double F;
-
-
+  
   ofstream of("scan.dat");
-
+  of.close();
+    
   for(Mu = -0.25; Mu > -3; Mu -= 0.25)
     {
+      double F;
+      double Cvac;
+      double D = 1.0;
+      bool ret = doUniform(Mu, Npoints, potential1, log, F,D);
+
+      ofstream of("scan.dat", ios::app);      
+      of << "#Mu = " << Mu << " Funiform/(kTV) = " << F << " Duniform = " << D << endl;
+
+      D = 1e-6;
+      ret = doUniform(Mu, Npoints, potential1, log, F,D);
+
+      of << "#Mu = " << Mu << " Funiform/(kTV) = " << F << " Duniform = " << D << endl;
+      of << "#"
+	 << setw(15) <<"Npoints"
+	 << setw(15) <<"LattPar."
+	 << setw(15) <<"FF/(kT V)"
+	 << setw(15) <<"Cvacancy"
+	 << endl;  
+      of.close();      
+
+      bool bstarted = false;
 
       for(Npoints = 61; Npoints < 140; Npoints++)
 	{
-	  bool ret = doCalc(Mu, Npoints, potential1, log, F);
-	  if(ret) of << Mu << " " << Npoints << "\t" << F << "\t" << ret << "\t" << endl;
-	  else break;
+	  bool ret = doCalc(Mu, Npoints, potential1, log, F, Cvac);
+	  if(ret)
+	    {
+	      bstarted = true; // found beginning of good range
+
+	      ofstream of("scan.dat", ios::app);      
+	      of << setw(15) << Npoints
+		 << setw(15) << Npoints*dx
+		 << setw(15) << F
+		 << setw(15) << Cvac
+		 << endl;
+	      of.close();
+	      
+	    }
+	  else if(bstarted) break; // exhausted the good range
 	}
+      ofstream of1("scan.dat", ios::app);
+      of1 << "#" << endl;
+      of1.close();      
     }
-  of.close();
+
   log << "Finished" << endl;
   
   return 1;
 
 }
 
-bool doCalc(double Mu, int Npoints, Potential1 &potential1, Log& log, double &Fret)
+bool doUniform(double Mu, int Npoints, Potential1 &potential1, Log& log, double &Fret, double &Dret)
 {
   int ncopy = 1;
-  
-  double L[3];
-  
-  L[0] = L[1] = L[2] = Npoints*dx;
-  double alatt = L[0]/ncopy;
-  //  Density = 4*(1-Nvac)/(alatt*alatt*alatt);
 
-  
   /////////////////////////////////////
-  // Create density objects
+  // Create objects
 
-  SolidFCC theDensity1(dx, L, hsd1);
-
-  theDensity1.initialize2(/*alpha*/ 100, alatt, ncopy, prefac);
-  
-  /////////////////////////////////////
-  // Create the species objects
-  
-  FMT_Species species1(theDensity1,hsd1,pointsFile);
-
+  double L[] = {ncopy*Npoints*dx, ncopy*Npoints*dx, ncopy*Npoints*dx};
+  SolidFCC theDensity1(dx, L, hsd1);  
+  //  theDensity1.initialize2(/*alpha*/ 100, alatt, ncopy, prefac);
+  FMT_Species species1(theDensity1,hsd1,pointsFile,Mu,Npoints);
   Interaction i1(species1,species1,potential1,kT,log, pointsFile);
-
-  
-  /////////////////////////////////////
-  // Create the hard-sphere object
   RSLT fmt;
+
+  DFT dft(&species1);
+
+  dft.addHardCoreContribution(&fmt);  
+  dft.addInteraction(&i1);
+  theDensity1.initializeUniform(Dret);
   
+  log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+  
+  fireMinimizer2 minimizer(dft,log);
+  minimizer.setForceTerminationCriterion(forceLimit);
+  minimizer.setTimeStep(dt);
+  minimizer.setTimeStepMax(dtMax);
+  minimizer.setAlphaStart(alpha_start);
+  minimizer.setAlphaFac(alphaFac);
+  minimizer.run(maxSteps); 
+
+  double Natoms = theDensity1.getNumberAtoms();
+  double Omega = minimizer.getF();
+  //  double dOmega = Omega-L[0]*L[1]*L[2]*dft.Omega(densities);
+
+  log <<  myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
+  log << "Final Uniform Natoms               : " << Natoms << endl;
+  log << "Final Omega                : " << Omega << endl;
+
+  Dret = Natoms/theDensity1.getVolume();
+  Fret = Omega/theDensity1.getVolume();
+  return true;
+}
+
+bool doCalc(double Mu, int Npoints, Potential1 &potential1, Log& log, double &Fret, double &Cvac)
+{
+  int ncopy = 1;
+
   /////////////////////////////////////
-  // DFT object
+  // Create objects
+
+  double L[] = {ncopy*Npoints*dx, ncopy*Npoints*dx, ncopy*Npoints*dx};
+  SolidFCC theDensity1(dx, L, hsd1);  
+  FMT_Species species1(theDensity1,hsd1,pointsFile,Mu,Npoints);
+  Interaction i1(species1,species1,potential1,kT,log, pointsFile);
+  RSLT fmt;
 
   DFT dft(&species1);
 
@@ -191,22 +244,20 @@ bool doCalc(double Mu, int Npoints, Potential1 &potential1, Log& log, double &Fr
   
   /////////////////////////////////////////////////////
   // Report
-  log << "Lx = " << L[0] << endl;
-  log << "HSD 1 = " << hsd1 << endl;
+  log << "Lx  = " << L[0] << endl;
+  log << "HSD = " << hsd1 << endl;
 
-  if(! infile.empty())
-    theDensity1.readDensity(infile.c_str());
+  //  if(! infile.empty())
+  //    theDensity1.readDensity(infile.c_str());
 
-  
   ///////////////////////////////////////////////
   // Fix the chemical potential
 
-  species1.setChemPotential(Mu);
-  
-  
+  //  species1.setChemPotential(Mu);
+    
   /////////////////////////////////////////////////////
   // The thermodynamics
-
+  /*
   double N = theDensity1.getNumberAtoms();
   
   vector<double> densities;
@@ -219,7 +270,7 @@ bool doCalc(double Mu, int Npoints, Potential1 &potential1, Log& log, double &Fr
   log << "F liq = " << dft.Fhelmholtz(densities)*L[0]*L[1]*L[2] << endl;
   log << "Omega Liq (at Mu = " << Mu << ") = " << (dft.Fhelmholtz(densities)-Mu*densities[0])*L[0]*L[1]*L[2] << endl;
   log << "a_vdw = " << i1.getVDWParameter() << endl;
-
+  */
 
   log << " " << endl;
   log << "Determining gaussian approximation" << endl;
@@ -237,7 +288,7 @@ bool doCalc(double Mu, int Npoints, Potential1 &potential1, Log& log, double &Fr
       while(!bSuccess)
 	{
 	  try {
-	    theDensity1.initialize2(alf, alatt, ncopy, prefac);
+	    theDensity1.initialize(alf, ncopy, prefac);
 	    f = dft.calculateFreeEnergyAndDerivatives(false);
 	    bSuccess = true;
 	  } catch (...) {
@@ -257,7 +308,6 @@ bool doCalc(double Mu, int Npoints, Potential1 &potential1, Log& log, double &Fr
       alf_old = alf;
       prefac_old = prefac;
 
-
       firstIteration = false;
     }
   if(isDecending)
@@ -267,32 +317,32 @@ bool doCalc(double Mu, int Npoints, Potential1 &potential1, Log& log, double &Fr
     return false;
   }
 
-  theDensity1.initialize2(alf_old, alatt, ncopy, prefac_old);
+  theDensity1.initialize(alf_old, ncopy, prefac_old);
   
   //check(theDensity1, dft,i1);
 
-
   log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
   
-  //  fireMinimizer_Mu minimizer(dft,log);
   fireMinimizer2 minimizer(dft,log);
   minimizer.setForceTerminationCriterion(forceLimit);
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
   minimizer.setAlphaFac(alphaFac);
-  minimizer.run(maxSteps); // TODO
+  minimizer.run(maxSteps); 
 
 
   double Natoms = theDensity1.getNumberAtoms();
   double Omega = minimizer.getF();
-  double dOmega = Omega-L[0]*L[1]*L[2]*dft.Omega(densities);
+  //  double dOmega = Omega-L[0]*L[1]*L[2]*dft.Omega(densities);
 
   log <<  myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
-  log << "Final Omega: " << Omega << endl;
-  log << "Excess Omega = " << dOmega << endl;
+  log << "Final Natoms               : " << Natoms << endl;
+  log << "Final Vacancy Concentration: " << (4.0-Natoms)/theDensity1.getVolume() << endl;  
+  log << "Final Omega                : " << Omega << endl;
 
   Fret = Omega/theDensity1.getVolume();
+  Cvac = (4.0-Natoms)/theDensity1.getVolume();
   return true;
 }
 
