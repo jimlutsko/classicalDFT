@@ -29,7 +29,14 @@ FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile, doubl
     d.initialize(Nx, Ny, Nz);
 
   stringstream ss1;
-  ss1 << "weights_" << seq_num_ << ".dat";
+  //  ss1 << "weights_" << seq_num_ << ".dat";
+  ss1 << "weights_"
+      << Nx << "_"
+      << Ny << "_"
+      << Nz << "_"
+      << hsd_ << "_"
+      << density_.getDX() << "_"
+      << ".dat";
   
   bool readWeights = true;
   
@@ -404,7 +411,15 @@ void FMT_Species::generateWeights(string &pointsFile)
   
   /// Dump the weights
   stringstream ss;
-  ss << "weights_" << seq_num_ << ".dat";
+  //  ss << "weights_" << seq_num_ << ".dat";
+  ss << "weights_"
+      << Nx << "_"
+      << Ny << "_"
+      << Nz << "_"
+      << hsd_ << "_"
+      << density_.getDX() << "_"
+      << ".dat";
+  
   ofstream of(ss.str().c_str(), ios::binary);
 
   of.flags (std::ios::scientific);

@@ -17,6 +17,7 @@ using namespace std;
 #include "TimeStamp.h"
 
 #include "DFT.h"
+#include "VDW1.h"
 #include "SolidFCC.h"
 #include "Minimizer.h"
 #include "Log.h"
@@ -39,6 +40,7 @@ double forceLimit = 1e-4;
 double dt = 1e-3;
 double dtMax = 1;
 double alpha_start = 0.01;
+double alphaFac = 1;
 
 bool showGraphics = true;
 
@@ -46,11 +48,9 @@ int maxSteps = -1;
 
 double prefac = 1;
 double dx = 0.1;
-double alpha = 50;
-double alphaFac = 1;
 
-//bool doCalc(double Mu, int Npoints, Potential1 &potential, Log &log, double &F, double &Cvac);
-bool doCalc(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cvac);
+bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, double &Agau);
+bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cvac);
 bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Dret);
 
 int main(int argc, char** argv)
@@ -59,28 +59,28 @@ int main(int argc, char** argv)
   double sigma1 = 1;
   double rcut1  = 3;
 
-  int Npoints = 1;  
-  double Mu = -1.0;
+  int Npoints_min = 120;
+  int Npoints_max = 120;    
+  double Mu_min  =  0.25;
+  double Mu_max  = -0.25;
+  double Mu_step = 0.25;
   Options options;
 
-  options.addOption("prefac", &prefac);
-  options.addOption("Npoints", &Npoints);
-  options.addOption("alpha", &alpha);
+  //  options.addOption("prefac", &prefac);
+  options.addOption("Npoints_min", &Npoints_min);
+  options.addOption("Npoints_max", &Npoints_max);
   options.addOption("Dx", &dx);
   
   options.addOption("nCores", &nCores);
 
   options.addOption("kT", &kT);
-  options.addOption("Mu",   &Mu);
-
+  options.addOption("Mu_min",   &Mu_min);
+  options.addOption("Mu_max",   &Mu_max);
+  options.addOption("Mu_step",  &Mu_step);
   
   options.addOption("eps1",   &eps1);
   options.addOption("sigma1", &sigma1);
   options.addOption("rcut1",  &rcut1);
-
-  options.addOption("Lx", L);
-  options.addOption("Ly", L+1);
-  options.addOption("Lz", L+2);
 
   options.addOption("OutputFile", &outfile);
   options.addOption("IntegrationPointsFile", &pointsFile);
@@ -127,64 +127,87 @@ int main(int argc, char** argv)
   ofstream of("scan.dat");
   of.close();
 
-  int Npoints_min = 61;
-  
-  for(Mu = -0.25; Mu > -3; Mu -= 0.25)
+  for(double Mu = Mu_max; Mu > Mu_min; Mu -= Mu_step)
     {
       bool bstarted = false;
 
-      for(int Npoints = Npoints_min; Npoints < 140; Npoints++)
+      for(int Npoints = Npoints_min; Npoints < Npoints_max; Npoints++)
 	{
-	  double F;
-	  double Cvac;
-
 	  double L[] = {Npoints*dx, Npoints*dx, Npoints*dx};
-	  SolidFCC theDensity1(dx, L, hsd1);  
-	  FMT_Species species1(theDensity1,hsd1,pointsFile,Mu,Npoints);
-	  Interaction i1(species1,species1,potential1,kT,log, pointsFile);
-	  RSLT fmt;
+	  SolidFCC theDensity1(dx, L);  
 
-	  DFT dft(&species1);
-	  dft.addHardCoreContribution(&fmt);  
-	  dft.addInteraction(&i1);
+	  for(kT = 1.2; kT > 0.5; kT -= 0.1)
+	    {
+	      hsd1 = potential1.getHSD(kT);
 	  
-	  if(Npoints == Npoints_min)
-	    {
-	      double D = 1.0;
-	      bool ret = doUniform(theDensity1, dft, log, F,D);
+	      double F;
+	      double Cvac;
 
-	      ofstream of("scan.dat", ios::app);      
-	      of << "#Mu = " << Mu << " Funiform/(kTV) = " << F << " Duniform = " << D << endl;
+	      FMT_Species species1(theDensity1,hsd1,pointsFile,Mu,Npoints);
+	      Interaction i1(species1,species1,potential1,kT,log, pointsFile);
+	      RSLT fmt;
 
-	      D = 1e-6;
-	      ret = doUniform(theDensity1, dft, log, F,D);
+	      DFT dft(&species1);
+	      dft.addHardCoreContribution(&fmt);  
+	      dft.addInteraction(&i1);
+	  
+	      if(Npoints == Npoints_min && kT > 1.1)
+		{
+		  VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT));
+		  double xliq = vdw.findLiquidFromMu(Mu, 1.0);
 
-	      of << "#Mu = " << Mu << " Funiform/(kTV) = " << F << " Duniform = " << D << endl;
-	      of << "#"
-		 << setw(15) <<"Npoints"
-		 << setw(15) <<"LattPar."
-		 << setw(15) <<"F/(kT V)"
-		 << setw(15) <<"Cvacancy"
-		 << setw(15) <<"Err"
-		 << endl;  
-	      of.close();      
+		  ofstream of("scan.dat", ios::app);      		  
+		  of << "#Mu = " << Mu << " Funiform/(kTV) = " << -vdw.pressure(xliq) << " Duniform = " << xliq << endl;		  
+
+		  double D = 1.0;
+		  bool ret = doUniform(theDensity1, dft, log, F,D);
+		  
+		  of << "#Mu = " << Mu << " Funiform/(kTV) = " << F << " Duniform = " << D << endl;
+
+		  D = 1e-6;
+		  ret = doUniform(theDensity1, dft, log, F,D);
+
+		  of << "#Mu = " << Mu << " Funiform/(kTV) = " << F << " Duniform = " << D << endl;
+		  
+		  of << "#"
+		     << setw(15) <<"Npoints"
+		     << setw(15) <<"Fgau/(kTV)"
+		     << setw(15) <<"Agau/(kTV)"		
+		     << setw(15) <<"Density"
+		     << setw(15) <<"F/(kT V)"
+		     << setw(15) <<"Cvacancy"
+		     << setw(15) <<"Err"
+		     << endl;  
+		  of.close();      
+		}
+	      double Fgauss, Agauss;
+	      //	  if(findGaussian(theDensity1, dft, log, Fgauss, Agauss))
+
+	      bool bGaussianGood = true;
+
+	      if(kT > 1.1)
+		bGaussianGood = findGaussian(theDensity1, dft, log, Fgauss, Agauss);
+
+	  
+	      if(findMinimum(theDensity1, dft, log, F, Cvac))
+		{
+		  bstarted = true; // found beginning of good range
+		
+		  ofstream of("scan.dat", ios::app);      
+		  of << setw(15) << Npoints
+		     << setw(15) << kT
+		     << setw(15) << Fgauss		    
+		     << setw(15) << Agauss	
+		     << setw(15) << theDensity1.getNumberAtoms()/pow(Npoints*dx,3.0)
+		     << setw(15) << F
+		     << setw(15) << Cvac
+		     << setw(15) << dft.get_convergence_monitor()
+		     << endl;
+		  of.close();
+		
+		}
+	      //	    else if(bstarted) break; // exhausted the good range
 	    }
-	  bool ret = doCalc(theDensity1, dft, log, F, Cvac);
-	  if(ret)
-	    {
-	      bstarted = true; // found beginning of good range
-
-	      ofstream of("scan.dat", ios::app);      
-	      of << setw(15) << Npoints
-		 << setw(15) << Npoints*dx
-		 << setw(15) << F
-		 << setw(15) << Cvac
-		 << setw(15) << dft.get_convergence_monitor()
-		 << endl;
-	      of.close();
-	      
-	    }
-	  else if(bstarted) break; // exhausted the good range
 	}
       ofstream of1("scan.dat", ios::app);
       of1 << "#" << endl;
@@ -199,7 +222,6 @@ int main(int argc, char** argv)
 
 bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Dret) 
 {
-  int ncopy = 1;
 
   /////////////////////////////////////
   // Create objects
@@ -229,7 +251,25 @@ bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &
   return true;
 }
 
-bool doCalc(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cvac)
+double gaussianEval(double alf, SolidFCC& theDensity, DFT& dft, double &prefac, Log&log)
+{
+  double f; 
+  bool bSuccess = false;
+  while(!bSuccess)
+    {
+      try {
+	theDensity.initialize(alf, 1, prefac);
+	f = dft.calculateFreeEnergyAndDerivatives(false);
+	bSuccess = true;
+      } catch (...) {
+	prefac *= 0.9999;
+	log << "\t lowering prefac to " << prefac << endl;
+      }
+    }
+  return f;
+}
+
+bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, double &Agau)
 {
   /////////////////////////////////////////////////////
   // Report
@@ -239,10 +279,10 @@ bool doCalc(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cva
   log << " " << endl;
   log << "Determining gaussian approximation" << endl;
   log << " " << endl;
-  
+
   double f = 0;
   double f_old = 0;
-  double f_old_é = 0;  
+  double f_old_2 = 0;  
   double alf_old = -1;
   double alf_old_2 = -1;
   double prefac_old = 0;
@@ -250,18 +290,7 @@ bool doCalc(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cva
   bool firstIteration = true;
   for(double alf = 30; alf < 10000; alf += 10)
     {
-      bool bSuccess = false;
-      while(!bSuccess)
-	{
-	  try {
-	    theDensity1.initialize(alf, 1, prefac);
-	    f = dft.calculateFreeEnergyAndDerivatives(false);
-	    bSuccess = true;
-	  } catch (...) {
-	    prefac *= 0.9999;
-	    log << "\t lowering prefac to " << prefac << endl;
-	  }
-	}
+      f = gaussianEval(alf, theDensity1, dft, prefac,log);
       log << "alf = " << alf << " " << f << endl;
 
       if(!firstIteration)
@@ -270,44 +299,55 @@ bool doCalc(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cva
       if(isDecending)
 	if(f > f_old) break;
 
-      f_old = f;	        
+      f_old_2 = f_old;
+      f_old = f;
+      
+      alf_old_2 = alf_old;
       alf_old = alf;
+
       prefac_old = prefac;
 
       firstIteration = false;
     }
-  if(isDecending)  // Min is between alf_old and alf
+  if(isDecending & alf_old_2 > 0)  // Min is between alf_old_2 and alf
     {
-      /*
-      do {
-	double x = (alf_old+alf)/2;
+      double R = 0.61803399;
+      double C = 1.0-R;
+
+      double alf = alf_old + 10;
       
-	bool bSuccess = false;
-	double f1;
-	while(!bSuccess)
-	  {
-	    try {
-	      theDensity1.initialize(x, 1, prefac);
-	      f1 = dft.calculateFreeEnergyAndDerivatives(false);
-	      bSuccess = true;
-	  } catch (...) {
-	    prefac *= 0.9999;
-	    log << "\t lowering prefac to " << prefac << endl;
-	    }
-	  }
-	log << "alf = " << x << " " << f << endl;
-	if(f_old > f1) {alf_old = x; f_old = f1;}  
-	else { alf = x; f = f1;}
-      } while(fabs(alf_old-alf) > 1e-4);
-      */
-      log << "Found: alf = " << alf_old << " prefac = " << prefac_old << " f = " << f_old << endl;
-  else {
+      double x0 = alf_old_2;
+      double x3 = alf;
+      double x1 = alf_old;
+      double x2 = alf_old+C*(alf-alf_old);
+
+      double f1 = gaussianEval(x1, theDensity1, dft, prefac,log);
+      double f2 = gaussianEval(x2, theDensity1, dft, prefac,log);
+
+      while(fabs(x3-x0) > 1e-3)
+	{
+	  if(f2 < f1) { x0 = x1; x1 = x2; x2 = R*x1+C*x3;
+	    f1 = f2; f2 = gaussianEval(x2, theDensity1, dft, prefac,log);}
+	  else { x3 = x2; x2 = x1; x1 = R*x2+C*x0;
+	    f2 = f1; f1 = gaussianEval(x1, theDensity1, dft, prefac,log);}
+	}
+      if(f1 < f2) {Agau = x1; Fgau = f1;}
+      else { Agau = x2; Fgau = f2;}
+
+      theDensity1.initialize(Agau, 1, prefac_old);      
+      log << "Found: alf = " << Agau << " prefac = " << prefac_old << " f = " << Fgau << endl;
+
+      Fgau /= theDensity1.getVolume();
+    } else {
     log << "No minimum found with Gaussians" << endl;
     return false;
   }
 
-  theDensity1.initialize(alf_old, 1, prefac_old);
-  
+  return true;
+}
+
+bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cvac)
+{
   //check(theDensity1, dft,i1);
 
   log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
@@ -401,4 +441,104 @@ void check(Density &density, DFT &dft, Interaction &i1)
   cout << "Finished " << Nz << endl;
   exit(0);  
 
+}
+
+
+bool doCalc(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cvac)
+{
+  /////////////////////////////////////////////////////
+  // Report
+  log << "Lx  = " << L[0] << endl;
+  log << "HSD = " << hsd1 << endl;
+
+  log << " " << endl;
+  log << "Determining gaussian approximation" << endl;
+  log << " " << endl;
+
+  double f = 0;
+  double f_old = 0;
+  double f_old_2 = 0;  
+  double alf_old = -1;
+  double alf_old_2 = -1;
+  double prefac_old = 0;
+  bool isDecending = false;
+  bool firstIteration = true;
+  for(double alf = 30; alf < 10000; alf += 10)
+    {
+      f = gaussianEval(alf, theDensity1, dft, prefac,log);
+      log << "alf = " << alf << " " << f << endl;
+
+      if(!firstIteration)
+	if(f < f_old) isDecending = true;
+      
+      if(isDecending)
+	if(f > f_old) break;
+
+      f_old_2 = f_old;
+      f_old = f;
+      
+      alf_old_2 = alf_old;
+      alf_old = alf;
+
+      prefac_old = prefac;
+
+      firstIteration = false;
+    }
+  if(isDecending & alf_old_2 > 0)  // Min is between alf_old_2 and alf
+    {
+      double R = 0.61803399;
+      double C = 1.0-R;
+
+      double alf = alf_old + 10;
+      
+      double x0 = alf_old_2;
+      double x3 = alf;
+      double x1 = alf_old;
+      double x2 = alf_old+C*(alf-alf_old);
+
+      double f1 = gaussianEval(x1, theDensity1, dft, prefac,log);
+      double f2 = gaussianEval(x2, theDensity1, dft, prefac,log);
+
+      while(fabs(x3-x0) > 1e-3)
+	{
+	  if(f2 < f1) { x0 = x1; x1 = x2; x2 = R*x1+C*x3;
+	    f1 = f2; f2 = gaussianEval(x2, theDensity1, dft, prefac,log);}
+	  else { x3 = x2; x2 = x1; x1 = R*x2+C*x0;
+	    f2 = f1; f1 = gaussianEval(x1, theDensity1, dft, prefac,log);}
+	}
+      if(f1 < f2) {alf_old = x1; f_old = f1;}
+      else { alf_old = x2; f_old = f2;}
+
+      log << "Found: alf = " << alf_old << " prefac = " << prefac_old << " f = " << f_old << endl;
+    } else {
+    log << "No minimum found with Gaussians" << endl;
+    return false;
+  }
+
+  theDensity1.initialize(alf_old, 1, prefac_old);
+  
+  //check(theDensity1, dft,i1);
+
+  log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+  
+  fireMinimizer2 minimizer(dft,log);
+  minimizer.setForceTerminationCriterion(forceLimit);
+  minimizer.setTimeStep(dt);
+  minimizer.setTimeStepMax(dtMax);
+  minimizer.setAlphaStart(alpha_start);
+  minimizer.setAlphaFac(alphaFac);
+  minimizer.run(maxSteps); 
+
+  double Natoms = theDensity1.getNumberAtoms();
+  double Omega = minimizer.getF();
+  //  double dOmega = Omega-L[0]*L[1]*L[2]*dft.Omega(densities);
+
+  log <<  myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
+  log << "Final Natoms               : " << Natoms << endl;
+  log << "Final Vacancy Concentration: " << (4.0-Natoms)/theDensity1.getVolume() << endl;  
+  log << "Final Omega                : " << Omega << endl;
+
+  Fret = Omega/theDensity1.getVolume();
+  Cvac = (4.0-Natoms)/theDensity1.getVolume();
+  return true;
 }

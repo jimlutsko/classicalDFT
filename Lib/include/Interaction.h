@@ -115,7 +115,16 @@ class Interaction
     // First, try to read the weights from a file
     
     stringstream ss1;
-    ss1 << "weights_" << s1_.getSequenceNumber() << "_" << s2_.getSequenceNumber() << ".dat";
+    //    ss1 << "weights_" << s1_.getSequenceNumber() << "_" << s2_.getSequenceNumber() << ".dat";
+    ss1 << "weights_"
+	<< s1_.getSequenceNumber() << "_"
+	<< s2_.getSequenceNumber() << "_"
+	<< Nx << "_"
+	<< Ny << "_"
+	<< Nz << "_"
+	<< kT << "_"
+	<< v.getIdentifier() << "_"
+	<< ".dat";    
   
     bool readWeights = true;
     
@@ -181,7 +190,15 @@ class Interaction
     a_vdw_ = 0.0;
 
     stringstream ss1;
-    ss1 << "weights_" << s1_.getSequenceNumber() << "_" << s2_.getSequenceNumber() << ".dat";
+    //    ss1 << "weights_" << s1_.getSequenceNumber() << "_" << s2_.getSequenceNumber() << ".dat";
+    ss1 << "weights_"
+	<< s1_.getSequenceNumber() << "_"
+	<< s2_.getSequenceNumber() << "_"
+	<< Nx << "_"
+	<< Ny << "_"
+	<< Nz << "_"
+	<< kT << "_"      
+	<< ".dat";        
     
     generateWeights(pointsFile,v, ss1, log, kT);
     w_att_.do_real_2_fourier();           

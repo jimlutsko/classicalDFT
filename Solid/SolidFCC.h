@@ -27,11 +27,10 @@ class SolidFCC : public Density
    *  
    *   @param  dx is lattice spacing: assumed to be the same in all directions
    *   @param  L[] are the dimensions of the physical region (FCC cube side)
-   *   @param  hsd is the hard sphere effective diameter
    *   @return nothing 
    */  
- SolidFCC(double dx, double L[], double hsd)
-   : Density(dx,L),  hsd_(hsd)
+ SolidFCC(double dx, double L[])
+   : Density(dx,L)
    {
 #ifdef USE_GRACE
       grace_ = new Grace();
@@ -108,9 +107,11 @@ class SolidFCC : public Density
 		      dsum += prefac*pow(alpha/M_PI,1.5)*exp(-alpha*r2);
 		    }
 	    if(dsum < 1e-7) dsum = 1e-7;
-	    set_Density_Elem(i,j,k,dsum);
+	    set_Density_Elem(i,j,k,dsum);	    
 	  }
-    
+    //    string title("dummy");
+    //    string file("dummy.dat");
+    //    doDisplay(title,file,0);
   }
 
   virtual void initializeUniform(double density)
@@ -118,9 +119,7 @@ class SolidFCC : public Density
     for(int i=0;i<Nx_;i++)
       for(int j=0;j<Ny_;j++)
 	for(int k=0;k<Nz_; k++)
-	  {
-	    set_Density_Elem(i,j,k,density);
-	  }
+	  set_Density_Elem(i,j,k,density);
   }  
 
   // This gets called after every update and for each species: seq is the species number. 
@@ -192,7 +191,6 @@ class SolidFCC : public Density
 
  protected:
   int sequence_;
-  double hsd_;
 
 #ifdef USE_MGL
   Display *display_;

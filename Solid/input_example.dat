@@ -34,6 +34,6 @@ ForceTerminationCriterion = 0.0001
 #InputFile = ./snapshot_s0.dat
 
 
-Npoints = 61
-Dx = 0.0250
+Npoints = 128
+Dx = 0.0125
 alpha = 400
