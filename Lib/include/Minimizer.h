@@ -46,10 +46,8 @@ class Minimizer
 
   double getForceTerminationCriterion() const {return forceLimit_;}
   void   setForceTerminationCriterion(double v) {forceLimit_ = v;}
-
   
   virtual double getDF_DX();
-
   virtual double get_convergence_monitor() const { return dft_.get_convergence_monitor();}
   
  protected:
@@ -278,6 +276,9 @@ class fireMinimizer2 : public fireMinimizer_Mu
   virtual void   initialize(){ fireMinimizer_Mu::initialize(); N_P_positive_ = N_P_negative_ = 0;}
   virtual double step();
   virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
+
+  void setFudgeFactor(double f) { fudge_ = f;}
+  double getRMS_Force() const { return rms_force_;}
   
  protected:
   void SemiImplicitEuler(int begin, int end);
@@ -286,10 +287,12 @@ class fireMinimizer2 : public fireMinimizer_Mu
   int N_P_positive_ = 0;
   int N_P_negative_ = 0;
 
+  double rms_force_ = 0.0; // for reporting
+  
   double dt_min_ = 0.0;        ///< minimum allowed timestep
   bool initial_delay_ = true; ///< flag to allow for a warmup period
   int N_P_negative_max_ = 20;
-  
+  double fudge_ = 0.1;
 };
 
 

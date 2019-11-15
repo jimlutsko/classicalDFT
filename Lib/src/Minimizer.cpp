@@ -362,11 +362,12 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   // update velocities and prepare for mixing
   // N.B.: df is a gradient, not a force
   double vnorm = 0.0;
-  double fnorm = 0.0;  
+  double fnorm = 0.0;
+  long   count = 0;
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       DFT_Vec &df = dft_.getDF(Jspecies);
-
+      count += df.size();
       v_[Jspecies].IncrementBy_Scaled_Vector(df, -dt_);
 	  
       double v = v_[Jspecies].euclidean_norm();
@@ -375,7 +376,8 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
       vnorm += v*v;
       fnorm += f*f;
     }
-
+  rms_force_ = sqrt(fnorm/count);
+  
   /// Do mixing
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
@@ -387,15 +389,14 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       long Ntot = x_[Jspecies].size();
-	int chunk = Ntot/20;
-	long i;
-
-#pragma omp parallel for					\
-            shared( chunk, Jspecies, v_)				\
-            private(i)						\
+      int chunk = Ntot/20;
+      long i;
+#pragma omp parallel for		       \
+            shared( chunk, Jspecies, v_)	\
+            private(i)				\
             schedule(static,chunk)				
 	for(i = 0; i<Ntot; i++)
-	  x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(1.0,fabs(x_[Jspecies].get(i))));
+	  x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(fudge_,fabs(x_[Jspecies].get(i)))); // This weighting reduces backtracking ...
     }
   
   // recalculate forces with back-tracking, if necessary

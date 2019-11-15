@@ -4,6 +4,8 @@
 #include <fstream>
 #include <complex>
 #include <stdexcept>
+#include <utility>
+#include <algorithm>
 
 using namespace std;
 
@@ -210,4 +212,40 @@ double VDW1::findLiquidFromMu(double mu, double high_density) const
     }
   } while(fabs(fa-fb) > 1e-6);
   return cx;
+}
+
+double VDW1::findVaporFromMu(double betamu, double maxDensity)
+{
+  // first, find a lower bound:
+  // this is a guess for ideal gas
+  double x1 = exp(betamu)/2;
+  while(chemPotential(x) > betamu) x /= 2;
+
+  // now we need an upper bound: is there a spinodal?
+  double xs1 = -1;
+  double xs2 = -1;
+  double x2  = -1;
+  try {
+    spinodal(xs1,xs2);
+    x2 = min(xs1,xs2);
+  } catch(...) {
+    // no problem - there is no spinodal.
+    x2 = maxDensity;
+  }
+
+  if(chemicalPotential(x2) < betamu) return -1;
+
+  // do bisection
+  double f1 = chemPotential(x1);
+  double f2 = chemPotential(x2);
+
+  while(fabs(x1-x2) > 1e-8)
+    {
+      double x = (x1+x2)/2;
+      double f = chemPotential(x);
+      if(f > betamu) x2 = x;
+      else x1 = x;
+    }
+
+  return (x1+x2)/2;  
 }
