@@ -84,6 +84,9 @@ int main(int argc, char** argv)
   double Mu_min  =  0.25;
   double Mu_max  = -0.25;
   double Mu_step = 0.25;
+
+  bool GaussianOnly = false;
+  
   Options options;
 
   //  options.addOption("prefac", &prefac);
@@ -101,6 +104,8 @@ int main(int argc, char** argv)
   options.addOption("eps1",   &eps1);
   options.addOption("sigma1", &sigma1);
   options.addOption("rcut1",  &rcut1);
+
+  options.addOption("GaussianOnly", &GaussianOnly);
 
   options.addOption("OutputFile", &outfile);
   options.addOption("IntegrationPointsFile", &pointsFile);
@@ -183,17 +188,6 @@ int main(int argc, char** argv)
 	      of << "#Mu = " << Mu << " Fliq/(kTV) = " << -vdw.pressure(xliq) << " Dliq = " << xliq << endl;
 	      if(xvap > 0)
 		of << "#Mu = " << Mu << " Fvap/(kTV) = " << -vdw.pressure(xvap) << " Dvap = " << xvap << endl;		
-	      /*
-		double D = 1.0;
-		bool ret = doUniform(theDensity1, dft, log, F,D);
-		  
-		of << "#Mu = " << Mu << " Funiform/(kTV) = " << F << " Duniform = " << D << endl;
-
-		D = 1e-6;
-		ret = doUniform(theDensity1, dft, log, F,D);
-
-		of << "#Mu = " << Mu << " Funiform/(kTV) = " << F << " Duniform = " << D << endl;
-	      */
 	      of << "#"
 		 << setw(15) <<"Npoints"
 		 << setw(15) <<"Fgau/(kTV)"
@@ -207,10 +201,12 @@ int main(int argc, char** argv)
 	    }
 	  double Fgauss, Agauss;
 	  if(findGaussian(theDensity1, dft, log, Fgauss, Agauss))	  
-	    if(findMinimum(theDensity1, dft, log, F, Cvac))
+	    if(GaussianOnly || findMinimum(theDensity1, dft, log, F, Cvac))
 	      {
 		bstarted = true; // found beginning of good range
-		    
+
+		if(GaussianOnly) {F = Fgauss; Cvac = 0;}
+				
 		ofstream of("scan.dat", ios::app);      
 		of << setw(15) << Npoints
 		   << setw(15) << Fgauss		    

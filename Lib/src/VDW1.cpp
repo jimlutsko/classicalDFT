@@ -214,12 +214,12 @@ double VDW1::findLiquidFromMu(double mu, double high_density) const
   return cx;
 }
 
-double VDW1::findVaporFromMu(double betamu, double maxDensity)
+double VDW1::findVaporFromMu(double betamu, double maxDensity) const
 {
   // first, find a lower bound:
   // this is a guess for ideal gas
   double x1 = exp(betamu)/2;
-  while(chemPotential(x) > betamu) x /= 2;
+  while(chemPotential(x1) > betamu) x1 /= 2;
 
   // now we need an upper bound: is there a spinodal?
   double xs1 = -1;
@@ -233,7 +233,7 @@ double VDW1::findVaporFromMu(double betamu, double maxDensity)
     x2 = maxDensity;
   }
 
-  if(chemicalPotential(x2) < betamu) return -1;
+  if(chemPotential(x2) < betamu) return -1;
 
   // do bisection
   double f1 = chemPotential(x1);
@@ -246,6 +246,5 @@ double VDW1::findVaporFromMu(double betamu, double maxDensity)
       if(f > betamu) x2 = x;
       else x1 = x;
     }
-
   return (x1+x2)/2;  
 }
