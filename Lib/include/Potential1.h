@@ -34,6 +34,17 @@ class Potential1
   // I assume that $kT = k_{B}T/\eps$
   virtual double getVDW_Parameter(double kT) const = 0;
 
+  // This is $a = \frac{1}{2}\int (1-exp(-V(r)/kT)-THETA(r-hsd)) d{\bf r}$
+  // I assume that $kT = k_{B}T/\eps$
+  virtual double getModifiedVDW_Parameter(double kT, double hsd) const
+  {
+    kT_ = kT;
+    Integrator<const Potential1> I(this, &Potential1::Kernal);
+    return I.integrateFinite(1e-8,rcut_) - 2*M_PI*hsd*hsd*hsd/3;
+  }
+
+  double Kernal(double r) const { return 2*M_PI*r*r*(1-exp(-V(r)/kT_));}
+
   virtual string getIdentifier() const = 0;
 
   
@@ -172,7 +183,7 @@ class WHDF : public Potential1
     double yc = rcut_/sigma_;
     double ym = getRmin()/rcut_;
     
-    return (4*M_PI*eps_/3)*sigma_*sigma_*sigma_*pow(yc/(yc*yc-1),3)*(54*(1+yc*yc)-2*(ym*ym*ym)*(1+2*yc*yc)*(1+2*yc*yc)*(5+yc*yc));
+    return 0.5*(4*M_PI*eps_/3)*(1.0/kT)*sigma_*sigma_*sigma_*pow(yc/(yc*yc-1),3)*(54*(1+yc*yc)-2*(ym*ym*ym)*(1+2*yc*yc)*(1+2*yc*yc)*(5+yc*yc));
   }
 
   virtual string getIdentifier() const
@@ -187,7 +198,7 @@ class WHDF : public Potential1
   {
     double y = sigma_/r;
     double z = rcut_/r;
-    return eps_*(y*y-1)*(z*z-1);
+    return eps_*(y*y-1)*(z*z-1)*(z*z-1);
   }
 };
 

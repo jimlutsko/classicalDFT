@@ -62,9 +62,11 @@ public:
 
   virtual void draw_after()
   {
-    if(step_counter_ == 6000)
+    if(step_counter_ == 1500) //6000)
       {
-	fudge_ *= 0.1;
+	//	fudge_ *= 0.1;
+	dt_max_ *= 100;
+	
       }
     cout << "dt_ = " << dt_ << " rms_force = " << rms_force_ << endl;
     
@@ -277,7 +279,7 @@ double gaussianEval(double alf, SolidFCC& theDensity, DFT& dft, double &prefac, 
 	f = dft.calculateFreeEnergyAndDerivatives(false);
 	bSuccess = true;
       } catch (...) {
-	prefac *= 0.9999;
+	prefac *= 0.999999;
 	log << "\t lowering prefac to " << prefac << endl;
       }
     }

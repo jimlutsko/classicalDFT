@@ -80,7 +80,7 @@ class Interaction
 		long pos = nz+Nz*(ny+Ny*nx);
 
 		double r2 = x*x+y*y+z*z;
-		double w = v.Watt(sqrt(r2))/kT;
+		double w = getInteraction(sqrt(r2), v, kT); //v.Watt(sqrt(r2))/kT;
 		//		double w = -exp(-v.V(sqrt(r2))/kT);
 		//		if(r2 > 1.03*1.03) w += 1; 
 
@@ -178,6 +178,8 @@ class Interaction
     w_att_.do_real_2_fourier();     
   }    
 
+
+  virtual double getInteraction(double r, Potential1 &v, double kT) const {return v.Watt(r)/kT;}
 
   void reset(Potential1 &v, double kT, Log &log, string &pointsFile)
   {
@@ -346,7 +348,7 @@ class Interaction
 	      
 		    gsl_integration_glfixed_point(0, Rc, k, &r, &wr, tr);
 		  
-		    double watt = v.Watt(r)/kT; 
+		    double watt = getInteraction(r, v, kT); //v.Watt(r)/kT; 
 		  
 		    double x = r*points[pos][0];
 		    double y = r*points[pos][1];
@@ -541,5 +543,24 @@ class Interaction
   DFT_FFT w_att_;  
 
 };
+
+
+class ModifiedInteraction : public Interaction
+{
+ public:
+ ModifiedInteraction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, double hsd) :
+  Interaction(s1,s2,v,kT,log), hsd_(hsd) {}
+  
+ ModifiedInteraction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, double hsd, string &pointsFile) :
+  Interaction(s1,s2,v,kT,log,pointsFile), hsd_(hsd) {}
+
+  virtual double getInteraction(double r, Potential1 &v, double kT) const {return (1-exp(-v.V(r)/kT))-(r < hsd_ ? 1 : 0);}
+
+ protected:
+  double hsd_;
+  
+};
+
+
 
 #endif // __LUTSKO__INTERACTION__

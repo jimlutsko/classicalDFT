@@ -323,7 +323,20 @@ double fireMinimizer2::step()
 	  dt_ *= f_dec_;
 	alpha_ = alpha_start_;
       }
-
+    //NEW 2019/11/19
+    for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+      {
+	long Ntot = x_[Jspecies].size();
+	int chunk = Ntot/20;
+	long i;
+#pragma omp parallel for			\
+  shared( chunk, Jspecies, v_)			\
+  private(i)					\
+  schedule(static,chunk)				
+	for(i = 0; i<Ntot; i++)
+	  x_[Jspecies].set(i, x_[Jspecies].get(i) - 0.5*v_[Jspecies].get(i)*dt_/max(fudge_,fabs(x_[Jspecies].get(i)))); // This weighting reduces backtracking ...
+      }
+    cout << "Uphill motion stopped" << endl;
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
 	v_[Jspecies].zeros(v_[Jspecies].size());
   }
@@ -336,7 +349,9 @@ double fireMinimizer2::step()
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
 	x_[Jspecies].set(x_rem[Jspecies]);
-	v_[Jspecies].set(v_rem[Jspecies]);
+	//NEW 2019/11/19	
+	//	v_[Jspecies].set(v_rem[Jspecies]);
+	v_[Jspecies].zeros(v_[Jspecies].size());	
 	dft_.setDF(Jspecies,dF_rem[Jspecies]);
       }
     dt_ /= 10; // This was previously 2
@@ -396,7 +411,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
             private(i)				\
             schedule(static,chunk)				
 	for(i = 0; i<Ntot; i++)
-	  x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(fudge_,fabs(x_[Jspecies].get(i)))); // This weighting reduces backtracking ...
+	  x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(fudge_,fabs(x_[Jspecies].get(i)))); //*fabs(x_[Jspecies].get(i)))); // This weighting reduces backtracking ...
     }
   
   // recalculate forces with back-tracking, if necessary

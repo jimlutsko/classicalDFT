@@ -66,9 +66,11 @@ double VDW1::findDensityFromPressure(double P, double xmin, double xmax) const
 // So for a given vapor x, we compute P and then solve for the corresponding liq x (if it exists)
 // and then do bisection on mu
 
-
 int VDW1::findCoexistence(double &x1, double &x2) const
 {
+  double x_liq_ceil = 2.0;
+  double x_vap_floor = 1e-30;
+  
   // Spinodal points
   double xs1,xs2;
   spinodal(xs1,xs2);
@@ -76,37 +78,54 @@ int VDW1::findCoexistence(double &x1, double &x2) const
   
   double Ps1 = pressure(xs1);
   double Ps2 = pressure(xs2);
+
+  // The lowest vapor density corresponds to max(Ps2,0.0)
+  double x_vap_min = -1;
+
+  if(Ps2 < 0) {Ps2 = pressure(x_vap_floor); xs2 = findDensityFromPressure(Ps2,xs2,x_liq_ceil); x_vap_min = x_vap_floor;}
+  else x_vap_min = findDensityFromPressure(Ps2,0.0,xs1);
+
+  // The max vapor density is either at the spinodal or the largest value below the spinodal for which
+  // a liq with the same pressure exists.
+  double x_vap_max = xs1;
+  double ya        = x_vap_min;
+  double y         = x_vap_max;
   
-  // Density of liquid with zero pressure
-  //  double xliq0 = findDensityFromPressure(0.0,xs2,2);
+  do{
+    try {
+      findDensityFromPressure(pressure(y),xs2,x_liq_ceil);
+      ya = y;
+    } catch(...) {
+      x_vap_max = y;
+    }
+    y = (ya+x_vap_max)/2;
+  } while(fabs(y-x_vap_max) > 1e-10);
+  x_vap_max = y;
 
-  // Density of liquid with  pressure Ps1
-  double xliq1 = findDensityFromPressure(Ps1,xs2,2);
+  // Now, we expect that the two densities bracket the coexistence point: is this true?
 
-  double dmu1 = -1e-30;
-
-  double dmu2 = chemPotential(xs1) - chemPotential(xliq1);
-
-  if(dmu2*dmu1 > 0) throw std::runtime_error("VDW1::findCoexistence failed: could not bracket");
+  double y_liq_a = xs2; //findDensityFromPressure(pressure(x_vap_min),xs2,x_liq_ceil);
+  double y_liq_b = findDensityFromPressure(pressure(x_vap_max),xs2,x_liq_ceil);
   
-  // So, now we know that the coexisting gas density is between 0 and xs1
-  // and we just have to find it.
-  // Bisection is slow but sure
-  double xa = 0;
-  double xb = xs1;
-  double xg = xs1/2;
+  double dmu_a = chemPotential(x_vap_min) - chemPotential(y_liq_a);
+  double dmu_b = chemPotential(x_vap_max) - chemPotential(y_liq_b);
+  if(dmu_a*dmu_b > 0) 
+      throw std::runtime_error("Cannot find low enough chem potential in VDW1::findCoexistence");
 
+  // good - just do bisection
   do {
-    double fg = chemPotential(xg) - chemPotential(findDensityFromPressure(pressure(xg),xs2,2));
-    if(fg < 0)xa = xg;
-    else xb = xg;
+    double x = (x_vap_min+x_vap_max)/2;
+    double y = findDensityFromPressure(pressure(x),xs2,x_liq_ceil);
 
-    xg = (xa+xb)/2;
-  } while(fabs(xa-xb) > 1e-10);
+    double dmu = chemPotential(x) - chemPotential(y);
 
-  x1 = xg;
-  x2 = findDensityFromPressure(pressure(x1),xs2,2);
-    
+    if(dmu*dmu_a > 0) { dmu_a = dmu; x_vap_min = x;}
+    else {dmu_b = dmu; x_vap_max = x;}
+  } while(fabs(x_vap_min - x_vap_max) > 1e-10);
+
+  x1 = (x_vap_max+x_vap_min)/2;
+  x2 = findDensityFromPressure(pressure(x1),xs2,x_liq_ceil);
+
   return 0;
 }
 
@@ -248,3 +267,5 @@ double VDW1::findVaporFromMu(double betamu, double maxDensity) const
     }
   return (x1+x2)/2;  
 }
+
+

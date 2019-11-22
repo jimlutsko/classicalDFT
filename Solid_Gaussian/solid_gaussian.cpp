@@ -37,7 +37,10 @@ int main(int argc, char** argv)
 
   int nCores = 6;
 
-  double kT = 1;
+  double kTmin = 1;
+  double kTmax = 1;
+  double dkT   = 1;
+    
   double dx = 0.1;
   
   string pointsFile("..//SS31-Mar-2016//ss109.05998");
@@ -50,7 +53,9 @@ int main(int argc, char** argv)
   
   options.addOption("nCores", &nCores);
 
-  options.addOption("kT", &kT);
+  options.addOption("kTmin", &kTmin);
+  options.addOption("kTmax", &kTmax);
+  options.addOption("dkT", &dkT);
   options.addOption("Mu_min",   &Mu_min);
   options.addOption("Mu_max",   &Mu_max);
   options.addOption("Mu_step",  &Mu_step);
@@ -84,13 +89,13 @@ int main(int argc, char** argv)
 
   //////////////////////////////////////
   ////// Create potential
-  LJ potential1(sigma1, eps1, rcut1);
+  //  LJ potential1(sigma1, eps1, rcut1);
+  tWF potential1(sigma1, eps1, rcut1);
 
   
-  for(kT = 0.9; kT < 2.0; kT += 0.1)
+  for(double kT = kTmin; kT < kTmax+dkT/2; kT += dkT)
     {      
       double hsd1 = potential1.getHSD(kT);
-
       
       // Part I: Starting with the smallest lattice parameter (number of cells),
       //  find F as the lattice parameter increases and stop when a minimum has been detected
@@ -101,7 +106,7 @@ int main(int argc, char** argv)
       vector<double> F;
       vector<double> alf;
 
-      double Amax = 1000;
+      double Amax = 10000;
       double prefac = 1;
       
       for(int Npoints = Npoints_min; Npoints < Npoints_max; Npoints++)
@@ -118,10 +123,12 @@ int main(int argc, char** argv)
 	  dft.addHardCoreContribution(&fmt);  
 	  dft.addInteraction(&i1);
 
+	  log << " " << endl;
 	  log << "Npoints = " << Npoints << endl;
 
 	  double Fgauss;
 	  double Agauss;
+	  prefac = 1.0;
 	  if(findGaussian(theDensity1, dft, log, Amax, Fgauss, Agauss,prefac))	  
 	    {
 	      Np.push_back(Npoints);
@@ -134,7 +141,7 @@ int main(int argc, char** argv)
 	}
 
       // Part II: For a range of chemical potentials, determine the
-      // minimum for the solid (omega = f - mu n and both f and n depend on npoints).
+      // minimum for the solid (omega = f - mu n and both f and n depend on the lattice parameter).
       // Compare solid free energy to fluid and find the value of mu where they are equal (linear interpolation).
       
       VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT));
@@ -155,11 +162,12 @@ int main(int argc, char** argv)
 
 	      // Find solid
 	      double oa, ob, oc;
-	      double na, nb, nc;
+	      int na, nb, nc;
 	      double da, db, dc;
 	      double aa, ab, ac;
 	      da = db = dc = -1;
-
+	      na = nb = nc = -1;
+	      
 	      for(int i=0;i<Np.size();i++)
 		{
 		  double np = Np[i];
@@ -183,14 +191,14 @@ int main(int argc, char** argv)
 		  mua    = mub;   mub    = Mu;
 		  x_sol_a  = x_sol_b; x_sol_b  = dmin;
 
-		  cout << "Mu = " << Mu << " omega_sol = " << omin << " omega_liquid = " << omega_liquid << " df = " << omin-omega_liquid << endl;
-		} else continue; // no solid identified ... 
+		  log << "Mu = " << Mu << " omega_sol = " << omin << " omega_liquid = " << omega_liquid << " df = " << omin-omega_liquid << " alf = " << amin << " density = " << dmin << " npts = " << nmin << endl;
+		} else {log << "Mu = " << Mu << " no solid found: na = " << na << endl; continue; } // no solid identified ... 
 	      if(d_omega_a*d_omega_b < 0)
 		{
 		  double Mu = mua - (mub-mua)*(d_omega_a/(d_omega_b-d_omega_a));      
 		  double xsol = x_sol_a + (x_sol_b-x_sol_a)*((Mu-mua)/(mub-mua));      
 		  double xliq = (J == 0 ? vdw.findLiquidFromMu(Mu, 1.0) : vdw.findVaporFromMu(Mu, 1.0));
-		  cout << "Mucoex = " << Mu << " xliq = " << xliq << " xsol = " << xsol << endl;
+		  log << "Mucoex = " << Mu << " xliq = " << xliq << " xsol = " << xsol << endl;
 
 		  ofstream of("coex.dat",ios::app);
 		  of << kT << " ";	      
@@ -228,10 +236,6 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double Amax, double
 {
   /////////////////////////////////////////////////////
   // Report
-  log << " " << endl;
-  log << "Determining gaussian approximation" << endl;
-  log << " " << endl;
-
   double f = 0;
   double f_old = 0;
   double f_old_2 = 0;  
