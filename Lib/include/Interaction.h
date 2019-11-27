@@ -80,11 +80,9 @@ class Interaction
 		long pos = nz+Nz*(ny+Ny*nx);
 
 		double r2 = x*x+y*y+z*z;
-		double w = getInteraction(sqrt(r2), v, kT); //v.Watt(sqrt(r2))/kT;
-		//		double w = -exp(-v.V(sqrt(r2))/kT);
-		//		if(r2 > 1.03*1.03) w += 1; 
+		double w = v.Watt(sqrt(r2))/kT;
 
-		w *= dx*dy*dz;
+		w*= dx*dy*dz;
 		
 		a_vdw_ += w;
 		w_att_.Real().IncrementBy(pos,w);
@@ -122,7 +120,6 @@ class Interaction
 	<< Nx << "_"
 	<< Ny << "_"
 	<< Nz << "_"
-	<< kT << "_"
 	<< v.getIdentifier() << "_"
 	<< ".dat";    
   
@@ -137,9 +134,8 @@ class Interaction
 
       stringstream ss2(buf);
       int nx, ny, nz;
-      double temp;
       double dx;
-      ss2 >> nx >> ny >> nz >> temp >> dx;
+      ss2 >> nx >> ny >> nz >> dx;
 
       if(nx != Nx)
 	{readWeights = false; cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
@@ -147,8 +143,6 @@ class Interaction
 	{readWeights = false; cout << "\n" <<  "Mismatch in Ny: expected " << Ny << " but read " << ny <<  endl;}
       if(nz != Nz)
 	{readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
-      if(fabs(temp - kT) > 1e-8*fabs(temp+kT))
-	{readWeights = false; cout << "\n" <<  "Mismatch in kT: expected " << kT << " but read " << temp <<  endl;}
       if(fabs(density.getDX()-dx) > 1e-8*(density.getDX()+dx))
 	{readWeights = false; cout << "\n" <<  "Mismatch in Dx: generating weights: expected " << density.getDX() << " but read " << dx << endl;}      
 
@@ -172,14 +166,15 @@ class Interaction
 	w_att_.Real().load(in);
 	a_vdw_ = w_att_.Real().accu();	
       } else {
-      generateWeights(pointsFile,v, ss1, log, kT);
+      generateWeights(pointsFile,v, ss1, log);
     }
+    // Introduce the temperature
+    w_att_.Real().MultBy(1.0/kT);
+
     // Now generate the FFT of the field  
     w_att_.do_real_2_fourier();     
   }    
 
-
-  virtual double getInteraction(double r, Potential1 &v, double kT) const {return v.Watt(r)/kT;}
 
   void reset(Potential1 &v, double kT, Log &log, string &pointsFile)
   {
@@ -202,12 +197,12 @@ class Interaction
 	<< kT << "_"      
 	<< ".dat";        
     
-    generateWeights(pointsFile,v, ss1, log, kT);
+    generateWeights(pointsFile,v, ss1, log);
     w_att_.do_real_2_fourier();           
   }
 
 
-  void generateWeights(string &pointsFile, Potential1 &v, stringstream &ss, Log& log, double kT)
+  void generateWeights(string &pointsFile, Potential1 &v, stringstream &ss, Log& log)
   {    
     log << "Calculating mean field potential ... " << endl;
     const Density &density = s1_.getDensity();
@@ -348,7 +343,7 @@ class Interaction
 	      
 		    gsl_integration_glfixed_point(0, Rc, k, &r, &wr, tr);
 		  
-		    double watt = getInteraction(r, v, kT); //v.Watt(r)/kT; 
+		    double watt = v.Watt(r); 
 		  
 		    double x = r*points[pos][0];
 		    double y = r*points[pos][1];
@@ -417,7 +412,7 @@ class Interaction
     of.flags (std::ios::scientific);
     of.precision (std::numeric_limits<double>::digits10 + 1);
 
-    of << Nx << " " << Ny << " " << Nz << " " << kT << " " << density.getDX() << endl;
+    of << Nx << " " << Ny << " " << Nz << " " << density.getDX() << endl;
     of << v.getIdentifier() << endl;
     of << pointsFile << endl;
 
@@ -543,24 +538,6 @@ class Interaction
   DFT_FFT w_att_;  
 
 };
-
-
-class ModifiedInteraction : public Interaction
-{
- public:
- ModifiedInteraction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, double hsd) :
-  Interaction(s1,s2,v,kT,log), hsd_(hsd) {}
-  
- ModifiedInteraction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, double hsd, string &pointsFile) :
-  Interaction(s1,s2,v,kT,log,pointsFile), hsd_(hsd) {}
-
-  virtual double getInteraction(double r, Potential1 &v, double kT) const {return (1-exp(-v.V(r)/kT))-(r < hsd_ ? 1 : 0);}
-
- protected:
-  double hsd_;
-  
-};
-
 
 
 #endif // __LUTSKO__INTERACTION__

@@ -47,6 +47,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   "armadillo"
   "fftw3_omp"
   "fftw3"
+  "nlopt"  
   )
 
 target_link_libraries(LIQVAP PUBLIC

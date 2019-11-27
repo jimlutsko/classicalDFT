@@ -62,7 +62,7 @@ class SolidFCC : public Density
    *   @param  number of atoms in the FCC unit cell (taking vacancies into account)
    *   @return  
    */  
-  virtual void initialize(double alpha, int ncells, double prefac)
+virtual void initialize(double alpha, int ncells, double prefac, double lower = 1e-7)
   {
     double a_latt = L_[0]/ncells;
     
@@ -106,7 +106,7 @@ class SolidFCC : public Density
 		      double r2 = dx*dx+dy*dy+dz*dz;
 		      dsum += prefac*pow(alpha/M_PI,1.5)*exp(-alpha*r2);
 		    }
-	    if(dsum < 1e-7) dsum = 1e-7;
+	    if(dsum < lower) dsum = lower;
 	    set_Density_Elem(i,j,k,dsum);	    
 	  }
     //    string title("dummy");

@@ -14,9 +14,10 @@ using namespace std;
 #include <gsl/gsl_poly.h>
 
 #include "VDW1.h"
-
+#include "poly34.h"
 
 // Solve P= x*(1+e*(1+e*(1-e)))/(e1*e1*e1) + a_*x*x for xmin<x0<x<xmax
+/*
 double VDW1::findDensityFromPressure(double P, double xmin, double xmax) const
 {
   P *= M_PI*d_*d_*d_/6;
@@ -52,6 +53,34 @@ double VDW1::findDensityFromPressure(double P, double xmin, double xmax) const
 
   return x;
 }
+*/
+
+ // Solve P= x*(1+e*(1+e*(1-e)))/(e1*e1*e1) + a_*x*x for xmin<x0<x<xmax
+double VDW1::findDensityFromPressure(double P, double xmin, double xmax) const
+{
+  P *= M_PI*d_*d_*d_/6;
+  xmin *= M_PI*d_*d_*d_/6;
+  xmax *= M_PI*d_*d_*d_/6;
+
+  double ae = a_*6/(M_PI*d_*d_*d_);
+  double a[6] = { -P, 1 + 3*P, 1 - 3*P +ae, 1 +P - 3*ae, -1 + 3*ae, -ae};
+
+  double x[5];
+  double d = SolveP5(x, (1-3*ae)/ae, (3*ae-1-P)/ae, (3*P-1-ae)/ae, -(1+3*P)/ae, P/ae);
+
+  double y = -1;
+  for(int i=0;i<d;i++)
+    if((1+x[i]*(4+x[i]*(4+x[i]*(-4+x[i]))))*pow(1-x[i],-4)+2*ae*x[i] >= 0) // non-negative compressibility
+      if(x[i] > xmin && x[i] < xmax)
+	y = x[i];
+  if(y < 0) throw std::runtime_error("VDW1::findDensityFromPressure failed");
+
+  // convert from e to x
+  y *= 6/(M_PI*d_*d_*d_);
+
+  return y;
+}
+
 
 
 
@@ -104,7 +133,11 @@ int VDW1::findCoexistence(double &x1, double &x2) const
 
   // Now, we expect that the two densities bracket the coexistence point: is this true?
 
-  double y_liq_a = xs2; //findDensityFromPressure(pressure(x_vap_min),xs2,x_liq_ceil);
+  double y_liq_a = xs2;
+  try {
+    y_liq_a = findDensityFromPressure(pressure(x_vap_min),xs2,x_liq_ceil);
+  } catch (...) {  }
+    
   double y_liq_b = findDensityFromPressure(pressure(x_vap_max),xs2,x_liq_ceil);
   
   double dmu_a = chemPotential(x_vap_min) - chemPotential(y_liq_a);
@@ -113,15 +146,19 @@ int VDW1::findCoexistence(double &x1, double &x2) const
       throw std::runtime_error("Cannot find low enough chem potential in VDW1::findCoexistence");
 
   // good - just do bisection
+  double dmu;
   do {
     double x = (x_vap_min+x_vap_max)/2;
     double y = findDensityFromPressure(pressure(x),xs2,x_liq_ceil);
 
-    double dmu = chemPotential(x) - chemPotential(y);
+    dmu = chemPotential(x) - chemPotential(y);
 
+    //    cout << setprecision(12) << x_vap_min << " " << x_vap_max << " " << x << " " << y << " " << dmu_a << " " << dmu_b << " " << dmu << endl;
+    
     if(dmu*dmu_a > 0) { dmu_a = dmu; x_vap_min = x;}
     else {dmu_b = dmu; x_vap_max = x;}
-  } while(fabs(x_vap_min - x_vap_max) > 1e-10);
+
+  } while(fabs(dmu) > 1e-6);
 
   x1 = (x_vap_max+x_vap_min)/2;
   x2 = findDensityFromPressure(pressure(x1),xs2,x_liq_ceil);
@@ -142,7 +179,7 @@ void VDW1::spinodal(double &xs1, double &xs2) const
   int i;
   // coefficients of P(x) = a0+a1 x+...
   double ae = a_*6/(M_PI*d_*d_*d_);
-  double a[6] = { 1, 4 + 2*ae, 4-8*ae , 4+12*ae, 1-8*ae, 2*ae };
+  double a[6] = { 1, 4 + 2*ae, 4-8*ae , -4+12*ae, 1-8*ae, 2*ae };
   double z[10];
 
   gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc(6);

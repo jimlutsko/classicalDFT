@@ -8,11 +8,21 @@
 %TCIDATA{Version=5.50.0.2960}
 %TCIDATA{CSTFile=revtex4-1.cst}
 %TCIDATA{Created=Friday, November 01, 2019 09:56:59}
-%TCIDATA{LastRevised=Friday, November 01, 2019 12:34:31}
+%TCIDATA{LastRevised=Wednesday, November 27, 2019 12:32:59}
 %TCIDATA{<META NAME="GraphicsSave" CONTENT="32">}
 %TCIDATA{<META NAME="SaveForMode" CONTENT="1">}
 %TCIDATA{BibliographyScheme=Manual}
 %TCIDATA{<META NAME="DocumentShell" CONTENT="Articles\SW\REVTeX 4-1">}
+%TCIDATA{ComputeDefs=
+%$T=1.18$
+%$\rho=0.317$
+%$d=1.0$
+%$\eta=\frac{\pi}{6}\rho d^{3}$
+%$a=\frac{T}{\rho}\frac{1}{\left(  1-\eta\right)  ^{5}}\left(  -1+\eta
+%+10\eta^{2}+6\eta^{3}-5\eta^{4}+\eta^{5}\right)  $
+%$b=\frac{T}{6\rho^{2}}\frac{1}{\left(  1-\eta\right)  ^{5}}\left(
+%1-5\eta-20\eta^{2}-4\eta^{3}+5\eta^{4}-\eta^{5}\right)  $
+%}
 %BeginMSIPreambleData
 \providecommand{\U}[1]{\protect\rule{.1in}{.1in}}
 %EndMSIPreambleData
@@ -86,11 +96,132 @@ hard-sphere radius $d$ . There are two problems with this model. First, we
 know the exact form of the functional for small densities, $\rho\left(
 \mathbf{r}_{1}\right)  \rightarrow0$ , and this does not give the correct
 limit. Second, it does not give a particularly good equation of state in the
-uniform limit. It is therefore interesting to try to correct these problems. I
-assume that an accurate equation of state is known for the uniform
-system:\ i.e., that we know lim$_{\rho\left(  \mathbf{r}\right)
+uniform limit. It is therefore interesting to try to correct these problems.
+Sometimes, I will assume that an accurate equation of state is known for the
+uniform system:\ i.e., that we know lim$_{\rho\left(  \mathbf{r}\right)
 \rightarrow\overline{\rho}}F\left[  \rho\right]  \equiv F\left(
-\overline{\rho}\right)  $ .
+\overline{\rho}\right)  =f\left(  \overline{\rho}\right)  V$ .
+
+First, one could imagine adding a correction based on the FMT densities. The
+vDW model gives an eos for the uniform fluid of
+\begin{equation}
+f^{\text{VDW}}\left(  \overline{\rho}\right)  =f^{\text{HS}}\left(
+\overline{\rho}\right)  +\frac{1}{2}a_{\text{VDW}}\rho^{2}%
+\end{equation}
+The most natural to use is the local packing fraction, so if we have a known
+EOS one could use, e.g.,%
+\begin{align}
+F\left[  \rho\right]    & =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[
+\rho\right]  \right)  +\frac{1}{2}\int\rho\left(  \mathbf{r}_{1}\right)
+\rho\left(  \mathbf{r}_{2}\right)  w_{\text{att}}\left(  r_{12}\right)
+d\mathbf{r}_{1}d\mathbf{r}_{2}\\
+& +\int\left\{  f\left(  \frac{6}{\pi d^{3}}\eta\left(  \mathbf{r}\right)
+\right)  -f^{\text{VDW}}\left(  \frac{6}{\pi d^{3}}\eta\left(  \mathbf{r}%
+\right)  \right)  \right\}  d\mathbf{r}\nonumber
+\end{align}
+The problem with this is that in the solid we must evaluate these expressions
+for $\eta\left(  \mathbf{r}\right)  $ very close to one, where the hs part
+diverges. By subtracting out the vDW\ function at this packing fraction, we
+risk screwing up the necessary divergence of  $F^{\text{HS}}$ and this is
+unacceptable. We could use a different density - well, only $s\left(
+\mathbf{r}\right)  $ makes any sense - but then the problem is that this will
+give essentially zero for $\mathbf{r}$ at a lattice site and will have a
+large-ish value for positions have a hard-sphere diamter from a lattice
+position. Perhaps this is OK but it sounds strange and perhaps dangerous. It
+may be for these reasons that at least one group has used a correction of this
+form based on an entirely new density,
+\[
+\widetilde{\rho}\left(  \mathbf{r}_{1}\right)  =\frac{3}{4\pi d^{3}}\int%
+\Theta\left(  d-r_{12}\right)  \rho\left(  \mathbf{r}_{2}\right)  d\mathbf{r}%
+\]
+which is the same as $\eta\left(  \mathbf{r}\right)  $ but averaged over a
+larger volume (the latter is averaged over a radius of d/2). I find this
+unobjectionable from a technical point of view. It suffers however from the
+fact that you are going to need the liquid eos at high densities, including at
+low temperatures where the liquid does not exist. An alternative is to write a
+simpler correction, e.g.
+\begin{equation}
+F\left[  \rho\right]  =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[
+\rho\right]  \right)  +\frac{1}{2}\int\rho\left(  \mathbf{r}_{1}\right)
+\rho\left(  \mathbf{r}_{2}\right)  w_{\text{att}}\left(  r_{12}\right)
+d\mathbf{r}_{1}d\mathbf{r}_{2}+b\int\widetilde{\rho}\left(  \mathbf{r}%
+_{1}\right)  ^{3}d\mathbf{r}_{1}%
+\end{equation}
+and in fact, I would advocate going one step further with
+\begin{equation}
+F\left[  \rho\right]  =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[
+\rho\right]  \right)  +\frac{1}{2}\frac{a}{a_{\text{vdw}}}\int\rho\left(
+\mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)  w_{\text{att}%
+}\left(  r_{12}\right)  d\mathbf{r}_{1}d\mathbf{r}_{2}+b\int\widetilde{\rho
+}\left(  \mathbf{r}_{1}\right)  ^{3}d\mathbf{r}_{1}%
+\end{equation}
+giving the eos for the liquid%
+\begin{equation}
+\beta f\left(  \overline{\rho}\right)  \equiv\beta\frac{1}{V}F\left(
+\overline{\rho}\right)  =\overline{\rho}\ln\overline{\rho}\Lambda
+^{3}-\overline{\rho}+\frac{\overline{\eta}\left(  4-3\overline{\eta}\right)
+}{\left(  1-\overline{\eta}\right)  ^{2}}\overline{\rho}+\beta a\overline
+{\rho}^{2}+\beta b\overline{\rho}^{3}%
+\end{equation}
+Now, one very simple way to fix the exponents is by matching the critical
+point. For example, from this we know that the chemical potential and pressure
+are%
+\begin{align*}
+\beta\mu & =\frac{\partial\beta f\left(  \overline{\rho}\right)  }%
+{\partial\overline{\rho}}=\ln\overline{\rho}\Lambda^{3}+\frac{\overline{\eta
+}\left(  8-9\overline{\eta}+3\overline{\eta}^{2}\right)  }{\left(
+1-\overline{\eta}\right)  ^{3}}+2\beta a\overline{\rho}+3\beta b\overline
+{\rho}^{2}\\
+\beta P  & =-\beta f+\beta\mu\overline{\rho}=\frac{1+\overline{\eta}%
++\overline{\eta}^{2}-\overline{\eta}^{3}}{\left(  1-\overline{\eta}\right)
+^{3}}\overline{\rho}+\beta a\overline{\rho}^{2}+2\beta b\overline{\rho}^{3}%
+\end{align*}
+and now we use that the critical point is an inflection point of the pressure:%
+\begin{align}
+0  & =\frac{\partial}{\partial\overline{\rho}}P=\frac{1+4\overline{\eta}%
+_{c}+4\overline{\eta}_{c}^{2}-4\overline{\eta}_{c}^{3}+\overline{\eta}_{c}%
+^{4}}{\left(  1-\overline{\eta}_{c}\right)  ^{4}}+2\beta_{c}a\overline{\rho
+}_{c}+6\beta_{c}b\overline{\rho}_{c}^{2}\nonumber\\
+0  & =\frac{\partial^{2}}{\partial\overline{\rho}^{2}}P=\frac{\pi d^{3}}%
+{6}\frac{4\left(  2+5\overline{\eta}_{c}-\overline{\eta}_{c}^{2}\right)
+}{\left(  1-\overline{\eta}_{c}\right)  ^{5}}+2\beta_{c}a+12\beta
+_{c}b\overline{\rho}_{c}%
+\end{align}
+So if we know the critical temperature and density, we can simply solve to get%
+\begin{align*}
+b  & =\frac{k_{B}T_{c}}{6\overline{\rho}_{c}^{2}}\frac{1}{\left(  1-\eta
+_{c}\right)  ^{5}}\left(  1-5\eta_{c}-20\eta_{c}^{2}-4\eta_{c}^{3}+5\eta
+_{c}^{4}-\eta_{c}^{5}\right)  \allowbreak\\
+a  & =\frac{k_{B}T_{c}}{\overline{\rho}_{c}}\frac{1}{\left(  1-\eta
+_{c}\right)  ^{5}}\left(  -1+\eta_{c}+10\eta_{c}^{2}+6\eta_{c}^{3}-5\eta
+_{c}^{4}+\eta_{c}^{5}\right)  \allowbreak
+\end{align*}
+
+
+\bigskip%
+\begin{align*}
+T  & =1.18\\
+\rho & =0.317\\
+d  & =1.0\\
+\eta & =\frac{\pi}{6}\rho d^{3}\\
+a  & =\frac{T}{\rho}\frac{1}{\left(  1-\eta\right)  ^{5}}\left(
+-1+\eta+10\eta^{2}+6\eta^{3}-5\eta^{4}+\eta^{5}\right)  \\
+b  & =\frac{T}{6\rho^{2}}\frac{1}{\left(  1-\eta\right)  ^{5}}\left(
+1-5\eta-20\eta^{2}-4\eta^{3}+5\eta^{4}-\eta^{5}\right)
+\end{align*}
+%
+
+\begin{align*}
+a\beta & =-4.\,\allowbreak18\\
+b\beta & =-1.\,\allowbreak626
+\end{align*}
+
+
+\bigskip
+
+\bigskip
+
+\bigskip
 
 Assuming standrd FMT treatment of the hard-sphere part, this gives the
 uniform-system eos%
@@ -127,25 +258,25 @@ This could be recovered by replacing
 giving what I will call Model A. It clearly has the virtue of achieving the
 zero-density limit in the most natural way. However, this forces
 $w_{\text{eff}}$ to be zero inside the core (i.e. for $r$ near zero) which is
-quite different from  $\beta w_{\text{att}}$ and could lead to problems.
+quite different from $\beta w_{\text{att}}$ and could lead to problems.
 Alternatively, we could introduce this correction more heuristically as%
 \begin{align}
-F_{\text{ex}}\left[  \rho\right]    & =F_{\text{ex}}^{\text{HS}}\left(
+F_{\text{ex}}\left[  \rho\right]   &  =F_{\text{ex}}^{\text{HS}}\left(
 d\left[  v\right]  ;\left[  \rho\right]  \right)  +\frac{1}{2}\int\rho\left(
 \mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}_{2}\right)  w_{\text{att}%
 }\left(  r_{12}\right)  d\mathbf{r}_{1}d\mathbf{r}_{2}\\
-& +A\left(  \frac{1}{2V}\int\rho\left(  \mathbf{r}_{1}\right)  \rho\left(
+&  +A\left(  \frac{1}{2V}\int\rho\left(  \mathbf{r}_{1}\right)  \rho\left(
 \mathbf{r}_{2}\right)  \beta w_{\text{att}}\left(  r_{12}\right)
-d\mathbf{r}_{1}d\mathbf{r}_{2}\right)  \nonumber\\
-& \times\left\{  \frac{1}{2V}\int\rho\left(  \mathbf{r}_{1}\right)
+d\mathbf{r}_{1}d\mathbf{r}_{2}\right) \nonumber\\
+&  \times\left\{  \frac{1}{2V}\int\rho\left(  \mathbf{r}_{1}\right)
 \rho\left(  \mathbf{r}_{2}\right)  \left\{  f\left(  r_{12};\left[  v\right]
 \right)  -\Theta\left(  d\left[  v\right]  -r_{12}\right)  -\beta
 w_{\text{att}}\left(  r_{12}\right)  \right\}  d\mathbf{r}_{1}d\mathbf{r}%
-_{2}\right\}  \nonumber
+_{2}\right\} \nonumber
 \end{align}
 The idea is that we do not touch the hard sphere part, we allow the vdW part
 to at least have the possiblity of recovering the "usual" form at high
-densities (simply by haveing $A$ go to zero) and  the zero-density limit just
+densities (simply by haveing $A$ go to zero) and the zero-density limit just
 says that $A(0)=1$ . This is Model B. Finally, we could forget the explicit
 form of the zero-density dcf altogether and simply write
 \begin{equation}
@@ -156,57 +287,56 @@ v\right]  ;\left[  \rho\right]  \right)  +A\left(  \frac{1}{2V}\int\rho\left(
 \end{equation}
 which I call Model C. The advantage here is that this is simpler than Model B,
 can still go over to the vdW model and the mean field term is completely
-independent of the hard sphere stuff. 
+independent of the hard sphere stuff.
 
 The uniform limit of these three models are
 \begin{align}
 \frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{A}\right)  }\left(  \rho\right)
-& =\rho\frac{\eta^{2}\left(  5-4\eta\right)  }{\left(  1-\eta\right)  ^{2}%
-}+\rho^{2}B_{2}\left[  v\right]  \\
+&  =\rho\frac{\eta^{2}\left(  5-4\eta\right)  }{\left(  1-\eta\right)  ^{2}%
+}+\rho^{2}B_{2}\left[  v\right] \\
 \frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{B}\right)  }\left(  \rho\right)
-& =\rho\frac{\eta\left(  4-3\eta\right)  }{\left(  1-\eta\right)  ^{2}}%
+&  =\rho\frac{\eta\left(  4-3\eta\right)  }{\left(  1-\eta\right)  ^{2}}%
 +\frac{1}{2}\rho^{2}a^{\left(  \text{vdW}\right)  }+A\left(  \frac{1}{2}%
 \rho^{2}a^{\left(  \text{vdW}\right)  }\right)  \left\{  -4\eta\rho-\frac
 {1}{2}\rho^{2}a^{\left(  \text{vdW}\right)  }+\rho^{2}B_{2}\right\}
 \nonumber\\
 \frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{C}\right)  }\left(  \rho\right)
-& =\rho\frac{\eta\left(  4-3\eta\right)  }{\left(  1-\eta\right)  ^{2}%
-}+A\left(  \frac{1}{2}\rho^{2}a^{\left(  \text{vdW}\right)  }\right)
-\nonumber
+&  =\rho\frac{\eta\left(  4-3\eta\right)  }{\left(  1-\eta\right)  ^{2}%
+}+A\left(  \frac{1}{2}\rho^{2}a^{\left(  \text{vdW}\right)  }\right) \nonumber
 \end{align}
 with%
 \begin{align}
-a^{\left(  \text{vdW}\right)  }  & =\int\beta w_{\text{att}}\left(  r\right)
+a^{\left(  \text{vdW}\right)  }  &  =\int\beta w_{\text{att}}\left(  r\right)
 d\mathbf{r}\\
-B_{2}\left[  v\right]    & =\frac{1}{2}\int f\left(  r_{12};\left[  v\right]
+B_{2}\left[  v\right]   &  =\frac{1}{2}\int f\left(  r_{12};\left[  v\right]
 \right)  d\mathbf{r}\nonumber
 \end{align}
 To summarize%
 \begin{align}
 \frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{vdW}\right)  }\left[
-\rho\right]    & =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[
+\rho\right]   &  =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[
 \rho\right]  \right)  +\frac{1}{2}\int\rho\left(  \mathbf{r}_{1}\right)
 \rho\left(  \mathbf{r}_{2}\right)  w_{\text{att}}\left(  r_{12}\right)
 d\mathbf{r}_{1}d\mathbf{r}_{2}\\
 \frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{A}\right)  }\left[  \rho\right]
-& =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
+&  =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
 +\frac{1}{2}\int\rho\left(  \mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}%
 _{2}\right)  \left\{  f\left(  r_{12};\left[  v\right]  \right)
 -\Theta\left(  d\left[  v\right]  -r_{12}\right)  \right\}  d\mathbf{r}%
 _{1}d\mathbf{r}_{2}\nonumber\\
 \frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{B}\right)  }\left[  \rho\right]
-& =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
+&  =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
 +\frac{1}{2}\int\rho\left(  \mathbf{r}_{1}\right)  \rho\left(  \mathbf{r}%
 _{2}\right)  w_{\text{att}}\left(  r_{12}\right)  d\mathbf{r}_{1}%
 d\mathbf{r}_{2}\nonumber\\
-& +A\left[  \rho\right]  \left\{  \frac{1}{2V}\int\rho\left(  \mathbf{r}%
+&  +A\left[  \rho\right]  \left\{  \frac{1}{2V}\int\rho\left(  \mathbf{r}%
 _{1}\right)  \rho\left(  \mathbf{r}_{2}\right)  \left\{  f\left(
 r_{12};\left[  v\right]  \right)  -\Theta\left(  d\left[  v\right]
 -r_{12}\right)  -\beta w_{\text{att}}\left(  r_{12}\right)  \right\}
-d\mathbf{r}_{1}d\mathbf{r}_{2}\right\}  \nonumber\\
+d\mathbf{r}_{1}d\mathbf{r}_{2}\right\} \nonumber\\
 \frac{1}{V}\beta F_{\text{ex}}^{\left(  \text{C}\right)  }\left[  \rho\right]
-& =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
-+A\left[  \rho\right]  \nonumber
+&  =F^{\text{HS}}\left(  d\left[  v\right]  ;\left[  \rho\right]  \right)
++A\left[  \rho\right] \nonumber
 \end{align}
 with%
 \begin{equation}

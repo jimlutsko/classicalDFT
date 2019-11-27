@@ -193,7 +193,7 @@ class SolidFCC : public Density
   int sequence_;
 
 #ifdef USE_MGL
-  Display *display_;
+  Display *display_ = NULL;
 #endif  
   
 

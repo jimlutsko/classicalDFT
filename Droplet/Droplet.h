@@ -41,6 +41,9 @@ class Droplet : public Density
 #ifdef USE_GRACE
       if(grace_  != NULL) delete grace_;
 #endif
+#ifdef USE_MGL
+      if(display_ != NULL) delete display_;
+#endif      
     }
    
   /**

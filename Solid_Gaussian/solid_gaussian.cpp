@@ -13,6 +13,9 @@ using namespace std;
 #include <omp.h>
 #endif
 
+#include <math.h>
+#include <nlopt.h>
+
 #include "options.h"
 
 #include "DFT.h"
@@ -21,7 +24,9 @@ using namespace std;
 #include "Log.h"
 
 bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double Amax, double &Fgau, double &Agau, double &prefac);
-
+bool Picard(SolidFCC& theDensity1, DFT& dft, Log& log, double mu);
+bool nlopt(SolidFCC& theDensity1, DFT& dft, Log& log1, double &F, double &alf, double &prefac, double &low);
+  
 int main(int argc, char** argv)
 {
   double eps1   = 1;
@@ -94,7 +99,8 @@ int main(int argc, char** argv)
 
   
   for(double kT = kTmin; kT < kTmax+dkT/2; kT += dkT)
-    {      
+    {
+      log << "kT = " << kT << endl;
       double hsd1 = potential1.getHSD(kT);
       
       // Part I: Starting with the smallest lattice parameter (number of cells),
@@ -107,8 +113,13 @@ int main(int argc, char** argv)
       vector<double> alf;
 
       double Amax = 10000;
-      double prefac = 1;
-      
+
+double Fgauss;
+	  double Agauss = 800;
+double Lgauss = 1e-4;
+double prefac = 0.995;
+
+
       for(int Npoints = Npoints_min; Npoints < Npoints_max; Npoints++)
 	{
 	  double L[] = {Npoints*dx, Npoints*dx, Npoints*dx};
@@ -126,16 +137,19 @@ int main(int argc, char** argv)
 	  log << " " << endl;
 	  log << "Npoints = " << Npoints << endl;
 
-	  double Fgauss;
-	  double Agauss;
-	  prefac = 1.0;
-	  if(findGaussian(theDensity1, dft, log, Amax, Fgauss, Agauss,prefac))	  
+
+//nlopt(theDensity1, dft, log);
+
+//if(findGaussian(theDensity1, dft, log, Amax, Fgauss, Agauss,prefac))
+if(nlopt(theDensity1, dft, log, Fgauss, Agauss,prefac, Lgauss))
+
 	    {
 	      Np.push_back(Npoints);
 	      F.push_back(Fgauss);
 	      alf.push_back(Agauss);
 	      Natoms.push_back(theDensity1.getNumberAtoms());
 
+//	      Picard(theDensity1, dft, log, -5);	      
 	      Amax = Agauss + 10;
 	    } else break;
 	}
@@ -232,6 +246,157 @@ double gaussianEval(double alf, SolidFCC& theDensity, DFT& dft, double &prefac, 
   return f;
 }
 
+double x_alf;
+SolidFCC *x_Density;
+DFT *x_DFT;
+Log *x_log;
+
+void deriv(const double alpha, const double prefac, const double lower, const DFT_Vec &df, double *grad)
+{
+  double a_latt = x_Density->Lx();
+    
+  double atoms[4][3];
+  
+  atoms[0][0] = 0.0;
+  atoms[0][1] = 0.0;
+  atoms[0][2] = 0.0;
+  
+  atoms[1][0] = a_latt/2;
+  atoms[1][1] = a_latt/2;
+  atoms[1][2] = 0.0;
+  
+  atoms[2][0] = a_latt/2;
+  atoms[2][1] = 0.0;
+  atoms[2][2] = a_latt/2;
+  
+  atoms[3][0] = 0.0;
+  atoms[3][1] = a_latt/2;
+  atoms[3][2] = a_latt/2;
+  
+  double dV = x_Density->dV();
+
+  int Nx = x_Density->Nx();
+  int Ny = x_Density->Ny();
+  int Nz = x_Density->Nz();
+
+  grad[0] = grad[1] = grad[2] = 0.0;
+  
+  for(int i=0;i<Nx;i++)
+    for(int j=0;j<Ny;j++)
+      for(int k=0;k<Nz; k++)
+	{
+	  double x = x_Density->getX(i);
+	  double y = x_Density->getY(j);
+	  double z = x_Density->getZ(k);
+	  
+	  double dsum = 0;
+	  double d0 = 0;
+	  double d1 = 0;
+
+	  long s = x_Density->pos(i,j,k);
+	  double g = df.get(s);
+	  
+	  for(int l=0;l<4;l++)	     
+	    {
+	      double dx = fabs(x-atoms[l][0]); if(dx > a_latt/2) dx -= a_latt;
+	      double dy = fabs(y-atoms[l][1]); if(dy > a_latt/2) dy -= a_latt;
+	      double dz = fabs(z-atoms[l][2]); if(dz > a_latt/2) dz -= a_latt;
+	      
+	      double r2 = dx*dx+dy*dy+dz*dz;
+	      double v = pow(alpha/M_PI,1.5)*exp(-alpha*r2);
+	      dsum += v*prefac;
+	      d0 += g*((1.5/alpha)-r2)*v*prefac;
+	      d1 += g*v;
+	    }
+	  if(dsum < lower)
+	    grad[2] += g;
+	  else {
+	    grad[0] += d0;
+	    grad[1] += d1;
+	  }
+	}
+}
+
+double myfunc(unsigned n, const double *x, double *grad, void *data)
+{
+  double f = 0.0;
+
+  try {
+
+    x_Density->initialize(10000*x[0], 1, exp(x[1]), exp(-1000*x[2]));
+    f = x_DFT->calculateFreeEnergyAndDerivatives(false);
+
+    if(grad) {deriv(10000*x[0],exp(x[1]), exp(-1000*x[2]), x_DFT->getDF(0),grad);
+
+    grad[0] *= 10000;
+    grad[1] *=  exp(x[1]);
+    grad[2] *= -1000*exp(-1000*x[2]);
+    }
+    
+  } catch(...) { f = HUGE_VAL;}
+
+  cout << "alf = " << 10000*x[0] << " pref = " << exp(x[1]) << " lower = " << exp(-1000*x[2]) << " f = " << f;
+  if(grad)cout << " grad: " << grad[0] << " " << grad[1] << " " << grad[2] << endl;
+  cout << endl;
+  return f;
+}
+
+
+
+
+bool nlopt(SolidFCC& theDensity1, DFT& dft, Log& log1, double &F, double &alf, double &prefac, double &low)
+{
+  x_Density = &theDensity1;
+  x_DFT = &dft;
+  x_log = &log1;
+
+  double lb[3] = {0.003,-HUGE_VAL, 0};
+  double ub[3] = {HUGE_VAL,0.0, HUGE_VAL};
+  
+  //nlopt_opt opt = nlopt_create(NLOPT_LN_COBYLA,3);
+  //       nlopt_opt opt = nlopt_create(NLOPT_LN_BOBYQA,3);
+  //    nlopt_opt opt = nlopt_create(NLOPT_LN_PRAXIS,2);
+  nlopt_opt opt = nlopt_create(NLOPT_LN_SBPLX,3);
+  //    nlopt_opt opt = nlopt_create(NLOPT_LD_MMA,3);
+    // nlopt_opt opt = nlopt_create(NLOPT_LD_LBFGS,3);
+  //nlopt_opt opt = nlopt_create(NLOPT_LD_TNEWTON_PRECOND_RESTART,3);  
+
+     
+   nlopt_set_lower_bounds(opt, lb);
+   nlopt_set_upper_bounds(opt, ub);   
+   nlopt_set_min_objective(opt, myfunc, NULL);
+
+   nlopt_set_xtol_rel(opt, 1e-4);
+   nlopt_set_ftol_abs(opt,1e-4);
+     
+   double x[3] = { 0.08, 0.995, 1 };  /* `*`some` `initial` `guess`*` */
+
+   x[0] = alf/10000;   
+   x[1] = log(prefac); //log(0.995);
+   x[2] = -log(low)/1000; //-log(1e-4)/1000;
+   
+   double minf; /* `*`the` `minimum` `objective` `value,` `upon` `return`*` */
+   if (nlopt_optimize(opt, x, &minf) < 0)
+     throw std::runtime_error("nlopt failed!");
+
+   F = minf/theDensity1.getVolume();
+
+
+
+   nlopt_destroy(opt);
+
+   alf    = 10000*x[0];   
+   prefac = exp(x[1]);
+   low    = exp(-1000*x[2]);
+
+   log1 << "Alf = " << alf << " prefac = " << prefac << " low = " << low << " f = " << F << endl;
+
+   
+   return true;
+}
+  
+
+
 bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double Amax, double &Fgau, double &Agau, double &prefac)
 {
   /////////////////////////////////////////////////////
@@ -244,7 +409,8 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double Amax, double
   double prefac_old = 0;
   bool isDecending = false;
   bool firstIteration = true;
-  for(double alf = 30; alf < Amax; alf += 10)
+  //  for(double alf = 30; alf < Amax; alf += 10)
+  for(double alf = 2000; alf < Amax; alf += 10)
     {
       f = gaussianEval(alf, theDensity1, dft, prefac,log);
       log << "alf = " << alf << " " << f << endl;
@@ -302,3 +468,27 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double Amax, double
   return true;
 }
 
+bool Picard(SolidFCC& theDensity1, DFT& dft, Log& log, double mu)
+{
+  double amix = 0.01;
+  double dV = theDensity1.dV();
+  
+  do {
+    dft.calculateFreeEnergyAndDerivatives(true);
+
+    cout << "Err = " << dft.get_convergence_monitor() << endl;
+    
+    auto &f = dft.getDF(0);
+    
+    for(long i=0;i<theDensity1.Ntot();i++)
+      {
+	double d = theDensity1.getDensity(i);
+	double F = f.get(i)/dV;
+	d = (1-amix)*d+amix*exp(mu-F);
+
+	theDensity1.set_Density_Elem(i, d);
+      }
+  } while(1);
+
+
+}
