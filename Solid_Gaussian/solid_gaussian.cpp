@@ -115,7 +115,7 @@ int main(int argc, char** argv)
       double Amax = 10000;
 
 double Fgauss;
-	  double Agauss = 800;
+	  double Agauss = 700;
 double Lgauss = 1e-4;
 double prefac = 0.995;
 
