@@ -79,9 +79,8 @@ class Interaction
 
 		long pos = nz+Nz*(ny+Ny*nx);
 
-		double r2 = x*x+y*y+z*z;
-		double w = v.Watt(sqrt(r2))/kT;
-
+		double r = sqrt(x*x+y*y+z*z);
+		double w = v.Watt(r)/kT;
 		w*= dx*dy*dz;
 		
 		a_vdw_ += w;
@@ -113,22 +112,25 @@ class Interaction
     // First, try to read the weights from a file
     
     stringstream ss1;
-    //    ss1 << "weights_" << s1_.getSequenceNumber() << "_" << s2_.getSequenceNumber() << ".dat";
     ss1 << "weights_"
 	<< s1_.getSequenceNumber() << "_"
 	<< s2_.getSequenceNumber() << "_"
 	<< Nx << "_"
 	<< Ny << "_"
 	<< Nz << "_"
-	<< v.getIdentifier() << "_"
-	<< ".dat";    
+	<< v.getIdentifier() << "_";
+    ss1 << ".dat";    
   
     bool readWeights = true;
     
     ifstream in(ss1.str().c_str(), ios::binary);
     if(!in.good())
-      {readWeights = false;     cout << myColor::GREEN  << "\n" <<  "Could not open file with potential kernal: it will be generated" << myColor::RESET << endl;}
-    else {
+      {
+	readWeights = false;
+	cout << myColor::GREEN << endl;
+	cout << "///////////////////////////////////////////////////////////" << endl;
+	cout << myColor::GREEN  << "\n" <<  "Could not open file with potential kernal: it will be generated" << myColor::RESET << endl;
+      } else {
       string buf;
       getline(in,buf);
 
@@ -170,41 +172,15 @@ class Interaction
     }
     // Introduce the temperature
     w_att_.Real().MultBy(1.0/kT);
-
+    a_vdw_ /= kT;
+    
     // Now generate the FFT of the field  
     w_att_.do_real_2_fourier();     
   }    
 
 
-  void reset(Potential1 &v, double kT, Log &log, string &pointsFile)
-  {
-    const Density &density = s1_.getDensity();
-    long Nx = density.Nx();
-    long Ny = density.Ny();
-    long Nz = density.Nz();
-    
-    w_att_.initialize(Nx,Ny,Nz);      
-    a_vdw_ = 0.0;
-
-    stringstream ss1;
-    //    ss1 << "weights_" << s1_.getSequenceNumber() << "_" << s2_.getSequenceNumber() << ".dat";
-    ss1 << "weights_"
-	<< s1_.getSequenceNumber() << "_"
-	<< s2_.getSequenceNumber() << "_"
-	<< Nx << "_"
-	<< Ny << "_"
-	<< Nz << "_"
-	<< kT << "_"      
-	<< ".dat";        
-    
-    generateWeights(pointsFile,v, ss1, log);
-    w_att_.do_real_2_fourier();           
-  }
-
-
   void generateWeights(string &pointsFile, Potential1 &v, stringstream &ss, Log& log)
   {    
-    log << "Calculating mean field potential ... " << endl;
     const Density &density = s1_.getDensity();
       
     // The lattice
@@ -303,12 +279,6 @@ class Interaction
     // Add up the weights for each point.
     // We throw in all permutations (iperm loop) of the integration points and all reflections (is loop)
     // to establish as much symmetry as possible. Probably unnecessary.    
-    cout << endl;
-    cout << myColor::GREEN;
-    cout << "///////////////////////////////////////////////////////////" << endl;
-    cout << "/////  Generating integration points for sphere volume " << endl;
-    cout << myColor::RESET << endl;
-
     // Get some Gauss-Lagrange integration points and weights for the radial integral
     int Nr = 128*4;
     gsl_integration_glfixed_table *tr = gsl_integration_glfixed_table_alloc(Nr);

@@ -178,7 +178,6 @@ class Density : public Lattice
   *   @return none
   */  
   void set_Density_Elem(int i, int j, int k, double val)   { set_Density_Elem(pos(i,j,k),val);}
-    //  { Density_.Real().set(pos(i,j,k),val);}
 
   /**
   *   @brief  set density at a given lattice position
@@ -195,7 +194,7 @@ class Density : public Lattice
   *   @param  x: amplitude
   *   @return none
   */  
-  void set_density_from_amplitude(const DFT_Vec &x) { Density_.Real().setFromAmplitude(SMALL_VALUE,x);}
+  void set_density_from_amplitude(const DFT_Vec &x) { Density_.Real().setFromAlias(x);}
 
   /**
   *   @brief  set density by copying given vector
@@ -357,7 +356,9 @@ class Density : public Lattice
   *   @return none
   */  
   void write_VTK_File(string &filename);
-  
+
+
+  DFT_FFT& getFullVector() { return Density_;}
  protected:
 
   DFT_FFT Density_;  // The arrays for the real and fourier components of the density

@@ -1,8 +1,8 @@
-#ifndef __DFT_LINALG_ARMA_LUTSKO__
-#define __DFT_LINALG_ARMA_LUTSKO__
+#ifndef __DFT_LINALG_EIGEN_LUTSKO__
+#define __DFT_LINALG_EIGEN_LUTSKO__
 
 
-#include <armadillo>
+#include <Eigen/Dense>
 
 #include "FMT_FFTW.h"
 
@@ -35,23 +35,23 @@ class DFT_Vec
   void set(const double *x, unsigned n) { data_.set_size(n); memcpy(data_.memptr(),x,sizeof(double)*n);} 
   
   void resize(long N) {data_.resize(N);}
-  void zeros(long N)  {data_.zeros(N);}
-  void zeros()  {data_.zeros();}
+  void zeros(long N)  {data_ = VectorXd::Zero(N);}
+  void zeros()  {data_ = Zero(data_.size());}
 
-  double inf_norm() const { return arma::norm(data_,"inf");}
-  double euclidean_norm() const { return arma::norm(data_);}
+  double inf_norm() const { return data_.lpNorm<Infinity>();}
+  double euclidean_norm() const { return data_.Norm()}
   void normalise() { MultBy(1.0/euclidean_norm());} // better data_ = arma::normalise(data_) ???
   
-  double min() const { return data_.min();} 
-  double max() const { return data_.max();} 
+  double min() const { return data_.minCoeff();} 
+  double max() const { return data_.maxCoeff();} 
 
-  double *memptr() { return data_.memptr();}
+  double *memptr() { return data_.data();}
 
   unsigned size() const { return data_.size();}
   
-  double dotWith(const DFT_Vec &v) const { return arma::dot(v.data_,data_);}
+  double dotWith(const DFT_Vec &v) const { return data_.dot(v.data_);}
 
-  double accu() const { return arma::accu(data_);}
+  double accu() const { return data_.sum();}
 
   void save(ofstream &of) const {data_.save(of);}
   void load(ifstream &in) {data_.load(in);}
@@ -65,10 +65,10 @@ class DFT_Vec
     
   void IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale) {data_ += v.data_*scale;}
 
-  void Schur(const DFT_Vec &v1, const DFT_Vec &v2) { data_ = v1.data_%v2.data_;}
+  void Schur(const DFT_Vec &v1, const DFT_Vec &v2) { data_ = v1.data_.cwiseProduct(v2.data_);}
   
  protected:
-  arma::vec data_;
+  VectorXd data_;
 };
 
 
@@ -88,8 +88,8 @@ class DFT_Vec_Complex
 
   void MultBy(double val)  { data_ *= val;}
   
-  void Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false) { if(bUseConj) data_ = v1.data_%conj(v2.data_); else data_ = v1.data_%v2.data_;}
-  void incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2) { data_ += v1.data_%v2.data_;}
+  void Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false) { if(bUseConj) data_ = v1.data_.cwiseProduct(conj(v2.data_)); else data_ = v1.data_.cwiseProduct(v2.data_);}
+  void incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2) { data_ += v1.data_.cwiseProduct(v2.data_);}
  
   void resize(long N) {data_.resize(N);}
   void zeros(long N)  {data_.zeros(N);}
@@ -102,7 +102,7 @@ class DFT_Vec_Complex
   unsigned size() const { return data_.size();}
  
  protected:
-  arma::cx_vec data_;
+  VectorXcd data_;
 };
 
 /**
@@ -152,4 +152,4 @@ class DFT_FFT
 };
 
 
-#endif // __DFT_LINALG_ARMA_LUTSKO__
+#endif // __DFT_LINALG_EIGEN_LUTSKO__

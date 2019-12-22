@@ -26,6 +26,8 @@ class Species
 
   void doDisplay(string &title, string &file) const { density_.doDisplay(title,file, seq_num_);}
   void set_density_from_amplitude(DFT_Vec &x) {density_.set_density_from_amplitude(x);}
+  void set_density(DFT_Vec &x) {density_.set(x);}
+  void set_density(long j, double x) {density_.set_Density_Elem(j,x);}
 
   void zeroForce() {dF_.zeros();}
   void addToForce(long i, double v) {dF_.IncrementBy(i,v);}
@@ -166,7 +168,7 @@ public:
    *   @param  pos is the mesh position
    *   @return none
    */        
-  void Set_dPhi_Eta(long i,double val)             {d_[EI()].Set_dPhi(i,val);}
+  void Set_dPhi_Eta(long i,double val)  {d_[EI()].Set_dPhi(i,val);}
 
   /**
    *   @brief  set value of dPhi_dS at pos
@@ -227,6 +229,14 @@ public:
       d_[i].add_to_dPhi(dPhi);
   }
 
+  FMT_Weighted_Density& getEta() { return d_[0];}
+  // density from eta
+  void set_density_from_eta()
+  {
+    d_[0].extractDensity(density_.getFullVector());
+  }
+
+  
   // Used in DFT_Surfactant ...
   const DFT_Vec &getV_Real(int J) const { return d_[VI(J)].Real();}
   const DFT_Vec_Complex& getVweight_Four(int J) const { return d_[VI(J)].wk();}  

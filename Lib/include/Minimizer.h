@@ -63,6 +63,9 @@ class Minimizer
   double f_abs_max_; // max absolute value of dF_
   bool bFrozenBoundary_;
   ostream &log_;
+
+  double vv_ = 0;
+
 };
 
 /**
@@ -268,31 +271,231 @@ class fireMinimizer_Mu : public Minimizer
   *
   */
 
-class fireMinimizer2 : public fireMinimizer_Mu
+class fireMinimizer2 : public Minimizer //fireMinimizer_Mu
 {
  public:
- fireMinimizer2(DFT &dft, ostream &log) :  fireMinimizer_Mu(dft, log) {}
+  fireMinimizer2(DFT &dft, ostream &log);
 
-  virtual void   initialize(){ fireMinimizer_Mu::initialize(); N_P_positive_ = N_P_negative_ = 0;}
+  virtual void   initialize();
   virtual double step();
-  virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
 
-  void setFudgeFactor(double f) { fudge_ = f;}
   double getRMS_Force() const { return rms_force_;}
+
+  void onlyRelaxSpecies(int j) { onlyRelax_ = j;}  
+  
+  virtual int  draw_during(){ log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;  return 1;}
+  //  virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
+
+  void setTimeStep(double dt)    { dt_ = dt;}
+  void setTimeStepMax(double dt) { dt_max_ = dt;}  
+  void setAlphaStart(double a)   { alpha_start_ = a;}
+  void setAlphaFac(double a)     { f_alf_ = a;}
+  void setBacktrackFac(double a) { f_back_ = a;}  
   
  protected:
   void SemiImplicitEuler(int begin, int end);
   
  protected:
+ vector<DFT_Vec> v_;
+
+  int onlyRelax_ = -1;
+
+  double alpha_start_ = 0.1;
+  double f_dec_    = 0.5;
+  double f_inc_    = 1.1;
+  double f_alf_    = 0.99;
+  double f_back_   = 0.8;
+  double dt_max_;
+  double dt_;
+
+  unsigned it_;     ///< Loop counter
+  unsigned cut_;    ///< used to keep track of number of steps P >0
+  int N_delay_ = 5;
+  double alpha_;
+  
   int N_P_positive_ = 0;
   int N_P_negative_ = 0;
 
   double rms_force_ = 0.0; // for reporting
+  double vnorm_     = 0.0; // for reporting
   
   double dt_min_ = 0.0;        ///< minimum allowed timestep
   bool initial_delay_ = true; ///< flag to allow for a warmup period
   int N_P_negative_max_ = 20;
-  double fudge_ = 0.1;
+  int steps_since_backtrack_ = 0;
+
+  double threshold_ = 0.0;
+  double fmax_ = 0.0;
+};
+
+class adamMinimizer : public Minimizer
+{
+ public:
+ adamMinimizer(DFT &dft, ostream &log) :  Minimizer(dft, log)
+    {
+      m_.resize(dft_.getNumberOfSpecies());
+      s_.resize(dft_.getNumberOfSpecies());      
+      for(auto &m: m_) m.resize(dft_.lattice().Ntot());
+      for(auto &s: s_) s.resize(dft_.lattice().Ntot());
+    }
+
+  virtual void   initialize()
+  {
+    Minimizer::initialize();
+    
+    F_ = getDF_DX();
+
+    beta1_t_ = beta1_;
+    beta2_t_ = beta2_;
+    
+    for(auto &m: m_)
+      m.zeros(m.size());
+    for(auto &s: s_)
+      s.zeros(s.size());    
+  }
+
+  void setTimeStep(double dt) { dt_ = dt_start_ = dt;}
+
+  virtual double step()
+  {
+    int numSpecies = dft_.getNumberOfSpecies();
+    
+    vector<DFT_Vec> x_rem(numSpecies);
+    vector<DFT_Vec> m_rem(numSpecies);
+    vector<DFT_Vec> s_rem(numSpecies);
+
+    for(int Jspecies =0; Jspecies < numSpecies; Jspecies++)
+      {
+	x_rem[Jspecies].set(x_[Jspecies]);
+	m_rem[Jspecies].set(m_[Jspecies]);
+	s_rem[Jspecies].set(s_[Jspecies]);
+      }
+
+    long Ntot = x_[0].size();
+
+    for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
+      for(long i = 0; i<Ntot; i++)
+	{
+	  double d = dft_.getDF(Jspecies).get(i);
+	  double mm = m_[Jspecies].get(i)*beta1_+(1-beta1_)*d;
+	  double ss = s_[Jspecies].get(i)*beta2_+(1-beta2_)*d*d;
+	  
+	  m_[Jspecies].set(i, mm);
+	  s_[Jspecies].set(i, ss);
+	}
+
+    try {
+      for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
+	for(long i = 0; i<Ntot; i++)
+	  {
+	    double mm = m_[Jspecies].get(i);
+	    double ss = s_[Jspecies].get(i);	    
+	    x_[Jspecies].set(i,x_[Jspecies].get(i) - dt_*(mm/(1-beta1_t_))/(small_eps_ + sqrt(ss/(1-beta2_t_))));
+	  }
+      F_ = getDF_DX();
+      dt_ = min(dt_*2, dt_start_);
+    } catch (Eta_Too_Large_Exception &e) {
+      dt_ /= 2;
+      log_ << "Backtrack .. dt_ is now " << dt_ << endl;
+    }
+    beta1_t_ *= beta1_;
+    beta2_t_ *= beta2_;
+    return F_;
+  }
+  virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
+  double getRMS_Force() const { return rms_force_;}
+
+int draw_during()
+{
+  log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
+  return 1;
+}
+  
+ protected:
+  double beta1_ = 0.9;
+  double beta2_ = 0.99;
+
+  double beta1_t_ = 0.9;
+  double beta2_t_ = 0.99;
+  
+  double small_eps_ = 1e-8;
+  vector<DFT_Vec> m_;
+  vector<DFT_Vec> s_;
+
+  double dt_ = 1;
+  double dt_start_ = 1;
+  
+  double rms_force_ = 0.0; // for reporting
+};
+
+
+class picardMinimizer : public Minimizer
+{
+ public:
+ picardMinimizer(DFT &dft, ostream &log, double alpha) :  Minimizer(dft, log), alpha_(alpha) {}
+
+  virtual void   initialize()
+  {
+    step_counter_ = 0;
+    calls_ = 0;
+    
+    try {
+      F_ = dft_.calculateFreeEnergyAndDerivatives(false);   
+    } catch( Eta_Too_Large_Exception &e) {
+      throw e;
+    }
+  }
+
+  virtual double step()
+  {
+    int numSpecies = dft_.getNumberOfSpecies();
+    long Ntot = x_[0].size();
+    double dV = dft_.getDensity(0).dV();
+
+    vector<DFT_Vec> x_rem(numSpecies);
+
+    for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
+      x_rem[Jspecies].set(dft_.getDensity(Jspecies).getDensity());
+
+    bool bSuccess = false;
+    do{
+      try {
+	for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
+	  for(long i = 0; i<Ntot; i++)
+	    {
+	      double x = dft_.getDensity(Jspecies).getDensity(i);
+	      double df = dft_.getDF(Jspecies).get(i)/dV;	      	      
+	      df -= log(x);	      
+	      dft_.set_density(Jspecies, i, (1-alpha_)*x + alpha_*exp(-df));	    
+	    }	
+	calls_++;
+	F_ = dft_.calculateFreeEnergyAndDerivatives(false);
+	bSuccess = true;
+      } catch (Eta_Too_Large_Exception &e) {
+	alpha_ /= 2;
+	log_ << "Backtrack .. alpha_ is now " << alpha_ << endl;
+	
+	for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
+	  dft_.set_density(Jspecies, x_rem[Jspecies]);	
+      }
+    } while(!bSuccess);
+    return F_;
+  }
+
+
+  
+  virtual void draw_after() { cout << "alpha_ = " << alpha_ << endl;}
+  double getRMS_Force() const { return rms_force_;}
+
+  int draw_during()
+  {
+    log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
+    return 1;
+  }
+  
+ protected:
+  double alpha_ = 0.1;
+  double rms_force_ = 0.0; // for reporting
 };
 
 
