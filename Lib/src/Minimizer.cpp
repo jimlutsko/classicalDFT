@@ -17,8 +17,6 @@ using namespace std;
 void Minimizer::run(long maxSteps)
 {
   initialize();
-
-  
   
   log_ << "Initialized ... removing old images ... " << endl;
 

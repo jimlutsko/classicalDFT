@@ -396,12 +396,7 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
 
   exit(0);
 
-  */
-
-
-
-	  
-
+  */      
   
   //check(theDensity1, dft,i1);
 
