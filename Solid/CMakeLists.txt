@@ -30,6 +30,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/../scripts)
 find_package(GSL REQUIRED)
 find_package(OpenMP)
 find_package(Armadillo  REQUIRED)
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OMP)
@@ -47,6 +48,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   "armadillo"
   "fftw3_omp"
   "fftw3"
+  Eigen3::Eigen  
   )
 
 target_link_libraries(LIQVAP PUBLIC

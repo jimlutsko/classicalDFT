@@ -58,6 +58,11 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
 bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Dret);
 
 
+<<<<<<< HEAD
+=======
+double bmu = 1e-20;
+
+>>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 /*
 class myMin : public adamMinimizer
 {
@@ -169,6 +174,9 @@ int main(int argc, char** argv)
     {
       bool bstarted = false;
       double f_prev = 0;
+      log << "Mu = " << Mu << " kT = " << kT << endl;
+      
+      bmu = Mu/kT;
       
       for(int Npoints = Npoints_min; Npoints < Npoints_max; Npoints++)
 	{
@@ -289,7 +297,7 @@ double gaussianEval(double alf, SolidFCC& theDensity, DFT& dft, double &prefac, 
   while(!bSuccess)
     {
       try {
-	theDensity.initialize(alf, 1, prefac);
+	theDensity.initialize(alf, 1, prefac, exp(bmu));
 	f = dft.calculateFreeEnergyAndDerivatives(false);
 	bSuccess = true;
       } catch (...) {
@@ -365,7 +373,11 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, doubl
       if(f1 < f2) {Agau = x1; Fgau = f1;}
       else { Agau = x2; Fgau = f2;}
 
+<<<<<<< HEAD
       theDensity1.initialize(Agau, 1, prefac); //_old);      
+=======
+      theDensity1.initialize(Agau, 1, prefac, exp(bmu)); //_old);      
+>>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
       log << "Found: alf = " << Agau << " prefac = " << prefac_old << " f = " << Fgau << endl;
 
       Fgau /= theDensity1.getVolume();
@@ -379,7 +391,11 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, doubl
 
 bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cvac)
 {
+<<<<<<< HEAD
   double f = dft.calculateFreeEnergyAndDerivatives(false);
+=======
+  /*  double f = dft.calculateFreeEnergyAndDerivatives(false);
+>>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 
   for(int i=0;i<10;i++)
     cout << "i = " << i << " density = " << theDensity1.getDensity(i) << endl;
@@ -391,12 +407,16 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
 
   exit(0);
 
+<<<<<<< HEAD
 
 
 
 
 	  
 
+=======
+  */      
+>>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
   
   //check(theDensity1, dft,i1);
 
@@ -411,6 +431,7 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
   minimizer.setAlphaFac(alphaFac);
   minimizer.run(maxSteps);
 
+<<<<<<< HEAD
   char cc;
   cin >> cc;
 
@@ -421,6 +442,8 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
   minimizer1.setAlphaStart(alpha_start);
   minimizer1.setAlphaFac(alphaFac);
   minimizer1.run(maxSteps);
+=======
+>>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 
   double Natoms = theDensity1.getNumberAtoms();
   double Omega = minimizer.getF();
@@ -577,7 +600,7 @@ bool doCalc(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cva
     return false;
   }
 
-  theDensity1.initialize(alf_old, 1, prefac_old);
+  theDensity1.initialize(alf_old, 1, prefac_old, exp(bmu));
   
   //check(theDensity1, dft,i1);
 
