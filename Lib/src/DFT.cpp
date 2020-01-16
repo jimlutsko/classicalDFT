@@ -33,7 +33,11 @@ double DFT::Omega(const vector<double> &x) const
 {
   double omega = Fhelmholtz(x);
   for(int i=0;i<allSpecies_.size();i++)
-    if(fabs(x[i]) > SMALL_VALUE) omega -= x[i]*Mu(x,i);
+    omega -= x[i]*Mu(x,i);
+
+  //  for(int i=0;i<allSpecies_.size();i++)
+  //    if(fabs(x[i]) > SMALL_VALUE) omega -= x[i]*Mu(x,i);
+  
   return omega;
 }
 
@@ -41,7 +45,7 @@ double DFT::Fhelmholtz(const vector<double> &x) const
 {
   double F = 0.0;
   for(auto &y: x)
-    if(fabs(y) > SMALL_VALUE)
+    //    if(fabs(y) > SMALL_VALUE)
       F += y*log(y)-y;
   if(fmt_)
     F += fmt_->BulkFex(x, allSpecies_);
@@ -94,7 +98,6 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	for(i=0;i<Ntot;i++)
 	  {
 	    double d0 = density.getDensity(i);
-	    if(d0 <= -SMALL_VALUE) d0 = SMALL_VALUE; // should never happen!
 	    F += (d0*log(d0)-d0)*dV;
 	    species->addToForce(i,log(d0)*dV);
 	  }

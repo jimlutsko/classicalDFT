@@ -131,7 +131,11 @@ class DFT
    *   @param x is the amplitde
    */  
   void set_density_from_amplitude(int i,DFT_Vec &x) {allSpecies_[i]->set_density_from_amplitude(x);}
+  void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
+  void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
 
+  void set_density_from_eta(int Jspecies) {((FMT_Species*) allSpecies_[Jspecies])->set_density_from_eta();}
+  
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
 
   /**

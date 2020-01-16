@@ -6,7 +6,6 @@
 
 #include "FMT_FFTW.h"
 
-
 /**
   *  @brief UTILITY: A wrapper for linear algebra packages. The idea is to be able to easily change libraries without changing any other code. Probably overkill and could be eliminated.
   */  
@@ -22,7 +21,10 @@ class DFT_Vec
 
   void set(const DFT_Vec& x) { data_ = x.data_;} 
   void set(const DFT_Vec& v1, const DFT_Vec& v2, double scale) { data_ = v1.data_+v2.data_*scale;}
-  void setFromAmplitude(double v, const DFT_Vec &x) { data_ = v + square(x.data_);}
+
+  void setFromAlias(const DFT_Vec &x)       { data_ = exp(x.data_);}
+  void setAliasFromValues(const DFT_Vec &x) { data_ = log(x.data_);}
+  void alias_Jacobian(const DFT_Vec &x)     { data_ %= exp(x.data_);}
 
   void set(const double *x, unsigned n) { data_.set_size(n); memcpy(data_.memptr(),x,sizeof(double)*n);} 
   

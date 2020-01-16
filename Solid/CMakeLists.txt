@@ -11,7 +11,7 @@ add_executable(${PROJECT_NAME}  ${PROJECT_SOURCE_DIR}/ljsolidfcc.cpp ../Lib/src/
 add_executable(LIQVAP  ${PROJECT_SOURCE_DIR}/LiquidVapor.cpp ../Lib/src/VDW1.cpp)
 
 #MODIFY: enable these lines if you want to use Grace (Grace.h, Grace.cpp)
-#set(USE_GRACE true)
+set(USE_GRACE true)
 
 #MODIFY: enable these lines if you want to use Display object (Display.h: creates png images)
 #set(USE_MGL true)

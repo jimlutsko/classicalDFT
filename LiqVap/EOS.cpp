@@ -14,6 +14,9 @@
 
 using namespace std;
 
+#include "Potential1.h"
+#include "VDW1.h"
+
 #include "EOS.h"
 #include "LJ.h"
 #include "myColor.h"
@@ -22,49 +25,115 @@ using namespace std;
 #endif
 
 
+
+
 int main()
 {
-  double kT = 1;
-  double density = 0.5;
+  double kT = 0.5;
+  double density = 0.15;
 
-  JZG eos;
+double rcut1 = 3.0;
+
+JZG eos(rcut1);
+  //WRDF_Colloid eos;
   eos.findCriticalPoint(density,kT);
-  cout << "density = " << density << " kT = " << kT << endl;
+  cout << "critical density = " << density << " kT = " << kT << endl;
 
   Grace g;
 
   double dT = 0.001;
 
+  
   double x1 = 0.8;
   double x2 = 0.001;
 
   double xs1 = 0.7;
   double xs2 = 0.01;
   
-  for(double kT1 = 0.6; kT1 < kT; kT1 += dT)
-    {
-      if(eos.findCoexistence(x1,x2,kT1))
-	{
-	  g.addPoint(max(x1,x2),kT1,0);
-	  g.addPoint(min(x1,x2),kT1,1);
-	  g.redraw();
-	}
+  /*
+  double x1 = 0.5;
+  double x2 = 0.001;
 
-      if(eos.findSpinodal(xs1,xs2,kT1))
-	{
-	  g.addPoint(max(xs1,xs2),kT1,2);
-	  g.addPoint(min(xs1,xs2),kT1,3);
-	  g.redraw();
-	}      
-    }
+  double xs1 = 0.3;
+  double xs2 = 0.01;
+  */
+  /*
+  double x1 = density*4.0;
+  double x2 = density/100.0;
+
+  double xs1 = (x1+density)/2;
+  double xs2 = 10*x2;
+  */
+
+
   g.addPoint(density,kT,0);
   g.addPoint(density,kT,1);
 
   g.addPoint(density,kT,2);
   g.addPoint(density,kT,3);  
+
+
+  x1 = density-0.1;
+  x2 = density+0.1;
+
+  xs1 = (x1+density)/2;
+  xs2 = (x2+density)/2;
+
+double sigma1 = 1.0;
+double eps1   = 1.0;
+
+
+  LJ potential1(sigma1, eps1, rcut1);
+  potential1.set_WCA_limit(0.625);
+  
+  //  for(double kT1 = kT/3; kT1 < kT; kT1 += dT)
+  for(double kT1 = kT-0.01; kT1 > kT/3; kT1 -= dT)
+    {
+double hsd1 = potential1.getHSD(kT1);
+hsd1 = 0.967;
+potential1.set_WCA_limit(hsd1);
+  VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT1));  
+
+
+if(eos.findCoexistence(x1,x2,kT1))
+	{
+	  g.addPoint(max(x1,x2),kT1,0);
+	  g.addPoint(min(x1,x2),kT1,1);
+	  g.redraw();
+	}
+      //    xs1 = (min(x1,x2)+density)/2;
+      //      xs2 = (max(x1,x2)+density)/2;
+      if(eos.findSpinodal(xs1,xs2,kT1))
+	{
+	  g.addPoint(max(xs1,xs2),kT1,2);
+	  g.addPoint(min(xs1,xs2),kT1,3);
+	  g.redraw();
+	}
+      double xw1 = 1e-10;
+      double xw2 = 1;
+try{
+      vdw.findCoexistence(xw1,xw2);
+      g.addPoint(max(xw1,xw2),kT1,4);
+      g.addPoint(min(xw1,xw2),kT1,5);
+      g.redraw();
+} catch (...) {}
+    }
     
   g.redraw();
   g.pause();
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   g.close();  
   

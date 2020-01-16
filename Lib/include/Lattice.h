@@ -118,7 +118,13 @@ class Lattice
    *  
    *   @return i(ix,iy,iz)
    */  
-  inline long pos(long i, long j, long k) const { return k + Nz_*(j +  Ny_*i);}
+  inline long pos(long i, long j, long k) const
+  {
+    if(i < 0 || i >= Nx_) throw std::runtime_error("ix out of bounds");
+    if(j < 0 || j >= Ny_) throw std::runtime_error("iy out of bounds");
+    if(k < 0 || k >= Nz_) throw std::runtime_error("iz out of bounds");
+    return k + Nz_*(j +  Ny_*i);
+  }
 
     /**
    *  @brief  Translated single index into cartesian indices

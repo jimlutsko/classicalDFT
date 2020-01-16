@@ -41,13 +41,16 @@ double dt = 1e-3;
 double dtMax = 1;
 double alpha_start = 0.01;
 double alphaFac = 1;
-double fudgeFactor = 0.1;
+
+double cutoff = -1;
+
 
 bool showGraphics = true;
 
 int maxSteps = -1;
 
-double prefac = 1;
+//double prefac = 1;
+double prefac = 0.995;
 double dx = 0.1;
 
 bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, double &Agau);
@@ -55,25 +58,27 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
 bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Dret);
 
 
+/*
+class myMin : public adamMinimizer
+{
+public:
+  myMin(DFT &dft, ostream &log) :  adamMinimizer(dft, log) {}
+  virtual void draw_after() { cout << "dt_ = " << dt_ << " rms_force = " << rms_force_ << endl;}
+};
+
+*/
+
 class myMin : public fireMinimizer2
 {
 public:
-  myMin(DFT &dft, ostream &log) :  fireMinimizer2(dft, log) {}
-
+  myMin(DFT &dft, ostream &log, double t = 1) :  fireMinimizer2(dft, log) { threshold_ = t;}
   virtual void draw_after()
   {
-    if(step_counter_ == 1500) //6000)
-      {
-	//	fudge_ *= 0.1;
-	dt_max_ *= 100;
-	
-      }
-    cout << "dt_ = " << dt_ << " rms_force = " << rms_force_ << endl;
-    
+    cout << "dt_ = " << dt_ << " dt_max_ = " << dt_max_ << " rms_force = " << rms_force_ << " rms_velocity = " << vnorm_ << " fmax = " << fmax_ << endl;    
   }
 };
 
-  
+
 
 int main(int argc, char** argv)
 {
@@ -102,6 +107,8 @@ int main(int argc, char** argv)
   options.addOption("Mu_min",   &Mu_min);
   options.addOption("Mu_max",   &Mu_max);
   options.addOption("Mu_step",  &Mu_step);
+
+  options.addOption("AttractiveCutoff", &cutoff);
   
   options.addOption("eps1",   &eps1);
   options.addOption("sigma1", &sigma1);
@@ -117,7 +124,6 @@ int main(int argc, char** argv)
   options.addOption("TimeStepMax", &dtMax);
   options.addOption("AlphaStart", &alpha_start);
   options.addOption("AlphaFac", &alphaFac);
-  options.addOption("FudgeFac", &fudgeFactor);
   options.addOption("MaxSteps", &maxSteps);
 
   options.addOption("InputFile", &infile);
@@ -127,12 +133,12 @@ int main(int argc, char** argv)
   options.read(argc, argv);
 
   Log log("log.dat");
-  log << myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
+  log << myColor::GREEN << "#=================================" << myColor::RESET << endl << "#" << endl;
 
-  log << myColor::RED << myColor::BOLD << "Input parameters:" << myColor::RESET << endl <<  "#" << endl;
+  log << myColor::RED << myColor::BOLD << "#Input parameters:" << myColor::RESET << endl <<  "#" << endl;
 
   options.write(log);
-  log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+  log <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
 
   
 #ifdef USE_OMP    
@@ -149,8 +155,12 @@ int main(int argc, char** argv)
   ////// Create potential && effective hsd
 
   LJ potential1(sigma1, eps1, rcut1);
+  potential1.setBH();
+  //potential1.set_WCA_limit(0.79);
 
   if(hsd1 < 0) hsd1 = potential1.getHSD(kT);
+
+  if(cutoff < -1) cutoff = hsd1;
   
   ofstream of("scan.dat");
   of.close();
@@ -165,14 +175,17 @@ int main(int argc, char** argv)
 	  double L[] = {Npoints*dx, Npoints*dx, Npoints*dx};
 	  SolidFCC theDensity1(dx, L);  
 
-	  hsd1 = potential1.getHSD(kT);
-	  
 	  double F;
 	  double Cvac;
 
-	  FMT_Species species1(theDensity1,hsd1,pointsFile,Mu,Npoints);
+	  FMT_Species species1(theDensity1,hsd1,pointsFile,Mu);
 	  Interaction i1(species1,species1,potential1,kT,log, pointsFile);
 	  RSLT fmt;
+
+	  log << "VDW(potential)   = " << potential1.getVDW_Parameter(kT) << endl;
+	  log << "VDW(interaction) = " << 0.5*i1.getVDWParameter() << endl;
+
+	  theDensity1.setSpecies(&species1);
 
 	  DFT dft(&species1);
 	  dft.addHardCoreContribution(&fmt);  
@@ -182,6 +195,7 @@ int main(int argc, char** argv)
 	  
 	  if(Npoints == Npoints_min)
 	    {
+	      //	      VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT));
 	      VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT));
 	      double xliq = vdw.findLiquidFromMu(Mu, 1.0);
 	      double xvap = vdw.findVaporFromMu(Mu, 1.0);
@@ -201,6 +215,7 @@ int main(int argc, char** argv)
 		 << endl;  
 	      of.close();      
 	    }
+
 	  double Fgauss, Agauss;
 	  if(findGaussian(theDensity1, dft, log, Fgauss, Agauss))	  
 	    if(GaussianOnly || findMinimum(theDensity1, dft, log, F, Cvac))
@@ -244,7 +259,7 @@ bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &
 
   theDensity1.initializeUniform(Dret);
   
-  log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+  log <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
   
   myMin minimizer(dft,log);
   minimizer.setForceTerminationCriterion(forceLimit);
@@ -252,14 +267,13 @@ bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
   minimizer.setAlphaFac(alphaFac);
-  minimizer.setFudgeFactor(fudgeFactor);
   minimizer.run(maxSteps); 
 
   double Natoms = theDensity1.getNumberAtoms();
   double Omega = minimizer.getF();
   //  double dOmega = Omega-L[0]*L[1]*L[2]*dft.Omega(densities);
 
-  log <<  myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
+  log <<  myColor::GREEN << "#=================================" << myColor::RESET << endl << "#" << endl;
   log << "Final Uniform Natoms               : " << Natoms << endl;
   log << "Final Omega                : " << Omega << endl;
 
@@ -293,9 +307,9 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, doubl
   log << "Lx  = " << L[0] << endl;
   log << "HSD = " << hsd1 << endl;
 
-  log << " " << endl;
+  log << "# " << endl;
   log << "Determining gaussian approximation" << endl;
-  log << " " << endl;
+  log << "# " << endl;
 
   double f = 0;
   double f_old = 0;
@@ -351,7 +365,7 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, doubl
       if(f1 < f2) {Agau = x1; Fgau = f1;}
       else { Agau = x2; Fgau = f2;}
 
-      theDensity1.initialize(Agau, 1, prefac_old);      
+      theDensity1.initialize(Agau, 1, prefac); //_old);      
       log << "Found: alf = " << Agau << " prefac = " << prefac_old << " f = " << Fgau << endl;
 
       Fgau /= theDensity1.getVolume();
@@ -365,24 +379,54 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, doubl
 
 bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cvac)
 {
+  double f = dft.calculateFreeEnergyAndDerivatives(false);
+
+  for(int i=0;i<10;i++)
+    cout << "i = " << i << " density = " << theDensity1.getDensity(i) << endl;
+
+  dft.set_density_from_eta(0);
+
+  for(int i=0;i<10;i++)
+    cout << "i = " << i << " density = " << theDensity1.getDensity(i) << endl;
+
+  exit(0);
+
+
+
+
+
+	  
+
+  
   //check(theDensity1, dft,i1);
 
-  log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+  log <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
+
   
-  myMin minimizer(dft,log);
+  myMin minimizer(dft,log,1);
   minimizer.setForceTerminationCriterion(forceLimit);
   minimizer.setTimeStep(dt);
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
   minimizer.setAlphaFac(alphaFac);
-  minimizer.setFudgeFactor(fudgeFactor);
-  minimizer.run(maxSteps); 
+  minimizer.run(maxSteps);
+
+  char cc;
+  cin >> cc;
+
+  myMin minimizer1(dft,log,-1);
+  minimizer1.setForceTerminationCriterion(forceLimit);
+  minimizer1.setTimeStep(dt);
+  minimizer1.setTimeStepMax(dtMax);
+  minimizer1.setAlphaStart(alpha_start);
+  minimizer1.setAlphaFac(alphaFac);
+  minimizer1.run(maxSteps);
 
   double Natoms = theDensity1.getNumberAtoms();
   double Omega = minimizer.getF();
   //  double dOmega = Omega-L[0]*L[1]*L[2]*dft.Omega(densities);
 
-  log <<  myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
+  log <<  myColor::GREEN << "#=================================" << myColor::RESET << endl << "#" << endl;
   log << "Final Natoms               : " << Natoms << endl;
   log << "Final Vacancy Concentration: " << (4.0-Natoms)/theDensity1.getVolume() << endl;  
   log << "Final Omega                : " << Omega << endl;
@@ -537,7 +581,7 @@ bool doCalc(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cva
   
   //check(theDensity1, dft,i1);
 
-  log <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+  log <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
   
   myMin minimizer(dft,log);
   minimizer.setForceTerminationCriterion(forceLimit);
@@ -545,14 +589,13 @@ bool doCalc(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cva
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
   minimizer.setAlphaFac(alphaFac);
-  minimizer.setFudgeFactor(fudgeFactor);  
   minimizer.run(maxSteps); 
 
   double Natoms = theDensity1.getNumberAtoms();
   double Omega = minimizer.getF();
   //  double dOmega = Omega-L[0]*L[1]*L[2]*dft.Omega(densities);
 
-  log <<  myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
+  log <<  myColor::GREEN << "#=================================" << myColor::RESET << endl << "#" << endl;
   log << "Final Natoms               : " << Natoms << endl;
   log << "Final Vacancy Concentration: " << (4.0-Natoms)/theDensity1.getVolume() << endl;  
   log << "Final Omega                : " << Omega << endl;

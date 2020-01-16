@@ -37,9 +37,9 @@ class EOS
    double Pressure(double density, double kT) const { return kT*density+density*density*dphix_dx(density,kT);}
 
    double dP_dx(double x, double kT)    const { return kT+2*x*dphix_dx(x,kT) + x*x*dphix_dx2(x,kT);}
-   double dP_dxdT(double x, double kT)  const { return 1.0+2*x*dphix_dxdT(x,kT) + x*x*dphix_dx2dT(x,kT);}
+   //   double dP_dxdT(double x, double kT)  const { return 1.0+2*x*dphix_dxdT(x,kT) + x*x*dphix_dx2dT(x,kT);}
    double dP_dx2(double x, double kT)   const { return 2*dphix_dx(x,kT)+4*x*dphix_dx2(x,kT)+x*x*dphix_dx3(x,kT);}
-   double dP_dx2dT(double x, double kT) const { return 2*dphix_dxdT(x,kT)+4*x*dphix_dx2dT(x,kT)+x*x*dphix_dx3dT(x,kT);}
+   //   double dP_dx2dT(double x, double kT) const { return 2*dphix_dxdT(x,kT)+4*x*dphix_dx2dT(x,kT)+x*x*dphix_dx3dT(x,kT);}
    
    // excess free energy per atom:  F/N
    virtual double phix(double density, double kT)  const = 0;
@@ -53,9 +53,9 @@ class EOS
    // 3rd derivative of excess free energy per atom :  d3(F/N)/d32       
    virtual double dphix_dx3(double density, double kT) const = 0;
 
-   virtual double dphix_dxdT(double density, double kT) const = 0;
-   virtual double dphix_dx2dT(double density, double kT) const = 0;
-   virtual double dphix_dx3dT(double density, double kT) const = 0;
+   //   virtual double dphix_dxdT(double density, double kT) const = 0;
+   //   virtual double dphix_dx2dT(double density, double kT) const = 0;
+   //   virtual double dphix_dx3dT(double density, double kT) const = 0;
 
    bool findCriticalPoint(double &density, double &kT) const;
    bool findCoexistence(double &x1, double &x2, double &kT) const;
@@ -311,6 +311,111 @@ class JZG : public EOS
   double gamma; // fixed parameter (could be adjusted???)
   double da_; // correction to fe due to shifted and truncated cutoff.
   double x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17,x18,x19,x20,x21,x22,x23,x24,x25,x26,x27,x28,x29,x30,x31,x32;
+};
+
+
+
+class WRDF_Colloid : public EOS
+{
+ public:
+ WRDF_Colloid() : EOS()
+    {
+      a_[0][0] = -1.10009;
+      a_[0][1] = 6.27642;
+      a_[0][2] = -13.5539;
+      a_[0][3] = 15.5901;
+      a_[0][4] = -7.05497;
+      a_[0][5] = 0.63096;
+
+      a_[1][0] = 4.79833;
+      a_[1][1] = -31.7208;
+      a_[1][2] = 76.0381;
+      a_[1][3] = -84.1657;
+      a_[1][4] = 46.4876;
+      a_[1][5] = -10.4596;      
+
+      a_[2][0] = -0.47723;
+      a_[2][1] = 19.8875;
+      a_[2][2] = -62.2031;
+      a_[2][3] = 78.4142;
+      a_[2][4] = -55.7024;
+      a_[2][5] = 18.4785;
+
+      a_[3][0] = -7.60729;
+      a_[3][1] = 39.2723;
+      a_[3][2] = -131.249;
+      a_[3][3] = 205.539;
+      a_[3][4] = -110.462;
+      a_[3][5] = 9.10103;
+
+      a_[4][0] = -22.4105;
+      a_[4][1] = 65.7709;
+      a_[4][2] = 66.3596;
+      a_[4][3] = -315.674;
+      a_[4][4] = 244.739;
+      a_[4][5] = -43.4275;
+
+      a_[0][0] = 56.4536;
+      a_[5][1] = -228.002;
+      a_[5][2] = 243.158;
+      a_[5][3] = 30.6737;
+      a_[5][4] = -133.904;
+      a_[5][5] = 33.7645;
+
+      a_[6][0] = -29.5309;
+      a_[6][1] = 127.279;
+      a_[6][2] = -174.625;
+      a_[6][3] = 68.3272;
+      a_[6][4] = 18.5640;
+      a_[6][5] = -9.79081;
+    }
+
+  virtual ~WRDF_Colloid() {}
+
+  virtual char const * const getName() const { return "WRDF_Colloid";}
+
+  // excess free energy per atom and density derivatives
+  virtual double phix(double density, double kT)  const 
+  { 
+      double a  = 0.0;
+
+      for(int n=2; n<=8;n++)
+	for(int m=-3; m<=2; m++)
+	  a += kT*a_[n-2][m+3]*pow(density,n-1)*pow(kT,-m);
+      return a;
+  }
+
+  virtual double dphix_dx(double density, double kT) const 
+  {
+      double a  = 0.0;
+
+      for(int n=2; n<=8;n++)
+	for(int m=-3; m<=2; m++)
+	  a += kT*a_[n-2][m+3]*(n-1)*(n-2 < 0 ? 0 : (n-2 == 0 ? 1 : pow(density,n-2)))*pow(kT,-m);
+      return a;
+  }
+
+  virtual double dphix_dx2(double density, double kT) const
+  {
+      double a  = 0.0;
+
+      for(int n=2; n<=8;n++)
+	for(int m=-3; m<=2; m++)
+	  a += kT*a_[n-2][m+3]*(n-1)*(n-2)*(n-3 < 0 ? 0 : (n-3 == 0 ? 1 : pow(density,n-3)))*pow(kT,-m);
+      return a;    
+  }
+  virtual double dphix_dx3(double density, double kT) const 
+  {
+      double a  = 0.0;
+
+      for(int n=2; n<=8;n++)
+	for(int m=-3; m<=2; m++)
+	  a += kT*a_[n-2][m+3]*(n-1)*(n-2)*(n-3)*(n-3 < 0 ? 0 : (n-3 == 0 ? 1 : pow(density,n-4)))*pow(kT,-m);
+      return a;        
+  }
+
+  private:
+  double a_[7][6];
 };
 
 

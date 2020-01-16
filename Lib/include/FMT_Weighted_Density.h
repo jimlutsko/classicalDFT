@@ -41,9 +41,30 @@ class FMT_Weighted_Density
   void convolute(const DFT_Vec_Complex& density) 
   {
     weighted_density_.Four().Schur(density,weight_.Four(),true);
+
     weighted_density_.do_fourier_2_real();
   }
 
+  void extractDensity(DFT_FFT& density)
+  {
+    density.do_real_2_fourier();
+
+    cout << (1.0/weight_.Real().size())*density.Four().get(0) << " " << (1.0/weight_.Real().size())*density.Four().get(1000) << endl;
+    
+    weighted_density_.do_real_2_fourier();
+
+    cout << density.Four().get(1000)*(weight_.Four().get(1000)) << " " << weighted_density_.Four().get(1000) << endl;
+    //cout << density.Four().get(1000)*conj(weight_.Four().get(1000)) << " " << weighted_density_.Four().get(1000) << endl;
+
+    for(long i=0;i<density.Four().size(); i++)
+      density.Four().set(i, (1.0/weight_.Real().size())*(1.0/weight_.Real().size())*weighted_density_.Four().get(i)/conj(weight_.Four().get(i)));
+
+    cout << density.Four().get(0) << " " << density.Four().get(1000) << endl;
+    
+    density.do_fourier_2_real();
+    
+  }
+  
   void add_to_dPhi(DFT_Vec_Complex& dPhi)
   {
     dPhi_.do_real_2_fourier();

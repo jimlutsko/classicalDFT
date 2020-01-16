@@ -17,6 +17,8 @@ using namespace std;
 void Minimizer::run(long maxSteps)
 {
   initialize();
+
+  
   
   log_ << "Initialized ... removing old images ... " << endl;
 
@@ -29,6 +31,7 @@ void Minimizer::run(long maxSteps)
        << setw(20) << "N    "
        << setw(20) << "Density    "
        << setw(10) << myColor::RED << "Time(sec)"  << myColor::RESET
+       << setw(20) << "dF/dt "
        << endl;
   
   int image_counter = 0;
@@ -60,6 +63,7 @@ void Minimizer::run(long maxSteps)
 	 << setw(20) << Ntotal/Volume;
     log_.precision(4);        
     log_ << setw(10) << myColor::RED << elapsed_seconds.count() << myColor::RESET
+	 << setw(20) << vv_
 	 << endl;
 
     
@@ -88,11 +92,10 @@ void Minimizer::initialize()
   step_counter_ = 0;
   calls_ = 0;
 
-  for(int species=0;species<dft_.getNumberOfSpecies();species++)
+  for(int Jspecies=0;Jspecies<dft_.getNumberOfSpecies();Jspecies++)
     {
-      const Density& density = dft_.getDensity(species);
-      for(long i=0;i<density.Ntot();i++)
-	x_[species].set(i,sqrt(max(0.0, density.getDensity(i) - SMALL_VALUE)));      
+      const Density& density = dft_.getDensity(Jspecies);
+      x_[Jspecies].setAliasFromValues(density.getDensity());
     }
 }
 
@@ -101,8 +104,8 @@ double Minimizer::getDF_DX()
 {
   calls_++;
 
-  for(int i=0;i<x_.size();i++)
-    dft_.set_density_from_amplitude(i,x_[i]);
+  for(int Jspecies=0;Jspecies<x_.size();Jspecies++)
+    dft_.set_density_from_amplitude(Jspecies,x_[Jspecies]);
 
   double F = 0;
   try {
@@ -111,19 +114,9 @@ double Minimizer::getDF_DX()
     throw e;
   }
 
-  //  dF_.Schur(x_,dF_);
-  //  dF_.MultBy(2);
+  //  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
+      //dft_.getDF(Jspecies).alias_Jacobian(x_[Jspecies]);
 
-
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    {
-      auto &f = dft_.getDF(Jspecies);
-      for(long i=0;i<f.size();i++)
-	{
-	  double force = f.get(i);
-	  f.set(i,2*force*x_[Jspecies].get(i));
-	}
-    }
   return F;
 }
 
@@ -176,7 +169,7 @@ void fireMinimizer_Mu::verlet()
 	x_[Jspecies].set(y[Jspecies]);
 	v_[Jspecies].zeros(v_[Jspecies].size());
       }
-   log_ << "Backtrack .. " << endl;
+    log_ << "Backtrack .. " << endl;
     throw e;
   }
 }
@@ -266,9 +259,49 @@ int fireMinimizer_Mu::draw_during()
 }
 
 
+fireMinimizer2::fireMinimizer2(DFT &dft, ostream &log) :  Minimizer(dft, log)
+{
+  v_.resize(dft_.getNumberOfSpecies());
+  for(auto &v: v_) v.resize(dft_.lattice().Ntot());
+
+  dt_ = 1e-3; // my guess
+  dt_max_ = 10*dt_;
+    
+  N_delay_ = 5;
+  
+  alpha_start_ = 0.1;
+  f_dec_ = 0.5;
+  f_inc_ = 1.1;
+  f_alf_ = 0.99;  
+}
+
+void fireMinimizer2::initialize()
+{
+  //  fireMinimizer_Mu::initialize();
+
+  Minimizer::initialize();
+  
+  it_    = 0;
+  cut_   = 0;
+  alpha_ = alpha_start_;
+
+  N_P_positive_ = 0;
+  N_P_negative_ = 0;
+
+  steps_since_backtrack_ = 0;
+  
+  F_ = getDF_DX();
+
+  for(auto &v: v_)
+    v.zeros();
+
+}
 
 double fireMinimizer2::step()
 {
+
+  //  if(steps_since_backtrack_ >= 1000) {log_ << "Increasing dt_max_" << endl; dt_max_ *= 10; steps_since_backtrack_ = 0;}
+  
   it_++;
   static double fold = F_;
 
@@ -282,7 +315,7 @@ double fireMinimizer2::step()
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     P += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
 
-  if(F_ - fold > 1e-10) P = -1;
+  //  if(F_ - fold > 1e-10) P = -1;
   fold = F_;
 
   int numSpecies = end_relax-begin_relax;
@@ -323,38 +356,34 @@ double fireMinimizer2::step()
 	  dt_ *= f_dec_;
 	alpha_ = alpha_start_;
       }
-    //NEW 2019/11/19
+    log_ << "Uphill motion stopped" << endl;
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
-	long Ntot = x_[Jspecies].size();
-	int chunk = Ntot/20;
-	long i;
-#pragma omp parallel for			\
-  shared( chunk, Jspecies, v_)			\
-  private(i)					\
-  schedule(static,chunk)				
-	for(i = 0; i<Ntot; i++)
-	  x_[Jspecies].set(i, x_[Jspecies].get(i) - 0.5*v_[Jspecies].get(i)*dt_/max(fudge_,fabs(x_[Jspecies].get(i)))); // This weighting reduces backtracking ...
+	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
+	//	v_[Jspecies].zeros();
+	v_[Jspecies].MultBy(0.1);
+	//v_[Jspecies].MultBy(0.5);
       }
-    cout << "Uphill motion stopped" << endl;
-    for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-	v_[Jspecies].zeros(v_[Jspecies].size());
   }
 
   // integration step
   // Changed handling of backtracking 21/10/2019  
   try {
     SemiImplicitEuler(begin_relax, end_relax);
+    vv_ = vv_*0.9 + 0.1*(fabs(F_ - fold)/dt_); // a measure of the rate at which the energy is changing
+    steps_since_backtrack_++;
   } catch(Eta_Too_Large_Exception &e) {
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
 	x_[Jspecies].set(x_rem[Jspecies]);
-	//NEW 2019/11/19	
-	//	v_[Jspecies].set(v_rem[Jspecies]);
-	v_[Jspecies].zeros(v_[Jspecies].size());	
+	v_[Jspecies].set(v_rem[Jspecies]);
+	v_[Jspecies].MultBy(0.5);		
 	dft_.setDF(Jspecies,dF_rem[Jspecies]);
       }
-    dt_ /= 10; // This was previously 2
+    //    dt_ /= 10; // This was previously 2
+    dt_ /= 2;
+    dt_max_ *= f_back_;
+    steps_since_backtrack_ = 0;
   }
 
   // write a snapshot
@@ -378,49 +407,74 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   // N.B.: df is a gradient, not a force
   double vnorm = 0.0;
   double fnorm = 0.0;
-  long   count = 0;
+  long   cnorm = 0;
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
-      DFT_Vec &df = dft_.getDF(Jspecies);
-      count += df.size();
-      v_[Jspecies].IncrementBy_Scaled_Vector(df, -dt_);
+      DFT_Vec &df = dft_.getDF(Jspecies);      
+      //      v_[Jspecies].IncrementBy_Scaled_Vector(df, -dt_);
+      for(long i=0;i<v_[Jspecies].size();i++)
+	{
+	  double fac = -dt_;
+	  //	  if(x_[Jspecies].get(i) < 0) fac *= (1-x_[Jspecies].get(i))*(1-x_[Jspecies].get(i)); 
+	  //	  if(x_[Jspecies].get(i) >1) fac /= (x_[Jspecies].get(i) * x_[Jspecies].get(i));
+	  v_[Jspecies].set(i, v_[Jspecies].get(i)+df.get(i)*fac);
+	}
 	  
       double v = v_[Jspecies].euclidean_norm();
       double f = df.euclidean_norm();
 
       vnorm += v*v;
       fnorm += f*f;
+      cnorm += df.size();      
     }
-  rms_force_ = sqrt(fnorm/count);
+  rms_force_ = sqrt(fnorm/cnorm);
+  vnorm_ = sqrt(vnorm/cnorm);
   
-  /// Do mixing
+  /// Do mixing & update x
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       v_[Jspecies].MultBy(1-alpha_);      
       v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
-    }
-  
-  //Update x
-  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    {
-      long Ntot = x_[Jspecies].size();
-      int chunk = Ntot/20;
-      long i;
-#pragma omp parallel for		       \
-            shared( chunk, Jspecies, v_)	\
-            private(i)				\
-            schedule(static,chunk)				
-	for(i = 0; i<Ntot; i++)
-	  x_[Jspecies].set(i, x_[Jspecies].get(i) + v_[Jspecies].get(i)*dt_/max(fudge_,fabs(x_[Jspecies].get(i)))); //*fabs(x_[Jspecies].get(i)))); // This weighting reduces backtracking ...
-    }
-  
+      //      x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
+      DFT_Vec &df = dft_.getDF(Jspecies);
+      for(long i=0;i<x_[Jspecies].size();i++)
+	{
+	  double fac = dt_;
+	  //	  if(x_[Jspecies].get(i) < 0) fac *= (1-x_[Jspecies].get(i)) * (1-x_[Jspecies].get(i)); 
+	  //	  if(x_[Jspecies].get(i) >1) fac /= (x_[Jspecies].get(i) * x_[Jspecies].get(i)); 	  
+	  x_[Jspecies].set(i, x_[Jspecies].get(i)+v_[Jspecies].get(i)*fac);
+	}      
+    }  
   // recalculate forces with back-tracking, if necessary
   bool bSuccess = false;
   try{  
     F_ = getDF_DX(); // get new forces
     bSuccess = true;
   } catch (Eta_Too_Large_Exception &e) {
-    log_ << "Backtrack .. " << endl;
+    log_ << "Backtrack .. " << endl;    
     throw(e);
   }
+
+  fnorm = 0.0;
+  cnorm = 0;
+  fmax_ = 0;
+  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+    {
+      DFT_Vec &df = dft_.getDF(Jspecies);
+      double f = df.euclidean_norm();
+      fmax_ = max(fmax_, df.inf_norm()/dft_.getDensity(Jspecies).dV());
+      fnorm += f*f;
+      cnorm += df.size();            
+      if(threshold_ > 0)	
+	for(long i=0;i<df.size();i++)
+	  {
+
+	    double fac = 1;
+	    if(x_[Jspecies].get(i) < 0) fac *= (1-x_[Jspecies].get(i)) * (1-x_[Jspecies].get(i)); // * (1-x_[Jspecies].get(i));
+	    //	    if(x_[Jspecies].get(i) >1) fac /= (10*x_[Jspecies].get(i)); // * x_[Jspecies].get(i));
+	    if(x_[Jspecies].get(i) > 0) fac /= exp(x_[Jspecies].get(i)); // * x_[Jspecies].get(i));
+	    df.set(i, df.get(i) * fac);
+	  }
+    }
+    rms_force_ = sqrt(fnorm/cnorm);
 }

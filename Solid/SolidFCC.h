@@ -106,7 +106,7 @@ class SolidFCC : public Density
 		      double r2 = dx*dx+dy*dy+dz*dz;
 		      dsum += prefac*pow(alpha/M_PI,1.5)*exp(-alpha*r2);
 		    }
-	    if(dsum < 1e-10) dsum = 1e-10;
+	    if(dsum < 1e-20) dsum = 1e-20;
 	    set_Density_Elem(i,j,k,dsum);	    
 	  }
     //    string title("dummy");
@@ -131,6 +131,7 @@ class SolidFCC : public Density
     if(grace_ == NULL) return;
 
     grace_->deleteDataSet(seq);
+    grace_->deleteDataSet(seq+1);
 
     int jx = 0;
     int jy = 0;
@@ -147,7 +148,8 @@ class SolidFCC : public Density
 		jy = iy;
 		jz = iz;
 	      }
-    
+    bool pause = false;
+    double px = 0;
     for(int i= 0; i <= Nz(); i++)
       {
 	int iz = i-jz;
@@ -157,9 +159,18 @@ class SolidFCC : public Density
 	
         double x = getZ(iz);
 	grace_->addPoint(x,getDensity(jx,jy,i),seq);
+	grace_->addPoint(x,fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV(),seq+1);
+
+	if(fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV() < 1e-20) {pause = true; px = x; cout << jx << " " << jy << " " << i << " " << getDensity(jx,jy,i) << " " << species_->getDF().get(pos(jx,jy,i)) << endl;}
       }
+
+    int iz = jz-Nz()/2;
+    while(iz >= Nz()) iz -= Nz();
+    while(iz < 0) iz += Nz();
+    cout << "density = " <<  getDensity(jx,jy,iz) << " dF = " << species_->getDF().get(pos(jx,jy,iz)) << "df_max = " << species_->getDF().get(pos(jx,jy,iz)) << " jx = " << jx <<  " jy = " << jy << " iz = " << iz << " pos = " << pos(jx,jy,iz) << endl;    
     grace_->setTitle(title.c_str());
     grace_->redraw();
+    if(pause){cout << px << endl;  grace_->pause();}
 #endif
 #ifdef USE_MGL
 	// find max density on plane
@@ -189,9 +200,13 @@ class SolidFCC : public Density
 #endif        
   }  
 
+  void setSpecies(Species* s) { species_ = s;}
+  
  protected:
   int sequence_;
 
+  Species *species_;
+  
 #ifdef USE_MGL
   Display *display_ = NULL;
 #endif  
