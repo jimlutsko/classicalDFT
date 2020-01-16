@@ -482,10 +482,7 @@ class picardMinimizer : public Minimizer
 	  dft_.set_density(Jspecies, x_rem[Jspecies]);	
       }
     } while(!bSuccess);
-<<<<<<< HEAD
-=======
     return F_;
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
   }
 
 

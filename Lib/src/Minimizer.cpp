@@ -114,13 +114,8 @@ double Minimizer::getDF_DX()
     throw e;
   }
 
-<<<<<<< HEAD
-  //  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-      //dft_.getDF(Jspecies).alias_Jacobian(x_[Jspecies]);
-=======
   for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
     dft_.getDF(Jspecies).alias_Jacobian(x_[Jspecies]);
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 
   return F;
 }
@@ -475,13 +470,9 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
 	  {
 
 	    double fac = 1;
-<<<<<<< HEAD
-	    if(x_[Jspecies].get(i) < 0) fac *= (1-x_[Jspecies].get(i)) * (1-x_[Jspecies].get(i)); // * (1-x_[Jspecies].get(i));
-=======
 	    if(x_[Jspecies].get(i) < 0) fac *= 10;
 
 	    //	    if(x_[Jspecies].get(i) < 0) fac *= (1-x_[Jspecies].get(i)); // * (1-x_[Jspecies].get(i)); // * (1-x_[Jspecies].get(i));
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 	    //	    if(x_[Jspecies].get(i) >1) fac /= (10*x_[Jspecies].get(i)); // * x_[Jspecies].get(i));
 	    if(x_[Jspecies].get(i) > 0) fac /= exp(x_[Jspecies].get(i)); // * x_[Jspecies].get(i));
 	    df.set(i, df.get(i) * fac);

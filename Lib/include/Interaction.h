@@ -31,9 +31,8 @@ class Interaction_Base
 
  Interaction_Base(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) : s1_(s1), s2_(s2), v_(v), kT_(kT), log_(log), initialized_(false) {}
 
-<<<<<<< HEAD
   void initialize()
-=======
+  {
     w_att_.initialize(Nx,Ny,Nz);      
     a_vdw_ = 0.0;
 

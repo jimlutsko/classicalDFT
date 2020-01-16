@@ -58,11 +58,7 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
 bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Dret);
 
 
-<<<<<<< HEAD
-=======
 double bmu = 1e-20;
-
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 /*
 class myMin : public adamMinimizer
 {
@@ -373,11 +369,7 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, doubl
       if(f1 < f2) {Agau = x1; Fgau = f1;}
       else { Agau = x2; Fgau = f2;}
 
-<<<<<<< HEAD
       theDensity1.initialize(Agau, 1, prefac); //_old);      
-=======
-      theDensity1.initialize(Agau, 1, prefac, exp(bmu)); //_old);      
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
       log << "Found: alf = " << Agau << " prefac = " << prefac_old << " f = " << Fgau << endl;
 
       Fgau /= theDensity1.getVolume();
@@ -391,9 +383,6 @@ bool findGaussian(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fgau, doubl
 
 bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cvac)
 {
-<<<<<<< HEAD
-  double f = dft.calculateFreeEnergyAndDerivatives(false);
-=======
   /*  double f = dft.calculateFreeEnergyAndDerivatives(false);
 >>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 
@@ -416,7 +405,6 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
 
 =======
   */      
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
   
   //check(theDensity1, dft,i1);
 
@@ -430,20 +418,6 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
   minimizer.setAlphaStart(alpha_start);
   minimizer.setAlphaFac(alphaFac);
   minimizer.run(maxSteps);
-
-<<<<<<< HEAD
-  char cc;
-  cin >> cc;
-
-  myMin minimizer1(dft,log,-1);
-  minimizer1.setForceTerminationCriterion(forceLimit);
-  minimizer1.setTimeStep(dt);
-  minimizer1.setTimeStepMax(dtMax);
-  minimizer1.setAlphaStart(alpha_start);
-  minimizer1.setAlphaFac(alphaFac);
-  minimizer1.run(maxSteps);
-=======
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 
   double Natoms = theDensity1.getNumberAtoms();
   double Omega = minimizer.getF();

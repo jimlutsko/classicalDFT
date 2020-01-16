@@ -106,11 +106,7 @@ class SolidFCC : public Density
 		      double r2 = dx*dx+dy*dy+dz*dz;
 		      dsum += prefac*pow(alpha/M_PI,1.5)*exp(-alpha*r2);
 		    }
-<<<<<<< HEAD
-	    if(dsum < 1e-20) dsum = 1e-20;
-=======
 	    if(dsum < dmin) dsum = dmin;
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 	    set_Density_Elem(i,j,k,dsum);	    
 	  }
     //    string title("dummy");

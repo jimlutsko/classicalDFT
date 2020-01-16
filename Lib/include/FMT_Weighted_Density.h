@@ -45,61 +45,6 @@ class FMT_Weighted_Density
     weighted_density_.do_fourier_2_real();
   }
 
-  void extractDensity(DFT_FFT& density)
-  {
-<<<<<<< HEAD
-    density.do_real_2_fourier();
-
-=======
-    DFT_Vec cp = density.Real();
-    
-    density.do_real_2_fourier();
-    density.do_fourier_2_real();
-
-    density.Real().MultBy(1.0/density.Real().size());
-    
-    double dmax = 0.0;
-    double imax = -1;
-    for(long i=0;i<cp.size();i++)
-      {
-	double d = fabs(cp.get(i)-density.Real().get(i));
-	if(d > dmax) { dmax = d; imax = i;}
-      }
-
-    cout << "imax = " << imax << " dmax = " << dmax << endl;
-    cout << setprecision(20) << cp.get(imax) << endl;
-    cout << setprecision(20) << density.Real().get(imax) << endl;
-
-    for(long i=0;i<10;i++)
-      cout << cp.get(i) << " " << density.Real().get(i) << " " << cp.get(i)-density.Real().get(i) << endl;
-
-
-
-    
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
-    cout << (1.0/weight_.Real().size())*density.Four().get(0) << " " << (1.0/weight_.Real().size())*density.Four().get(1000) << endl;
-    
-    weighted_density_.do_real_2_fourier();
-
-<<<<<<< HEAD
-    cout << density.Four().get(1000)*(weight_.Four().get(1000)) << " " << weighted_density_.Four().get(1000) << endl;
-    //cout << density.Four().get(1000)*conj(weight_.Four().get(1000)) << " " << weighted_density_.Four().get(1000) << endl;
-=======
-    //    cout << "Here: " << density.Four().get(1000)*(weight_.Four().get(1000)) << " " << weighted_density_.Four().get(1000) << endl;
-    cout << density.Four().get(1000).real() << " " << density.Four().get(1000).imag() << endl;
-    cout << weight_.Four().get(1000).real() << " " << weight_.Four().get(1000).imag() << endl;
-    cout << "Here: " << density.Four().get(1000)*weight_.Four().get(1000) << " " << weighted_density_.Four().get(1000) << endl;
-    //    cout << "Here: " << density.Four().get(1000)*std::conj(weight_.Four().get(1000)) << " " << weighted_density_.Four().get(1000) << endl;
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
-
-    for(long i=0;i<density.Four().size(); i++)
-      density.Four().set(i, (1.0/weight_.Real().size())*(1.0/weight_.Real().size())*weighted_density_.Four().get(i)/conj(weight_.Four().get(i)));
-
-    cout << density.Four().get(0) << " " << density.Four().get(1000) << endl;
-    
-    density.do_fourier_2_real();
-    
-  }
   
   void add_to_dPhi(DFT_Vec_Complex& dPhi)
   {

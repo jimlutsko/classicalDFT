@@ -21,12 +21,6 @@ class DFT_Vec
 
   void set(const DFT_Vec& x) { data_ = x.data_;} 
   void set(const DFT_Vec& v1, const DFT_Vec& v2, double scale) { data_ = v1.data_+v2.data_*scale;}
-<<<<<<< HEAD
-
-  void setFromAlias(const DFT_Vec &x)       { data_ = exp(x.data_);}
-  void setAliasFromValues(const DFT_Vec &x) { data_ = log(x.data_);}
-  void alias_Jacobian(const DFT_Vec &x)     { data_ %= exp(x.data_);}
-=======
   
   void setFromAlias(const DFT_Vec &x) { data_ = 1e-20+x.data_%x.data_;} //{ data_ = 1e-10+exp(x.data_);}
   void setAliasFromValues(const DFT_Vec &x)
@@ -36,7 +30,6 @@ class DFT_Vec
     //      set(i, log(std::max(1e-15, x.get(i)-1e-10)));    
   }
   void alias_Jacobian(const DFT_Vec &x) { data_ %= 2*x.data_;}
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
 
   
   void set(const double *x, unsigned n) { data_.set_size(n); memcpy(data_.memptr(),x,sizeof(double)*n);} 
