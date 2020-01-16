@@ -62,7 +62,7 @@ class SolidFCC : public Density
    *   @param  number of atoms in the FCC unit cell (taking vacancies into account)
    *   @return  
    */  
-  virtual void initialize(double alpha, int ncells, double prefac, double dmin)
+  virtual void initialize(double alpha, int ncells, double prefac, double dmin = 1e-20)
   {
     double a_latt = L_[0]/ncells;
     
@@ -159,25 +159,18 @@ class SolidFCC : public Density
 	
         double x = getZ(iz);
 	grace_->addPoint(x,getDensity(jx,jy,i),seq);
-<<<<<<< HEAD
-	grace_->addPoint(x,fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV(),seq+1);
 
-	if(fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV() < 1e-20) {pause = true; px = x; cout << jx << " " << jy << " " << i << " " << getDensity(jx,jy,i) << " " << species_->getDF().get(pos(jx,jy,i)) << endl;}
-=======
+	//	grace_->addPoint(x,fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV(),seq+1);
+	//	if(fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV() < 1e-20) {pause = true; px = x; cout << jx << " " << jy << " " << i << " " << getDensity(jx,jy,i) << " " << species_->getDF().get(pos(jx,jy,i)) << endl;}
 	grace_->addPoint(x,std::max(1e-20, fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV()),seq+1);
 
 	//	if(fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV() < 1e-20) {pause = true; px = x; cout << jx << " " << jy << " " << i << " " << getDensity(jx,jy,i) << " " << species_->getDF().get(get_PBC_Pos(jx,jy,i)) << endl;}
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
       }
 
     int iz = jz-Nz()/2;
     while(iz >= Nz()) iz -= Nz();
     while(iz < 0) iz += Nz();
-<<<<<<< HEAD
-    cout << "density = " <<  getDensity(jx,jy,iz) << " dF = " << species_->getDF().get(pos(jx,jy,iz)) << "df_max = " << species_->getDF().get(pos(jx,jy,iz)) << " jx = " << jx <<  " jy = " << jy << " iz = " << iz << " pos = " << pos(jx,jy,iz) << endl;    
-=======
     //    cout << "density = " <<  getDensity(jx,jy,iz) << " dF = " << species_->getDF().get(pos(jx,jy,iz)) << "df_max = " << species_->getDF().get(pos(jx,jy,iz)) << " jx = " << jx <<  " jy = " << jy << " iz = " << iz << " pos = " << pos(jx,jy,iz) << endl;    
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
     grace_->setTitle(title.c_str());
     grace_->redraw();
     if(pause){cout << px << endl;  grace_->pause();}

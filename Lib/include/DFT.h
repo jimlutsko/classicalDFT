@@ -134,7 +134,7 @@ class DFT
   void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
   void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
 
-  void set_density_from_eta(int Jspecies) {((FMT_Species*) allSpecies_[Jspecies])->set_density_from_eta();}
+  //  void set_density_from_eta(int Jspecies) {((FMT_Species*) allSpecies_[Jspecies])->set_density_from_eta();}
   
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
 

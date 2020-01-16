@@ -231,10 +231,10 @@ public:
 
   FMT_Weighted_Density& getEta() { return d_[0];}
   // density from eta
-  void set_density_from_eta()
-  {
-    d_[0].extractDensity(density_.getFullVector());
-  }
+  //  void set_density_from_eta()
+  //  {
+  //    d_[0].extractDensity(density_.getFullVector());
+  //  }
 
   
   // Used in DFT_Surfactant ...

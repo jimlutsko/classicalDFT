@@ -33,59 +33,6 @@ class Interaction_Base
 
   void initialize()
   {
-    w_att_.initialize(Nx,Ny,Nz);      
-    a_vdw_ = 0.0;
-
-    long ntot = long(2*Rc/dx) * long(2*Rc/dy) * long(2*Rc/dz);
-    long count = 0;
-    
-    for(double x = -Rc; x <= Rc; x += dx)
-      {
-	long nx = x/dx;
-	if(nx >= Nx || nx < 0) nx -= Nx*int(nx/Nx);
-	while(nx >=  Nx) nx -= Nx;
-	while(nx <   0) nx += Nx;
-
-	for(double y = -Rc; y <= Rc; y += dy)
-	  {
-	    long ny = y/dy; 
-	    if(ny >= Ny || ny < 0) ny -= Ny*int(ny/Ny);
-	    while(ny >=  Ny) ny -= Ny;
-	    while(ny <   0) ny += Ny;
-	    
-	    for(double z = -Rc; z <= Rc; z += dz)	    
-	      {
-		long nz = z/dz; 
-		if(nz >= Nz || nz < 0) nz -= Nz*int(nz/Nz);
-
-		while(nz >=  Nz) nz -= Nz;
-		while(nz <   0) nz += Nz;
-
-		long pos = nz+Nz*(ny+Ny*nx);
-
-		double r = sqrt(x*x+y*y+z*z);
-		double w = v.Watt(r)/kT;
-		w*= dx*dy*dz;
-		
-		a_vdw_ += w;
-		w_att_.Real().IncrementBy(pos,w);
-
-		if(count % 10000 == 0)
-		  {if(count > 0) cout << '\r'; cout << "\t" << int(double(count)*100.0/ntot) << "% finished: " << count << " out of " << ntot; cout.flush();}
-		count++;
-		
-	      }	   
-	  }
-      }
-    log << endl;
-
-    // Now save the FFT of the field  
-    w_att_.do_real_2_fourier();     
-  }
-
- Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, string &pointsFile) : s1_(s1), s2_(s2)
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
-  {
     const Density &density = s1_.getDensity();
     long Nx = density.Nx();
     long Ny = density.Ny();
@@ -103,11 +50,7 @@ class Interaction_Base
 	<< Nx << "_"
 	<< Ny << "_"
 	<< Nz << "_"
-<<<<<<< HEAD
 	<< v_.getIdentifier() << "_";
-=======
-	<< v.getIdentifier() << "_";
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
     ss1 << ".dat";    
   
     bool readWeights = true;
@@ -164,13 +107,8 @@ class Interaction_Base
     }
     
     // Introduce the temperature
-<<<<<<< HEAD
     w_att_.Real().MultBy(1.0/kT_);
     a_vdw_ /= kT_;
-=======
-    w_att_.Real().MultBy(1.0/kT);
-    a_vdw_ /= kT;
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
     
     // Now generate the FFT of the field  
     w_att_.do_real_2_fourier();
@@ -179,7 +117,6 @@ class Interaction_Base
   }    
 
 
-<<<<<<< HEAD
   virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log, ofstream &of)=0;
   virtual bool checkWeightsFile(ifstream &in)=0;
   
@@ -332,9 +269,6 @@ class Interaction : public Interaction_Base
   }
   
   virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log, ofstream &of)
-=======
-  void generateWeights(string &pointsFile, Potential1 &v, stringstream &ss, Log& log)
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
   {    
     const Density &density = s1_.getDensity();
       
@@ -616,7 +550,7 @@ class Interaction_Full : public Interaction_Base
 			double wz;
 			gsl_integration_glfixed_point(0, 1, Gz, &z, &wz, tr);		
 
-			double r = sqrt((ix+x)*(ix+x)*dx*dx+(iy+y)*(iy+y)*dy*dy+(iz+z)*(iz+*z)*dz*dz);			  
+			double r = sqrt((ix+x)*(ix+x)*dx*dx+(iy+y)*(iy+y)*dy*dy+(iz+z)*(iz+z)*dz*dz);			  
 			double watt = v.Watt(r); 
 			  		    
 			for(int i=-1;i<=1;i++)
@@ -660,7 +594,10 @@ class Interaction_Full : public Interaction_Base
 	    /// Dump the weights
 	    w_att_.Real().save(of);
 	  }  
-  };
+  }
+ protected:
+  int Ngauss_;
+};
 
 
 

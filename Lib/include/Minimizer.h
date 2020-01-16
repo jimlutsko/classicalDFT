@@ -400,10 +400,7 @@ class adamMinimizer : public Minimizer
     }
     beta1_t_ *= beta1_;
     beta2_t_ *= beta2_;
-<<<<<<< HEAD
-=======
     return F_;
->>>>>>> 11cb75ecc4e0f24ff732a780bf55b0ba3763beae
   }
   virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
   double getRMS_Force() const { return rms_force_;}
