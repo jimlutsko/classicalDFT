@@ -219,14 +219,14 @@ class Lattice
   */  
   void putIntoBox(int &ix, int &iy, int &iz) const
   {
-    if(ix < 0)  ix += Nx_; 
-    if(ix >= Nx_) ix -= Nx_;
+    while(ix < 0)  ix += Nx_; 
+    while(ix >= Nx_) ix -= Nx_;
     
-    if(iy < 0)  iy += Ny_; 
-    if(iy >= Ny_) iy -= Ny_;
+    while(iy < 0)  iy += Ny_; 
+    while(iy >= Ny_) iy -= Ny_;
     
-    if(iz < 0)  iz += Nz_; 
-    if(iz >= Nz_) iz -= Nz_; 
+    while(iz < 0)  iz += Nz_; 
+    while(iz >= Nz_) iz -= Nz_; 
   }
 
  protected:

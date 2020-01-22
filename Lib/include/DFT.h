@@ -68,7 +68,7 @@ class DFT
    *  
    *   @param  I is the Interction object
    */ 
-  void addInteraction(Interaction* Interaction) {Interactions_.push_back(Interaction);}
+  void addInteraction(Interaction_Base* Interaction) {Interactions_.push_back(Interaction);}
 
   /**
    *   @brief  Specify a hard-sphere free energy functional
@@ -201,7 +201,7 @@ class DFT
 
  protected:
   vector<Species*> allSpecies_; ///< array holding the species objects
-  vector<Interaction*> Interactions_; ///< array holding the interactions
+  vector<Interaction_Base*> Interactions_; ///< array holding the interactions
   FMT *fmt_;
 };
 

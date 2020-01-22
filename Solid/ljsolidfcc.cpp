@@ -183,7 +183,10 @@ int main(int argc, char** argv)
 	  double Cvac;
 
 	  FMT_Species species1(theDensity1,hsd1,pointsFile,Mu);
-	  Interaction i1(species1,species1,potential1,kT,log, pointsFile);
+	  //Interaction i1(species1,species1,potential1,kT,log, pointsFile);
+	  Interaction_Full i1(species1,species1,potential1,kT,log,2);
+
+
 	  RSLT fmt;
 
 	  log << "VDW(potential)   = " << potential1.getVDW_Parameter(kT) << endl;
