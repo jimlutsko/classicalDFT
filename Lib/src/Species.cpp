@@ -712,7 +712,8 @@ void FMT_Species::generateWeights()
   of << Nx << " " << Ny << " " << Nz << " " << hsd_ << " " << density_.getDX() << endl;
   
   for(auto& s: d_)
-    s.dump(of);  
+    s.dump(of);
+  
 }
 
 
