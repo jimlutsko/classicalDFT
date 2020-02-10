@@ -106,7 +106,7 @@ public:
    *  
    *   @param  hsd is the hard-sphere diameter
    *   @param  lattice describes the mesh
-   *   @param  pointsFile contains the points for spherical integration
+   *   @param  pointsFile contains the points for spherical integration: if it does not exist, the analytic weights are used
    *   @return nothing 
    */    
   FMT_Species(Density& density, double hsd, string &pointsFile, double mu = 0, int seq = -1);
@@ -131,7 +131,7 @@ public:
    *   @param  pos is the mesh position
    *   @return value of Eta at pos
    */    
-  double getEta(long pos)           const { return d_[EI()].real(pos);}
+  double getEta(long pos) const { return d_[EI()].real(pos);}
 
   /**
    *   @brief  get value of S at pos
@@ -139,7 +139,7 @@ public:
    *   @param  pos is the mesh position
    *   @return value of S at pos
    */      
-  double getS(long pos)             const { return d_[SI()].real(pos);}
+  double getS(long pos) const { return d_[SI()].real(pos);}
 
   /**
    *   @brief  get value of component j of V at pos
@@ -255,6 +255,7 @@ protected:
    *   @param  Nz is the number of lattice points in the z-direction
    */        
   void generateWeights(string &pointsFile);
+  void generateWeights();
 
   /**
    *   @brief  Get the index of the "eta" partial weighted density in the array of weighted densities, d_

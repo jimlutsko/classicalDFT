@@ -184,7 +184,7 @@ int main(int argc, char** argv)
 
 	  FMT_Species species1(theDensity1,hsd1,pointsFile,Mu);
 	  //Interaction i1(species1,species1,potential1,kT,log, pointsFile);
-	  Interaction_Full i1(species1,species1,potential1,kT,log,2);
+	  Interaction_Full i1(species1,species1,potential1,kT,log,5);
 
 
 	  RSLT fmt;

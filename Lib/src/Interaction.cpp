@@ -523,7 +523,7 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
 	  s1_.getDensity().putIntoBox(jx,jy,jz);	  
 	  long pos = jz+Nz*(jy+Ny*jx);
 
-	  w_att_.Real().IncrementBy(pos,w);
+	  w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
 	  a_vdw_ += w;
 	}  
 
