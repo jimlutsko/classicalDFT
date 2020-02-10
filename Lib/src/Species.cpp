@@ -661,17 +661,17 @@ void FMT_Species::generateWeights()
 
 	  double R = hsd_/dx;
 	  
-	  if(R*R > R2_max) { w_eta = 1.0;}
+	  if(R*R > R2_max) {w_eta = dV;}
 	  else if(R*R > R2_min)
 	    for(int ix:v)
 	      for(int iy:v)
 		for(int iz:v)
 		  {
 		    w_eta  += dV*J_eta(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
-		    w_s    +=   dS*J_s(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
-		    w_v[0] +=  dS*J_Vz(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
-		    w_v[1] +=  dS*J_Vz(R,Sx+ix,Sz+iz,Sy+iy,iy,ix,iz);
-		    w_v[2] +=  dS*J_Vz(R,Sz+iz,Sy+iy,Sx+ix,iz,iy,ix);
+		    w_s    += dS*  J_s(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
+		    w_v[0] += dS* J_Vz(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
+		    w_v[1] += dS* J_Vz(R,Sx+ix,Sz+iz,Sy+iy,iy,ix,iz);
+		    w_v[2] += dS* J_Vz(R,Sz+iz,Sy+iy,Sx+ix,iz,iy,ix);
 		  }
 	  
 	  // Add in for all symmetries
