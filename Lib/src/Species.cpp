@@ -139,9 +139,10 @@ void FMT_Species::generateWeights(string &pointsFile)
   ifstream in(pointsFile.c_str());
   if(!in.good())
     {
-      stringstream ss;
-      ss << "File " << pointsFile << " could not be opened";
-      throw std::runtime_error(ss.str().c_str());
+      //      stringstream ss;
+      //ss << "File " << pointsFile << " could not be opened";      
+      //      throw std::runtime_error(ss.str().c_str());
+      generateWeights();
     }
 #else
   // Read points from file : C code for use with MPI functions
@@ -636,13 +637,15 @@ void FMT_Species::generateWeights()
   cout << "///////////////////////////////////////////////////////////" << endl;
   cout << "/////  Generating weights using analytic formulae" << endl;
   cout << myColor::RESET << endl;
+
+  long counter = 0;
   
   for(int Sx = 0; Sx <= Sx_max; Sx++)
     for(int Sy = 0; Sy <= Sy_max; Sy++)
       for(int Sz = 0; Sz <= Sz_max; Sz++)
 	{
-	  long pos = density_.get_PBC_Pos(Sx,Sy,Sz);	  
-	  if(pos%1000 == 0) {if(pos > 0) cout << '\r'; cout << "\t" << int(double(pos)*100.0/pmax) << "% finished: " << pos << " out of " << pmax; cout.flush();}
+	  counter++;
+	  if(counter%1000 == 0) {if(counter > 0) cout << '\r'; cout << "\t" << int(double(counter)*100.0/pmax) << "% finished: " << counter << " out of " << pmax; cout.flush();}
 
 	  double R2_min = (Sx-1)*(Sx-1)+(Sy-1)*(Sy-1)+(Sz-1)*(Sz-1);
 	  double R2_max = (Sx+1)*(Sx+1)+(Sy+1)*(Sy+1)+(Sz+1)*(Sz+1);
