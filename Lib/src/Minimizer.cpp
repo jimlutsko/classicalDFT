@@ -470,11 +470,11 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
 	  {
 
 	    double fac = 1;
-	    if(x_[Jspecies].get(i) < 0) fac *= 10;
+	    //OK	    if(x_[Jspecies].get(i) < 0) fac *= 10;
 
 	    //	    if(x_[Jspecies].get(i) < 0) fac *= (1-x_[Jspecies].get(i)); // * (1-x_[Jspecies].get(i)); // * (1-x_[Jspecies].get(i));
 	    //	    if(x_[Jspecies].get(i) >1) fac /= (10*x_[Jspecies].get(i)); // * x_[Jspecies].get(i));
-	    if(x_[Jspecies].get(i) > 0) fac /= exp(x_[Jspecies].get(i)); // * x_[Jspecies].get(i));
+	    //OK	    if(x_[Jspecies].get(i) > 0) fac /= exp(x_[Jspecies].get(i)); // * x_[Jspecies].get(i));
 	    df.set(i, df.get(i) * fac);
 	  }
     }

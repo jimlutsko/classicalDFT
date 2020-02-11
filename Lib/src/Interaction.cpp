@@ -449,55 +449,80 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
   double  gauss_w[Ngauss_];
   for(int i=0;i<Ngauss_;i++) gsl_integration_glfixed_point(0, 1, i, gauss_p+i, gauss_w+i, tr);
 
-  vector<double> w2((Nx_lim+1)*(Nx_lim+2)*(Nx_lim+3)/6,0.0);
     
   double global_factor = dx*dx*dy*dy*dz*dz/(6*6*6);
+
+  long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+1))/2) + Nx_lim+1;
+  int chunk = 1000; 
+  size_t steps_completed = 0;
+  size_t total_steps = Nmax/chunk;
+
+  vector<double> w2(Nmax,0.0);
+
   long p = 0;
-  
-  for(int ix = 0;ix<=Nx_lim; ix++)
+#pragma omp parallel shared( chunk, w2, gauss_p, gauss_w ) private(p)
+  {
+  size_t local_count = 0;    
+#pragma omp for  
+  for(p=0;p<Nmax;p++)
     {
-      cout << '\r'; cout << "\t Nx = " << ix  << " out of  " << Nx_lim << " a_vdw = " << a_vdw_ << endl;
-      for(int iy = 0;iy<=ix; iy++)
-	for(int iz = 0;iz<=iy; iz++)
-	  {
-	    double sum = 0.0;	      
-	    for(int Gx=0; Gx < Ngauss_; Gx++)
-	      {
-		double x  = gauss_p[Gx];
-		double wx = gauss_w[Gx];
-		for(int Gy=0; Gy < Ngauss_; Gy++)
-		  {
-		    double y  = gauss_p[Gy];
-		    double wy = gauss_w[Gy];
-		    for(int Gz=0; Gz < Ngauss_; Gz++)
-		      {
-			double z  = gauss_p[Gz];
-			double wz = gauss_w[Gz];
-			    
-			for(int i=-1;i<=1;i++)
-			  for(int j=-1;j<=1;j++)
-			    for(int k=-1;k<=1;k++)
-			      for(int a=-1;a<=1;a+=2)
-				for(int b=-1;b<=1;b+=2)
-				  for(int c=-1;c<=1;c+=2)
-				    {
-				      double fx = wx*(1-x)*((1-x-x*x)*(i == 0 ? 2 : -1)+2-3*i*a*x);
-				      double fy = wy*(1-y)*((1-y-y*y)*(j == 0 ? 2 : -1)+2-3*j*b*y);
-				      double fz = wz*(1-z)*((1-z-z*z)*(k == 0 ? 2 : -1)+2-3*k*c*z);
+      double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
+      int ix = (p == 0 ? 0 : int(d+(1.0/d)-1));
+      int iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
+      int iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
 
-				      double r = sqrt((ix+x*a+i)*(ix+x*a+i)*dx*dx+(iy+y*b+j)*(iy+y*b+j)*dy*dy+(iz+z*c+k)*(iz+z*c+k)*dz*dz);
-				      double watt = v.Watt(r);					
-				      double w = global_factor*fx*fy*fz*watt;    
+      double sum = 0.0;	      
+      for(int Gx=0; Gx < Ngauss_; Gx++)
+	{
+	  double x  = gauss_p[Gx];
+	  double wx = gauss_w[Gx];
+	  for(int Gy=0; Gy < Ngauss_; Gy++)
+	    {
+	      double y  = gauss_p[Gy];
+	      double wy = gauss_w[Gy];
+	      for(int Gz=0; Gz < Ngauss_; Gz++)
+		{
+		  double z  = gauss_p[Gz];
+		  double wz = gauss_w[Gz];
+		  
+		  for(int i=-1;i<=1;i++)
+		    for(int j=-1;j<=1;j++)
+		      for(int k=-1;k<=1;k++)
+			for(int a=-1;a<=1;a+=2)
+			  for(int b=-1;b<=1;b+=2)
+			    for(int c=-1;c<=1;c+=2)
+			      {
+				double fx = wx*(1-x)*((1-x-x*x)*(i == 0 ? 2 : -1)+2-3*i*a*x);
+				double fy = wy*(1-y)*((1-y-y*y)*(j == 0 ? 2 : -1)+2-3*j*b*y);
+				double fz = wz*(1-z)*((1-z-z*z)*(k == 0 ? 2 : -1)+2-3*k*c*z);
+				
+				//double r = sqrt((ix+x*a+i)*(ix+x*a+i)*dx*dx+(iy+y*b+j)*(iy+y*b+j)*dy*dy+(iz+z*c+k)*(iz+z*c+k)*dz*dz);
+				//double watt = v.Watt(r);
 
-				      sum += w;
-				    }
-		      }
-		  }
-	      }
-	    w2[p] = sum;
-	    p++;
-	  }
+				double r2 = (ix+x*a+i)*(ix+x*a+i)*dx*dx+(iy+y*b+j)*(iy+y*b+j)*dy*dy+(iz+z*c+k)*(iz+z*c+k)*dz*dz;
+				double watt = v.Watt2(r2);
+				
+				double w = global_factor*fx*fy*fz*watt;    
+				
+				sum += w;
+			      }
+		}
+	    }
+	}
+      w2[p] = sum;	    
+      
+      if(local_count++ % chunk == chunk-1)
+	{
+#pragma omp atomic	    
+	  ++steps_completed;
+	  if (steps_completed % 100 == 1)
+	    {
+#pragma omp critical
+	      std::cout << "Progress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)\n";
+	    }
+	}
     }
+  }
   w_att_.Real().zeros();
   a_vdw_ = 0.0;
 
@@ -530,7 +555,9 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
   // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
   // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
   a_vdw_ /= (dx*dy*dz); 
-  
+
+  cout << std::defaultfloat << std::setprecision(6);
+    
   cout << "a_vdw_ = " << a_vdw_ << endl;
   cout << "exact is " << v.getVDW_Parameter(1.0)*2 << endl;
   cout << "diff is " << v.getVDW_Parameter(1.0)*2 - a_vdw_ << endl;

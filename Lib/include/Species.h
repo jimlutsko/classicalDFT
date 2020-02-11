@@ -109,13 +109,13 @@ public:
    *   @param  pointsFile contains the points for spherical integration: if it does not exist, the analytic weights are used
    *   @return nothing 
    */    
-  FMT_Species(Density& density, double hsd, string &pointsFile, double mu = 0, int seq = -1);
+  FMT_Species(Density& density, double hsd, double mu = 0, int seq = -1);
 
   FMT_Species(const FMT_Species &) = delete;
   
   ~FMT_Species(){}
 
-  void reset(string& pointsFile);
+  //  void reset(string& pointsFile);
   
   /**
    *   @brief  Accessor for hard sphere diameter
@@ -243,21 +243,6 @@ public:
   
 protected:
   /**
-   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). Their evaluation involves real-space integrations for which the 
-   *           integration points are given in the file pointsFile. Most of the work occurs via a call to initializeWeightedDensities@
-   *
-   *   @param  densities: the array of weighted densities
-   *   @param  hsd is the hard-sphere diameter
-   *   @param  pointsFile is the file holding the integration points for integrating a spherical shell
-   *   @param  Nx is the number of lattice points in the x-direction
-   *   @param  Ny is the number of lattice points in the y-direction
-   *   @param  Nz is the number of lattice points in the z-direction
-   */        
-  void generateWeights(string &pointsFile);
-  void generateWeights();
-
-  /**
    *   @brief  Get the index of the "eta" partial weighted density in the array of weighted densities, d_
    *   @returns  the index.
    */        
@@ -289,6 +274,76 @@ protected:
   double hsd_ = 0.0; ///< hard sphere diameter 
   vector<FMT_Weighted_Density>  d_; ///< all weighted densities in real & fourier space
 };
+
+/**
+   *  @brief FMT Species Class with weights generated numerically
+   *
+   *       Same as FMT_Species with weights generated from tabulated integration points on a sphere
+   */
+
+class FMT_Species_Numeric : public FMT_Species
+{
+public:
+  /**
+   *   @brief  Default  constructor for FMT_Species 
+   *  
+   *   @param  hsd is the hard-sphere diameter
+   *   @param  lattice describes the mesh
+   *   @param  pointsFile contains the points for spherical integration: if it does not exist, the analytic weights are used
+   *   @return nothing 
+   */    
+  FMT_Species_Numeric(Density& density, double hsd, string &pointsFile, double mu = 0, int seq = -1);
+
+  FMT_Species_Numeric(const FMT_Species &) = delete;
+  
+  ~FMT_Species_Numeric(){}
+
+ protected:
+  /**
+   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
+   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). Their evaluation involves real-space integrations for which the 
+   *           integration points are given in the file pointsFile. Most of the work occurs via a call to initializeWeightedDensities@
+   *
+   *   @param  pointsFile is the file holding the integration points for integrating a spherical shell
+   */        
+  void generateWeights(string &pointsFile);
+};
+
+
+
+/**
+   *  @brief An FMT Species Class with analytic weight generation 
+   *
+   *    Same as FMT_Species except that the weights are generated from analytic formulas. Tensors are not yet implemented.
+   */
+
+class FMT_Species_Analytic : public FMT_Species
+{
+public:
+  /**
+   *   @brief  Default  constructor for FMT_Species 
+   *  
+   *   @param  hsd is the hard-sphere diameter
+   *   @param  lattice describes the mesh
+   *   @return nothing 
+   */    
+  FMT_Species_Analytic(Density& density, double hsd, double mu = 0, int seq = -1);
+
+  FMT_Species_Analytic(const FMT_Species &) = delete;
+  
+  ~FMT_Species_Analytic(){}
+
+ protected:
+  /**
+   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
+   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
+   *
+   */        
+  void generateWeights();
+};
+
+
+
 
 /*
   class VDW_Species : public FMT_Species

@@ -19,7 +19,19 @@ using namespace std;
 
 int Species::SequenceNumber_ = 0;
 
-FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile, double mu, int seq): Species(density,mu,seq), hsd_(hsd), d_(11)
+FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Species(density,mu,seq), hsd_(hsd), d_(11)
+{
+  long Nx = density_.Nx();
+  long Ny = density_.Ny();
+  long Nz = density_.Nz();
+
+  for(FMT_Weighted_Density &d: d_)
+    d.initialize(Nx, Ny, Nz);
+}
+
+/*
+
+void FMT_Species::reset(string& pointsFile)
 {
   long Nx = density_.Nx();
   long Ny = density_.Ny();
@@ -28,8 +40,21 @@ FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile, doubl
   for(FMT_Weighted_Density &d: d_)
     d.initialize(Nx, Ny, Nz);
 
+  generateWeights(pointsFile);
+
+  for(FMT_Weighted_Density &d: d_)
+    d.transformWeights();  
+}
+*/
+
+FMT_Species_Numeric::FMT_Species_Numeric(Density& density, double hsd, string &pointsFile, double mu, int seq):
+  FMT_Species(density,hsd,mu,seq)
+{
+  long Nx = density_.Nx();
+  long Ny = density_.Ny();
+  long Nz = density_.Nz();
+
   stringstream ss1;
-  //  ss1 << "weights_" << seq_num_ << ".dat";
   ss1 << "weights_"
       << Nx << "_"
       << Ny << "_"
@@ -42,7 +67,7 @@ FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile, doubl
   
   ifstream in(ss1.str().c_str(), ios::binary);
   if(!in.good())
-    {readWeights = false; cout << "\n" <<  "Could not open file with weights: generating weights" << endl;}
+    {readWeights = false; cout << "\n" <<  "Could not open file with weights ... " << endl;}
   else {
     string buf;
     getline(in,buf);
@@ -59,9 +84,9 @@ FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile, doubl
     if(nz != Nz)
       {readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
     if(fabs(hsd_-d) > 1e-8*(hsd_+d))
-      {readWeights = false; cout << "\n" <<  "Mismatch in hsd: generating weights: expected " << hsd_ << " but read " << d << endl;}
+      {readWeights = false; cout << "\n" <<  "Mismatch in hsd: expected " << hsd_ << " but read " << d << endl;}
     if(fabs(density_.getDX()-dx) > 1e-8*(density_.getDX()+dx))
-      {readWeights = false; cout << "\n" <<  "Mismatch in Dx: generating weights: expected " << density_.getDX() << " but read " << dx << endl;}
+      {readWeights = false; cout << "\n" <<  "Mismatch in Dx: expected " << density_.getDX() << " but read " << dx << endl;}
 
     getline(in,buf);
     stringstream ss3(buf);
@@ -73,28 +98,26 @@ FMT_Species::FMT_Species(Density& density, double hsd, string &pointsFile, doubl
       for(auto& s: d_)
 	s.load(in);
     } else {
-    cout << "Generating weights ... " << endl;
     generateWeights(pointsFile);
   }
-
+  /*
+  cout << "Sample: " << endl;
+  int counter = 0;
+  for(long i=0;i<d_[EI()].Real().size() && counter < 20; i++)
+    {
+      double s = d_[SI()].getWeight(i);
+      if(fabs(s) > 1e-10)
+	{
+	  cout << i << " " << d_[EI()].getWeight(i) << " " << d_[SI()].getWeight(i) << " " << d_[VI(0)].getWeight(i) << " " << d_[VI(1)].getWeight(i) << " " << d_[VI(2)].getWeight(i) << endl;
+	  counter++;
+	}
+    }
+  exit(0);
+  */
   for(FMT_Weighted_Density &d: d_)
     d.transformWeights();
 }
 
-void FMT_Species::reset(string& pointsFile)
-{
-  long Nx = density_.Nx();
-  long Ny = density_.Ny();
-  long Nz = density_.Nz();
-
-  for(FMT_Weighted_Density &d: d_)
-    d.initialize(Nx, Ny, Nz);
-
-  generateWeights(pointsFile);
-
-  for(FMT_Weighted_Density &d: d_)
-    d.transformWeights();  
-}
 
 // The idea here is as follows. Consider the s weighted density which is just an integral over a sphere of radius hsd/2.
 // In principle, we will need the volume integral
@@ -113,7 +136,7 @@ void FMT_Species::reset(string& pointsFile)
 // with the understanding that the weight u_{l} is zero if l is not a nearest neighbor of the point r'_{k}*(hsd/2).
 // Finally, A is translationally invariant so we really just need it for i=0. It is the arrays A_{0,j} (i.e. the "weights") which are computed here. 
 
-void FMT_Species::generateWeights(string &pointsFile)
+void FMT_Species_Numeric::generateWeights(string &pointsFile)
 {
   long Nx = density_.Nx();
   long Ny = density_.Ny();
@@ -139,10 +162,9 @@ void FMT_Species::generateWeights(string &pointsFile)
   ifstream in(pointsFile.c_str());
   if(!in.good())
     {
-      //      stringstream ss;
-      //ss << "File " << pointsFile << " could not be opened";      
-      //      throw std::runtime_error(ss.str().c_str());
-      generateWeights();
+      stringstream ss;
+      ss << "File " << pointsFile << " could not be opened";      
+      throw std::runtime_error(ss.str().c_str());
     }
 #else
   // Read points from file : C code for use with MPI functions
@@ -431,7 +453,17 @@ void FMT_Species::generateWeights(string &pointsFile)
   for(auto& s: d_)
     s.dump(of);  
 }
+///////////////////////////////////////////////////////
+// Beginning of FMT_Species_Analytic section
 
+FMT_Species_Analytic::FMT_Species_Analytic(Density& density, double hsd, double mu, int seq):
+  FMT_Species(density,hsd,mu,seq)
+{
+  generateWeights();
+
+  for(FMT_Weighted_Density &d: d_)
+    d.transformWeights();
+}
 
 double J_eta_helper(double R, double Sx, double Sy, double Sz, double c, double b, double a)
 {
@@ -611,7 +643,7 @@ double J_s(double R, double Sx, double Sy, double Sz, int wx, int wy, int wz)
   return j;
 }
 
-void FMT_Species::generateWeights()
+void FMT_Species_Analytic::generateWeights()
 {
   double dx = density_.getDX();
   double dy = density_.getDY();
@@ -620,13 +652,15 @@ void FMT_Species::generateWeights()
   double dV = dx*dy*dz;
   double dS = dx*dy;
 
-  // This saves having to a code a useless special case
-  if(hsd_ < 2*dx)
-    throw std::runtime_error("hsd is less than twice the lattice spacing ... aborting");
+  double hsr = hsd_/2; // the hard-sphere radius
   
-  int Sx_max = 1+int(hsd_/dx);
-  int Sy_max = 1+int(hsd_/dy);
-  int Sz_max = 1+int(hsd_/dz);
+  // This saves having to a code a useless special case
+  if(hsd_ < dx)
+    throw std::runtime_error("hsd is less than the lattice spacing ... aborting");
+  
+  int Sx_max = 2+int(hsr/dx);
+  int Sy_max = 2+int(hsr/dy);
+  int Sz_max = 2+int(hsr/dz);
 
   long pmax = (Sx_max+1)*(Sy_max+1)*(Sz_max+1);
   
@@ -659,7 +693,7 @@ void FMT_Species::generateWeights()
 	  // else, the nearest corner is Sx-1,Sy-1,Sz-1 and if this is less than hsd*hsd, then the boundary is between these limits and we must compute
 	  // else, all hsd boundary is less than the nearest corner and all weights are zero.
 
-	  double R = hsd_/dx;
+	  double R = hsr/dx;
 	  
 	  if(R*R > R2_max) {w_eta = dV;}
 	  else if(R*R > R2_min)
@@ -669,54 +703,29 @@ void FMT_Species::generateWeights()
 		  {
 		    w_eta  += dV*J_eta(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
 		    w_s    += dS*  J_s(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
-		    w_v[0] += dS* J_Vz(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
+		    w_v[2] += dS* J_Vz(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
 		    w_v[1] += dS* J_Vz(R,Sx+ix,Sz+iz,Sy+iy,iy,ix,iz);
-		    w_v[2] += dS* J_Vz(R,Sz+iz,Sy+iy,Sx+ix,iz,iy,ix);
+		    w_v[0] += dS* J_Vz(R,Sz+iz,Sy+iy,Sx+ix,iz,iy,ix);
 		  }
 	  
 	  // Add in for all symmetries
-	  for(int ix:v)
-	    for(int iy:v)
-	      for(int iz:v)
-		{
-		  long pos = density_.get_PBC_Pos(ix*Sx,iy*Sy,iz*Sz);	  
+	  for(int ix = 0; ix < (Sx == 0 ? 1 : 2); ix++)
+	    for(int iy = 0; iy < (Sy == 0 ? 1 : 2); iy++)
+	      for(int iz = 0; iz < (Sz == 0 ? 1 : 2); iz++)
+		{		  
+		  long pos = density_.get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
 		  d_[EI()].addToWeight(pos,w_eta);
 		  d_[SI()].addToWeight(pos,w_s);
 		  for(int iv = 0;iv < 3;iv++)
-		    d_[VI(iv)].addToWeight(pos,(iv == 0 ? ix : (iv == 1 ? iy : iz))*w_v[iv]);
+		    d_[VI(iv)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*w_v[iv]);
 		}
 	}
+  cout << endl;
   cout << myColor::GREEN;
   cout << "/////  Finished.  " << endl;
   cout << "///////////////////////////////////////////////////////////" << endl;
   cout << myColor::RESET << endl;
 
-  /// Dump the weights
-  stringstream ss;
-
-  long Nx = density_.Nx();
-  long Ny = density_.Ny();
-  long Nz = density_.Nz();  
-
-  //  ss << "weights_" << seq_num_ << ".dat";
-  ss << "weights_"
-      << Nx << "_"
-      << Ny << "_"
-      << Nz << "_"
-      << hsd_ << "_"
-      << density_.getDX() << "_"
-      << ".dat";
-  
-  ofstream of(ss.str().c_str(), ios::binary);
-
-  of.flags (std::ios::scientific);
-  of.precision (std::numeric_limits<double>::digits10 + 1);
-
-  of << Nx << " " << Ny << " " << Nz << " " << hsd_ << " " << density_.getDX() << endl;
-  
-  for(auto& s: d_)
-    s.dump(of);
-  
 }
 
 

@@ -182,7 +182,11 @@ int main(int argc, char** argv)
 	  double F;
 	  double Cvac;
 
-	  FMT_Species species1(theDensity1,hsd1,pointsFile,Mu);
+
+	  FMT_Species_Analytic species1(theDensity1,hsd1,Mu);
+	  //	  FMT_Species_Numeric species1(theDensity1,hsd1,pointsFile,Mu);
+
+
 	  //Interaction i1(species1,species1,potential1,kT,log, pointsFile);
 	  Interaction_Full i1(species1,species1,potential1,kT,log,5);
 

@@ -24,6 +24,7 @@ class Potential1
   void setBH() { bhFlag_ = true;}
   
   double V(double r) const { return vr(r)-shift_;}
+  double V2(double r2) const { return vr2(r2)-shift_;}
 
   double Watt(double r) const
   {
@@ -39,6 +40,21 @@ class Potential1
 
     return ret;
   }
+
+  double Watt2(double r2) const
+  {
+    double ret = 0.0;
+
+    if(r2 > rcut_*rcut_) ret = 0.0;
+    else {
+      if(bhFlag_) ret =  (r2 < getR0()*getR0() ? 0.0 : V2(r2));    
+      else if(r2 < r_att_min_*r_att_min_) ret = 0.0;
+      else if (r2 < rmin_*rmin_) ret = Vmin_;
+      else ret = V2(r2);
+    }
+
+    return ret;
+  }  
 
   double V0(double r)   const
   {
@@ -63,16 +79,11 @@ class Potential1
     return (2*M_PI/kT)*(II.integrateFinite(r_att_min_,rmin_)+II.integrateFinite(rmin_,rcut_));
   }
 
-  //  virtual double getVDW_Parameter(double kT) const = 0;
-  
-  // This is $a = \frac{1}{2}\int Watt(r)/kT d{\bf r}$
-  // I assume that $kT = k_{B}T/\eps$
-
-
   virtual string getIdentifier() const = 0;
   
  protected:
   virtual double vr(double r) const = 0;
+  virtual double vr2(double r2) const = 0;
 
   virtual double dBH_Kernal(double r) const {return (1.0-exp(-V0(r)/kT_));}
   virtual double vdw_Kernal(double r) const {return r*r*Watt(r);}
@@ -133,6 +144,12 @@ class LJ : public Potential1
     double y6 = y3*y3;
     return 4*eps_*(y6*y6-y6);
   }
+  virtual double vr2(double r2) const
+  {
+    double y2 = sigma_*sigma_/r2;
+    double y6 = y2*y2*y2;
+    return 4*eps_*(y6*y6-y6);
+  }  
 };
 
 /**
@@ -188,6 +205,17 @@ class tWF : public Potential1
       return (4*eps_/(alpha_*alpha_))*(y3*y3-alpha_*y3);
   }
 
+  virtual double vr2(double r2) const
+  {
+      if(r2 < sigma_*sigma_) return 1e50;
+
+      double s2 = r2/(sigma_*sigma_);
+      double y = 1.0/(s2-1);
+      double y3 = y*y*y;
+      
+      return (4*eps_/(alpha_*alpha_))*(y3*y3-alpha_*y3);
+  }  
+
   double alpha_;
 };
 
@@ -231,6 +259,12 @@ class WHDF : public Potential1
     double z = rcut_/r;
     return eps_*(y*y-1)*(z*z-1)*(z*z-1);
   }
+  virtual double vr2(double r2) const
+  {
+    double y2 = sigma_*sigma_/r2;
+    double z2 = rcut_*rcut_/r2;
+    return eps_*(y2-1)*(z2-1)*(z2-1);
+  }  
 };
 
 
