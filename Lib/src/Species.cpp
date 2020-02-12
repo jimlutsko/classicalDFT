@@ -704,7 +704,7 @@ void FMT_Species_Analytic::generateWeights()
 		    w_eta  += dV*J_eta(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
 		    w_s    += dS*  J_s(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
 		    w_v[2] += dS* J_Vz(R,Sx+ix,Sy+iy,Sz+iz,ix,iy,iz);
-		    w_v[1] += dS* J_Vz(R,Sx+ix,Sz+iz,Sy+iy,iy,ix,iz);
+		    w_v[1] += dS* J_Vz(R,Sx+ix,Sz+iz,Sy+iy,ix,iz,iy);
 		    w_v[0] += dS* J_Vz(R,Sz+iz,Sy+iy,Sx+ix,iz,iy,ix);
 		  }
 	  

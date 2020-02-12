@@ -24,7 +24,7 @@ using namespace std;
 #include "myColor.h"
 
 void check(Density &density, DFT &dft, Interaction &i);
-
+double gaussianEval(double alf, SolidFCC& theDensity, DFT& dft, double &prefac, Log &log);
 double L[3] = {10,10,10};
 int nCores = 6;
 
@@ -177,23 +177,20 @@ int main(int argc, char** argv)
       for(int Npoints = Npoints_min; Npoints < Npoints_max; Npoints++)
 	{
 	  double L[] = {Npoints*dx, Npoints*dx, Npoints*dx};
-	  SolidFCC theDensity1(dx, L);  
+	  SolidFCC theDensity1(dx, L);
 
 	  double F;
 	  double Cvac;
-
-
+	  
 	  FMT_Species_Analytic species1(theDensity1,hsd1,Mu);
-	  //	  FMT_Species_Numeric species1(theDensity1,hsd1,pointsFile,Mu);
-
 
 	  //Interaction i1(species1,species1,potential1,kT,log, pointsFile);
 	  Interaction_Full i1(species1,species1,potential1,kT,log,5);
 
-
 	  RSLT fmt;
 
 	  log << "VDW(potential)   = " << potential1.getVDW_Parameter(kT) << endl;
+	  i1.initialize();
 	  log << "VDW(interaction) = " << 0.5*i1.getVDWParameter() << endl;
 
 	  theDensity1.setSpecies(&species1);
@@ -206,8 +203,8 @@ int main(int argc, char** argv)
 	  
 	  if(Npoints == Npoints_min)
 	    {
-	      //	      VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT));
-	      VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT));
+	      VDW1 vdw(hsd1,0.5*i1.getVDWParameter()); //potential1.getVDW_Parameter(kT));
+	      
 	      double xliq = vdw.findLiquidFromMu(Mu, 1.0);
 	      double xvap = vdw.findVaporFromMu(Mu, 1.0);
 
@@ -224,9 +221,8 @@ int main(int argc, char** argv)
 		 << setw(15) <<"Cvacancy"
 		 << setw(15) <<"Err"
 		 << endl;  
-	      of.close();      
+	      of.close();
 	    }
-
 	  double Fgauss, Agauss;
 	  if(findGaussian(theDensity1, dft, log, Fgauss, Agauss))	  
 	    if(GaussianOnly || findMinimum(theDensity1, dft, log, F, Cvac))

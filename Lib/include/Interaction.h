@@ -47,10 +47,10 @@ class Interaction_Base
     double mu = 0.0;
 
     if(s1_.getSequenceNumber() == species)
-      mu += a_vdw_*x[s2_.getSequenceNumber()];
+      mu += 0.5*a_vdw_*x[s2_.getSequenceNumber()];
 
     if(s2_.getSequenceNumber() == species)
-      mu += a_vdw_*x[s1_.getSequenceNumber()];    
+      mu += 0.5*a_vdw_*x[s1_.getSequenceNumber()];    
 
     return mu;
   }

@@ -103,7 +103,7 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 
   // Now, construct the local value of phi.
   double phi = 0;
-  phi -= (1/M_PI)*s0*f1; //log(1-eta);
+  phi -= (1/M_PI)*s0*f1; 
   phi += (1/(2*M_PI))*(s1*s2-v1_v2)*f2;
   phi += Phi3(s2,v2_v2,vTv,T2,T3)*f3; 
 
@@ -211,7 +211,6 @@ double FMT::doFreeEnergyLoop(vector<Species*> &allSpecies)
   // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
   if(hadCatch) 
     throw   Eta_Too_Large_Exception();
-
   return F;
 }
 

@@ -26,6 +26,8 @@ using namespace std;
 
 void Interaction_Base::initialize()
 {
+  if(initialized_) return; // no need to do twice
+
   const Density &density = s1_.getDensity();
   long Nx = density.Nx();
   long Ny = density.Ny();
@@ -87,7 +89,7 @@ void Interaction_Base::initialize()
   if(readWeights)
     {
       w_att_.Real().load(in);
-      a_vdw_ = w_att_.Real().accu();	
+      a_vdw_ = w_att_.Real().accu();
     } else {
     ofstream of(ss1.str().c_str(), ios::binary);
 
@@ -102,7 +104,7 @@ void Interaction_Base::initialize()
   // Introduce the temperature
   w_att_.Real().MultBy(1.0/kT_);
   a_vdw_ /= kT_;
-    
+  
   // Now generate the FFT of the field  
   w_att_.do_real_2_fourier();
 

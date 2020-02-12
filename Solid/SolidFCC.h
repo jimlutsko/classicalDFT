@@ -62,7 +62,7 @@ class SolidFCC : public Density
    *   @param  number of atoms in the FCC unit cell (taking vacancies into account)
    *   @return  
    */  
-  virtual void initialize(double alpha, int ncells, double prefac, double dmin = 1e-20)
+  virtual void initialize(double alpha, int ncells, double prefac, double dmin = 1e-15)
   {
     double a_latt = L_[0]/ncells;
     
@@ -92,7 +92,7 @@ class SolidFCC : public Density
 	    double y = getY(j);
 	    double z = getZ(k);
 
-	    double dsum = 0;
+	    double dsum = dmin;
 
 	    for(int icell=0;icell < ncells; icell++)
 	      for(int jcell=0;jcell < ncells; jcell++)
@@ -106,7 +106,7 @@ class SolidFCC : public Density
 		      double r2 = dx*dx+dy*dy+dz*dz;
 		      dsum += prefac*pow(alpha/M_PI,1.5)*exp(-alpha*r2);
 		    }
-	    if(dsum < dmin) dsum = dmin;
+	    //	    if(dsum < dmin) dsum = dmin;
 	    set_Density_Elem(i,j,k,dsum);	    
 	  }
     //    string title("dummy");
@@ -155,7 +155,6 @@ class SolidFCC : public Density
 	int iz = i-jz;
 	while(iz > Nz()/2) iz -= Nz();
 	while(iz < -Nz()/2) iz += Nz();
-
 	
         double x = getZ(iz);
 	grace_->addPoint(x,getDensity(jx,jy,i),seq);

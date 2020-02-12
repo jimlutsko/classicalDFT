@@ -23,7 +23,7 @@ double DFT::Mu(const vector<double> &x, int species) const
 
   if(fmt_)
     mu += fmt_->BulkMuex(x, allSpecies_, species);
-  
+
   for(auto &interaction: Interactions_)
     mu += interaction->Mu(x,species);
   return mu;
@@ -33,10 +33,9 @@ double DFT::Omega(const vector<double> &x) const
 {
   double omega = Fhelmholtz(x);
   for(int i=0;i<allSpecies_.size();i++)
-    omega -= x[i]*Mu(x,i);
-
-  //  for(int i=0;i<allSpecies_.size();i++)
-  //    if(fabs(x[i]) > SMALL_VALUE) omega -= x[i]*Mu(x,i);
+    {
+      omega -= x[i]*Mu(x,i);
+    }
   
   return omega;
 }
@@ -44,15 +43,15 @@ double DFT::Omega(const vector<double> &x) const
 double DFT::Fhelmholtz(const vector<double> &x) const
 {
   double F = 0.0;
+
   for(auto &y: x)
-    //    if(fabs(y) > SMALL_VALUE)
-      F += y*log(y)-y;
+    F += y*log(y)-y;
+
   if(fmt_)
     F += fmt_->BulkFex(x, allSpecies_);
-       
+
   for(auto &interaction: Interactions_)
     F += interaction->Fhelmholtz(x);  
-
   return F;  
 }  
 
@@ -102,8 +101,8 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	    species->addToForce(i,log(d0)*dV);
 	  }
       }
-  for(auto &species : allSpecies_)
-    F += species->externalField(true); // bCalcForces = true: obsolete?  
+
+  // Hard-sphere contribution
   if(fmt_)
     {    
       try{
@@ -112,15 +111,19 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	throw e;
       }
     }
+  
   //< Mean field contribution to F and dF
   // Need the following only if the fmt object is not called
   if(!fmt_)
     for(auto &species : allSpecies_)
-      {
-	species->doFFT();
-      }
+      species->doFFT();
   
   for(auto &interaction: DFT::Interactions_)
     F += interaction->getInteractionEnergyAndForces();
+
+  // External field + chemical potential
+  for(auto &species : allSpecies_)
+    F += species->externalField(true); // bCalcForces = true: obsolete?  
+
   return F.sum();  
 }
