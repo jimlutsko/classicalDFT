@@ -73,7 +73,6 @@ class DFT_Vec
       in >> data_[i];
   }
     
-
   void MultBy(double val)            { data_ *= val;}
   void IncrementBy(const DFT_Vec& v) { data_ += v.data_;}
   void DecrementBy(const DFT_Vec& v) { data_ -= v.data_;}  

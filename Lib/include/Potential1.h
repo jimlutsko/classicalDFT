@@ -21,7 +21,7 @@ class Potential1
   double getR0()   const { return r0_;}
   
   void set_WCA_limit(double r) { r_att_min_ = r;}
-  void setBH() { bhFlag_ = true;}
+  void setBH() { bhFlag_ = true; r_att_min_ = getR0();}
   
   double V(double r) const { return vr(r)-shift_;}
   double V2(double r2) const { return vr2(r2)-shift_;}
@@ -74,7 +74,7 @@ class Potential1
   double getVDW_Parameter(double kT) const
   {
     kT_ = kT;
-    Integrator<const Potential1> II(this, &Potential1::vdw_Kernal, 1e-4, 1e-6);
+    Integrator<const Potential1> II(this, &Potential1::vdw_Kernal, 1e-6, 1e-8);
     if(bhFlag_) return (2*M_PI/kT)*II.integrateFinite(getR0(),rcut_);
     return (2*M_PI/kT)*(II.integrateFinite(r_att_min_,rmin_)+II.integrateFinite(rmin_,rcut_));
   }

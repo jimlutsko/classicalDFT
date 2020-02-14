@@ -34,7 +34,7 @@ class Interaction_Base
   void initialize();
 
   virtual bool checkWeightsFile(ifstream &in) = 0;
-  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log, ofstream &of) = 0;  
+  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log) = 0;  
   // Note that the matrix w already contains a factor of dV
   double getInteractionEnergyAndForces();
 
@@ -58,6 +58,9 @@ class Interaction_Base
   double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];}  
 
   double getVDWParameter() const { return a_vdw_;}
+
+ protected:
+  virtual bool readWeights(stringstream &ss1);
   
  protected:
   Species &s1_;
@@ -81,7 +84,7 @@ class Interaction : public Interaction_Base
   Interaction_Base(s1,s2,v,kT,log), pointsFile_(pointsFile) {};
 
   virtual bool checkWeightsFile(ifstream &in);
-  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log, ofstream &of);
+  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
   
  protected:
   string pointsFile_;
@@ -97,9 +100,24 @@ class Interaction_Full : public Interaction_Base
   // TODO:
   virtual bool checkWeightsFile(ifstream &in) {return true;}
 
-  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log, ofstream &of);
+  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
  protected:
   int Ngauss_;
+};
+
+
+class Interaction_Linear_Interpolation : public Interaction_Base
+{
+ public:
+
+ Interaction_Linear_Interpolation(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
+  Interaction_Base(s1,s2,v,kT,log) {}  
+
+  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
+  virtual bool checkWeightsFile(ifstream &in) {return false;}
+  
+ protected:
+  virtual bool readWeights(stringstream &ss1) { cout << "hit" << endl; return false;} 
 };
 
 

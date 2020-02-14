@@ -37,8 +37,28 @@ void Interaction_Base::initialize()
   a_vdw_ = 0.0;
   
   // First, try to read the weights from a file
-    
   stringstream ss1;
+  
+  if(!readWeights(ss1))
+    generateWeights(v_, ss1, log_);
+    
+  // Introduce the temperature
+  w_att_.Real().MultBy(1.0/kT_);
+  a_vdw_ /= kT_;
+  
+  // Now generate the FFT of the field  
+  w_att_.do_real_2_fourier();
+
+  initialized_ = true;
+}    
+
+bool Interaction_Base::readWeights(stringstream &ss1)
+{
+  const Density &density = s1_.getDensity();
+  long Nx = density.Nx();
+  long Ny = density.Ny();
+  long Nz = density.Nz();
+        
   ss1 << "weights_"
       << s1_.getSequenceNumber() << "_"
       << s2_.getSequenceNumber() << "_"
@@ -85,7 +105,6 @@ void Interaction_Base::initialize()
       
     readWeights = checkWeightsFile(in);
   }
-
   if(readWeights)
     {
       w_att_.Real().load(in);
@@ -93,23 +112,15 @@ void Interaction_Base::initialize()
     } else {
     ofstream of(ss1.str().c_str(), ios::binary);
 
-    of.flags (std::ios::scientific);
-    of.precision (std::numeric_limits<double>::digits10 + 1);
+      of.flags (std::ios::scientific);
+      of.precision (std::numeric_limits<double>::digits10 + 1);
 
-    of << Nx << " " << Ny << " " << Nz << " " << density.getDX() << endl;
-    of << v_.getIdentifier() << endl;
-    generateWeights(v_, ss1, log_, of);
+      of << Nx << " " << Ny << " " << Nz << " " << density.getDX() << endl;
+      of << v_.getIdentifier() << endl;
+      of.close();
   }
-    
-  // Introduce the temperature
-  w_att_.Real().MultBy(1.0/kT_);
-  a_vdw_ /= kT_;
-  
-  // Now generate the FFT of the field  
-  w_att_.do_real_2_fourier();
-
-  initialized_ = true;
-}    
+  return readWeights;
+}
 
   // Note that the matrix w already contains a factor of dV
 double Interaction_Base::getInteractionEnergyAndForces()
@@ -162,20 +173,6 @@ double Interaction_Base::checkCalc(int jx, int jy, int jz)
   int Ny = density1.Ny();
   int Nz = density1.Nz();
 
-
-    
-  //    int jx = 0;
-  //    int jy = 66;
-  //    int jz = 14;
-
-  /*
-    double EE = 0.0;
-    
-    for(int jx=0; jx<Nx; jx++)
-    for(int jy=0; jy<Ny; jy++)
-    for(int jz=0; jz<Nz; jz++)
-    {
-  */
   long sj = density1.pos(jx,jy,jz);
   double dd = 0.0;    
   for(int ix=0;ix<Nx; ix++)
@@ -191,14 +188,6 @@ double Interaction_Base::checkCalc(int jx, int jy, int jz)
 		    
 	  dd += w_att_.Real().get(sk)*density1.getDensity(si);
 	}
-  //	    EE += dd*density1.getDensity(sj);
-  //	      }
-  //	    cout << "Direct calc of dF[" << jx << "," << jy << "," << jz << "] = " << dd*dV*dV  << endl;
-  //    EE *= 0.5*dV*dV;
-  //    cout << setprecision(20) << "E        = " << E << endl;
-  //    cout << setprecision(20) << "E-direct = " << EE << endl;
-  //    cout << setprecision(20) << "diff     = " << E - EE << endl;
-    
   return dd*dV*dV;
 }
 
@@ -218,7 +207,7 @@ bool Interaction::checkWeightsFile(ifstream &in)
   return readWeights;
 }
   
-void Interaction::generateWeights(Potential1 &v, stringstream &ss, Log& log, ofstream &of)
+void Interaction::generateWeights(Potential1 &v, stringstream &ss, Log& log)
 {    
   const Density &density = s1_.getDensity();
       
@@ -416,11 +405,12 @@ void Interaction::generateWeights(Potential1 &v, stringstream &ss, Log& log, ofs
   cout << myColor::RESET << endl;
    
   /// Dump the weights
+  ofstream of(ss.str().c_str(), ios::binary | ios::app);  
   of << pointsFile_ << endl;
   w_att_.Real().save(of);
 }
 
-void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log, ofstream &of)
+void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log)
 {    
   const Density &density = s1_.getDensity();
       
@@ -451,6 +441,7 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
   double  gauss_w[Ngauss_];
   for(int i=0;i<Ngauss_;i++) gsl_integration_glfixed_point(0, 1, i, gauss_p+i, gauss_w+i, tr);
 
+  cout << "Ngauss_ = " << Ngauss_ << endl;
     
   double global_factor = dx*dx*dy*dy*dz*dz/(6*6*6);
 
@@ -469,10 +460,14 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
   for(p=0;p<Nmax;p++)
     {
       double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
-      int ix = (p == 0 ? 0 : int(d+(1.0/d)-1));
+      int ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
       int iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
+      while(iy > ix)	      
+	{ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
       int iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
-
+      while(iz > iy)
+	{ iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
+            
       double sum = 0.0;	      
       for(int Gx=0; Gx < Ngauss_; Gx++)
 	{
@@ -520,7 +515,9 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
 	  if (steps_completed % 100 == 1)
 	    {
 #pragma omp critical
-	      std::cout << "Progress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)\n";
+	      cout << '\r';
+	      std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
+	      cout.flush();
 	    }
 	}
     }
@@ -552,15 +549,15 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
 
 	  w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
 	  a_vdw_ += w;
-	}  
-
+	}
+  cout << " - Finished!" << endl;
   // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
   // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
   a_vdw_ /= (dx*dy*dz); 
 
   cout << std::defaultfloat << std::setprecision(6);
     
-  cout << "a_vdw_ = " << a_vdw_ << endl;
+  cout << setprecision(12) << "a_vdw_ = " << a_vdw_ << endl;
   cout << "exact is " << v.getVDW_Parameter(1.0)*2 << endl;
   cout << "diff is " << v.getVDW_Parameter(1.0)*2 - a_vdw_ << endl;
   cout << "dx = " << dx << endl;
@@ -571,6 +568,121 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
   cout << myColor::RESET << endl;
     
   /// Dump the weights
+  ofstream of(ss.str().c_str(), ios::binary | ios::app);  
   w_att_.Real().save(of);
 
+}
+
+
+void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstream &ss, Log& log)
+{    
+  const Density &density = s1_.getDensity();
+      
+  // The lattice
+  long Nx = density.Nx();
+  long Ny = density.Ny();
+  long Nz = density.Nz();
+
+  double dx = density.getDX();
+  double dy = density.getDY();
+  double dz = density.getDZ();
+  
+  // Set up the mean field potential
+  // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
+  // This may mean going beyond nearest neighbors in certain conditions.
+  // We also compute the vdw parameter at the same time.
+      
+  double Rc = v.getRcut();
+
+  int Nx_lim = 1+int(Rc/dx);
+  int Ny_lim = 1+int(Rc/dy);
+  int Nz_lim = 1+int(Rc/dz);    
+    
+  // Add up the weights for each point.
+  double global_factor = dx*dx*dy*dy*dz*dz/(120*120*120);
+
+  long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+1))/2) + Nx_lim+1;
+  int chunk = 1000; 
+  size_t steps_completed = 0;
+  size_t total_steps = Nmax/chunk;
+
+  vector<double> w2(Nmax,0.0);
+  int vv[5] = {1,26,66,26,1};
+  
+  long p = 0;
+#pragma omp parallel shared( chunk, w2, vv) private(p)
+  {
+  size_t local_count = 0;    
+#pragma omp for  
+  for(p=0;p<Nmax;p++)
+    {
+      double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
+      int ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
+      int iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
+      while(iy > ix)	      
+	{ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
+      int iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
+      while(iz > iy)
+	{ iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
+      
+      for(int i=0;i<5;i++)
+	for(int j=0;j<5;j++)
+	  for(int k=0;k<5;k++)
+	    {
+	      double r2 = (ix+i-2)*(ix+i-2)*dx*dx+(iy+j-2)*(iy+j-2)*dy*dy+(iz+k-2)*(iz+k-2)*dz*dz;
+	      w2[p] += global_factor*vv[i]*vv[j]*vv[k]*v.Watt2(r2);
+	    }
+      if(local_count++ % chunk == chunk-1)
+	{
+#pragma omp atomic	    
+	  ++steps_completed;
+	  if (steps_completed % 100 == 1)
+	    {
+#pragma omp critical
+	      cout << '\r';
+	      std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
+	      cout.flush();
+	    }
+	}
+    }
+  }
+  w_att_.Real().zeros();
+  a_vdw_ = 0.0;
+  
+  for(int ix = -Nx_lim-1;ix<=Nx_lim+1; ix++)
+    for(int iy = -Ny_lim-1;iy<=Ny_lim+1; iy++)
+      for(int iz = -Nz_lim-1;iz<=Nz_lim+1; iz++)
+	{	  
+	  // get the value of the integrated potential at this point
+	  int nx = abs(ix);
+	  int ny = abs(iy);
+	  int nz = abs(iz);
+
+	  if(ny > nx) swap(nx,ny);
+	  if(nz > nx) swap(nx,nz);
+	  if(nz > ny) swap(ny,nz);
+	  long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
+	  double w = w2[p];
+	  // and get the point it contributes to
+	  long pos = s1_.getDensity().get_PBC_Pos(ix,iy,iz);
+	  w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
+	  a_vdw_ += w;
+	}
+  cout << " - Finished!" << endl;
+  // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
+  // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
+  a_vdw_ /= (dx*dy*dz); 
+
+  cout << std::defaultfloat << std::setprecision(6);
+    
+  cout << setprecision(12) << "a_vdw_ = " << a_vdw_ << endl;
+  cout << "exact is " << v.getVDW_Parameter(1.0)*2 << endl;
+  cout << "diff is " << v.getVDW_Parameter(1.0)*2 - a_vdw_ << endl;
+  cout << "dx = " << dx << endl;
+
+  cout << myColor::GREEN;
+  cout << "/////  Finished.  " << endl;
+  cout << "///////////////////////////////////////////////////////////" << endl;
+  cout << myColor::RESET << endl;
+    
 }

@@ -389,13 +389,13 @@ double fireMinimizer2::step()
   // write a snapshot
   static int ic = 0;
   if(ic % 10 == 0)
-  for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    {
-      stringstream s;
-      s << "snapshot_s" << Jspecies << ".dat";
-      string of = s.str();
-      dft_.writeDensity(Jspecies,of);
-    }
+    for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+      {
+	stringstream s;
+	s << "snapshot_s" << Jspecies << ".dat";
+	string of = s.str();
+	dft_.writeDensity(Jspecies,of);
+      }
   ic++;
   
   return F_;
@@ -411,14 +411,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       DFT_Vec &df = dft_.getDF(Jspecies);      
-      //      v_[Jspecies].IncrementBy_Scaled_Vector(df, -dt_);
-      for(long i=0;i<v_[Jspecies].size();i++)
-	{
-	  double fac = -dt_;
-	  //	  if(x_[Jspecies].get(i) < 0) fac *= (1-x_[Jspecies].get(i))*(1-x_[Jspecies].get(i)); 
-	  //	  if(x_[Jspecies].get(i) >1) fac /= (x_[Jspecies].get(i) * x_[Jspecies].get(i));
-	  v_[Jspecies].set(i, v_[Jspecies].get(i)+df.get(i)*fac);
-	}
+      v_[Jspecies].IncrementBy_Scaled_Vector(df, -dt_);
 	  
       double v = v_[Jspecies].euclidean_norm();
       double f = df.euclidean_norm();
@@ -435,15 +428,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
     {
       v_[Jspecies].MultBy(1-alpha_);      
       v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
-      //      x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
-      DFT_Vec &df = dft_.getDF(Jspecies);
-      for(long i=0;i<x_[Jspecies].size();i++)
-	{
-	  double fac = dt_;
-	  //	  if(x_[Jspecies].get(i) < 0) fac *= (1-x_[Jspecies].get(i)) * (1-x_[Jspecies].get(i)); 
-	  //	  if(x_[Jspecies].get(i) >1) fac /= (x_[Jspecies].get(i) * x_[Jspecies].get(i)); 	  
-	  x_[Jspecies].set(i, x_[Jspecies].get(i)+v_[Jspecies].get(i)*fac);
-	}      
+      x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
     }  
   // recalculate forces with back-tracking, if necessary
   bool bSuccess = false;
@@ -465,18 +450,6 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
       fmax_ = max(fmax_, df.inf_norm()/dft_.getDensity(Jspecies).dV());
       fnorm += f*f;
       cnorm += df.size();            
-      if(threshold_ > 0)	
-	for(long i=0;i<df.size();i++)
-	  {
-
-	    double fac = 1;
-	    //OK	    if(x_[Jspecies].get(i) < 0) fac *= 10;
-
-	    //	    if(x_[Jspecies].get(i) < 0) fac *= (1-x_[Jspecies].get(i)); // * (1-x_[Jspecies].get(i)); // * (1-x_[Jspecies].get(i));
-	    //	    if(x_[Jspecies].get(i) >1) fac /= (10*x_[Jspecies].get(i)); // * x_[Jspecies].get(i));
-	    //OK	    if(x_[Jspecies].get(i) > 0) fac /= exp(x_[Jspecies].get(i)); // * x_[Jspecies].get(i));
-	    df.set(i, df.get(i) * fac);
-	  }
     }
     rms_force_ = sqrt(fnorm/cnorm);
 }
