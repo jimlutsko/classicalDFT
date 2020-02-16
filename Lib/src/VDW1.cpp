@@ -16,45 +16,6 @@ using namespace std;
 #include "VDW1.h"
 #include "poly34.h"
 
-// Solve P= x*(1+e*(1+e*(1-e)))/(e1*e1*e1) + a_*x*x for xmin<x0<x<xmax
-/*
-double VDW1::findDensityFromPressure(double P, double xmin, double xmax) const
-{
-  P *= M_PI*d_*d_*d_/6;
-  xmin *= M_PI*d_*d_*d_/6;
-  xmax *= M_PI*d_*d_*d_/6;
-
-  double ae = a_*6/(M_PI*d_*d_*d_);
-  double a[6] = { -P, 1 + 3*P, 1 - 3*P +ae, 1 +P - 3*ae, -1 + 3*ae, -ae};
-  double z[10];
-
-  gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc(6);
-  int ret =   gsl_poly_complex_solve(a, 6, w, z);
-  gsl_poly_complex_workspace_free(w);
-
-  if(ret != GSL_SUCCESS) {cout << " P = " << P << endl; throw std::runtime_error("findDensityFromPressure poly solver failed");}
-
-  double x = -1;
-  double xi = 1e30;
-
-  for (int i = 0; i < 5; i++)
-    {
-      double re = z[2*i];
-      double im = abs(z[2*i+1]);
-
-      if(re > xmin && re < xmax)
-	if(im < xi) 
-	  {x = re; xi = im;}
-    }
-  if(x < 0 || xi > 1e-6) throw std::runtime_error("VDW1::findDensityFromPressure failed");
-
-  // convert from e to x
-  x *= 6/(M_PI*d_*d_*d_);
-
-  return x;
-}
-*/
-
  // Solve P= x*(1+e*(1+e*(1-e)))/(e1*e1*e1) + a_*x*x for xmin<x0<x<xmax
 double VDW1::findDensityFromPressure(double P, double xmin, double xmax) const
 {
@@ -80,9 +41,6 @@ double VDW1::findDensityFromPressure(double P, double xmin, double xmax) const
 
   return y;
 }
-
-
-
 
 // For coexistence we need to solve P1=P2 and mu1=mu2
 // where, for the VDW model,
@@ -166,7 +124,6 @@ int VDW1::findCoexistence(double &x1, double &x2) const
   return 0;
 }
 
-
 // To find the spinodal, we just need the roots of dP/dx
 // and here 
 //     double e = M_PI*x*d_*d_*d_/6;
@@ -241,7 +198,7 @@ double VDW1::findLiquidFromMu(double mu, double mu_coex, double xliq_coex) const
 double VDW1::findLiquidFromMu(double mu, double high_density) const
 {
   // Find the liquid that has the correct chemical potential,
-  // We know it is between densityLiqCoex and infinity
+  // Start at teh high density and go dozn until the chemical potential is bracketed.
   double ax = high_density;
   double bx = ax;
   double fa = chemPotential(ax);

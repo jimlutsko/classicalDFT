@@ -59,15 +59,6 @@ bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &
 
 
 double bmu = 1e-20;
-/*
-class myMin : public adamMinimizer
-{
-public:
-  myMin(DFT &dft, ostream &log) :  adamMinimizer(dft, log) {}
-  virtual void draw_after() { cout << "dt_ = " << dt_ << " rms_force = " << rms_force_ << endl;}
-};
-
-*/
 
 class myMin : public fireMinimizer2
 {
@@ -80,6 +71,8 @@ public:
 };
 
 
+void do_N_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max, double Mu_step, bool GaussianOnly, Potential1& potential1, Log &log);
+void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max, double Mu_step, bool GaussianOnly, Potential1& potential1, Log &log);
 
 int main(int argc, char** argv)
 {
@@ -163,6 +156,114 @@ int main(int argc, char** argv)
 
   if(cutoff < -1) cutoff = hsd1;
   
+  //  do_N_first(Npoints_min, Npoints_max, Mu_min, Mu_max, Mu_step, GaussianOnly, potential1, log);
+  do_Mu_first(Npoints_min, Npoints_max, Mu_min, Mu_max, Mu_step, GaussianOnly, potential1, log);
+
+  log << "Finished" << endl;
+  
+  return 1;
+
+}
+
+void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max, double Mu_step, bool GaussianOnly, Potential1& potential1, Log &log)
+{
+  ofstream of("scan.dat");
+  of.close();
+
+  for(int Npoints = Npoints_min; Npoints < Npoints_max; Npoints++)
+    {
+      double L[] = {Npoints*dx, Npoints*dx, Npoints*dx};
+      SolidFCC theDensity1(dx, L);
+
+      double F;
+      double Cvac;
+	  
+      FMT_Species_Analytic species1(theDensity1,hsd1,1);
+      Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log);
+
+      RSLT fmt;
+
+      log << "VDW(potential)   = " << potential1.getVDW_Parameter(kT) << endl;
+      i1.initialize();
+      log << "VDW(interaction) = " << 0.5*i1.getVDWParameter() << endl;
+
+      theDensity1.setSpecies(&species1);
+
+      DFT dft(&species1);
+      dft.addHardCoreContribution(&fmt);  
+      dft.addInteraction(&i1);
+
+      log << "Npoints = " << Npoints << endl;
+
+      double Fgauss = 0;
+      double Agauss = -1;
+      
+      for(double Mu = Mu_max; Mu > Mu_min; Mu -= Mu_step)
+	{
+	  cout << "Mu = " << Mu << endl;
+	  species1.setChemPotential(Mu);
+	  
+	  bool bstarted = false;
+	  double f_prev = 0;
+	  log << "Mu = " << Mu << " kT = " << kT << endl;
+      
+	  bmu = Mu/kT;
+      	  
+	  if(Npoints == Npoints_min)
+	    {
+	      VDW1 vdw(hsd1,0.5*i1.getVDWParameter()); //potential1.getVDW_Parameter(kT));
+	      
+	      double xliq = vdw.findLiquidFromMu(Mu, 1.0);
+	      double xvap = vdw.findVaporFromMu(Mu, 1.0);
+
+	      ofstream of("scan.dat", ios::app);      		  
+	      of << "#Mu = " << Mu << " Fliq/(kTV) = " << -vdw.pressure(xliq) << " Dliq = " << xliq << endl;
+	      if(xvap > 0)
+		of << "#Mu = " << Mu << " Fvap/(kTV) = " << -vdw.pressure(xvap) << " Dvap = " << xvap << endl;		
+	      of << "#"
+		 << setw(15) <<"Npoints"
+		 << setw(15) <<"Fgau/(kTV)"
+		 << setw(15) <<"Agau/(kTV)"		
+		 << setw(15) <<"Density"
+		 << setw(15) <<"F/(kT V)"
+		 << setw(15) <<"Cvacancy"
+		 << setw(15) <<"Err"
+		 << endl;  
+	      of.close();
+	    }
+
+	  if(Agauss > 0 || findGaussian(theDensity1, dft, log, Fgauss, Agauss))	  
+	    if(findMinimum(theDensity1, dft, log, F, Cvac))
+	      {
+		bstarted = true; // found beginning of good range
+
+		if(GaussianOnly) {F = Fgauss; Cvac = 0;}
+				
+		ofstream of("scan.dat", ios::app);      
+		of << setw(15) << Npoints
+		   << setw(15) << Fgauss		    
+		   << setw(15) << Agauss	
+		   << setw(15) << theDensity1.getNumberAtoms()/pow(Npoints*dx,3.0)
+		   << setw(15) << F
+		   << setw(15) << Cvac
+		   << setw(15) << dft.get_convergence_monitor()
+		   << endl;
+		of.close();
+
+		if(Npoints > Npoints_min &&  F > f_prev) break;
+		f_prev = F;
+	      }
+	  //	    else if(bstarted) break; // exhausted the good range
+	}
+      ofstream of1("scan.dat", ios::app);
+      of1 << "#" << endl;
+      of1.close();      
+    }
+}
+
+
+void do_N_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max, double Mu_step, bool GaussianOnly, Potential1& potential1, Log &log)
+{
   ofstream of("scan.dat");
   of.close();
 
@@ -253,12 +354,9 @@ int main(int argc, char** argv)
       of1 << "#" << endl;
       of1.close();      
     }
-
-  log << "Finished" << endl;
-  
-  return 1;
-
 }
+
+
 
 bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Dret) 
 {
