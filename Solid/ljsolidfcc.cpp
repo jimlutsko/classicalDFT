@@ -499,7 +499,7 @@ bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double
   minimizer.setTimeStepMax(dtMax);
   minimizer.setAlphaStart(alpha_start);
   minimizer.setAlphaFac(alphaFac);
-  minimizer.run(10); //maxSteps);
+  minimizer.run(maxSteps);
 
   double Natoms = theDensity1.getNumberAtoms();
   double Omega = minimizer.getF();
