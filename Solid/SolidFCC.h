@@ -170,7 +170,7 @@ class SolidFCC : public Density
     grace_->setTitle(title.c_str());
 
     stringstream subtitle;
-    subtitle << "Npoints = " << Nx() << " Mu = " << species_->getChemPotential() << endl;
+    subtitle << "Npoints = " << Nx() << " Mu = " << species_->getChemPotential();
     grace_->setSubTitle(subtitle.str().c_str());
 
     grace_->redraw();
