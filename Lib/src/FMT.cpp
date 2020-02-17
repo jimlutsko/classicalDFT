@@ -168,13 +168,12 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
-  
   // Compute the FFT of density
   for(auto s: allSpecies)
     ((FMT_Species*)s)->convoluteDensities(needsTensor());
-
+  
   double F = doFreeEnergyLoop(allSpecies);
-
+  
   return F;
 }
 
@@ -186,7 +185,6 @@ double FMT::doFreeEnergyLoop(vector<Species*> &allSpecies)
 
   long Ntot = allSpecies.front()->getLattice().Ntot();  
   
-
   // There is a problem throwing exceptions from an OMP loop - I think that only the affected thread stops and the others continue.
   // So we eat the exception, remember it, and rethrow it when all loops are finished.
   bool hadCatch = false;
@@ -194,11 +192,14 @@ double FMT::doFreeEnergyLoop(vector<Species*> &allSpecies)
   Summation F;
   int chunk = Ntot/20;
   long i;
+
+
+    //    schedule(static,chunk)		\
   
   #pragma omp parallel for		\
     shared( chunk, allSpecies )				\
     private(i)					\
-    schedule(static,chunk)			\
+    schedule(auto)			\
     reduction(SummationPlus:F)
   for(i=0;i<Ntot;i++)
     {
@@ -231,7 +232,6 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-
   // The  derivatives
   double dV = allSpecies.front()->getLattice().dV();
 
@@ -251,7 +251,6 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
       dPhi_.Real().MultBy(dV);
       species.addToForce(dPhi_.cReal());
     }
-  
   return F*dV;
 };
 

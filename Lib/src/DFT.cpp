@@ -77,7 +77,6 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
   Summation F;
-
   // Ideal gas contribution  
   if(!onlyFex) 
     for(auto &species : allSpecies_)
@@ -85,23 +84,19 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	const Density& density = species->getDensity();
 	double dV = density.dV();
 	long Ntot = density.Ntot();
-	
-	int chunk = Ntot/20;
-	long i;
-  
+	long pos;
 #pragma omp parallel for				\
-  shared( chunk, species, dV)				\
-  private(i)						\
-  schedule(static,chunk)				\
+  shared(species, dV)				\
+  private(pos)						\
+  schedule(auto)				\
   reduction(SummationPlus:F)
-	for(i=0;i<Ntot;i++)
+	for(pos=0;pos<Ntot;pos++)
 	  {
-	    double d0 = density.getDensity(i);
+	    double d0 = density.getDensity(pos);
 	    F += (d0*log(d0)-d0)*dV;
-	    species->addToForce(i,log(d0)*dV);
+	    species->addToForce(pos,log(d0)*dV);
 	  }
       }
-
   // Hard-sphere contribution
   if(fmt_)
     {    
@@ -111,13 +106,12 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	throw e;
       }
     }
-  
   //< Mean field contribution to F and dF
   // Need the following only if the fmt object is not called
   if(!fmt_)
     for(auto &species : allSpecies_)
       species->doFFT();
-  
+
   for(auto &interaction: DFT::Interactions_)
     F += interaction->getInteractionEnergyAndForces();
 

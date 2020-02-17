@@ -62,7 +62,7 @@ class SolidFCC : public Density
    *   @param  number of atoms in the FCC unit cell (taking vacancies into account)
    *   @return  
    */  
-  virtual void initialize(double alpha, int ncells, double prefac, double dmin = 1e-15)
+  virtual void initialize(double alpha, int ncells, double prefac, double dmin = 1e-10)
   {
     double a_latt = L_[0]/ncells;
     
@@ -123,9 +123,12 @@ class SolidFCC : public Density
   }  
 
   // This gets called after every update and for each species: seq is the species number. 
+
+
   
   virtual void doDisplay(string &title, string &file, int seq) const
   {
+    static   int acount = 0;
 #ifdef USE_GRACE    
     // Write to a grace window
     if(grace_ == NULL) return;
@@ -173,6 +176,9 @@ class SolidFCC : public Density
     grace_->setTitle(title.c_str());
     grace_->redraw();
     if(pause){cout << px << endl;  grace_->pause();}
+    acount++;
+    //    if(acount%100 == 1) grace_->store();
+    
 #endif
 #ifdef USE_MGL
 	// find max density on plane

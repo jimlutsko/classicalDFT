@@ -47,7 +47,6 @@ find_package(OpenMP)
 
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OMP)
-#  target_compile_options(${PROJECT_NAME} PUBLIC -fopenmp1)
   target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 endif()
 target_link_libraries (${PROJECT_NAME} PUBLIC Eigen3::Eigen)

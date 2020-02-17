@@ -612,18 +612,35 @@ void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstre
   long p = 0;
 #pragma omp parallel shared( chunk, w2, vv) private(p)
   {
-  size_t local_count = 0;    
+  size_t local_count = 0;
+  long pold = -1;
+  int ix,iy,iz;
 #pragma omp for  
   for(p=0;p<Nmax;p++)
     {
-      double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
-      int ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
-      int iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
-      while(iy > ix)	      
-	{ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
-      int iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
-      while(iz > iy)
-	{ iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
+      if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
+	{
+	  for(int i=0;i<p-pold;i++)
+	    {
+	      iz++;
+	      if(iz > iy) {iy++; iz=0;}
+	      if(iy > ix) {ix++; iy=0;}
+	    }
+	} else {
+	double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
+	ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
+	iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
+	while(iy > ix)	      
+	  {ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
+	iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
+	while(iz > iy)
+	  { iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
+      }
+      pold = p;
+      // check
+      if(iy > ix || iz > iy || ix*(ix+1)*(ix+2)+3*iy*(iy+1)+6*iz != 6*p)
+	throw std::runtime_error("Bad indices in generateWeights");
+
       
       for(int i=0;i<5;i++)
 	for(int j=0;j<5;j++)

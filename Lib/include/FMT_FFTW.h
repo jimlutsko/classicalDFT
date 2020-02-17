@@ -5,6 +5,7 @@
 #include <fftw3.h>
 
 static const int FMT_FFTW = FFTW_MEASURE;
+//static const int FMT_FFTW = FFTW_PATIENT;
 //static const int FMT_FFTW = FFTW_ESTIMATE;
 
 
