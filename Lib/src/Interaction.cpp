@@ -206,7 +206,7 @@ bool Interaction::checkWeightsFile(ifstream &in)
     
   return readWeights;
 }
-  
+
 void Interaction::generateWeights(Potential1 &v, stringstream &ss, Log& log)
 {    
   const Density &density = s1_.getDensity();
@@ -441,8 +441,6 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
   double  gauss_w[Ngauss_];
   for(int i=0;i<Ngauss_;i++) gsl_integration_glfixed_point(0, 1, i, gauss_p+i, gauss_w+i, tr);
 
-  cout << "Ngauss_ = " << Ngauss_ << endl;
-    
   double global_factor = dx*dx*dy*dy*dz*dz/(6*6*6);
 
   long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+1))/2) + Nx_lim+1;
@@ -563,10 +561,27 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
   cout << myColor::RESET << endl;
     
   /// Dump the weights
-  ofstream of(ss.str().c_str(), ios::binary | ios::app);  
+  ofstream of(ss.str().c_str(), ios::binary | ios::app);
+  of << Ngauss_ << endl;
   w_att_.Real().save(of);
-
 }
+
+bool Interaction_Full::checkWeightsFile(ifstream &in)
+{
+  string buf;
+  getline(in,buf);
+  stringstream ss3(buf); // probably could just use buf ...
+
+  int n;
+  ss3 >> n;
+  if(n != Ngauss_)
+    cout << "\n" <<  "Mismatch in points file: expected Ngauss_ = " << Ngauss_ << " but read " << n <<  endl;
+    
+  return (n == Ngauss_);  
+}
+
+
+
 
 
 void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstream &ss, Log& log)

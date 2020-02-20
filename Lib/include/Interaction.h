@@ -98,7 +98,7 @@ class Interaction_Full : public Interaction_Base
   Interaction_Base(s1,s2,v,kT,log), Ngauss_(Ngauss) {}
 
   // TODO:
-  virtual bool checkWeightsFile(ifstream &in) {return true;}
+  virtual bool checkWeightsFile(ifstream &in);
 
   virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
  protected:
