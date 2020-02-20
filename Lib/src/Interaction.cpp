@@ -557,11 +557,6 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
 
   cout << std::defaultfloat << std::setprecision(6);
     
-  cout << setprecision(12) << "a_vdw_ = " << a_vdw_ << endl;
-  cout << "exact is " << v.getVDW_Parameter(1.0)*2 << endl;
-  cout << "diff is " << v.getVDW_Parameter(1.0)*2 - a_vdw_ << endl;
-  cout << "dx = " << dx << endl;
-
   cout << myColor::GREEN;
   cout << "/////  Finished.  " << endl;
   cout << "///////////////////////////////////////////////////////////" << endl;
@@ -612,79 +607,85 @@ void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstre
   long p = 0;
 #pragma omp parallel shared( chunk, w2, vv) private(p)
   {
-  size_t local_count = 0;
-  long pold = -1;
-  int ix,iy,iz;
+    size_t local_count = 0;
+    long pold = -1;
+    int ix,iy,iz;
 #pragma omp for  
-  for(p=0;p<Nmax;p++)
-    {
-      if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
-	{
-	  for(int i=0;i<p-pold;i++)
-	    {
-	      iz++;
-	      if(iz > iy) {iy++; iz=0;}
-	      if(iy > ix) {ix++; iy=0;}
-	    }
-	} else {
-	double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
-	ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
-	iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
-	while(iy > ix)	      
-	  {ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
-	iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
-	while(iz > iy)
-	  { iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
-      }
-      pold = p;
-      // check
-      if(iy > ix || iz > iy || ix*(ix+1)*(ix+2)+3*iy*(iy+1)+6*iz != 6*p)
-	throw std::runtime_error("Bad indices in generateWeights");
+    for(p=0;p<Nmax;p++)
+      {
+	if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
+	  {
+	    for(int i=0;i<p-pold;i++)
+	      {
+		iz++;
+		if(iz > iy) {iy++; iz=0;}
+		if(iy > ix) {ix++; iy=0;}
+	      }
+	  } else {
+	  double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
+	  ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
+	  iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
+	  while(iy > ix)	      
+	    {ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
+	  iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
+	  while(iz > iy)
+	    { iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
+	}
+	pold = p;
+	// check
+	if(iy > ix || iz > iy || ix*(ix+1)*(ix+2)+3*iy*(iy+1)+6*iz != 6*p)
+	  throw std::runtime_error("Bad indices in generateWeights");
 
       
-      for(int i=0;i<5;i++)
-	for(int j=0;j<5;j++)
-	  for(int k=0;k<5;k++)
-	    {
-	      double r2 = (ix+i-2)*(ix+i-2)*dx*dx+(iy+j-2)*(iy+j-2)*dy*dy+(iz+k-2)*(iz+k-2)*dz*dz;
-	      w2[p] += global_factor*vv[i]*vv[j]*vv[k]*v.Watt2(r2);
-	    }
-      if(local_count++ % chunk == chunk-1)
-	{
+	for(int i=0;i<5;i++)
+	  for(int j=0;j<5;j++)
+	    for(int k=0;k<5;k++)
+	      {
+		double r2 = (ix+i-2)*(ix+i-2)*dx*dx+(iy+j-2)*(iy+j-2)*dy*dy+(iz+k-2)*(iz+k-2)*dz*dz;
+		w2[p] += global_factor*vv[i]*vv[j]*vv[k]*v.Watt2(r2);
+	      }
+	if(local_count++ % chunk == chunk-1)
+	  {
 #pragma omp atomic	    
-	  ++steps_completed;
-	  if (steps_completed % 100 == 1)
-	    {
+	    ++steps_completed;
+	    if (steps_completed % 100 == 1)
+	      {
 #pragma omp critical
-	      cout << '\r';
-	      std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
-	      cout.flush();
-	    }
-	}
-    }
+		cout << '\r';
+		std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
+		cout.flush();
+	      }
+	  }
+      }
   }
   w_att_.Real().zeros();
   a_vdw_ = 0.0;
   
   for(int ix = -Nx_lim-1;ix<=Nx_lim+1; ix++)
-    for(int iy = -Ny_lim-1;iy<=Ny_lim+1; iy++)
-      for(int iz = -Nz_lim-1;iz<=Nz_lim+1; iz++)
-	{	  
-	  // get the value of the integrated potential at this point
-	  int nx = abs(ix);
-	  int ny = abs(iy);
-	  int nz = abs(iz);
+    {
+      cout << '\r';
+      std::cout << "\tProgress: " << ix+Nx_lim+1 << " of " << 2*(Nx_lim+1) << " (" << std::fixed << std::setprecision(1) << (100.0*(ix+Nx_lim+1)/(2*(Nx_lim+1))) << "%)";
+      cout.flush();
+      
+      for(int iy = -Ny_lim-1;iy<=Ny_lim+1; iy++)
+	for(int iz = -Nz_lim-1;iz<=Nz_lim+1; iz++)
+	  {	  
+	    // get the value of the integrated potential at this point
+	    int nx = abs(ix);
+	    int ny = abs(iy);
+	    int nz = abs(iz);
 
-	  if(ny > nx) swap(nx,ny);
-	  if(nz > nx) swap(nx,nz);
-	  if(nz > ny) swap(ny,nz);
-	  long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
-	  double w = w2[p];
-	  // and get the point it contributes to
-	  long pos = s1_.getDensity().get_PBC_Pos(ix,iy,iz);
-	  w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
-	  a_vdw_ += w;
-	}
+	    if(ny > nx) swap(nx,ny);
+	    if(nz > nx) swap(nx,nz);
+	    if(nz > ny) swap(ny,nz);
+	    long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
+	    double w = w2[p];
+	    // and get the point it contributes to
+	    long pos = s1_.getDensity().get_PBC_Pos(ix,iy,iz);
+	    w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
+	    a_vdw_ += w;
+	  }
+    }
   cout << " - Finished!" << endl;
   // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
   // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
@@ -692,11 +693,6 @@ void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstre
 
   cout << std::defaultfloat << std::setprecision(6);
     
-  cout << setprecision(12) << "a_vdw_ = " << a_vdw_ << endl;
-  cout << "exact is " << v.getVDW_Parameter(1.0)*2 << endl;
-  cout << "diff is " << v.getVDW_Parameter(1.0)*2 - a_vdw_ << endl;
-  cout << "dx = " << dx << endl;
-
   cout << myColor::GREEN;
   cout << "/////  Finished.  " << endl;
   cout << "///////////////////////////////////////////////////////////" << endl;

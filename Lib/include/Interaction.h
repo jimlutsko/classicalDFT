@@ -57,7 +57,7 @@ class Interaction_Base
 
   double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];}  
 
-  double getVDWParameter() const { return a_vdw_;}
+  double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_vdw_;}
 
  protected:
   virtual bool readWeights(stringstream &ss1);
@@ -117,7 +117,7 @@ class Interaction_Linear_Interpolation : public Interaction_Base
   virtual bool checkWeightsFile(ifstream &in) {return false;}
   
  protected:
-  virtual bool readWeights(stringstream &ss1) { cout << "hit" << endl; return false;} 
+  virtual bool readWeights(stringstream &ss1) { return false;} 
 };
 
 

@@ -127,6 +127,8 @@ void fireMinimizer_Mu::initialize()
   it_ = 0;
   cut_ = 0;
 
+  vv_ = 1.0;
+  
   alpha_ = alpha_start_;
   
   F_ = getDF_DX();
@@ -288,6 +290,8 @@ void fireMinimizer2::initialize()
   N_P_positive_ = 0;
   N_P_negative_ = 0;
 
+  vv_ = 1.0;
+  
   steps_since_backtrack_ = 0;
   
   F_ = getDF_DX();

@@ -184,9 +184,19 @@ class DFT
   virtual void setEtaMax(double etaMax) {}
 
   /**
-   *   @brief  Only implemented for DFT_FMT object.
+   *   @brief  Only implemented for single species and one interaction
    */     
-  virtual double Xliq_From_Mu(double mu) const {throw std::runtime_error("Not implemented");}
+  virtual double XLiq_From_Mu(double mu, double high_density) const;
+
+  /**
+   *   @brief  Only implemented for single species and one interaction
+   */     
+  virtual double XVap_From_Mu(double mu, double high_density) const;
+
+  /**
+   *   @brief  Only implemented for single species and one interaction
+   */     
+  virtual void spinodal(double &xs1, double &xs2) const;  
 
  protected:
   

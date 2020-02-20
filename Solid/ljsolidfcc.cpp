@@ -48,6 +48,7 @@ double cutoff = -1;
 bool showGraphics = true;
 
 int maxSteps = -1;
+int Ngauss = 5;
 
 //double prefac = 1;
 double prefac = 0.995;
@@ -94,6 +95,7 @@ int main(int argc, char** argv)
   options.addOption("Npoints_min", &Npoints_min);
   options.addOption("Npoints_max", &Npoints_max);
   options.addOption("Dx", &dx);
+  options.addOption("Ngauss", &Ngauss);
   
   options.addOption("nCores", &nCores);
 
@@ -167,22 +169,24 @@ int main(int argc, char** argv)
 
 void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max, double Mu_step, bool GaussianOnly, Potential1& potential1, Log &log)
 {
-  ofstream of("scan.dat");
-  of.close();
-
   for(int Npoints = Npoints_min; Npoints < Npoints_max; Npoints++)
     {
       double L[] = {Npoints*dx, Npoints*dx, Npoints*dx};
       SolidFCC theDensity1(dx, L);
 
       FMT_Species_Analytic species1(theDensity1,hsd1,1);
-      Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log);
+      //      Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log);
 
+      //FMT_Species_Numeric species1(theDensity1,hsd1,pointsFile, 1);
+      //Interaction i1(species1,species1,potential1,kT,log,pointsFile);
+      Interaction_Full i1(species1,species1,potential1,kT,log,Ngauss); 
+      
       RSLT fmt;
 
-      log << "VDW(potential)   = " << potential1.getVDW_Parameter(kT) << endl;
       i1.initialize();
-      log << "VDW(interaction) = " << 0.5*i1.getVDWParameter() << endl;
+      log << "VDW parameter (potential)   = " << potential1.getVDW_Parameter(kT) << endl;      
+      log << "VDW parameter (interaction) = " << 0.5*i1.getVDWParameter() << endl;
+      log << "Diff in vdw parameter       = " << potential1.getVDW_Parameter(kT) - 0.5*i1.getVDWParameter() << endl << endl;
 
       theDensity1.setSpecies(&species1);
 
@@ -196,7 +200,6 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
       double Agauss = -1;
       double Dgauss = 0;
       
-      //      for(double Mu = Mu_max; Mu > Mu_min; Mu -= Mu_step)
       for(double Mu = Mu_min; Mu < Mu_max; Mu += Mu_step)	
 	{
 	  bool bstarted = false;
@@ -205,21 +208,37 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
       
 	  bool neg = (Mu < 0.0);	  
 	  stringstream of_name;
-	  of_name << "scan_mu_" << (neg ? '-' : '+') << std::fixed << std::setprecision(2)  << setfill('0') << setw(5) << fabs(Mu);
+	  of_name << "scan_mu_" << (neg ? '-' : '+') << std::fixed << std::setprecision(2)  << setfill('0') << setw(5) << fabs(Mu) << ".dat";
 
-	  cout << of_name.str() << endl;
+	  bool file_exists = false;
+	  {
+	    ifstream f(of_name.str().c_str());
+	    file_exists = f.good();
+	    f.close();
+	  }
 	  
-	  if(Npoints == Npoints_min) // initialize thermo and files
+	  
+	  if(!file_exists) // initialize thermo and files
 	    {
-	      VDW1 vdw(hsd1,0.5*i1.getVDWParameter()); 
-	      
-	      double xliq = vdw.findLiquidFromMu(Mu, 1.0);
-	      double xvap = vdw.findVaporFromMu(Mu, 1.0);
+	      double xvap = -1;
+	      try{
+		xvap = dft.XVap_From_Mu(Mu,1.0);
+		cout << "DFT find gas: " << xvap << endl;
+	      } catch(...) { cout << "DFT find gas: none found" << endl;}
+	      double xliq = -1;
+	      try{
+		xliq = dft.XLiq_From_Mu(Mu,1.0);
+		cout << "DFT find liq: " << xliq << endl;
+	      } catch(...) { cout << "DFT find liq: none found" << endl;}
 
-	      ofstream of(of_name.str().c_str()); 
-	      of << "#Mu = " << Mu << " Fliq/(kTV) = " << -vdw.pressure(xliq) << " Dliq = " << xliq << endl;
+	      vector<double> xv(1);
+	      
+	      ofstream of(of_name.str().c_str());
+	      if(xliq > 0)
+		{ xv[0] = xliq; of << "#Mu(input) = " << Mu << " Fliq/(kTV) = " << dft.Omega(xv) << " Dliq = " << xliq << " Mu(output) = " << dft.Mu(xv,0) << endl;}
 	      if(xvap > 0)
-		of << "#Mu = " << Mu << " Fvap/(kTV) = " << -vdw.pressure(xvap) << " Dvap = " << xvap << endl;		
+		{ xv[0] = xvap; of << "#Mu(input) = " << Mu << " Fvap/(kTV) = " << dft.Omega(xv) << " Dvap = " << xvap << " Mu(output) = " << dft.Mu(xv,0) << endl;}
+
 	      of << "#"
 		 << setw(15) <<"Npoints"
 		 << setw(15) <<"Fgau/(kTV)"
@@ -230,12 +249,13 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
 		 << setw(15) <<"Err"
 		 << endl;
 	      of.close();
-	    }
+	    } else log << "Scan file \"" << of_name.str() << "\" exists: skipping thermodynamics" << endl;
+	  
 	  if(Agauss < 1)
 	    {
 	      // Do Gaussian: note that the minimum is independent of the chemical potential
 	      // so we temporarily set it to zero to get the helmholtz part of the free energy
-	      species1.setChemPotential(0.0);
+	      species1.setChemPotential(Mu); //1.0);
 	      findGaussian(theDensity1, -20, dft, log, Fgauss, Agauss);
 	      Dgauss = theDensity1.getNumberAtoms()/theDensity1.getVolume();
 	    }
@@ -257,8 +277,6 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
 		 << setw(15) << dft.get_convergence_monitor()
 		 << endl;
 	      of.close();
-	      
-	      //	      if(Npoints > Npoints_min &&  F > f_prev) break;
 	      f_prev = F;
 	    }
 	}
@@ -291,7 +309,7 @@ void do_N_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max, 
 	  //FMT_Species_Numeric species1(theDensity1,hsd1,pointsFile, Mu);
 
 	  //Interaction i1(species1,species1,potential1,kT,log, pointsFile);
-	  //	  Interaction_Full i1(species1,species1,potential1,kT,log,2);
+	  //Interaction_Full i1(species1,species1,potential1,kT,log,2);
 	  Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log);
 
 	  RSLT fmt;
@@ -434,12 +452,19 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
     {
       f = gaussianEval(alf, bmu, theDensity1, dft, prefac,log);
       log << "alf = " << alf << " " << f << endl;
+      stringstream title;
+      title << "Gaussian: alf = " << alf << " f = " << f;
+      string t = title.str();
+      string file("dummy.dat");
+      theDensity1.doDisplay(t, file, 0);
 
+      
       if(!firstIteration)
 	if(f < f_old) isDecending = true;
       
       if(isDecending)
-	if(f > f_old) break;
+      	if(f > f_old) break;
+      //      if(alf > 231) exit(0);
 
       f_old_2 = f_old;
       f_old = f;
@@ -472,6 +497,13 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
 	    f1 = f2; f2 = gaussianEval(x2, bmu, theDensity1, dft, prefac,log);}
 	  else { x3 = x2; x2 = x1; x1 = R*x2+C*x0;
 	    f2 = f1; f1 = gaussianEval(x1, bmu, theDensity1, dft, prefac,log);}
+
+	  log << "alf = " << x2 << " " << f2 << endl;
+	  stringstream title;
+	  title << "Gaussian: alf = " << x2 << " f = " << f2;
+	  string t = title.str();
+	  string file("dummy.dat");
+	  theDensity1.doDisplay(t, file, 0);	  
 	}
       if(f1 < f2) {Agau = x1; Fgau = f1;}
       else { Agau = x2; Fgau = f2;}

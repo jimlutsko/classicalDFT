@@ -207,6 +207,8 @@ double VDW1::findLiquidFromMu(double mu, double high_density) const
   do {
     bx = ax; fb = fa;
     ax -= 0.01;
+    if(ax < 0) throw std::runtime_error("No liquid found");
+
     fa = chemPotential(ax);
   } while((fa-mu)*(fb-mu) > 0);
 
@@ -251,11 +253,12 @@ double VDW1::findVaporFromMu(double betamu, double maxDensity) const
   // do bisection
   double f1 = chemPotential(x1);
   double f2 = chemPotential(x2);
-
-  while(fabs(x1-x2) > 1e-8)
+  double f = f1;
+  
+  while(fabs(f-betamu) > 1e-8*fabs(f+betamu))
     {
       double x = (x1+x2)/2;
-      double f = chemPotential(x);
+      f = chemPotential(x);
       if(f > betamu) x2 = x;
       else x1 = x;
     }

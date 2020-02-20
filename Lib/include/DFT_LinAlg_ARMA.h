@@ -27,6 +27,8 @@ class DFT_Vec
   {
     for(long i=0;i<x.size();i++)
       set(i, sqrt(std::max(0.0, x.get(i)-1e-20)));          
+
+
     //      set(i, log(std::max(1e-15, x.get(i)-1e-10)));    
   }
   void alias_Jacobian(const DFT_Vec &x) { data_ %= 2*x.data_;}

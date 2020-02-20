@@ -65,7 +65,7 @@ class Minimizer
   ostream &log_;
 
   double vv_ = 0;
-
+    
 };
 
 /**
@@ -271,7 +271,7 @@ class fireMinimizer_Mu : public Minimizer
   *
   */
 
-class fireMinimizer2 : public Minimizer //fireMinimizer_Mu
+class fireMinimizer2 : public Minimizer 
 {
  public:
   fireMinimizer2(DFT &dft, ostream &log);
@@ -291,6 +291,8 @@ class fireMinimizer2 : public Minimizer //fireMinimizer_Mu
   void setAlphaStart(double a)   { alpha_start_ = a;}
   void setAlphaFac(double a)     { f_alf_ = a;}
   void setBacktrackFac(double a) { f_back_ = a;}  
+
+  virtual double get_convergence_monitor() const { return fabs(vv_/dft_.lattice().getVolume());}
   
  protected:
   void SemiImplicitEuler(int begin, int end);
@@ -326,6 +328,7 @@ class fireMinimizer2 : public Minimizer //fireMinimizer_Mu
 
   double threshold_ = 0.0;
   double fmax_ = 0.0;
+
 };
 
 class adamMinimizer : public Minimizer
