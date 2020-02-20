@@ -1,14 +1,14 @@
 nCores = 20
 
-IntegrationPointsFile = ..//..//SS31-Mar-2016//ss109.05998
-#IntegrationPointsFile = ..//..//SS31-Mar-2016//ss325.52978
+#IntegrationPointsFile = ..//..//SS31-Mar-2016//ss109.05998
+IntegrationPointsFile = ..//..//SS31-Mar-2016//ss325.52978
 
 Interior_Density = 0.730425
 Exterior_Density = 0.00414712
 
 #Temperature
-kT = 0.7
-
+kT = 0.4
+InputFile = snapshot_part_1.dat
 
 # The mean field potential
 eps1 = 1.0
@@ -27,8 +27,13 @@ Lz = 20
 
 PointsPerHardSphere = 20
 
-InputFile = snapshot_s0.dat
 
+TimeStepMax = 10
+AlphaStart = 0.01
+AlphaFac = 0.99
+MaxSteps = 100000
+
+ForceTerminationCriterion = 0.0001
 
 
 
