@@ -479,28 +479,39 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
 		{
 		  double z  = gauss_p[Gz];
 		  double wz = gauss_w[Gz];
-		  
-		  for(int i=-1;i<=1;i++)
-		    for(int j=-1;j<=1;j++)
-		      for(int k=-1;k<=1;k++)
-			for(int a=-1;a<=1;a+=2)
-			  for(int b=-1;b<=1;b+=2)
-			    for(int c=-1;c<=1;c+=2)
-			      {
-				double fx = wx*(1-x)*((1-x-x*x)*(i == 0 ? 2 : -1)+2-3*i*a*x);
-				double fy = wy*(1-y)*((1-y-y*y)*(j == 0 ? 2 : -1)+2-3*j*b*y);
-				double fz = wz*(1-z)*((1-z-z*z)*(k == 0 ? 2 : -1)+2-3*k*c*z);
-				
-				//double r = sqrt((ix+x*a+i)*(ix+x*a+i)*dx*dx+(iy+y*b+j)*(iy+y*b+j)*dy*dy+(iz+z*c+k)*(iz+z*c+k)*dz*dz);
-				//double watt = v.Watt(r);
 
-				double r2 = (ix+x*a+i)*(ix+x*a+i)*dx*dx+(iy+y*b+j)*(iy+y*b+j)*dy*dy+(iz+z*c+k)*(iz+z*c+k)*dz*dz;
-				double watt = v.Watt2(r2);
-				
-				double w = global_factor*fx*fy*fz*watt;    
-				
-				sum += w;
-			      }
+		  for(int a=-2; a<=1; a++)
+		    {
+		      double fx = wx;
+		      if(a == -2)      fx *= x*x*x;
+		      else if(a == -1) fx *= 1+3*x*(1+x*(1-x));
+		      else if(a == 0)  fx *= 4+3*x*x*(x-2);
+		      else             fx *= (1-x)*(1-x)*(1-x);
+
+		      for(int b=-2; b<=1; b++)
+			{
+			  double fy = wy;
+			  if(b == -2)      fy *= y*y*y;
+			  else if(b == -1) fy *= 1+3*y*(1+y*(1-y));
+			  else if(b == 0)  fy *= 4+3*y*y*(y-2);
+			  else             fy *= (1-y)*(1-y)*(1-y);
+
+			  for(int c=-2; c<=1; c++)
+			    {
+			      double fz = wz;
+			      if(c == -2)      fz *= z*z*z;
+			      else if(c == -1) fz *= 1+3*z*(1+z*(1-z));
+			      else if(c == 0)  fz *= 4+3*z*z*(z-2);
+			      else             fz *= (1-z)*(1-z)*(1-z);		      
+
+			      double r2 = (ix+a+x)*(ix+a+x)*dx*dx
+				+ (iy+b+y)*(iy+b+y)*dy*dy
+				+ (iz+c+z)*(iz+c+z)*dz*dz;
+
+			      sum += global_factor*fx*fy*fz*v.Watt2(r2);
+			    }
+			}
+		    }
 		}
 	    }
 	}
