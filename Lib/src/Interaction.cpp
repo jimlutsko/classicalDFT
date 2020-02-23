@@ -628,7 +628,13 @@ void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstre
   size_t total_steps = Nmax/chunk;
 
   vector<double> w2(Nmax,0.0);
-  int vv[5] = {1,26,66,26,1};
+  //  int vv[5] = {1,26,66,26,1};
+  //  int vv[9] = {-1,8,18,112,86,112,18,8,-1};
+  //  global_factor /= 27;
+  //  int vv[3] = {1,4,1};
+  //  global_factor *= 20*20*20;
+    int vv[3] = {1,1,1};
+  global_factor *= 40*40*40;
   
   long p = 0;
 #pragma omp parallel shared( chunk, w2, vv) private(p)
@@ -663,11 +669,14 @@ void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstre
 	  throw std::runtime_error("Bad indices in generateWeights");
 
       
-	for(int i=0;i<5;i++)
-	  for(int j=0;j<5;j++)
-	    for(int k=0;k<5;k++)
+	for(int i=0;i<3;i++)
+	  for(int j=0;j<3;j++)
+	    for(int k=0;k<3;k++)
 	      {
-		double r2 = (ix+i-2)*(ix+i-2)*dx*dx+(iy+j-2)*(iy+j-2)*dy*dy+(iz+k-2)*(iz+k-2)*dz*dz;
+		//double r2 = (ix+i-2)*(ix+i-2)*dx*dx+(iy+j-2)*(iy+j-2)*dy*dy+(iz+k-2)*(iz+k-2)*dz*dz;
+		//		double r2 = (ix+0.5*i-2)*(ix+0.5*i-2)*dx*dx+(iy+0.5*j-2)*(iy+0.5*j-2)*dy*dy+(iz+0.5*k-2)*(iz+0.5*k-2)*dz*dz;
+		//		double r2 = (ix+i-1)*(ix+i-1)*dx*dx+(iy+j-1)*(iy+j-1)*dy*dy+(iz+k-1)*(iz+k-1)*dz*dz;
+		double r2 = (ix+0.5*i-0.5)*(ix+0.5*i-0.5)*dx*dx+(iy+0.5*j-0.5)*(iy+0.5*j-0.5)*dy*dy+(iz+0.5*k-0.5)*(iz+0.5*k-0.5)*dz*dz;		
 		w2[p] += global_factor*vv[i]*vv[j]*vv[k]*v.Watt2(r2);
 	      }
 	if(local_count++ % chunk == chunk-1)

@@ -175,11 +175,11 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
       SolidFCC theDensity1(dx, L);
 
       FMT_Species_Analytic species1(theDensity1,hsd1,1);
-      //      Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log);
+      Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log);
 
       //FMT_Species_Numeric species1(theDensity1,hsd1,pointsFile, 1);
       //Interaction i1(species1,species1,potential1,kT,log,pointsFile);
-      Interaction_Full i1(species1,species1,potential1,kT,log,Ngauss); 
+      //Interaction_Full i1(species1,species1,potential1,kT,log,Ngauss); 
       
       RSLT fmt;
 
@@ -462,9 +462,9 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
       if(!firstIteration)
 	if(f < f_old) isDecending = true;
       
-      if(isDecending)
-      	if(f > f_old) break;
-      //      if(alf > 231) exit(0);
+      //if(isDecending)
+      //      	if(f > f_old) break;
+      if(alf > 231) exit(0);
 
       f_old_2 = f_old;
       f_old = f;
