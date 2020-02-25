@@ -68,6 +68,8 @@ class SolidFCC : public Density
     
     double atoms[4][3];
 
+    double displacement = 0.0;
+    
     atoms[0][0] = 0.0;
     atoms[0][1] = 0.0;
     atoms[0][2] = 0.0;
@@ -84,6 +86,11 @@ class SolidFCC : public Density
     atoms[3][1] = a_latt/2;
     atoms[3][2] = a_latt/2;
 
+    for(int i=0;i<4;i++)
+      for(int j=0;j<3;j++)
+	atoms[i][j] += displacement;
+
+    
     for(int i=0;i<Nx_;i++)
       for(int j=0;j<Ny_;j++)
 	for(int k=0;k<Nz_; k++)
@@ -210,6 +217,8 @@ class SolidFCC : public Density
   }  
 
   void setSpecies(Species* s) { species_ = s;}
+
+  Grace * getGrace() { return grace_;}
   
  protected:
   int sequence_;

@@ -49,6 +49,8 @@ bool showGraphics = true;
 
 int maxSteps = -1;
 int Ngauss = 5;
+bool useFiles = true;
+
 
 //double prefac = 1;
 double prefac = 0.995;
@@ -58,6 +60,10 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
 bool findMinimum(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Cvac);
 bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &Dret);
 
+
+string InteractionType;
+string InteractionInterpolationType;
+string InteractionGaussType;
 
 //double bmu = 1e-20;
 
@@ -96,6 +102,10 @@ int main(int argc, char** argv)
   options.addOption("Npoints_max", &Npoints_max);
   options.addOption("Dx", &dx);
   options.addOption("Ngauss", &Ngauss);
+  options.addOption("InteractionGaussType", &InteractionGaussType);  
+  
+  options.addOption("InteractionType", &InteractionType);
+  options.addOption("InteractionInterpolationType", &InteractionInterpolationType);  
   
   options.addOption("nCores", &nCores);
 
@@ -121,6 +131,8 @@ int main(int argc, char** argv)
   options.addOption("AlphaStart", &alpha_start);
   options.addOption("AlphaFac", &alphaFac);
   options.addOption("MaxSteps", &maxSteps);
+
+  options.addOption("StoreWeights", &useFiles);
 
   options.addOption("InputFile", &infile);
   
@@ -175,24 +187,36 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
       SolidFCC theDensity1(dx, L);
 
       FMT_Species_Analytic species1(theDensity1,hsd1,1);
-      Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log);
 
       //FMT_Species_Numeric species1(theDensity1,hsd1,pointsFile, 1);
-      //Interaction i1(species1,species1,potential1,kT,log,pointsFile);
-      //Interaction_Full i1(species1,species1,potential1,kT,log,Ngauss); 
+
+      Interaction_Base *i1;
+      if(InteractionType.compare("Interpolation") == 0)
+	i1 = new Interaction_Interpolation(species1,species1,potential1,kT,log,InteractionInterpolationType, useFiles);
+      else if(InteractionType.compare("Gauss") == 0)
+	i1 = new Interaction_Full(species1,species1,potential1,kT,log,Ngauss,InteractionGaussType, useFiles);
+      else if(InteractionType.compare("Spherical") == 0)
+	i1 = new Interaction(species1,species1,potential1,kT,log,pointsFile,useFiles);
+      else throw std::runtime_error("Unknown interaction type");
+
+
+      
+      //      Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log,useFiles);
+      //      Interaction i1(species1,species1,potential1,kT,log,pointsFile,useFiles);
+      //Interaction_Full i1(species1,species1,potential1,kT,log,Ngauss,useFiles); 
       
       RSLT fmt;
 
-      i1.initialize();
+      i1->initialize();
       log << "VDW parameter (potential)   = " << potential1.getVDW_Parameter(kT) << endl;      
-      log << "VDW parameter (interaction) = " << 0.5*i1.getVDWParameter() << endl;
-      log << "Diff in vdw parameter       = " << potential1.getVDW_Parameter(kT) - 0.5*i1.getVDWParameter() << endl << endl;
+      log << "VDW parameter (interaction) = " << 0.5*i1->getVDWParameter() << endl;
+      log << "Diff in vdw parameter       = " << potential1.getVDW_Parameter(kT) - 0.5*i1->getVDWParameter() << endl << endl;
 
       theDensity1.setSpecies(&species1);
 
       DFT dft(&species1);
       dft.addHardCoreContribution(&fmt);  
-      dft.addInteraction(&i1);
+      dft.addInteraction(i1);
 
       log << "Npoints = " << Npoints << endl;
 
@@ -280,6 +304,7 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
 	      f_prev = F;
 	    }
 	}
+      delete i1;
     }
 }
 
@@ -308,9 +333,9 @@ void do_N_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max, 
 	  FMT_Species_Analytic species1(theDensity1,hsd1,Mu);
 	  //FMT_Species_Numeric species1(theDensity1,hsd1,pointsFile, Mu);
 
-	  //Interaction i1(species1,species1,potential1,kT,log, pointsFile);
-	  //Interaction_Full i1(species1,species1,potential1,kT,log,2);
-	  Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log);
+	  //Interaction i1(species1,species1,potential1,kT,log, pointsFile,useFiles);
+	  //Interaction_Full i1(species1,species1,potential1,kT,log,2,useFiles);
+	  Interaction_Interpolation i1(species1,species1,potential1,kT,log,InteractionInterpolationType, useFiles);
 
 	  RSLT fmt;
 
@@ -324,7 +349,7 @@ void do_N_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max, 
 	  dft.addHardCoreContribution(&fmt);  
 	  dft.addInteraction(&i1);
 
-	  log << "Npoints = " << Npoints << endl;
+	  log << "Npoints = " << Npoints << " Natoms = " << theDensity1.getNumberAtoms() << endl;
 	  
 	  if(Npoints == Npoints_min)
 	    {
@@ -448,10 +473,14 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
   double prefac_old = 0;
   bool isDecending = false;
   bool firstIteration = true;
-  for(double alf = 30; alf < 10000; alf += 10)
+  //  for(double alf = 30; alf < 10000; alf += 10)
+    for(double alf = 1000; alf < 2231; alf += 1000)
     {
+      if(alf > 1001) exit(0);
+
+
       f = gaussianEval(alf, bmu, theDensity1, dft, prefac,log);
-      log << "alf = " << alf << " " << f << endl;
+      log << "alf = " << alf << " " << f <<  " N = " << theDensity1.getNumberAtoms() << endl;
       stringstream title;
       title << "Gaussian: alf = " << alf << " f = " << f;
       string t = title.str();
@@ -462,9 +491,8 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
       if(!firstIteration)
 	if(f < f_old) isDecending = true;
       
-      //if(isDecending)
-      //      	if(f > f_old) break;
-      if(alf > 231) exit(0);
+      if(isDecending)
+	if(f > f_old) break;
 
       f_old_2 = f_old;
       f_old = f;

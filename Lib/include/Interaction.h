@@ -29,7 +29,7 @@ class Interaction_Base
 {
  public:
 
- Interaction_Base(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) : s1_(s1), s2_(s2), v_(v), kT_(kT), log_(log), initialized_(false) {}
+ Interaction_Base(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, bool useFiles = true) : s1_(s1), s2_(s2), v_(v), kT_(kT), log_(log), initialized_(false), useFiles_(useFiles) {}
 
   void initialize();
 
@@ -73,6 +73,8 @@ class Interaction_Base
   Potential1 &v_;
   double kT_;
   Log& log_;
+
+  bool useFiles_ = true;
 };
 
 
@@ -80,8 +82,8 @@ class Interaction_Base
 class Interaction : public Interaction_Base
 {
  public:
- Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, string& pointsFile) :
-  Interaction_Base(s1,s2,v,kT,log), pointsFile_(pointsFile) {};
+ Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, string& pointsFile, bool useFiles) :
+  Interaction_Base(s1,s2,v,kT,log,useFiles), pointsFile_(pointsFile) {};
 
   virtual bool checkWeightsFile(ifstream &in);
   virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
@@ -94,8 +96,8 @@ class Interaction_Full : public Interaction_Base
 {
  public:
 
- Interaction_Full(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
-  Interaction_Base(s1,s2,v,kT,log), Ngauss_(Ngauss) {}
+ Interaction_Full(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss,string &t, bool useFiles) :
+  Interaction_Base(s1,s2,v,kT,log,useFiles), Ngauss_(Ngauss), type_(t) {}
 
   // TODO:
   virtual bool checkWeightsFile(ifstream &in);
@@ -103,21 +105,37 @@ class Interaction_Full : public Interaction_Base
   virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
  protected:
   int Ngauss_;
+  string type_;
 };
 
 
-class Interaction_Linear_Interpolation : public Interaction_Base
+class Interaction_Interpolation : public Interaction_Base
 {
  public:
 
- Interaction_Linear_Interpolation(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
-  Interaction_Base(s1,s2,v,kT,log) {}  
+ Interaction_Interpolation(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, string &type, bool useFiles) :
+  Interaction_Base(s1,s2,v,kT,log,useFiles)
+    {
+      if(type.compare("Z") == 0) type_ = Interaction_Interpolation::Z;
+      else if(type.compare("LE") == 0) type_ = Interaction_Interpolation::LE;
+      else if(type.compare("QE") == 0) type_ = Interaction_Interpolation::QE;
+      else if(type.compare("LF") == 0) type_ = Interaction_Interpolation::LF;
+      else if(type.compare("QF") == 0) type_ = Interaction_Interpolation::QF;
+      else throw std::runtime_error("Unknown Interaction Interpolation Type");
+    }  
 
   virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
   virtual bool checkWeightsFile(ifstream &in) {return false;}
+
+  const static int Z = 0;
+  const static int LE = 1;
+  const static int QE = 2;
+  const static int LF = 3;
+  const static int QF = 4;
   
  protected:
-  virtual bool readWeights(stringstream &ss1) { return false;} 
+  virtual bool readWeights(stringstream &ss1) { return false;}
+  int type_ = -1;
 };
 
 

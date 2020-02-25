@@ -39,7 +39,7 @@ void Interaction_Base::initialize()
   // First, try to read the weights from a file
   stringstream ss1;
   
-  if(!readWeights(ss1))
+  if(!useFiles_ || !readWeights(ss1))
     generateWeights(v_, ss1, log_);
     
   // Introduce the temperature
@@ -405,9 +405,12 @@ void Interaction::generateWeights(Potential1 &v, stringstream &ss, Log& log)
   cout << myColor::RESET << endl;
    
   /// Dump the weights
-  ofstream of(ss.str().c_str(), ios::binary | ios::app);  
-  of << pointsFile_ << endl;
-  w_att_.Real().save(of);
+  if(useFiles_)
+    {
+      ofstream of(ss.str().c_str(), ios::binary | ios::app);  
+      of << pointsFile_ << endl;
+      w_att_.Real().save(of);
+    }
 }
 
 void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log)
@@ -450,86 +453,103 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
 
   vector<double> w2(Nmax,0.0);
 
+
+  cout << " gauss pt = " << gauss_p[0] << " w = " << gauss_w[0] << endl;
+
   long p = 0;
 #pragma omp parallel shared( chunk, w2, gauss_p, gauss_w ) private(p)
   {
-  size_t local_count = 0;    
+    size_t local_count = 0;    
 #pragma omp for  
-  for(p=0;p<Nmax;p++)
-    {
-      double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
-      int ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
-      int iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
-      while(iy > ix)	      
-	{ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
-      int iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
-      while(iz > iy)
-	{ iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
+    for(p=0;p<Nmax;p++)
+      {
+	double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
+	int ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
+	int iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
+	while(iy > ix)	      
+	  {ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
+	int iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
+	while(iz > iy)
+	  { iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
             
-      double sum = 0.0;	      
-      for(int Gx=0; Gx < Ngauss_; Gx++)
-	{
-	  double x  = gauss_p[Gx];
-	  double wx = gauss_w[Gx];
-	  for(int Gy=0; Gy < Ngauss_; Gy++)
-	    {
-	      double y  = gauss_p[Gy];
-	      double wy = gauss_w[Gy];
-	      for(int Gz=0; Gz < Ngauss_; Gz++)
-		{
-		  double z  = gauss_p[Gz];
-		  double wz = gauss_w[Gz];
+	double sum = 0.0;	      
+	for(int Gx=0; Gx < Ngauss_; Gx++)
+	  {
+	    double x  = gauss_p[Gx];
+	    double wx = gauss_w[Gx];
+	    for(int Gy=0; Gy < Ngauss_; Gy++)
+	      {
+		double y  = gauss_p[Gy];
+		double wy = gauss_w[Gy];
+		for(int Gz=0; Gz < Ngauss_; Gz++)
+		  {
+		    double z  = gauss_p[Gz];
+		    double wz = gauss_w[Gz];
 
-		  for(int a=-2; a<=1; a++)
-		    {
-		      double fx = wx;
-		      if(a == -2)      fx *= x*x*x;
-		      else if(a == -1) fx *= 1+3*x*(1+x*(1-x));
-		      else if(a == 0)  fx *= 4+3*x*x*(x-2);
-		      else             fx *= (1-x)*(1-x)*(1-x);
+		    if(type_.compare("E") == 0)
+		      {
+			for(int a=-2; a<=1; a++)
+			  {
+			    double fx = wx;
+			    if(a == -2)      fx *= x*x*x;
+			    else if(a == -1) fx *= 1+3*x*(1+x*(1-x));
+			    else if(a == 0)  fx *= 4+3*x*x*(x-2);
+			    else             fx *= (1-x)*(1-x)*(1-x);
 
-		      for(int b=-2; b<=1; b++)
-			{
-			  double fy = wy;
-			  if(b == -2)      fy *= y*y*y;
-			  else if(b == -1) fy *= 1+3*y*(1+y*(1-y));
-			  else if(b == 0)  fy *= 4+3*y*y*(y-2);
-			  else             fy *= (1-y)*(1-y)*(1-y);
+			    for(int b=-2; b<=1; b++)
+			      {
+				double fy = wy;
+				if(b == -2)      fy *= y*y*y;
+				else if(b == -1) fy *= 1+3*y*(1+y*(1-y));
+				else if(b == 0)  fy *= 4+3*y*y*(y-2);
+				else             fy *= (1-y)*(1-y)*(1-y);
 
-			  for(int c=-2; c<=1; c++)
+				for(int c=-2; c<=1; c++)
+				  {
+				    double fz = wz;
+				    if(c == -2)      fz *= z*z*z;
+				    else if(c == -1) fz *= 1+3*z*(1+z*(1-z));
+				    else if(c == 0)  fz *= 4+3*z*z*(z-2);
+				    else             fz *= (1-z)*(1-z)*(1-z);		      
+
+				    double r2 = (ix+a+x)*(ix+a+x)*dx*dx
+				      + (iy+b+y)*(iy+b+y)*dy*dy
+				      + (iz+c+z)*(iz+c+z)*dz*dz;
+
+				    sum += global_factor*fx*fy*fz*v.Watt2(r2);
+				  }
+			      }
+			  }
+		      } else if (type_.compare("F") == 0) {
+		      for(int a=0;a<=1;a++)
+			for(int b=0;b<=1;b++)
+			  for(int c=0;c<=1;c++)
 			    {
-			      double fz = wz;
-			      if(c == -2)      fz *= z*z*z;
-			      else if(c == -1) fz *= 1+3*z*(1+z*(1-z));
-			      else if(c == 0)  fz *= 4+3*z*z*(z-2);
-			      else             fz *= (1-z)*(1-z)*(1-z);		      
+			      double r2 = (ix+a-1+x)*(ix+a-1+x)*dx*dx
+				+ (iy+b-1+y)*(iy+b-1+y)*dy*dy
+				+ (iz+c-1+z)*(iz+c-1+z)*dz*dz;
 
-			      double r2 = (ix+a+x)*(ix+a+x)*dx*dx
-				+ (iy+b+y)*(iy+b+y)*dy*dy
-				+ (iz+c+z)*(iz+c+z)*dz*dz;
-
-			      sum += global_factor*fx*fy*fz*v.Watt2(r2);
+			      sum += 6*6*6*wx*wy*wz*global_factor*(a == 0 ? x : 1-x)*(b == 0 ? y : 1-y)*(c == 0 ? z : 1-z)*v.Watt2(r2);
 			    }
-			}
-		    }
-		}
-	    }
-	}
-      w2[p] = sum;	    
+		    } else throw std::runtime_error("Unknown Gauss Interaction type");		  
+		  }
+	      }
+	  }
+	w2[p] = sum;	    
       
-      if(local_count++ % chunk == chunk-1)
-	{
+	if(local_count++ % chunk == chunk-1)
+	  {
 #pragma omp atomic	    
-	  ++steps_completed;
-	  if (steps_completed % 100 == 1)
-	    {
+	    ++steps_completed;
+	    if (steps_completed % 100 == 1)
+	      {
 #pragma omp critical
-	      cout << '\r';
-	      std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
-	      cout.flush();
-	    }
-	}
-    }
+		cout << '\r';
+		std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
+		cout.flush();
+	      }
+	  }
+      }
   }
   w_att_.Real().zeros();
   a_vdw_ = 0.0;
@@ -572,9 +592,12 @@ void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log
   cout << myColor::RESET << endl;
     
   /// Dump the weights
-  ofstream of(ss.str().c_str(), ios::binary | ios::app);
-  of << Ngauss_ << endl;
-  w_att_.Real().save(of);
+  if(useFiles_)
+    {
+      ofstream of(ss.str().c_str(), ios::binary | ios::app);
+      of << Ngauss_ << endl;
+      w_att_.Real().save(of);
+    }
 }
 
 bool Interaction_Full::checkWeightsFile(ifstream &in)
@@ -595,7 +618,7 @@ bool Interaction_Full::checkWeightsFile(ifstream &in)
 
 
 
-void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstream &ss, Log& log)
+void Interaction_Interpolation::generateWeights(Potential1 &v, stringstream &ss, Log& log)
 {    
   const Density &density = s1_.getDensity();
       
@@ -620,7 +643,7 @@ void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstre
   int Nz_lim = 1+int(Rc/dz);    
     
   // Add up the weights for each point.
-  double global_factor = dx*dx*dy*dy*dz*dz/(120*120*120);
+
 
   long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+1))/2) + Nx_lim+1;
   int chunk = 1000; 
@@ -628,16 +651,38 @@ void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstre
   size_t total_steps = Nmax/chunk;
 
   vector<double> w2(Nmax,0.0);
-  //  int vv[5] = {1,26,66,26,1};
-  //  int vv[9] = {-1,8,18,112,86,112,18,8,-1};
-  //  global_factor /= 27;
-  //  int vv[3] = {1,4,1};
-  //  global_factor *= 20*20*20;
-    int vv[3] = {1,1,1};
-  global_factor *= 40*40*40;
+
+  int *vv = NULL;
+  int Npoints = 1;
+  double *pt = NULL;
+  double global_factor = dx*dx*dy*dy*dz*dz;
+
+  // Interpolation weights
+  int vZ[] = {1}; // Zero
+  int vLE[] = {1,26,66,26,1};    // Linear-Energy
+  int vQE[] = {-1,8,18,112,86,112,18,8,-1}; // Quadratic-Energy
+  int vLF[] = {1,4,1};   // Linear-Force
+  int vQF[] = {1,1,1};   // Quadratic-Force
+
+  // Points to use
+  double pZ[] = {0.0};
+  double pLE[] = {-2.0,-1.0,0.0,1.0,2.0};
+  double pQE[] = {-2.0,-1.5,-1.0,-0.5,0.0,0.5,1.0,1.5,2.0};
+  double pLF[] = {-1.0,0.0,1.0};
+  double pQF[] = {-0.5,0.0,0.5};
+  
+  // Select and initialize  
+  if(type_ == Interaction_Interpolation::Z)       {vv = vZ;  pt = pZ;  Npoints = 1;}
+  else if(type_ == Interaction_Interpolation::LE) {vv = vLE; pt = pLE; Npoints = 5; global_factor /= (120.0*120.0*120.0);}
+  else if(type_ == Interaction_Interpolation::QE) {vv = vQE; pt = pQE; Npoints = 9; global_factor /= (360.0*360.0*360.0);}
+  else if(type_ == Interaction_Interpolation::LF) {vv = vLF; pt = pLF; Npoints = 3; global_factor /= 216;}
+  else if(type_ == Interaction_Interpolation::QF) {vv = vQF; pt = pQF; Npoints = 3; global_factor /= 27;}
+  else throw std::runtime_error("Unknown Interaction Interpolation Option");
+
+  cout << "Generating interpolated weights" << endl;
   
   long p = 0;
-#pragma omp parallel shared( chunk, w2, vv) private(p)
+#pragma omp parallel shared( chunk, w2, vv, Npoints,pt) private(p)
   {
     size_t local_count = 0;
     long pold = -1;
@@ -668,17 +713,15 @@ void Interaction_Linear_Interpolation::generateWeights(Potential1 &v, stringstre
 	if(iy > ix || iz > iy || ix*(ix+1)*(ix+2)+3*iy*(iy+1)+6*iz != 6*p)
 	  throw std::runtime_error("Bad indices in generateWeights");
 
-      
-	for(int i=0;i<3;i++)
-	  for(int j=0;j<3;j++)
-	    for(int k=0;k<3;k++)
+	
+	for(int i=0;i<Npoints;i++)
+	  for(int j=0;j<Npoints;j++)
+	    for(int k=0;k<Npoints;k++)
 	      {
-		//double r2 = (ix+i-2)*(ix+i-2)*dx*dx+(iy+j-2)*(iy+j-2)*dy*dy+(iz+k-2)*(iz+k-2)*dz*dz;
-		//		double r2 = (ix+0.5*i-2)*(ix+0.5*i-2)*dx*dx+(iy+0.5*j-2)*(iy+0.5*j-2)*dy*dy+(iz+0.5*k-2)*(iz+0.5*k-2)*dz*dz;
-		//		double r2 = (ix+i-1)*(ix+i-1)*dx*dx+(iy+j-1)*(iy+j-1)*dy*dy+(iz+k-1)*(iz+k-1)*dz*dz;
-		double r2 = (ix+0.5*i-0.5)*(ix+0.5*i-0.5)*dx*dx+(iy+0.5*j-0.5)*(iy+0.5*j-0.5)*dy*dy+(iz+0.5*k-0.5)*(iz+0.5*k-0.5)*dz*dz;		
+		double r2 = (ix+pt[i])*(ix+pt[i])*dx*dx+(iy+pt[j])*(iy+pt[j])*dy*dy+(iz+pt[k])*(iz+pt[k])*dz*dz;
 		w2[p] += global_factor*vv[i]*vv[j]*vv[k]*v.Watt2(r2);
 	      }
+	
 	if(local_count++ % chunk == chunk-1)
 	  {
 #pragma omp atomic	    
