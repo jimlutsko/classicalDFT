@@ -20,28 +20,69 @@
 #include "Log.h"
 #include "myColor.h"
 
+// TODO:
+//    - Eliminate the naming and checking of the weights file. Instead, just allow a filename to be passed to the constructor (for reading)
+//      and add a function to dump to a file (for writing). Let the application code manage the files instead of these objects.  
+
 /**
   *  @brief This class encapsulates the interaction between two species (or one species with itself)
+  *
+  *  @detailed Its main job is to compute an array $w({\mathbf R})$ with which the mean-field contribution to the 
+  *         enegy can be calulated as $\sum_{\mathbf R} \sum_{\mathbf R'} \rho({\mathbf R})\rho({\mathbf R'})w({\mathbf R}-{\mathbf R'})$
+  *         The array w is computed from the attractive part of the potential and its exact form depends on what approximations are being made.
+  *         There are two main classes: The "Energy" class in which w is determined starting with the energy and the "Force" class in which it is 
+  *         determined starting with the forces. 
   */  
-
-
 class Interaction_Base
 {
  public:
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   */  
+  Interaction_Base(Species &s1, Species &s2, Potential1 &v, double kT, Log &log);
 
- Interaction_Base(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, bool useFiles = true) : s1_(s1), s2_(s2), v_(v), kT_(kT), log_(log), initialized_(false), useFiles_(useFiles) {}
+  /**
+   *   @brief  Initialization function: must be called before using the object.
+   *  
+   */  
+  virtual void initialize();
 
-  void initialize();
-
-  virtual bool checkWeightsFile(ifstream &in) = 0;
-  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log) = 0;  
-  // Note that the matrix w already contains a factor of dV
+  /**
+   *   @brief  This executes the basic functionality of computing energies and forces
+   *  
+   *   @returns The mean-field contribution to the (total) free energy divided by kT.
+   */    
   double getInteractionEnergyAndForces();
 
+  /**
+   *   @brief  An internal, debugging function. It should be suppressed at some point.
+   *  
+   *   @returns 
+   */        
   double checkCalc(int jx, int jy, int jz);
 
+  /**
+   *   @brief  Returns the requested entry in the array of weights
+   *  
+   *   @param  s: position of entry requested
+   *
+   *   @returns  w(s)
+   */        
   double getW(long s)  { return w_att_.Real().get(s);}
 
+  /**
+   *   @brief  Calculates the mean-field contribution (divided by kT) to the bulk chemical potential for a given species
+   *  
+   *   @param  x: array holding the density of each species
+   *   @param  species: the species whose chemical potential is being calculated
+   *
+   *   @return the chemical potential divided by kT
+   */        
   double Mu(const vector<double> &x, int species) const
   {
     double mu = 0.0;
@@ -55,90 +96,215 @@ class Interaction_Base
     return mu;
   }
 
+  /**
+   *   @brief  Calculates the mean-field contribution (divided by kT) to the bulk free energy per unit volume for this object
+   *  
+   *   @param  x: array holding the density of each species
+   *
+   *   @return the mean-field contribution to the free energy per unit volume divided by kT
+   */  
   double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];}  
 
+  /**
+   *   @brief  Returns the vDW parameter calculated from the weights
+   *
+   *   @return sum_{\mathbf R} w({\mathbf R})/kT
+   */    
   double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_vdw_;}
 
  protected:
-  virtual bool readWeights(stringstream &ss1);
+  
+  /**
+   *   @brief  This calculates the array w. 
+   *  
+   *   @param  v: the interatomic potential
+   *   @param  log: the log object for output
+   */      
+  virtual void generateWeights(Potential1 &v, Log& log);  
+
+  virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v) = 0;
   
  protected:
-  Species &s1_;
-  Species &s2_;
+  Species &s1_; ///< First of the interacting species
+  Species &s2_; ///< Second of the interacting species
 
-  double a_vdw_;
-  DFT_FFT w_att_;
+  double a_vdw_;  ///< vDW parameter calculted by summing the weights and dividing by temperature
 
-  bool initialized_ = false;
-  Potential1 &v_;
-  double kT_;
-  Log& log_;
+  DFT_FFT w_att_; ///< The weights
 
-  bool useFiles_ = true;
+  bool initialized_ = false; ///< Flag to make sure the object has been initialized
+  Potential1 &v_;            ///< The interatomic potential
+  double kT_;                ///< The temperature
+  Log& log_;                 ///< Log object
 };
 
 
-
+/**
+  *  @brief This is an old form of the Interaction object that calculates the weights based on spherical integration using points supplied in a file. 
+  *         This is only maintained for backward compatability and will be eliminated at some point.
+  */  
 class Interaction : public Interaction_Base
 {
  public:
- Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, string& pointsFile, bool useFiles) :
-  Interaction_Base(s1,s2,v,kT,log,useFiles), pointsFile_(pointsFile) {};
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   *   @param pointsFile: the name of the file from which the spherical integration points are to be read.
+   */  
+ Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, string& pointsFile) :
+  Interaction_Base(s1,s2,v,kT,log), pointsFile_(pointsFile) {};
 
-  virtual bool checkWeightsFile(ifstream &in);
-  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
+  /**
+   *   @brief  Initialization function: must be called before using the object.
+   *  
+   */  
+  virtual void initialize();
+
   
  protected:
-  string pointsFile_;
+  /**
+   *   @brief  Reads the weights fromt the file with the supplied name prefix (plus stuff added in this function)
+   *  
+   *   @returns  true, if successful
+   */        
+  bool readWeights();
+
+  /**
+   *   @brief  Checks whether the input file corresponds to this object or not.
+   *  
+   *   @param in: the ifstream attached to the weight file
+   *  
+   *   @returns false if the file cannot be used.
+   */      
+  virtual bool checkWeightsFile(ifstream &in);
+
+  /**
+   *   @brief  This calculates the array w. 
+   *  
+   *   @param  v: the interatomic potential
+   *   @param  log: the log object for output
+   */        
+  virtual void generateWeights(Potential1 &v, Log& log);
+  
+ protected:
+  string pointsFile_; ///< The name of the file with the spherical integation points.
+  stringstream weightsFile_; ///< The name of the file with the spherical integation points.
 };
 
-class Interaction_Full : public Interaction_Base
+class Interaction_Gauss : public Interaction_Base
 {
  public:
 
- Interaction_Full(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss,string &t, bool useFiles) :
-  Interaction_Base(s1,s2,v,kT,log,useFiles), Ngauss_(Ngauss), type_(t) {}
+ Interaction_Gauss(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
+  Interaction_Base(s1,s2,v,kT,log)
+  {
+    gsl_integration_glfixed_table *tr = gsl_integration_glfixed_table_alloc(Ngauss);
+    for(int i=0;i<Ngauss;i++)
+      {
+	double p,w;
+	gsl_integration_glfixed_point(0, 1, i, &p, &w, tr);
+	gauss_p.push_back(p); gauss_w.push_back(w);
+      }
+  }
 
-  // TODO:
-  virtual bool checkWeightsFile(ifstream &in);
-
-  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
+  virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v);
+  virtual double getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z) = 0;
+  
  protected:
-  int Ngauss_;
-  string type_;
+  vector<double> gauss_p;
+  vector<double> gauss_w;
+};
+
+class Interaction_Gauss_E : public Interaction_Gauss
+{
+ public:
+
+ Interaction_Gauss_E(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
+  Interaction_Gauss(s1,s2,v,kT,log,Ngauss){}
+
+  double getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &p, double x, double y, double z);
+};
+
+
+class Interaction_Gauss_F : public Interaction_Gauss
+{
+ public:
+
+ Interaction_Gauss_F(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
+  Interaction_Gauss(s1,s2,v,kT,log,Ngauss){}
+
+  double getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z);
 };
 
 
 class Interaction_Interpolation : public Interaction_Base
 {
  public:
+ Interaction_Interpolation(Species &s1, Species &s2, Potential1 &v, double kT, Log &log): 
+  Interaction_Base(s1,s2,v,kT,log) {}
 
- Interaction_Interpolation(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, string &type, bool useFiles) :
-  Interaction_Base(s1,s2,v,kT,log,useFiles)
-    {
-      if(type.compare("Z") == 0) type_ = Interaction_Interpolation::Z;
-      else if(type.compare("LE") == 0) type_ = Interaction_Interpolation::LE;
-      else if(type.compare("QE") == 0) type_ = Interaction_Interpolation::QE;
-      else if(type.compare("LF") == 0) type_ = Interaction_Interpolation::LF;
-      else if(type.compare("QF") == 0) type_ = Interaction_Interpolation::QF;
-      else throw std::runtime_error("Unknown Interaction Interpolation Type");
-    }  
-
-  virtual void generateWeights(Potential1 &v, stringstream &ss, Log& log);
-  virtual bool checkWeightsFile(ifstream &in) {return false;}
-
-  const static int Z = 0;
-  const static int LE = 1;
-  const static int QE = 2;
-  const static int LF = 3;
-  const static int QF = 4;
+  virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v);
   
  protected:
-  virtual bool readWeights(stringstream &ss1) { return false;}
-  int type_ = -1;
+  vector<double> vv_;
+  vector<double> pt_;
 };
 
 
+class Interaction_Interpolation_Zero : public Interaction_Interpolation
+{
+ public:
+ Interaction_Interpolation_Zero(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
+  Interaction_Interpolation(s1,s2,v,kT,log) { vv_.push_back(1.0); pt_.push_back(0.0); }
+};
+
+class Interaction_Interpolation_LE : public Interaction_Interpolation
+{
+ public:
+ Interaction_Interpolation_LE(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
+  Interaction_Interpolation(s1,s2,v,kT,log)
+    { vv_.push_back( 1.0); vv_.push_back(26.0); vv_.push_back(66.0); vv_.push_back(26.0); vv_.push_back(1.0);
+      pt_.push_back(-2.0); pt_.push_back(-1.0); pt_.push_back( 0.0); pt_.push_back( 1.0); pt_.push_back(2.0);
+      for(auto &x: vv_) x /= 120.0;
+    }
+};
+
+class Interaction_Interpolation_QE : public Interaction_Interpolation
+{
+ public:
+ Interaction_Interpolation_QE(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
+  Interaction_Interpolation(s1,s2,v,kT,log)
+    { vv_.push_back(-1.0); vv_.push_back(8.0);  vv_.push_back(18.0); vv_.push_back(112.0); vv_.push_back(86.0); vv_.push_back(112.0); vv_.push_back(18.0); vv_.push_back(8.0); vv_.push_back(-1.0);
+      pt_.push_back(-2.0); pt_.push_back(-1.5); pt_.push_back(-1.0); pt_.push_back(-0.5);  pt_.push_back(0.0);  pt_.push_back(0.5);   pt_.push_back(1.0);  pt_.push_back(1.5); pt_.push_back(2.0);
+      for(auto &x: vv_) x /= 360.0;
+    }
+};
+
+class Interaction_Interpolation_LF : public Interaction_Interpolation
+{
+ public:
+ Interaction_Interpolation_LF(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
+  Interaction_Interpolation(s1,s2,v,kT,log)
+    { vv_.push_back(1.0);  vv_.push_back(4.0); vv_.push_back(1.0);
+      pt_.push_back(-1.0); pt_.push_back(0.0); pt_.push_back(1.0);
+      for(auto &x: vv_) x /= 6;
+    }
+};
+
+class Interaction_Interpolation_QF : public Interaction_Interpolation
+{
+ public:
+ Interaction_Interpolation_QF(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
+  Interaction_Interpolation(s1,s2,v,kT,log)
+    { vv_.push_back(1.0);  vv_.push_back(1.0); vv_.push_back(1.0);
+      pt_.push_back(-0.5); pt_.push_back(0.0); pt_.push_back(0.5);
+      for(auto &x: vv_) x /= 3;      
+    }
+};
 
 
 

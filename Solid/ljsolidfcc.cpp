@@ -191,14 +191,39 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
       //FMT_Species_Numeric species1(theDensity1,hsd1,pointsFile, 1);
 
       Interaction_Base *i1;
+
+      //      i1 = new Interaction_Interpolation_Zero(species1,species1,potential1,kT,log);
+      //      i1 = new Interaction_Interpolation_LE(species1,species1,potential1,kT,log);
+
+      
       if(InteractionType.compare("Interpolation") == 0)
-	i1 = new Interaction_Interpolation(species1,species1,potential1,kT,log,InteractionInterpolationType, useFiles);
+	{
+	  if(InteractionInterpolationType.compare("Z") == 0)
+	    i1 = new Interaction_Interpolation_Zero(species1,species1,potential1,kT,log);
+	  else if(InteractionInterpolationType.compare("LE") == 0)
+	    i1 = new Interaction_Interpolation_LE(species1,species1,potential1,kT,log);
+	  else if(InteractionInterpolationType.compare("QE") == 0)
+	    i1 = new Interaction_Interpolation_QE(species1,species1,potential1,kT,log);
+	  else if(InteractionInterpolationType.compare("LF") == 0)
+	    i1 = new Interaction_Interpolation_LF(species1,species1,potential1,kT,log);
+	  else if(InteractionInterpolationType.compare("QF") == 0)
+	    i1 = new Interaction_Interpolation_QF(species1,species1,potential1,kT,log);
+	  else throw std::runtime_error("Unknown InteractionInterpolationType");
+	} else if(InteractionType.compare("Gauss") == 0) {
+	if(InteractionInterpolationType.compare("E") == 0)
+	  i1 = new Interaction_Gauss_E(species1,species1,potential1,kT,log, Ngauss);
+	else if(InteractionInterpolationType.compare("F") == 0)
+	  i1 = new Interaction_Gauss_F(species1,species1,potential1,kT,log, Ngauss);
+	else throw std::runtime_error("Unknown InteractionInterpolationType");
+      }
+      
+      /*
       else if(InteractionType.compare("Gauss") == 0)
 	i1 = new Interaction_Full(species1,species1,potential1,kT,log,Ngauss,InteractionGaussType, useFiles);
       else if(InteractionType.compare("Spherical") == 0)
 	i1 = new Interaction(species1,species1,potential1,kT,log,pointsFile,useFiles);
       else throw std::runtime_error("Unknown interaction type");
-
+      */
 
       
       //      Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log,useFiles);
@@ -335,7 +360,7 @@ void do_N_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max, 
 
 	  //Interaction i1(species1,species1,potential1,kT,log, pointsFile,useFiles);
 	  //Interaction_Full i1(species1,species1,potential1,kT,log,2,useFiles);
-	  Interaction_Interpolation i1(species1,species1,potential1,kT,log,InteractionInterpolationType, useFiles);
+	  Interaction_Interpolation_Zero i1(species1,species1,potential1,kT,log);
 
 	  RSLT fmt;
 
@@ -474,7 +499,7 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
   bool isDecending = false;
   bool firstIteration = true;
   //  for(double alf = 30; alf < 10000; alf += 10)
-    for(double alf = 1000; alf < 2231; alf += 1000)
+    for(double alf = 230; alf < 2231; alf += 1000)
     {
       if(alf > 1001) exit(0);
 

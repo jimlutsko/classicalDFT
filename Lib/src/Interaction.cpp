@@ -1,4 +1,4 @@
-/* This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. 
+ /* This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. 
  * To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/4.0/.
  *
  * Author: James F. Lutsko
@@ -24,10 +24,12 @@ using namespace std;
 
 #include "Interaction.h"
 
+
+Interaction_Base::Interaction_Base(Species &s1, Species &s2, Potential1 &v, double kT, Log &log)
+  : s1_(s1), s2_(s2), v_(v), kT_(kT), log_(log), initialized_(false) {}
+
 void Interaction_Base::initialize()
 {
-  if(initialized_) return; // no need to do twice
-
   const Density &density = s1_.getDensity();
   long Nx = density.Nx();
   long Ny = density.Ny();
@@ -36,11 +38,7 @@ void Interaction_Base::initialize()
   w_att_.initialize(Nx,Ny,Nz);      
   a_vdw_ = 0.0;
   
-  // First, try to read the weights from a file
-  stringstream ss1;
-  
-  if(!useFiles_ || !readWeights(ss1))
-    generateWeights(v_, ss1, log_);
+  generateWeights(v_, log_);
     
   // Introduce the temperature
   w_att_.Real().MultBy(1.0/kT_);
@@ -51,76 +49,6 @@ void Interaction_Base::initialize()
 
   initialized_ = true;
 }    
-
-bool Interaction_Base::readWeights(stringstream &ss1)
-{
-  const Density &density = s1_.getDensity();
-  long Nx = density.Nx();
-  long Ny = density.Ny();
-  long Nz = density.Nz();
-        
-  ss1 << "weights_"
-      << s1_.getSequenceNumber() << "_"
-      << s2_.getSequenceNumber() << "_"
-      << Nx << "_"
-      << Ny << "_"
-      << Nz << "_"
-      << v_.getIdentifier() << "_";
-  ss1 << ".dat";    
-  
-  bool readWeights = true;
-    
-  ifstream in(ss1.str().c_str(), ios::binary);
-  if(!in.good())
-    {
-      readWeights = false;
-      cout << myColor::GREEN << endl;
-      cout << "///////////////////////////////////////////////////////////" << endl;
-      cout << myColor::GREEN  << "\n" <<  "Could not open file with potential kernal: it will be generated" << myColor::RESET << endl;
-    } else {
-    string buf;
-    getline(in,buf);
-
-    stringstream ss2(buf);
-    int nx, ny, nz;
-    double dx;
-    ss2 >> nx >> ny >> nz >> dx;
-
-    if(nx != Nx)
-      {readWeights = false; cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
-    if(ny != Ny)
-      {readWeights = false; cout << "\n" <<  "Mismatch in Ny: expected " << Ny << " but read " << ny <<  endl;}
-    if(nz != Nz)
-      {readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
-    if(fabs(density.getDX()-dx) > 1e-8*(density.getDX()+dx))
-      {readWeights = false; cout << "\n" <<  "Mismatch in Dx: generating weights: expected " << density.getDX() << " but read " << dx << endl;}      
-
-    getline(in,buf);
-    stringstream ss4(buf);      
-    string identifier;
-    ss4 >> identifier;
-    string pot = v_.getIdentifier();
-    if(identifier.compare(pot) != 0)
-      {readWeights = false; cout << "\n" <<  "Mismatch in potential: expected " << pot << " but read " << identifier <<  endl;}
-      
-    readWeights = checkWeightsFile(in);
-  }
-  if(readWeights)
-    {
-      w_att_.Real().load(in);
-      a_vdw_ = w_att_.Real().accu();
-    } else {
-    ofstream of(ss1.str().c_str(), ios::binary);
-
-      of.flags (std::ios::scientific);
-      of.precision (std::numeric_limits<double>::digits10 + 1);
-
-      of << Nx << " " << Ny << " " << Nz << " " << density.getDX() << endl;
-      of << v_.getIdentifier() << endl;
-      of.close();
-  }
-  return readWeights;
-}
 
   // Note that the matrix w already contains a factor of dV
 double Interaction_Base::getInteractionEnergyAndForces()
@@ -162,6 +90,226 @@ double Interaction_Base::getInteractionEnergyAndForces()
   return E;
 }
 
+void Interaction_Base::generateWeights(Potential1 &v, Log& log)
+{    
+  const Density &density = s1_.getDensity();
+      
+  // The lattice
+  long Nx = density.Nx();
+  long Ny = density.Ny();
+  long Nz = density.Nz();
+
+  double dx = density.getDX();
+  double dy = density.getDY();
+  double dz = density.getDZ();
+  
+  // Set up the mean field potential
+  // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
+  // This may mean going beyond nearest neighbors in certain conditions.
+  // We also compute the vdw parameter at the same time.
+      
+  double Rc = v.getRcut();
+
+  int Nx_lim = 1+int(Rc/dx);
+  int Ny_lim = 1+int(Rc/dy);
+  int Nz_lim = 1+int(Rc/dz);    
+    
+  // Add up the weights for each point.
+  long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+1))/2) + Nx_lim+1;
+  int chunk = 1000; 
+  size_t steps_completed = 0;
+  size_t total_steps = Nmax/chunk;
+
+  vector<double> w2(Nmax,0.0);
+
+  cout << "Generating interpolated weights" << endl;
+  
+  long p = 0;
+  double global_factor = dx*dx*dy*dy*dz*dz;
+
+#pragma omp parallel shared( chunk, w2) private(p)
+  {
+    size_t local_count = 0;
+    long pold = -1;
+    int Sx,Sy,Sz;
+#pragma omp for  
+    for(p=0;p<Nmax;p++)
+      {
+	if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
+	  {
+	    for(int i=0;i<p-pold;i++)
+	      {
+		Sz++;
+		if(Sz > Sy) {Sy++; Sz=0;}
+		if(Sy > Sx) {Sx++; Sy=0;}
+	      }
+	  } else {
+	  double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
+	  Sx = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
+	  Sy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-Sx*(Sx+1)*(Sx+2)/6)+1)-0.5));
+	  while(Sy > Sx)	      
+	    {Sx++; Sy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-Sx*(Sx+1)*(Sx+2)/6)+1)-0.5));}      
+	  Sz = (p == 0 ? 0 : p-((Sx*(Sx+1)*(Sx+2))/6)-((Sy*(Sy+1))/2));
+	  while(Sz > Sy)
+	    { Sy++; Sz = (p == 0 ? 0 : p-((Sx*(Sx+1)*(Sx+2))/6)-((Sy*(Sy+1))/2));}
+	}
+	pold = p;
+	// check
+	if(Sy > Sx || Sz > Sy || Sx*(Sx+1)*(Sx+2)+3*Sy*(Sy+1)+6*Sz != 6*p)
+	  throw std::runtime_error("Bad indices in generateWeights");
+
+	w2[p] = global_factor*generateWeight(Sx, Sy, Sz, dx, v);
+	
+	if(local_count++ % chunk == chunk-1)
+	  {
+#pragma omp atomic	    
+	    ++steps_completed;
+	    if (steps_completed % 100 == 1)
+	      {
+#pragma omp critical
+		cout << '\r';
+		std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
+		cout.flush();
+	      }
+	  }
+      }
+  }
+  w_att_.Real().zeros();
+  a_vdw_ = 0.0;
+
+  cout << endl;
+  
+  for(int ix = -Nx_lim-1;ix<=Nx_lim+1; ix++)
+    {
+      cout << '\r';
+      std::cout << "\tProgress: " << ix+Nx_lim+1 << " of " << 2*(Nx_lim+1) << " (" << std::fixed << std::setprecision(1) << (100.0*(ix+Nx_lim+1)/(2*(Nx_lim+1))) << "%)";
+      cout.flush();
+      
+      for(int iy = -Ny_lim-1;iy<=Ny_lim+1; iy++)
+	for(int iz = -Nz_lim-1;iz<=Nz_lim+1; iz++)
+	  {	  
+	    // get the value of the integrated potential at this point
+	    int nx = abs(ix);
+	    int ny = abs(iy);
+	    int nz = abs(iz);
+
+	    if(ny > nx) swap(nx,ny);
+	    if(nz > nx) swap(nx,nz);
+	    if(nz > ny) swap(ny,nz);
+	    long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
+	    double w = w2[p];
+	    // and get the point it contributes to
+	    long pos = s1_.getDensity().get_PBC_Pos(ix,iy,iz);
+	    w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
+	    a_vdw_ += w;
+	  }
+    }
+  cout << " - Finished!" << endl;
+  // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
+  // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
+  a_vdw_ /= (dx*dy*dz); 
+
+  cout << std::defaultfloat << std::setprecision(6);
+    
+  cout << myColor::GREEN;
+  cout << "/////  Finished.  " << endl;
+  cout << "///////////////////////////////////////////////////////////" << endl;
+  cout << myColor::RESET << endl;
+    
+}
+
+void Interaction::initialize()
+{
+  const Density &density = s1_.getDensity();
+  long Nx = density.Nx();
+  long Ny = density.Ny();
+  long Nz = density.Nz();
+
+  w_att_.initialize(Nx,Ny,Nz);      
+  a_vdw_ = 0.0;
+  
+  // First, try to read the weights from a file
+  if(!readWeights())
+    generateWeights(v_, log_);
+    
+  // Introduce the temperature
+  w_att_.Real().MultBy(1.0/kT_);
+  a_vdw_ /= kT_;
+  
+  // Now generate the FFT of the field  
+  w_att_.do_real_2_fourier();
+}    
+
+bool Interaction::readWeights()
+{
+  const Density &density = s1_.getDensity();
+  long Nx = density.Nx();
+  long Ny = density.Ny();
+  long Nz = density.Nz();
+        
+  weightsFile_ << "weights_"
+      << s1_.getSequenceNumber() << "_"
+      << s2_.getSequenceNumber() << "_"
+      << Nx << "_"
+      << Ny << "_"
+      << Nz << "_"
+      << v_.getIdentifier() << "_";
+  weightsFile_ << ".dat";    
+  
+  bool readWeights = true;
+    
+  ifstream in(weightsFile_.str().c_str(), ios::binary);
+  if(!in.good())
+    {
+      readWeights = false;
+      cout << myColor::GREEN << endl;
+      cout << "///////////////////////////////////////////////////////////" << endl;
+      cout << myColor::GREEN  << "\n" <<  "Could not open file with potential kernal: it will be generated" << myColor::RESET << endl;
+    } else {
+    string buf;
+    getline(in,buf);
+
+    stringstream ss2(buf);
+    int nx, ny, nz;
+    double dx;
+    ss2 >> nx >> ny >> nz >> dx;
+
+    if(nx != Nx)
+      {readWeights = false; cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
+    if(ny != Ny)
+      {readWeights = false; cout << "\n" <<  "Mismatch in Ny: expected " << Ny << " but read " << ny <<  endl;}
+    if(nz != Nz)
+      {readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
+    if(fabs(density.getDX()-dx) > 1e-8*(density.getDX()+dx))
+      {readWeights = false; cout << "\n" <<  "Mismatch in Dx: generating weights: expected " << density.getDX() << " but read " << dx << endl;}      
+
+    getline(in,buf);
+    stringstream ss4(buf);      
+    string identifier;
+    ss4 >> identifier;
+    string pot = v_.getIdentifier();
+    if(identifier.compare(pot) != 0)
+      {readWeights = false; cout << "\n" <<  "Mismatch in potential: expected " << pot << " but read " << identifier <<  endl;}
+      
+    readWeights = checkWeightsFile(in);
+  }
+  if(readWeights)
+    {
+      w_att_.Real().load(in);
+      a_vdw_ = w_att_.Real().accu();
+    } else {
+    ofstream of(weightsFile_.str().c_str(), ios::binary);
+
+      of.flags (std::ios::scientific);
+      of.precision (std::numeric_limits<double>::digits10 + 1);
+
+      of << Nx << " " << Ny << " " << Nz << " " << density.getDX() << endl;
+      of << v_.getIdentifier() << endl;
+      of.close();
+  }
+  return readWeights;
+}
+
 double Interaction_Base::checkCalc(int jx, int jy, int jz)
 {
   const Density &density1 = s1_.getDensity();
@@ -191,8 +339,6 @@ double Interaction_Base::checkCalc(int jx, int jy, int jz)
   return dd*dV*dV;
 }
 
-
-
 bool Interaction::checkWeightsFile(ifstream &in)
 {
   string buf;
@@ -207,7 +353,7 @@ bool Interaction::checkWeightsFile(ifstream &in)
   return readWeights;
 }
 
-void Interaction::generateWeights(Potential1 &v, stringstream &ss, Log& log)
+void Interaction::generateWeights(Potential1 &v, Log& log)
 {    
   const Density &density = s1_.getDensity();
       
@@ -405,375 +551,100 @@ void Interaction::generateWeights(Potential1 &v, stringstream &ss, Log& log)
   cout << myColor::RESET << endl;
    
   /// Dump the weights
-  if(useFiles_)
-    {
-      ofstream of(ss.str().c_str(), ios::binary | ios::app);  
-      of << pointsFile_ << endl;
-      w_att_.Real().save(of);
-    }
+  ofstream of(weightsFile_.str().c_str(), ios::binary | ios::app);  
+  of << pointsFile_ << endl;
+  w_att_.Real().save(of);
 }
 
-void Interaction_Full::generateWeights(Potential1 &v, stringstream &ss, Log& log)
-{    
-  const Density &density = s1_.getDensity();
-      
-  // The lattice
-  long Nx = density.Nx();
-  long Ny = density.Ny();
-  long Nz = density.Nz();
-
-  double dx = density.getDX();
-  double dy = density.getDY();
-  double dz = density.getDZ();
-  
-  // Set up the mean field potential
-  // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
-  // This may mean going beyond nearest neighbors in certain conditions.
-  // We also compute the vdw parameter at the same time.
-      
-  double Rc = v.getRcut();
-
-  int Nx_lim = 1+int(Rc/dx);
-  int Ny_lim = 1+int(Rc/dy);
-  int Nz_lim = 1+int(Rc/dz);    
-    
-  // Add up the weights for each point.
-  // Get Gauss-Lagrange integration points and weights for the 3D integrations
-  gsl_integration_glfixed_table *tr = gsl_integration_glfixed_table_alloc(Ngauss_);
-  double  gauss_p[Ngauss_];
-  double  gauss_w[Ngauss_];
-  for(int i=0;i<Ngauss_;i++) gsl_integration_glfixed_point(0, 1, i, gauss_p+i, gauss_w+i, tr);
-
-  double global_factor = dx*dx*dy*dy*dz*dz/(6*6*6);
-
-  long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+1))/2) + Nx_lim+1;
-  int chunk = 1000; 
-  size_t steps_completed = 0;
-  size_t total_steps = Nmax/chunk;
-
-  vector<double> w2(Nmax,0.0);
-
-
-  cout << " gauss pt = " << gauss_p[0] << " w = " << gauss_w[0] << endl;
-
-  long p = 0;
-#pragma omp parallel shared( chunk, w2, gauss_p, gauss_w ) private(p)
-  {
-    size_t local_count = 0;    
-#pragma omp for  
-    for(p=0;p<Nmax;p++)
-      {
-	double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
-	int ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
-	int iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
-	while(iy > ix)	      
-	  {ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
-	int iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
-	while(iz > iy)
-	  { iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
-            
-	double sum = 0.0;	      
-	for(int Gx=0; Gx < Ngauss_; Gx++)
-	  {
-	    double x  = gauss_p[Gx];
-	    double wx = gauss_w[Gx];
-	    for(int Gy=0; Gy < Ngauss_; Gy++)
-	      {
-		double y  = gauss_p[Gy];
-		double wy = gauss_w[Gy];
-		for(int Gz=0; Gz < Ngauss_; Gz++)
-		  {
-		    double z  = gauss_p[Gz];
-		    double wz = gauss_w[Gz];
-
-		    if(type_.compare("E") == 0)
-		      {
-			for(int a=-2; a<=1; a++)
-			  {
-			    double fx = wx;
-			    if(a == -2)      fx *= x*x*x;
-			    else if(a == -1) fx *= 1+3*x*(1+x*(1-x));
-			    else if(a == 0)  fx *= 4+3*x*x*(x-2);
-			    else             fx *= (1-x)*(1-x)*(1-x);
-
-			    for(int b=-2; b<=1; b++)
-			      {
-				double fy = wy;
-				if(b == -2)      fy *= y*y*y;
-				else if(b == -1) fy *= 1+3*y*(1+y*(1-y));
-				else if(b == 0)  fy *= 4+3*y*y*(y-2);
-				else             fy *= (1-y)*(1-y)*(1-y);
-
-				for(int c=-2; c<=1; c++)
-				  {
-				    double fz = wz;
-				    if(c == -2)      fz *= z*z*z;
-				    else if(c == -1) fz *= 1+3*z*(1+z*(1-z));
-				    else if(c == 0)  fz *= 4+3*z*z*(z-2);
-				    else             fz *= (1-z)*(1-z)*(1-z);		      
-
-				    double r2 = (ix+a+x)*(ix+a+x)*dx*dx
-				      + (iy+b+y)*(iy+b+y)*dy*dy
-				      + (iz+c+z)*(iz+c+z)*dz*dz;
-
-				    sum += global_factor*fx*fy*fz*v.Watt2(r2);
-				  }
-			      }
-			  }
-		      } else if (type_.compare("F") == 0) {
-		      for(int a=0;a<=1;a++)
-			for(int b=0;b<=1;b++)
-			  for(int c=0;c<=1;c++)
-			    {
-			      double r2 = (ix+a-1+x)*(ix+a-1+x)*dx*dx
-				+ (iy+b-1+y)*(iy+b-1+y)*dy*dy
-				+ (iz+c-1+z)*(iz+c-1+z)*dz*dz;
-
-			      sum += 6*6*6*wx*wy*wz*global_factor*(a == 0 ? x : 1-x)*(b == 0 ? y : 1-y)*(c == 0 ? z : 1-z)*v.Watt2(r2);
-			    }
-		    } else throw std::runtime_error("Unknown Gauss Interaction type");		  
-		  }
-	      }
-	  }
-	w2[p] = sum;	    
-      
-	if(local_count++ % chunk == chunk-1)
-	  {
-#pragma omp atomic	    
-	    ++steps_completed;
-	    if (steps_completed % 100 == 1)
-	      {
-#pragma omp critical
-		cout << '\r';
-		std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
-		cout.flush();
-	      }
-	  }
-      }
-  }
-  w_att_.Real().zeros();
-  a_vdw_ = 0.0;
-
-  for(int ix = -Nx_lim;ix<=Nx_lim; ix++)
-    for(int iy = -Ny_lim;iy<=Ny_lim; iy++)
-      for(int iz = -Nz_lim;iz<=Nz_lim; iz++)
-	{
-	  // get the value of the integrated potential at this point
-	  int nx = abs(ix);
-	  int ny = abs(iy);
-	  int nz = abs(iz);
-
-	  if(ny > nx) swap(nx,ny);
-	  if(nz > nx) swap(nx,nz);
-	  if(nz > ny) swap(ny,nz);
-	  long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
-	  double w = w2[p];
-
-	  // and get the point it contributes to
-	  int jx = ix;
-	  int jy = iy;
-	  int jz = iz;
-	  s1_.getDensity().putIntoBox(jx,jy,jz);	  
-	  long pos = jz+Nz*(jy+Ny*jx);
-
-	  w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
-	  a_vdw_ += w;
-	}
-  cout << " - Finished!" << endl;
-  // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
-  // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
-  a_vdw_ /= (dx*dy*dz); 
-
-  cout << std::defaultfloat << std::setprecision(6);
-    
-  cout << myColor::GREEN;
-  cout << "/////  Finished.  " << endl;
-  cout << "///////////////////////////////////////////////////////////" << endl;
-  cout << myColor::RESET << endl;
-    
-  /// Dump the weights
-  if(useFiles_)
-    {
-      ofstream of(ss.str().c_str(), ios::binary | ios::app);
-      of << Ngauss_ << endl;
-      w_att_.Real().save(of);
-    }
-}
-
-bool Interaction_Full::checkWeightsFile(ifstream &in)
+double Interaction_Gauss::generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v)
 {
-  string buf;
-  getline(in,buf);
-  stringstream ss3(buf); // probably could just use buf ...
+  double sum = 0.0;
+  for(int Gx=0; Gx < gauss_p.size(); Gx++)
+    {
+      double x  = gauss_p[Gx];
+      double wx = gauss_w[Gx];
+      for(int Gy=0; Gy < gauss_p.size(); Gy++)
+	{
+	  double y  = gauss_p[Gy];
+	  double wy = gauss_w[Gy];
+	  for(int Gz=0; Gz < gauss_p.size(); Gz++)
+	    {
+	      double z  = gauss_p[Gz];
+	      double wz = gauss_w[Gz];
 
-  int n;
-  ss3 >> n;
-  if(n != Ngauss_)
-    cout << "\n" <<  "Mismatch in points file: expected Ngauss_ = " << Ngauss_ << " but read " << n <<  endl;
-    
-  return (n == Ngauss_);  
+	      sum += wx*wy*wz*getKernel(Sx,Sy,Sz,dx,v,x,y,z);
+	    }
+	}
+    }
+  return sum;
 }
 
+double Interaction_Gauss_F::getKernel(int Sx, int Sy, int Sz, double dx, Potential1& v, double x, double y, double z)
+{
+  double sum = 0.0;
 
-
-
-
-void Interaction_Interpolation::generateWeights(Potential1 &v, stringstream &ss, Log& log)
-{    
-  const Density &density = s1_.getDensity();
-      
-  // The lattice
-  long Nx = density.Nx();
-  long Ny = density.Ny();
-  long Nz = density.Nz();
-
-  double dx = density.getDX();
-  double dy = density.getDY();
-  double dz = density.getDZ();
-  
-  // Set up the mean field potential
-  // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
-  // This may mean going beyond nearest neighbors in certain conditions.
-  // We also compute the vdw parameter at the same time.
-      
-  double Rc = v.getRcut();
-
-  int Nx_lim = 1+int(Rc/dx);
-  int Ny_lim = 1+int(Rc/dy);
-  int Nz_lim = 1+int(Rc/dz);    
-    
-  // Add up the weights for each point.
-
-
-  long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+1))/2) + Nx_lim+1;
-  int chunk = 1000; 
-  size_t steps_completed = 0;
-  size_t total_steps = Nmax/chunk;
-
-  vector<double> w2(Nmax,0.0);
-
-  int *vv = NULL;
-  int Npoints = 1;
-  double *pt = NULL;
-  double global_factor = dx*dx*dy*dy*dz*dz;
-
-  // Interpolation weights
-  int vZ[] = {1}; // Zero
-  int vLE[] = {1,26,66,26,1};    // Linear-Energy
-  int vQE[] = {-1,8,18,112,86,112,18,8,-1}; // Quadratic-Energy
-  int vLF[] = {1,4,1};   // Linear-Force
-  int vQF[] = {1,1,1};   // Quadratic-Force
-
-  // Points to use
-  double pZ[] = {0.0};
-  double pLE[] = {-2.0,-1.0,0.0,1.0,2.0};
-  double pQE[] = {-2.0,-1.5,-1.0,-0.5,0.0,0.5,1.0,1.5,2.0};
-  double pLF[] = {-1.0,0.0,1.0};
-  double pQF[] = {-0.5,0.0,0.5};
-  
-  // Select and initialize  
-  if(type_ == Interaction_Interpolation::Z)       {vv = vZ;  pt = pZ;  Npoints = 1;}
-  else if(type_ == Interaction_Interpolation::LE) {vv = vLE; pt = pLE; Npoints = 5; global_factor /= (120.0*120.0*120.0);}
-  else if(type_ == Interaction_Interpolation::QE) {vv = vQE; pt = pQE; Npoints = 9; global_factor /= (360.0*360.0*360.0);}
-  else if(type_ == Interaction_Interpolation::LF) {vv = vLF; pt = pLF; Npoints = 3; global_factor /= 216;}
-  else if(type_ == Interaction_Interpolation::QF) {vv = vQF; pt = pQF; Npoints = 3; global_factor /= 27;}
-  else throw std::runtime_error("Unknown Interaction Interpolation Option");
-
-  cout << "Generating interpolated weights" << endl;
-  
-  long p = 0;
-#pragma omp parallel shared( chunk, w2, vv, Npoints,pt) private(p)
-  {
-    size_t local_count = 0;
-    long pold = -1;
-    int ix,iy,iz;
-#pragma omp for  
-    for(p=0;p<Nmax;p++)
-      {
-	if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
-	  {
-	    for(int i=0;i<p-pold;i++)
-	      {
-		iz++;
-		if(iz > iy) {iy++; iz=0;}
-		if(iy > ix) {ix++; iy=0;}
-	      }
-	  } else {
-	  double d = pow(3*p+sqrt(9*p*p-1.0/27.0),1.0/3.0);
-	  ix = (p == 0 ? 0 : int(d+(1.0/(3*d))-1));
-	  iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));
-	  while(iy > ix)	      
-	    {ix++; iy = (p == 0 ? 0 : int(0.5*sqrt(8*(p-ix*(ix+1)*(ix+2)/6)+1)-0.5));}      
-	  iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));
-	  while(iz > iy)
-	    { iy++; iz = (p == 0 ? 0 : p-((ix*(ix+1)*(ix+2))/6)-((iy*(iy+1))/2));}
+  for(int a=0;a<=1;a++)
+    for(int b=0;b<=1;b++)
+      for(int c=0;c<=1;c++)
+	{
+	  double r2 = (Sx+a-1+x)*(Sx+a-1+x)*dx*dx
+	    + (Sy+b-1+y)*(Sy+b-1+y)*dx*dx
+	    + (Sz+c-1+z)*(Sz+c-1+z)*dx*dx;
+	  
+	  sum += (a == 0 ? x : 1-x)*(b == 0 ? y : 1-y)*(c == 0 ? z : 1-z)*v.Watt2(r2);
 	}
-	pold = p;
-	// check
-	if(iy > ix || iz > iy || ix*(ix+1)*(ix+2)+3*iy*(iy+1)+6*iz != 6*p)
-	  throw std::runtime_error("Bad indices in generateWeights");
+  return sum;
+}
 
-	
-	for(int i=0;i<Npoints;i++)
-	  for(int j=0;j<Npoints;j++)
-	    for(int k=0;k<Npoints;k++)
-	      {
-		double r2 = (ix+pt[i])*(ix+pt[i])*dx*dx+(iy+pt[j])*(iy+pt[j])*dy*dy+(iz+pt[k])*(iz+pt[k])*dz*dz;
-		w2[p] += global_factor*vv[i]*vv[j]*vv[k]*v.Watt2(r2);
-	      }
-	
-	if(local_count++ % chunk == chunk-1)
-	  {
-#pragma omp atomic	    
-	    ++steps_completed;
-	    if (steps_completed % 100 == 1)
-	      {
-#pragma omp critical
-		cout << '\r';
-		std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
-		cout.flush();
-	      }
-	  }
-      }
-  }
-  w_att_.Real().zeros();
-  a_vdw_ = 0.0;
-  
-  for(int ix = -Nx_lim-1;ix<=Nx_lim+1; ix++)
+double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z)
+{
+  double sum = 0.0;
+	      
+  for(int a=-2; a<=1; a++)
     {
-      cout << '\r';
-      std::cout << "\tProgress: " << ix+Nx_lim+1 << " of " << 2*(Nx_lim+1) << " (" << std::fixed << std::setprecision(1) << (100.0*(ix+Nx_lim+1)/(2*(Nx_lim+1))) << "%)";
-      cout.flush();
-      
-      for(int iy = -Ny_lim-1;iy<=Ny_lim+1; iy++)
-	for(int iz = -Nz_lim-1;iz<=Nz_lim+1; iz++)
-	  {	  
-	    // get the value of the integrated potential at this point
-	    int nx = abs(ix);
-	    int ny = abs(iy);
-	    int nz = abs(iz);
+      double fx = 1;
+      if(a == -2)      fx *= x*x*x;
+      else if(a == -1) fx *= 1+3*x*(1+x*(1-x));
+      else if(a == 0)  fx *= 4+3*x*x*(x-2);
+      else             fx *= (1-x)*(1-x)*(1-x);
 
-	    if(ny > nx) swap(nx,ny);
-	    if(nz > nx) swap(nx,nz);
-	    if(nz > ny) swap(ny,nz);
-	    long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
-	    double w = w2[p];
-	    // and get the point it contributes to
-	    long pos = s1_.getDensity().get_PBC_Pos(ix,iy,iz);
-	    w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
-	    a_vdw_ += w;
-	  }
+      for(int b=-2; b<=1; b++)
+	{
+	  double fy = 1;
+	  if(b == -2)      fy *= y*y*y;
+	  else if(b == -1) fy *= 1+3*y*(1+y*(1-y));
+	  else if(b == 0)  fy *= 4+3*y*y*(y-2);
+	  else             fy *= (1-y)*(1-y)*(1-y);
+
+	  for(int c=-2; c<=1; c++)
+	    {
+	      double fz = 1;
+	      if(c == -2)      fz *= z*z*z;
+	      else if(c == -1) fz *= 1+3*z*(1+z*(1-z));
+	      else if(c == 0)  fz *= 4+3*z*z*(z-2);
+	      else             fz *= (1-z)*(1-z)*(1-z);		      
+
+	      double r2 = (Sx+a+x)*(Sx+a+x)*dx*dx
+		+ (Sy+b+y)*(Sy+b+y)*dx*dx
+		+ (Sz+c+z)*(Sz+c+z)*dx*dx;
+
+	      sum += fx*fy*fz*v.Watt2(r2);
+	    }
+	}
     }
-  cout << " - Finished!" << endl;
-  // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
-  // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
-  a_vdw_ /= (dx*dy*dz); 
+  return sum/216;
+}
 
-  cout << std::defaultfloat << std::setprecision(6);
-    
-  cout << myColor::GREEN;
-  cout << "/////  Finished.  " << endl;
-  cout << "///////////////////////////////////////////////////////////" << endl;
-  cout << myColor::RESET << endl;
-    
+double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v)
+{
+  double sum = 0.0;
+  
+  for(int i=0;i<vv_.size();i++)
+    for(int j=0;j<vv_.size();j++)
+      for(int k=0;k<vv_.size();k++)
+	{
+	  double r2 = (Sx+pt_[i])*(Sx+pt_[i])*dx*dx+(Sy+pt_[j])*(Sy+pt_[j])*dx*dx+(Sz+pt_[k])*(Sz+pt_[k])*dx*dx;
+	  sum += vv_[i]*vv_[j]*vv_[k]*v.Watt2(r2);
+	}
+  return sum;
 }
