@@ -218,6 +218,129 @@ void Interaction_Base::generateWeights(Potential1 &v, Log& log)
     
 }
 
+double Interaction_Gauss::generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v)
+{
+  double sum = 0.0;
+  for(int Gx=0; Gx < gauss_p.size(); Gx++)
+    {
+      double x  = gauss_p[Gx];
+      double wx = gauss_w[Gx];
+      for(int Gy=0; Gy < gauss_p.size(); Gy++)
+	{
+	  double y  = gauss_p[Gy];
+	  double wy = gauss_w[Gy];
+	  for(int Gz=0; Gz < gauss_p.size(); Gz++)
+	    {
+	      double z  = gauss_p[Gz];
+	      double wz = gauss_w[Gz];
+
+	      sum += wx*wy*wz*getKernel(Sx,Sy,Sz,dx,v,x,y,z);
+	    }
+	}
+    }
+  return sum;
+}
+
+double Interaction_Gauss_F::getKernel(int Sx, int Sy, int Sz, double dx, Potential1& v, double x, double y, double z)
+{
+  double sum = 0.0;
+
+  for(int a=0;a<=1;a++)
+    for(int b=0;b<=1;b++)
+      for(int c=0;c<=1;c++)
+	{
+	  double r2 = (Sx+a-1+x)*(Sx+a-1+x)*dx*dx
+	    + (Sy+b-1+y)*(Sy+b-1+y)*dx*dx
+	    + (Sz+c-1+z)*(Sz+c-1+z)*dx*dx;
+	  
+	  sum += (a == 0 ? x : 1-x)*(b == 0 ? y : 1-y)*(c == 0 ? z : 1-z)*v.Watt2(r2);
+	}
+  return sum;
+}
+
+double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z)
+{
+  double sum = 0.0;
+	      
+  for(int a=-2; a<=1; a++)
+    {
+      double fx = 1;
+      if(a == -2)      fx *= x*x*x;
+      else if(a == -1) fx *= 1+3*x*(1+x*(1-x));
+      else if(a == 0)  fx *= 4+3*x*x*(x-2);
+      else             fx *= (1-x)*(1-x)*(1-x);
+
+      for(int b=-2; b<=1; b++)
+	{
+	  double fy = 1;
+	  if(b == -2)      fy *= y*y*y;
+	  else if(b == -1) fy *= 1+3*y*(1+y*(1-y));
+	  else if(b == 0)  fy *= 4+3*y*y*(y-2);
+	  else             fy *= (1-y)*(1-y)*(1-y);
+
+	  for(int c=-2; c<=1; c++)
+	    {
+	      double fz = 1;
+	      if(c == -2)      fz *= z*z*z;
+	      else if(c == -1) fz *= 1+3*z*(1+z*(1-z));
+	      else if(c == 0)  fz *= 4+3*z*z*(z-2);
+	      else             fz *= (1-z)*(1-z)*(1-z);		      
+
+	      double r2 = (Sx+a+x)*(Sx+a+x)*dx*dx
+		+ (Sy+b+y)*(Sy+b+y)*dx*dx
+		+ (Sz+c+z)*(Sz+c+z)*dx*dx;
+
+	      sum += fx*fy*fz*v.Watt2(r2);
+	    }
+	}
+    }
+  return sum/216;
+}
+
+double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v)
+{
+  double sum = 0.0;
+  
+  for(int i=0;i<vv_.size();i++)
+    for(int j=0;j<vv_.size();j++)
+      for(int k=0;k<vv_.size();k++)
+	{
+	  double r2 = (Sx+pt_[i])*(Sx+pt_[i])*dx*dx+(Sy+pt_[j])*(Sy+pt_[j])*dx*dx+(Sz+pt_[k])*(Sz+pt_[k])*dx*dx;
+	  sum += vv_[i]*vv_[j]*vv_[k]*v.Watt2(r2);
+	}
+  return sum;
+}
+
+double Interaction_Base::checkCalc(int jx, int jy, int jz)
+{
+  const Density &density1 = s1_.getDensity();
+    
+  long Ntot = density1.Ntot();
+  double dV = density1.dV();
+    
+  int Nx = density1.Nx();
+  int Ny = density1.Ny();
+  int Nz = density1.Nz();
+
+  long sj = density1.pos(jx,jy,jz);
+  double dd = 0.0;    
+  for(int ix=0;ix<Nx; ix++)
+    for(int iy=0;iy<Ny; iy++)
+      for(int iz=0;iz<Nz; iz++)
+	{
+	  int kx = jx-ix;  while(kx < 0) kx += Nx; while (kx > Nx) kx -= Nx;
+	  int ky = jy-iy;  while(ky < 0) ky += Ny; while (ky > Ny) ky -= Ny;
+	  int kz = jz-iz;  while(kz < 0) kz += Nz; while (kz > Nz) kz -= Nz;
+		    
+	  long si = density1.pos(ix,iy,iz);
+	  long sk = density1.pos(kx,ky,kz);
+		    
+	  dd += w_att_.Real().get(sk)*density1.getDensity(si);
+	}
+  return dd*dV*dV;
+}
+
+
 void Interaction::initialize()
 {
   const Density &density = s1_.getDensity();
@@ -239,6 +362,7 @@ void Interaction::initialize()
   // Now generate the FFT of the field  
   w_att_.do_real_2_fourier();
 }    
+
 
 bool Interaction::readWeights()
 {
@@ -308,35 +432,6 @@ bool Interaction::readWeights()
       of.close();
   }
   return readWeights;
-}
-
-double Interaction_Base::checkCalc(int jx, int jy, int jz)
-{
-  const Density &density1 = s1_.getDensity();
-    
-  long Ntot = density1.Ntot();
-  double dV = density1.dV();
-    
-  int Nx = density1.Nx();
-  int Ny = density1.Ny();
-  int Nz = density1.Nz();
-
-  long sj = density1.pos(jx,jy,jz);
-  double dd = 0.0;    
-  for(int ix=0;ix<Nx; ix++)
-    for(int iy=0;iy<Ny; iy++)
-      for(int iz=0;iz<Nz; iz++)
-	{
-	  int kx = jx-ix;  while(kx < 0) kx += Nx; while (kx > Nx) kx -= Nx;
-	  int ky = jy-iy;  while(ky < 0) ky += Ny; while (ky > Ny) ky -= Ny;
-	  int kz = jz-iz;  while(kz < 0) kz += Nz; while (kz > Nz) kz -= Nz;
-		    
-	  long si = density1.pos(ix,iy,iz);
-	  long sk = density1.pos(kx,ky,kz);
-		    
-	  dd += w_att_.Real().get(sk)*density1.getDensity(si);
-	}
-  return dd*dV*dV;
 }
 
 bool Interaction::checkWeightsFile(ifstream &in)
@@ -556,95 +651,3 @@ void Interaction::generateWeights(Potential1 &v, Log& log)
   w_att_.Real().save(of);
 }
 
-double Interaction_Gauss::generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v)
-{
-  double sum = 0.0;
-  for(int Gx=0; Gx < gauss_p.size(); Gx++)
-    {
-      double x  = gauss_p[Gx];
-      double wx = gauss_w[Gx];
-      for(int Gy=0; Gy < gauss_p.size(); Gy++)
-	{
-	  double y  = gauss_p[Gy];
-	  double wy = gauss_w[Gy];
-	  for(int Gz=0; Gz < gauss_p.size(); Gz++)
-	    {
-	      double z  = gauss_p[Gz];
-	      double wz = gauss_w[Gz];
-
-	      sum += wx*wy*wz*getKernel(Sx,Sy,Sz,dx,v,x,y,z);
-	    }
-	}
-    }
-  return sum;
-}
-
-double Interaction_Gauss_F::getKernel(int Sx, int Sy, int Sz, double dx, Potential1& v, double x, double y, double z)
-{
-  double sum = 0.0;
-
-  for(int a=0;a<=1;a++)
-    for(int b=0;b<=1;b++)
-      for(int c=0;c<=1;c++)
-	{
-	  double r2 = (Sx+a-1+x)*(Sx+a-1+x)*dx*dx
-	    + (Sy+b-1+y)*(Sy+b-1+y)*dx*dx
-	    + (Sz+c-1+z)*(Sz+c-1+z)*dx*dx;
-	  
-	  sum += (a == 0 ? x : 1-x)*(b == 0 ? y : 1-y)*(c == 0 ? z : 1-z)*v.Watt2(r2);
-	}
-  return sum;
-}
-
-double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z)
-{
-  double sum = 0.0;
-	      
-  for(int a=-2; a<=1; a++)
-    {
-      double fx = 1;
-      if(a == -2)      fx *= x*x*x;
-      else if(a == -1) fx *= 1+3*x*(1+x*(1-x));
-      else if(a == 0)  fx *= 4+3*x*x*(x-2);
-      else             fx *= (1-x)*(1-x)*(1-x);
-
-      for(int b=-2; b<=1; b++)
-	{
-	  double fy = 1;
-	  if(b == -2)      fy *= y*y*y;
-	  else if(b == -1) fy *= 1+3*y*(1+y*(1-y));
-	  else if(b == 0)  fy *= 4+3*y*y*(y-2);
-	  else             fy *= (1-y)*(1-y)*(1-y);
-
-	  for(int c=-2; c<=1; c++)
-	    {
-	      double fz = 1;
-	      if(c == -2)      fz *= z*z*z;
-	      else if(c == -1) fz *= 1+3*z*(1+z*(1-z));
-	      else if(c == 0)  fz *= 4+3*z*z*(z-2);
-	      else             fz *= (1-z)*(1-z)*(1-z);		      
-
-	      double r2 = (Sx+a+x)*(Sx+a+x)*dx*dx
-		+ (Sy+b+y)*(Sy+b+y)*dx*dx
-		+ (Sz+c+z)*(Sz+c+z)*dx*dx;
-
-	      sum += fx*fy*fz*v.Watt2(r2);
-	    }
-	}
-    }
-  return sum/216;
-}
-
-double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v)
-{
-  double sum = 0.0;
-  
-  for(int i=0;i<vv_.size();i++)
-    for(int j=0;j<vv_.size();j++)
-      for(int k=0;k<vv_.size();k++)
-	{
-	  double r2 = (Sx+pt_[i])*(Sx+pt_[i])*dx*dx+(Sy+pt_[j])*(Sy+pt_[j])*dx*dx+(Sz+pt_[k])*(Sz+pt_[k])*dx*dx;
-	  sum += vv_[i]*vv_[j]*vv_[k]*v.Watt2(r2);
-	}
-  return sum;
-}

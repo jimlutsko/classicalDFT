@@ -20,10 +20,6 @@
 #include "Log.h"
 #include "myColor.h"
 
-// TODO:
-//    - Eliminate the naming and checking of the weights file. Instead, just allow a filename to be passed to the constructor (for reading)
-//      and add a function to dump to a file (for writing). Let the application code manage the files instead of these objects.  
-
 /**
   *  @brief This class encapsulates the interaction between two species (or one species with itself)
   *
@@ -122,6 +118,15 @@ class Interaction_Base
    */      
   virtual void generateWeights(Potential1 &v, Log& log);  
 
+  /**
+   *   @brief  Calculates the weight w(Sx,Sy,Sz)
+   *  
+   *   @param Sx,Sy,Sz: the cell 
+   *   @param v: the potential
+   *   @param dx: lattice spacing
+   *
+   *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
+   */          
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v) = 0;
   
  protected:
@@ -195,10 +200,22 @@ class Interaction : public Interaction_Base
   stringstream weightsFile_; ///< The name of the file with the spherical integation points.
 };
 
+/**
+  *  @brief Calculates the weight array using Gauss-Legendre integration. Typically, Ngauss = 5 is sufficient. This is an abstract base class.
+  */  
+
 class Interaction_Gauss : public Interaction_Base
 {
  public:
-
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   *   @param Ngauss: number of gauss-lengendre points in each direction
+   */    
  Interaction_Gauss(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
   Interaction_Base(s1,s2,v,kT,log)
   {
@@ -211,7 +228,26 @@ class Interaction_Gauss : public Interaction_Base
       }
   }
 
+ protected:
+  /**
+   *   @brief  Calculates the weight w(Sx,Sy,Sz)
+   *  
+   *   @param Sx,Sy,Sz: the cell 
+   *   @param v: the potential
+   *   @param dx: lattice spacing
+   *
+   *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
+   */        
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v);
+  /**
+   *   @brief  Returns the kernel of the integral being evaluated
+   *  
+   *   @param Sx,Sy,Sz: the cell 
+   *   @param v: the potential
+   *   @param x,y,z: the position within the cell
+   *
+   *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
+   */        
   virtual double getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z) = 0;
   
  protected:
@@ -219,52 +255,134 @@ class Interaction_Gauss : public Interaction_Base
   vector<double> gauss_w;
 };
 
+/**
+  *  @brief Calculates the weight array using Gauss-Legendre integration. Typically, Ngauss = 5 is sufficient. This uses the "Energy route".
+  */  
 class Interaction_Gauss_E : public Interaction_Gauss
 {
  public:
-
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   *   @param Ngauss: number of gauss-lengendre points in each direction
+   */    
  Interaction_Gauss_E(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
   Interaction_Gauss(s1,s2,v,kT,log,Ngauss){}
 
+ protected:
+  /**
+   *   @brief  Returns the kernel of the integral being evaluated
+   *  
+   *   @param Sx,Sy,Sz: the cell 
+   *   @param v: the potential
+   *   @param x,y,z: the position within the cell
+   *
+   *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
+   */        
   double getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &p, double x, double y, double z);
 };
 
-
+/**
+  *  @brief Calculates the weight array using Gauss-Legendre integration. Typically, Ngauss = 5 is sufficient. This uses the "Force route".
+  */  
 class Interaction_Gauss_F : public Interaction_Gauss
 {
  public:
-
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   *   @param Ngauss: number of gauss-lengendre points in each direction
+   */    
  Interaction_Gauss_F(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
   Interaction_Gauss(s1,s2,v,kT,log,Ngauss){}
 
+ protected:
+  /**
+   *   @brief  Returns the kernel of the integral being evaluated
+   *  
+   *   @param Sx,Sy,Sz: the cell 
+   *   @param v: the potential
+   *   @param x,y,z: the position within the cell
+   *
+   *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
+   */      
   double getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z);
 };
 
-
+/**
+  *  @brief Calculates the weight array using polynomial interpolation of the potential. 
+  */  
 class Interaction_Interpolation : public Interaction_Base
 {
  public:
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   */      
  Interaction_Interpolation(Species &s1, Species &s2, Potential1 &v, double kT, Log &log): 
   Interaction_Base(s1,s2,v,kT,log) {}
 
+ protected:
+  /**
+   *   @brief  Calculates the weight w(Sx,Sy,Sz)
+   *  
+   *   @param Sx,Sy,Sz: the cell 
+   *   @param v: the potential
+   *   @param dx: lattice spacing
+   *
+   *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
+   */        
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v);
   
  protected:
-  vector<double> vv_;
-  vector<double> pt_;
+  vector<double> vv_; ///< Weights of the interpolant
+  vector<double> pt_; ///< Positions at which the potential must be evaluated
 };
 
-
+/**
+  *  @brief Calculates the weight array as the potential evaluated at the lattice points.
+  */  
 class Interaction_Interpolation_Zero : public Interaction_Interpolation
 {
  public:
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   */    
  Interaction_Interpolation_Zero(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
   Interaction_Interpolation(s1,s2,v,kT,log) { vv_.push_back(1.0); pt_.push_back(0.0); }
 };
 
+/**
+  *  @brief Calculates the weight array using linear interpolation of the potential and the "Energy route". 
+  */  
 class Interaction_Interpolation_LE : public Interaction_Interpolation
 {
  public:
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   */      
  Interaction_Interpolation_LE(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
   Interaction_Interpolation(s1,s2,v,kT,log)
     { vv_.push_back( 1.0); vv_.push_back(26.0); vv_.push_back(66.0); vv_.push_back(26.0); vv_.push_back(1.0);
@@ -273,9 +391,20 @@ class Interaction_Interpolation_LE : public Interaction_Interpolation
     }
 };
 
+/**
+ *  @brief Calculates the weight array using quadratic interpolation of the potential and the "Energy route". 
+ */  
 class Interaction_Interpolation_QE : public Interaction_Interpolation
 {
  public:
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   */      
  Interaction_Interpolation_QE(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
   Interaction_Interpolation(s1,s2,v,kT,log)
     { vv_.push_back(-1.0); vv_.push_back(8.0);  vv_.push_back(18.0); vv_.push_back(112.0); vv_.push_back(86.0); vv_.push_back(112.0); vv_.push_back(18.0); vv_.push_back(8.0); vv_.push_back(-1.0);
@@ -284,9 +413,20 @@ class Interaction_Interpolation_QE : public Interaction_Interpolation
     }
 };
 
+/**
+ *  @brief Calculates the weight array using linear interpolation of the potential and the "Force route". 
+ */  
 class Interaction_Interpolation_LF : public Interaction_Interpolation
 {
  public:
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   */      
  Interaction_Interpolation_LF(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
   Interaction_Interpolation(s1,s2,v,kT,log)
     { vv_.push_back(1.0);  vv_.push_back(4.0); vv_.push_back(1.0);
@@ -295,9 +435,20 @@ class Interaction_Interpolation_LF : public Interaction_Interpolation
     }
 };
 
+/**
+ *  @brief Calculates the weight array using guadratic interpolation of the potential and the "Force route". 
+ */  
 class Interaction_Interpolation_QF : public Interaction_Interpolation
 {
  public:
+  /**
+   *   @brief  Constructor 
+   *  
+   *   @param s1: the first species.
+   *   @param s2: the second species.
+   *   @param kT: the temperature
+   *   @param log: the log object
+   */      
  Interaction_Interpolation_QF(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
   Interaction_Interpolation(s1,s2,v,kT,log)
     { vv_.push_back(1.0);  vv_.push_back(1.0); vv_.push_back(1.0);
