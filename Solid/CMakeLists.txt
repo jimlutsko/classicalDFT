@@ -9,6 +9,7 @@ set(PATH_TO_DFT_LIB ${PROJECT_SOURCE_DIR}/../Lib)
 # MODIFY: this is the app file 
 add_executable(${PROJECT_NAME}  ${PROJECT_SOURCE_DIR}/ljsolidfcc.cpp ../Lib/src/VDW1.cpp)
 #add_executable(LIQVAP  ${PROJECT_SOURCE_DIR}/LiquidVapor.cpp ../Lib/src/VDW1.cpp)
+add_executable(PROCESS_SCANS  ${PROJECT_SOURCE_DIR}/process_scans.cpp )
 
 #MODIFY: enable these lines if you want to use Grace (Grace.h, Grace.cpp)
 set(USE_GRACE true)
@@ -23,6 +24,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 set(CMAKE_CXX_EXTENSIONS ON)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 #target_compile_features(LIQVAP PUBLIC cxx_std_11)
+target_compile_features(PROCESS_SCANS PUBLIC cxx_std_11)
 
 ## Find other packages needed
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/../scripts)

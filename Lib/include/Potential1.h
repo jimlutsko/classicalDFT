@@ -5,8 +5,17 @@
 
 /**
   *  @brief Potential function - it knows how to split into hard sphere and attractive parts and to compute the hard sphere diameter. 
-  *         By default, the split is done using the WCA prescription but this can be changed with the functions
-  *         setBH and WCA_limit
+  *
+  *  @details By default, the split is done using a WCA prescription but this can be changed with the functions
+  *           setBH and WCA_limit. 
+  *
+  *           The default WCA option writes v(r) = v0(r) + w(r) with v0(r) = 0 for r > Rmin, the minimum of the potential.
+  *           and w(r) = v(Rmin) for r < Rmin, the minimum of the potential. 
+  *
+  *           If WCA_limit> 0, then w(r) is zero for r < WCA_limit: i.e. the continuation inside the core is truncated. 
+  *
+  *           If the BH flag is true, the potential is split at the point it reaches zero 
+  *           and the attractive part is only non-zero for positions greater than this point.
   */
 class Potential1
 {
@@ -14,64 +23,62 @@ class Potential1
  Potential1(double sigma, double eps, double rcut) : sigma_(sigma), eps_(eps),rcut_(rcut), shift_(0), rmin_(0), Vmin_(0)
   {}
 
+  virtual double getHardCore() const = 0; ///< Hard core diameter of the original potential (e.g. zero for LJ). 
+  
+  double getRcut() const { return rcut_;} ///< Returns the cutoff
+  double getR0()   const { return r0_;} ///< Returns the position at which potential is zero
   virtual double getRmin() const = 0; ///< min of potential
-  virtual double getHardCore() const = 0; ///< Hard core diameter
   
-  double getRcut() const { return rcut_;}
-  double getR0()   const { return r0_;}
+  void set_WCA_limit(double r) { r_att_min_ = r;} ///< Distance from origin that attractive continuate extends
+  void setBH() { bhFlag_ = true; r_att_min_ = getR0();} ///< Use the BH split of the potential
   
-  void set_WCA_limit(double r) { r_att_min_ = r;}
-  void setBH() { bhFlag_ = true; r_att_min_ = getR0();}
-  
-  double V(double r) const { return vr(r)-shift_;}
-  double V2(double r2) const { return vr2(r2)-shift_;}
+  double V(double r)   const { return vr(r)-shift_;}    ///< The cut and shifted potential at point r
+  double V2(double r2) const { return vr2(r2)-shift_;}  ///< The cut and shifted potential at point r calculated from r^2
 
-  double Watt(double r) const
+  double Watt(double r) const {return Watt2(r*r);} ///< The attractive tail 
+  
+    /*
   {
-    double ret = 0.0;
-
-    if(r > rcut_) ret = 0.0;
-    else {
-      if(bhFlag_) ret =  (r < getR0() ? 0.0 : V(r));    
-      else if(r < r_att_min_) ret = 0.0;
-      else if (r < rmin_) ret = Vmin_;
-      else ret = V(r);
-    }
-
+    double ret = 0.0;    
+    if(r < rcut_)  
+      if(bhFlag_) ret =  (r < getR0() ? 0.0 : V(r)); 
+      else if(r < r_att_min_) ret = 0.0;  
+      else if (r < rmin_) ret = Vmin_;    
+      else ret = V(r);                    
+    
     return ret;
   }
-
-  double Watt2(double r2) const
+    */
+  double Watt2(double r2) const ///< Attractive part calcuated from r2
   {
     double ret = 0.0;
-
-    if(r2 > rcut_*rcut_) ret = 0.0;
-    else {
-      if(bhFlag_) ret =  (r2 < getR0()*getR0() ? 0.0 : V2(r2));    
-      else if(r2 < r_att_min_*r_att_min_) ret = 0.0;
-      else if (r2 < rmin_*rmin_) ret = Vmin_;
-      else ret = V2(r2);
-    }
-
+    if(r2 < rcut_*rcut_)  // zero outside of cutoff      
+      if(bhFlag_) ret =  (r2 < getR0()*getR0() ? 0.0 : V2(r2)); // BH case 
+      else if(r2 < r_att_min_*r_att_min_) ret = 0.0; // Our "generalized" WCA
+      else if (r2 < rmin_*rmin_) ret = Vmin_; // WCA continuation inside rmin
+      else ret = V2(r2); // Just the potential outsize of rmin
     return ret;
   }  
 
-  double V0(double r)   const
+  double V0(double r) const ///< The repulsive part of the potential
   {
     if(bhFlag_) return (r < getR0() ? V(r) : 0.0);
     return  (r < rmin_ ? V(r)-Vmin_ : 0.0);
   }
   
-  double getHSD(double kT) const
+  double getHSD(double kT) const ///< Calculates HSD by numeric integration. 
   {
     kT_ = kT;
     double hc = getHardCore();
+
+    double rlimit = rmin_;
+    if(bhFlag_) rlimit = getR0();
     
     Integrator<const Potential1> II(this, &Potential1::dBH_Kernal, 1e-4, 1e-6);
-    return hc + II.integrateFinite(hc,rmin_);
+    return hc + II.integrateFinite(hc,rlimit);
   }
 
-  double getVDW_Parameter(double kT) const
+  double getVDW_Parameter(double kT) const ///< Calculates the vDW parameter by numeric integration
   {
     kT_ = kT;
     Integrator<const Potential1> II(this, &Potential1::vdw_Kernal, 1e-6, 1e-8);
@@ -79,27 +86,27 @@ class Potential1
     return (2*M_PI/kT)*(II.integrateFinite(r_att_min_,rmin_)+II.integrateFinite(rmin_,rcut_));
   }
 
-  virtual string getIdentifier() const = 0;
+  virtual string getIdentifier() const = 0; ///< Unique name of this potential
   
  protected:
-  virtual double vr(double r) const = 0;
-  virtual double vr2(double r2) const = 0;
+  virtual double vr(double r)   const = 0; ///< The underlying potential
+  virtual double vr2(double r2) const = 0; ///< The underlying potential
 
-  virtual double dBH_Kernal(double r) const {return (1.0-exp(-V0(r)/kT_));}
-  virtual double vdw_Kernal(double r) const {return r*r*Watt(r);}
+  virtual double dBH_Kernal(double r) const {return (1.0-exp(-V0(r)/kT_));}  ///< Kernal for calcuating hsd
+  virtual double vdw_Kernal(double r) const {return r*r*Watt(r);}  ///< Kernel for calculating vDW parameter
   
  protected:
- double sigma_     =  1.0;
- double eps_       =  1.0;
- double rcut_      = -1.0;
- double rmin_      =  1.0;
- double shift_     =  0.0;
- double Vmin_      = -1.0;
- double r_att_min_ =  0.0;
- double r0_        =  1.0;
- bool bhFlag_      = false;
+  double sigma_     =  1.0; ///< Length scale of potential
+  double eps_       =  1.0;  ///< Energy scale of potential
+  double rcut_      = -1.0;  ///< Cutoff
+  double rmin_      =  1.0;   ///< Minimum of the potential
+  double shift_     =  0.0;   ///< Amount to shift potential
+  double Vmin_      = -1.0;   ///< Value of potential at its minimum
+  double r_att_min_ =  0.0;   ///< parameter: wca continuation limit
+  double r0_        =  1.0;   ///< Position at which potential goes to zero
+  bool bhFlag_      = false;  ///< Flag to control which split to use
  
- mutable double kT_;
+  mutable double kT_;         ///< Used to pass the temperature during evaluaton of numerical integrals. 
  
 };
 

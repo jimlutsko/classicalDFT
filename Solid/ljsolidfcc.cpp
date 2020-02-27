@@ -42,9 +42,6 @@ double dtMax = 1;
 double alpha_start = 0.01;
 double alphaFac = 1;
 
-double cutoff = -1;
-
-
 bool showGraphics = true;
 
 int maxSteps = -1;
@@ -87,6 +84,8 @@ int main(int argc, char** argv)
   double sigma1 = 1;
   double rcut1  = 3;
 
+  bool use_bh_split = false;
+
   int Npoints_min = 120;
   int Npoints_max = 120;    
   double Mu_min  =  0.25;
@@ -114,12 +113,13 @@ int main(int argc, char** argv)
   options.addOption("Mu_max",   &Mu_max);
   options.addOption("Mu_step",  &Mu_step);
 
-  options.addOption("AttractiveCutoff", &cutoff);
-  
   options.addOption("eps1",   &eps1);
   options.addOption("sigma1", &sigma1);
   options.addOption("rcut1",  &rcut1);
 
+  options.addOption("Use_BH_Split", &use_bh_split);
+  
+  
   options.addOption("GaussianOnly", &GaussianOnly);
 
   options.addOption("OutputFile", &outfile);
@@ -163,13 +163,11 @@ int main(int argc, char** argv)
   ////// Create potential && effective hsd
 
   LJ potential1(sigma1, eps1, rcut1);
-  potential1.setBH();
+  if(use_bh_split) potential1.setBH();
   //potential1.set_WCA_limit(0.79);
 
   if(hsd1 < 0) hsd1 = potential1.getHSD(kT);
 
-  if(cutoff < -1) cutoff = hsd1;
-  
   //  do_N_first(Npoints_min, Npoints_max, Mu_min, Mu_max, Mu_step, GaussianOnly, potential1, log);
   do_Mu_first(Npoints_min, Npoints_max, Mu_min, Mu_max, Mu_step, GaussianOnly, potential1, log);
 
@@ -271,7 +269,7 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
 	    {
 	      double xvap = -1;
 	      try{
-		xvap = dft.XVap_From_Mu(Mu,1.0);
+		xvap = dft.XVap_From_Mu(Mu,0.2);
 		cout << "DFT find gas: " << xvap << endl;
 	      } catch(...) { cout << "DFT find gas: none found" << endl;}
 	      double xliq = -1;
@@ -498,10 +496,10 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
   double prefac_old = 0;
   bool isDecending = false;
   bool firstIteration = true;
-  //  for(double alf = 30; alf < 10000; alf += 10)
-    for(double alf = 230; alf < 2231; alf += 1000)
+  for(double alf = 30; alf < 10000; alf += 10)
+  //    for(double alf = 230; alf < 2231; alf += 1000)
     {
-      if(alf > 1001) exit(0);
+      //    if(alf > 1001) exit(0);
 
 
       f = gaussianEval(alf, bmu, theDensity1, dft, prefac,log);

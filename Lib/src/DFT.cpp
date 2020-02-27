@@ -114,6 +114,7 @@ double DFT::XVap_From_Mu(double mu, double maxDensity) const
   double x2  = -1;
   try {
     spinodal(xs1,xs2);
+    cout << "Spinodal: " << x1 << " " << x2 << endl;
     x2 = min(xs1,xs2);
   } catch(...) {
     // no problem - there is no spinodal.
@@ -170,6 +171,7 @@ void DFT::spinodal(double &xs1, double &xs2) const
     {
       double re = z[2*i];
       double im = z[2*i+1];
+      cout << re << " " << im << endl;
       if(re > 0 && fabs(im) < 1e-10)
 	{
 	  if(xs1 < 0 || (re < xs1)) {xs2 = xs1; xs1 = re;}
