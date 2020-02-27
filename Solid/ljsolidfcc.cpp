@@ -247,7 +247,8 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
       double Agauss = -1;
       double Dgauss = 0;
       
-      for(double Mu = Mu_min; Mu < Mu_max; Mu += Mu_step)	
+      //      for(double Mu = Mu_min; Mu < Mu_max; Mu += Mu_step)
+      for(double Mu = Mu_max; Mu > Mu_min; Mu -= Mu_step)	
 	{
 	  bool bstarted = false;
 	  double f_prev = 0;

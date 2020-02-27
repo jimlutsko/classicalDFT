@@ -12,6 +12,8 @@ using namespace std;
 #include <gsl/gsl_multiroots.h>
 #include <gsl/gsl_poly.h>
 
+#include "poly34.h"
+
 #ifdef USE_OMP
 #include <omp.h>
 #endif
@@ -92,7 +94,7 @@ double DFT::XLiq_From_Mu(double mu, double high_density) const
       	if(fc > mu) { fb = fc; bx = cx;}
 	else {fa = fc; ax = cx;}
     }
-  } while(fabs(fa-fb) > 1e-6*fabs(fa+fb));
+  } while(fabs(fa-fb) > 1e-8 + 1e-6*fabs(fa+fb));
   return cx;
 }
 
@@ -151,6 +153,25 @@ void DFT::spinodal(double &xs1, double &xs2) const
   if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
   if(Interactions_.size() != 1) throw std::runtime_error("DFT::spinodal only implemented for a single attractive interaction");
 
+
+  double d = allSpecies_[0]->getHSD();
+  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
+  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
+  double x[5];
+  int nroots = SolveP5(x, a[4]/a[5], a[3]/a[5], a[2]/a[5], a[1]/a[5], a[0]/a[5]);
+
+  xs1 = xs2 = -1;
+  for(int i=0;i<nroots;i++)
+    if(x[i] > 0 && x[i] < 0.74) // i.e. < close packing limit
+      {
+	if(xs2 < 0) xs2 = x[i];
+	else {
+	  if(xs1 < 0) xs1 = min(x[i],xs2);
+	  else xs1 = min(xs1, x[i]);
+	  xs2 = max(xs2, x[i]);
+	}
+      }
+  /*  
   vector<double> x(1);
 
   // coefficients of P(x) = a0+a1 x+...
@@ -178,6 +199,7 @@ void DFT::spinodal(double &xs1, double &xs2) const
 	  else if(xs2 < 0 || re < xs2) xs2 = re;
 	}
     }
+  */
   if(xs1 < 0 || xs2 < 0) throw std::runtime_error("Determination of spinodal failed 2");
 
   // convert from e to x
