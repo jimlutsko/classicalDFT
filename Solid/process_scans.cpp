@@ -118,26 +118,34 @@ int main()
 	{
 	  vector<double> header1;
 	  vector<double> header2;
-	  
-	  processFile(s, header1, header2, Dsol, Osol, Cvac);
 
-	  vector<double> v;
-	  v.push_back(header1[0]);
-	  v.push_back(header1[1]);
-	  v.push_back(header1[2]);
-	  v.push_back(Dsol);
-	  v.push_back(Osol);
-	  v.push_back(Cvac);
-	  thermo1.push_back(v);
+	  try {
+	    processFile(s, header1, header2, Dsol, Osol, Cvac);
+
+	    if(header1[2] > 0.0) // negative density means nothing found
+	      {
+		vector<double> v;
+		v.push_back(header1[0]);
+		v.push_back(header1[1]);
+		v.push_back(header1[2]);
+		v.push_back(Dsol);
+		v.push_back(Osol);
+		v.push_back(Cvac);
+		thermo1.push_back(v);
+	      }
 	  
-	  if(header2.size() > 0)
-	    {
-	      vector<double> v2(v);
-	      v2.push_back(header2[0]);
-	      v2.push_back(header2[1]);
-	      v2.push_back(header2[2]);
-	      thermo2.push_back(v2);	      
-	    }
+	    if(header2.size() > 0 && header2[2] > 0.0)
+	      {
+		vector<double> v;
+		v.push_back(header2[0]);
+		v.push_back(header2[1]);
+		v.push_back(header2[2]);
+		v.push_back(Dsol);
+		v.push_back(Osol);
+		v.push_back(Cvac);
+		thermo2.push_back(v);	      
+	      }
+	  } catch (...) { cout << "Could not find minimum in " << s << endl;}
 	      
 	}
     }

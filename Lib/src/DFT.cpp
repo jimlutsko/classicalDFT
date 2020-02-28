@@ -153,53 +153,28 @@ void DFT::spinodal(double &xs1, double &xs2) const
   if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
   if(Interactions_.size() != 1) throw std::runtime_error("DFT::spinodal only implemented for a single attractive interaction");
 
+  //  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
+  //  int nroots = SolveP5(x, a[4]/a[5], a[3]/a[5], a[2]/a[5], a[1]/a[5], a[0]/a[5]);
 
-  double d = allSpecies_[0]->getHSD();
-  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
-  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
-  double x[5];
-  int nroots = SolveP5(x, a[4]/a[5], a[3]/a[5], a[2]/a[5], a[1]/a[5], a[0]/a[5]);
 
   xs1 = xs2 = -1;
+  
+  double d = allSpecies_[0]->getHSD();
+  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
+  double roots[5];
+  int nroots = SolveP5(roots, (1-4*ae)/ae, (-4+6*ae)/ae, (4-4*ae)/ae, (4+ae)/ae, 1.0/ae);
+
   for(int i=0;i<nroots;i++)
-    if(x[i] > 0 && x[i] < 0.74) // i.e. < close packing limit
+    if(roots[i] > 0 && roots[i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
       {
-	if(xs2 < 0) xs2 = x[i];
+	if(xs2 < 0) xs2 = roots[i];
 	else {
-	  if(xs1 < 0) xs1 = min(x[i],xs2);
-	  else xs1 = min(xs1, x[i]);
-	  xs2 = max(xs2, x[i]);
+	  if(xs1 < 0) xs1 = min(roots[i],xs2);
+	  else xs1 = min(xs1, roots[i]);
+	  xs2 = max(xs2, roots[i]);
 	}
       }
-  /*  
-  vector<double> x(1);
 
-  // coefficients of P(x) = a0+a1 x+...
-  double d = allSpecies_[0]->getHSD();
-  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
-  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
-  double z[10];
-
-  gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc(6);
-  int ret = gsl_poly_complex_solve(a, 6, w, z);
-  gsl_poly_complex_workspace_free(w);
-
-  if(ret != GSL_SUCCESS) throw std::runtime_error("Determination of spinodal failed 1");
-
-  xs1 = xs2 = -1;
-
-  for(int i = 0; i < 5; i++)
-    {
-      double re = z[2*i];
-      double im = z[2*i+1];
-      cout << re << " " << im << endl;
-      if(re > 0 && fabs(im) < 1e-10)
-	{
-	  if(xs1 < 0 || (re < xs1)) {xs2 = xs1; xs1 = re;}
-	  else if(xs2 < 0 || re < xs2) xs2 = re;
-	}
-    }
-  */
   if(xs1 < 0 || xs2 < 0) throw std::runtime_error("Determination of spinodal failed 2");
 
   // convert from e to x
