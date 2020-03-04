@@ -24,7 +24,7 @@ using namespace std;
 #include "myColor.h"
 
 void check(Density &density, DFT &dft, Interaction &i);
-double gaussianEval(double alf, double bmu, SolidFCC& theDensity, DFT& dft, double &prefac, Log &log);
+double gaussianEval(double alf, double bmu, SolidFCC& theDensity, DFT& dft, double &prefac, double &dprefac, Log &log);
 double L[3] = {10,10,10};
 int nCores = 6;
 
@@ -49,8 +49,11 @@ int Ngauss = 5;
 bool useFiles = true;
 
 
-//double prefac = 1;
-double prefac = 0.995;
+double prefac = 1.0;
+//double prefac = 0.995;
+
+const double prefac_limit = 0.95; // if prefac is below this, the search is stopped
+
 double dx = 0.1;
 
 bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double &Fgau, double &Agau);
@@ -214,20 +217,6 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
 	  i1 = new Interaction_Gauss_F(species1,species1,potential1,kT,log, Ngauss);
 	else throw std::runtime_error("Unknown InteractionInterpolationType");
       }
-      
-      /*
-      else if(InteractionType.compare("Gauss") == 0)
-	i1 = new Interaction_Full(species1,species1,potential1,kT,log,Ngauss,InteractionGaussType, useFiles);
-      else if(InteractionType.compare("Spherical") == 0)
-	i1 = new Interaction(species1,species1,potential1,kT,log,pointsFile,useFiles);
-      else throw std::runtime_error("Unknown interaction type");
-      */
-
-      
-      //      Interaction_Linear_Interpolation i1(species1,species1,potential1,kT,log,useFiles);
-      //      Interaction i1(species1,species1,potential1,kT,log,pointsFile,useFiles);
-      //Interaction_Full i1(species1,species1,potential1,kT,log,Ngauss,useFiles); 
-      
       RSLT fmt;
 
       i1->initialize();
@@ -246,9 +235,10 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
       double Fgauss = 0;
       double Agauss = -1;
       double Dgauss = 0;
+
+      bool Gauss_Failed = false;
       
-      //      for(double Mu = Mu_min; Mu < Mu_max; Mu += Mu_step)
-      for(double Mu = Mu_max; Mu > Mu_min; Mu -= Mu_step)	
+      for(double Mu = Mu_min; Mu < Mu_max && !Gauss_Failed; Mu += Mu_step)	
 	{
 	  bool bstarted = false;
 	  double f_prev = 0;
@@ -278,14 +268,30 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
 		xliq = dft.XLiq_From_Mu(Mu,1.0);
 		cout << "DFT find liq: " << xliq << endl;
 	      } catch(...) { cout << "DFT find liq: none found" << endl;}
-
+	      double xs1,xs2,xvap_coex, xliq_coex;
+	      xs1 = xs2 = xvap_coex = xliq_coex = -1;
+	      try{
+		dft.liq_vap_coex(xs1,xs2,xvap_coex, xliq_coex);
+		cout << "DFT liq-vap spinodal: " << xs1 << " " << xs2<< endl;
+		cout << "DFT liq-vap coex    : " << xvap_coex << " " << xliq_coex << endl;
+	      } catch(...) { cout << "DFT find liq-vap coex failed" << endl;}	      
+	      
 	      vector<double> xv(1);
 	      
 	      ofstream of(of_name.str().c_str());
 	      if(xliq > 0)
 		{ xv[0] = xliq; of << "#Mu(input) = " << Mu << " Fliq/(kTV) = " << dft.Omega(xv) << " Dliq = " << xliq << " Mu(output) = " << dft.Mu(xv,0) << endl;}
+	      else {of << "#Mu(input) = " << Mu << " Fliq/(kTV) = 0.0 Dliq = -1.0  Mu(output) = 0.0" << endl;}
 	      if(xvap > 0)
 		{ xv[0] = xvap; of << "#Mu(input) = " << Mu << " Fvap/(kTV) = " << dft.Omega(xv) << " Dvap = " << xvap << " Mu(output) = " << dft.Mu(xv,0) << endl;}
+	      else {of << "#Mu(input) = " << Mu << " Fvap/(kTV) = 0.0 Dvap = -1.0  Mu(output) = 0.0" << endl;}
+	      if(xvap_coex > 0 && xliq_coex > 0)
+		{
+		  xv[0] = xvap;
+		  of << "#kT = " << kT << " xs1 = " << xs1 << " xs2 = " << xs2
+		     << " xvap_coex = " << xvap_coex << " xliq_coex = " << xliq_coex
+		     << " Mu_coex = " << dft.Mu(xv,0) << " beta P_coex = " << -dft.Omega(xv) << endl;
+		} else of << "#kT = " << kT << " xs1 = -1 xs2 = -1 xvap_coex = -1 xliq_coex = -1 Mu_coex = -1 beta P_coex = -1"  << endl;
 
 	      of << "#"
 		 << setw(15) <<"Npoints"
@@ -299,21 +305,24 @@ void do_Mu_first(int Npoints_min, int Npoints_max, double Mu_min, double Mu_max,
 	      of.close();
 	    } else log << "Scan file \"" << of_name.str() << "\" exists: skipping thermodynamics" << endl;
 	  
-	  if(Agauss < 1)
+	  if(Agauss < 1 || theDensity1.getNumberAtoms() < 3.5) // second test is in case we converged to a liquid
 	    {
 	      // Do Gaussian: note that the minimum is independent of the chemical potential
 	      // so we temporarily set it to zero to get the helmholtz part of the free energy
-	      species1.setChemPotential(Mu); //1.0);
+	      species1.setChemPotential(0.0);
 	      findGaussian(theDensity1, -20, dft, log, Fgauss, Agauss);
 	      Dgauss = theDensity1.getNumberAtoms()/theDensity1.getVolume();
 	    }
+	  if(Agauss < 1) {Gauss_Failed = true; continue;}
 	  // set correct chemical potential
 	  species1.setChemPotential(Mu);
 
 	  double F = 0;
 	  double Cvac = 0;
 	  
-	  if(findMinimum(theDensity1, dft, log, F, Cvac))
+	  if(GaussianOnly) {F = Fgauss - Mu*Dgauss;  Cvac = prefac;}
+	  
+	  if(GaussianOnly || findMinimum(theDensity1, dft, log, F, Cvac))
 	    {
 	      ofstream of(of_name.str().c_str(), ios::app);      		  
 	      of << setw(15) << Npoints
@@ -460,7 +469,7 @@ bool doUniform(SolidFCC& theDensity1, DFT& dft, Log& log, double &Fret, double &
   return true;
 }
 
-double gaussianEval(double alf, double bmu, SolidFCC& theDensity, DFT& dft, double &prefac, Log&log)
+double gaussianEval(double alf, double bmu, SolidFCC& theDensity, DFT& dft, double &prefac, double &dprefac, Log&log)
 {
   double f; 
   bool bSuccess = false;
@@ -471,7 +480,8 @@ double gaussianEval(double alf, double bmu, SolidFCC& theDensity, DFT& dft, doub
 	f = dft.calculateFreeEnergyAndDerivatives(false);
 	bSuccess = true;
       } catch (...) {
-	prefac *= 0.999999;
+	prefac -= dprefac;
+	dprefac *= 2;
 	log << "\t lowering prefac to " << prefac << endl;
       }
     }
@@ -497,13 +507,16 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
   double prefac_old = 0;
   bool isDecending = false;
   bool firstIteration = true;
-  for(double alf = 30; alf < 10000; alf += 10)
+  double dprefac = 1e-8;
+
+  prefac = 1.0;
+  for(double alf = 10; alf < 10000 && prefac > prefac_limit; alf += 1)
   //    for(double alf = 230; alf < 2231; alf += 1000)
     {
       //    if(alf > 1001) exit(0);
 
 
-      f = gaussianEval(alf, bmu, theDensity1, dft, prefac,log);
+      f = gaussianEval(alf, bmu, theDensity1, dft, prefac,dprefac, log);
       log << "alf = " << alf << " " << f <<  " N = " << theDensity1.getNumberAtoms() << endl;
       stringstream title;
       title << "Gaussian: alf = " << alf << " f = " << f;
@@ -540,15 +553,15 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
       double x1 = alf_old;
       double x2 = alf_old+C*(alf-alf_old);
 
-      double f1 = gaussianEval(x1, bmu, theDensity1, dft, prefac,log);
-      double f2 = gaussianEval(x2, bmu, theDensity1, dft, prefac,log);
+      double f1 = gaussianEval(x1, bmu, theDensity1, dft, prefac,dprefac,log);
+      double f2 = gaussianEval(x2, bmu, theDensity1, dft, prefac,dprefac, log);
 
       while(fabs(x3-x0) > 1e-3)
 	{
 	  if(f2 < f1) { x0 = x1; x1 = x2; x2 = R*x1+C*x3;
-	    f1 = f2; f2 = gaussianEval(x2, bmu, theDensity1, dft, prefac,log);}
+	    f1 = f2; f2 = gaussianEval(x2, bmu, theDensity1, dft, prefac,dprefac, log);}
 	  else { x3 = x2; x2 = x1; x1 = R*x2+C*x0;
-	    f2 = f1; f1 = gaussianEval(x1, bmu, theDensity1, dft, prefac,log);}
+	    f2 = f1; f1 = gaussianEval(x1, bmu, theDensity1, dft, prefac,dprefac, log);}
 
 	  log << "alf = " << x2 << " " << f2 << endl;
 	  stringstream title;

@@ -32,9 +32,9 @@ int main()
   double kT = 0.5;
   double density = 0.15;
 
-double rcut1 = 3.0;
+  double rcut1 = 3.0;
 
-JZG eos(rcut1);
+  JZG eos(rcut1);
   //WRDF_Colloid eos;
   eos.findCriticalPoint(density,kT);
   cout << "critical density = " << density << " kT = " << kT << endl;
@@ -51,18 +51,18 @@ JZG eos(rcut1);
   double xs2 = 0.01;
   
   /*
-  double x1 = 0.5;
-  double x2 = 0.001;
+    double x1 = 0.5;
+    double x2 = 0.001;
 
-  double xs1 = 0.3;
-  double xs2 = 0.01;
+    double xs1 = 0.3;
+    double xs2 = 0.01;
   */
   /*
-  double x1 = density*4.0;
-  double x2 = density/100.0;
+    double x1 = density*4.0;
+    double x2 = density/100.0;
 
-  double xs1 = (x1+density)/2;
-  double xs2 = 10*x2;
+    double xs1 = (x1+density)/2;
+    double xs2 = 10*x2;
   */
 
 
@@ -79,23 +79,24 @@ JZG eos(rcut1);
   xs1 = (x1+density)/2;
   xs2 = (x2+density)/2;
 
-double sigma1 = 1.0;
-double eps1   = 1.0;
+  double sigma1 = 1.0;
+  double eps1   = 1.0;
 
 
   LJ potential1(sigma1, eps1, rcut1);
-  potential1.set_WCA_limit(0.625);
+  // potential1.set_WCA_limit(0.625);
   
   //  for(double kT1 = kT/3; kT1 < kT; kT1 += dT)
   for(double kT1 = kT-0.01; kT1 > kT/3; kT1 -= dT)
     {
-double hsd1 = potential1.getHSD(kT1);
-hsd1 = 0.967;
-potential1.set_WCA_limit(hsd1);
-  VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT1));  
+      double hsd1 = potential1.getHSD(kT1);
+      //hsd1 = 0.967;
+      //potential1.set_WCA_limit(hsd1);
+      VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT1));
+      cout << "kT = " << kT1 << " HSD = " << hsd1 << " beta vdw = " << potential1.getVDW_Parameter(kT1) << " vdw = " << kT1*potential1.getVDW_Parameter(kT1) << endl;
 
 
-if(eos.findCoexistence(x1,x2,kT1))
+      if(eos.findCoexistence(x1,x2,kT1))
 	{
 	  g.addPoint(max(x1,x2),kT1,0);
 	  g.addPoint(min(x1,x2),kT1,1);
@@ -111,12 +112,12 @@ if(eos.findCoexistence(x1,x2,kT1))
 	}
       double xw1 = 1e-10;
       double xw2 = 1;
-try{
-      vdw.findCoexistence(xw1,xw2);
-      g.addPoint(max(xw1,xw2),kT1,4);
-      g.addPoint(min(xw1,xw2),kT1,5);
-      g.redraw();
-} catch (...) {}
+      try{
+	vdw.findCoexistence(xw1,xw2);
+	g.addPoint(max(xw1,xw2),kT1,4);
+	g.addPoint(min(xw1,xw2),kT1,5);
+	g.redraw();
+      } catch (...) {}
     }
     
   g.redraw();

@@ -90,7 +90,6 @@ class SolidFCC : public Density
       for(int j=0;j<3;j++)
 	atoms[i][j] += displacement;
 
-    
     for(int i=0;i<Nx_;i++)
       for(int j=0;j<Ny_;j++)
 	for(int k=0;k<Nz_; k++)
@@ -107,7 +106,7 @@ class SolidFCC : public Density
 		  for(int l=0;l<4;l++)	     
 		    {
 		      double dx = fabs(x-atoms[l][0]-icell*a_latt); if(dx > L_[0]/2) dx -= L_[0];
-		      double dy = fabs(y-atoms[l][1]-jcell*a_latt); if(dy > L_[1]/2) dy -= L_[1];
+		      double dy = fabs(y-atoms[l][1]-jcell*a_latt);  if(dy > L_[1]/2) dy -= L_[1];
 		      double dz = fabs(z-atoms[l][2]-kcell*a_latt); if(dz > L_[2]/2) dz -= L_[2];
 
 		      double r2 = dx*dx+dy*dy+dz*dz;
@@ -116,9 +115,7 @@ class SolidFCC : public Density
 	    //	    if(dsum < dmin) dsum = dmin;
 	    set_Density_Elem(i,j,k,dsum);	    
 	  }
-    //    string title("dummy");
-    //    string file("dummy.dat");
-    //    doDisplay(title,file,0);
+
   }
 
   virtual void initializeUniform(double density)
@@ -140,9 +137,10 @@ class SolidFCC : public Density
     // Write to a grace window
     if(grace_ == NULL) return;
 
-    grace_->deleteDataSet(seq);
-    grace_->deleteDataSet(seq+1);
+    grace_->deleteDataSet(0);
+    grace_->deleteDataSet(1);
 
+    
     int jx = 0;
     int jy = 0;
     int jz = 0;
@@ -167,10 +165,10 @@ class SolidFCC : public Density
 	while(iz < -Nz()/2) iz += Nz();
 	
         double x = getZ(iz);
-	grace_->addPoint(x,getDensity(jx,jy,i),seq);
-	grace_->addPoint(x,std::max(1e-20, fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV()),seq+1);
+	grace_->addPoint(x,getDensity(jx,jy,i),0);
+	grace_->addPoint(x,std::max(1e-20, fabs(species_->getDF().get(get_PBC_Pos(jx,jy,i)))/dV()),1);
       }
-
+    
     int iz = jz-Nz()/2;
     while(iz >= Nz()) iz -= Nz();
     while(iz < 0) iz += Nz();
@@ -224,7 +222,7 @@ class SolidFCC : public Density
   int sequence_;
 
   Species *species_;
-  
+
 #ifdef USE_MGL
   Display *display_ = NULL;
 #endif  

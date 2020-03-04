@@ -194,9 +194,19 @@ class DFT
   virtual double XVap_From_Mu(double mu, double high_density) const;
 
   /**
+   *   @brief  Determines xliq (largest value less than close packing) from beta P. Only implemented for single species and one interaction
+   */     
+  virtual double XLiq_from_P(double P) const;
+  
+  /**
    *   @brief  Only implemented for single species and one interaction
    */     
-  virtual void spinodal(double &xs1, double &xs2) const;  
+  virtual void spinodal(double &xs1, double &xs2) const;
+
+  /**
+   *   @brief  Only implemented for single species and one interaction
+   */     
+  virtual void liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const;  
 
  protected:
   
@@ -208,11 +218,43 @@ class DFT
    */  
   virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex);
 
+  /**
+   *   @brief  Returns ideal gas contribution to free energy
+   *  
+   *   @return Ideal part of free energy
+   */  
+  double get_f_id() const { return F_id_;}
+
+    /**
+   *   @brief  Returns external field contribution to free energy including chemical potential
+   *  
+   *   @return External field contribution to free energy (including chemical potential)
+   */  
+  double get_f_ext() const { return F_ext_;}
+
+    /**
+   *   @brief  Returns hard-sphere contribution to free energy
+   *  
+   *   @return Hard-sphere contribution to free energy
+   */  
+  double get_f_hs() const { return F_hs_;}
+
+  /**
+   *   @brief  Returns mean field contribution to free energy
+   *  
+   *   @return Mean-field contribution to free energy
+   */  
+  double get_f_mf() const { return F_mf_;}
+  
 
  protected:
   vector<Species*> allSpecies_; ///< array holding the species objects
   vector<Interaction_Base*> Interactions_; ///< array holding the interactions
   FMT *fmt_;
+  double F_id_  = 0.0; ///< Ideal part of free energy
+  double F_ext_ = 0.0; ///< External field contribution to free energy (including chemical potential)
+  double F_hs_  = 0.0; ///< Hard-sphere contribution to free energy
+  double F_mf_  = 0.0; ///< Mean-field contribution to free energy
 };
 
 

@@ -145,7 +145,7 @@ double DFT::XVap_From_Mu(double mu, double maxDensity) const
 // and here 
 //     double e = M_PI*x*d_*d_*d_/6;
 //    double e1 = 1-e;
-//    dbetaP/dx (1+e*(4+e*(4+e*(-4+e))))/(e1*e1*e1*e1) + a_*x;
+//    dbetaP/dx (1+e*(4+e*(4+e*(-4+e))))/(e1*e1*e1*e1) + 2*a_*x;
 // so we wish to solve
 // 1+4e+4e^2-4e^3+e4 + 2a_ x(1-4e+6e^2-4e^3+e^4)
 void DFT::spinodal(double &xs1, double &xs2) const
@@ -153,53 +153,28 @@ void DFT::spinodal(double &xs1, double &xs2) const
   if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
   if(Interactions_.size() != 1) throw std::runtime_error("DFT::spinodal only implemented for a single attractive interaction");
 
+  //  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
+  //  int nroots = SolveP5(x, a[4]/a[5], a[3]/a[5], a[2]/a[5], a[1]/a[5], a[0]/a[5]);
 
-  double d = allSpecies_[0]->getHSD();
-  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
-  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
-  double x[5];
-  int nroots = SolveP5(x, a[4]/a[5], a[3]/a[5], a[2]/a[5], a[1]/a[5], a[0]/a[5]);
 
   xs1 = xs2 = -1;
+  
+  double d = allSpecies_[0]->getHSD();
+  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
+  double roots[5];
+  int nroots = SolveP5(roots, (1-4*ae)/ae, (-4+6*ae)/ae, (4-4*ae)/ae, (4+ae)/ae, 1.0/ae);
+
   for(int i=0;i<nroots;i++)
-    if(x[i] > 0 && x[i] < 0.74) // i.e. < close packing limit
+    if(roots[i] > 0 && roots[i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
       {
-	if(xs2 < 0) xs2 = x[i];
+	if(xs2 < 0) xs2 = roots[i];
 	else {
-	  if(xs1 < 0) xs1 = min(x[i],xs2);
-	  else xs1 = min(xs1, x[i]);
-	  xs2 = max(xs2, x[i]);
+	  if(xs1 < 0) xs1 = min(roots[i],xs2);
+	  else xs1 = min(xs1, roots[i]);
+	  xs2 = max(xs2, roots[i]);
 	}
       }
-  /*  
-  vector<double> x(1);
 
-  // coefficients of P(x) = a0+a1 x+...
-  double d = allSpecies_[0]->getHSD();
-  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
-  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
-  double z[10];
-
-  gsl_poly_complex_workspace * w = gsl_poly_complex_workspace_alloc(6);
-  int ret = gsl_poly_complex_solve(a, 6, w, z);
-  gsl_poly_complex_workspace_free(w);
-
-  if(ret != GSL_SUCCESS) throw std::runtime_error("Determination of spinodal failed 1");
-
-  xs1 = xs2 = -1;
-
-  for(int i = 0; i < 5; i++)
-    {
-      double re = z[2*i];
-      double im = z[2*i+1];
-      cout << re << " " << im << endl;
-      if(re > 0 && fabs(im) < 1e-10)
-	{
-	  if(xs1 < 0 || (re < xs1)) {xs2 = xs1; xs1 = re;}
-	  else if(xs2 < 0 || re < xs2) xs2 = re;
-	}
-    }
-  */
   if(xs1 < 0 || xs2 < 0) throw std::runtime_error("Determination of spinodal failed 2");
 
   // convert from e to x
@@ -207,6 +182,71 @@ void DFT::spinodal(double &xs1, double &xs2) const
   xs2 *= 6/(M_PI*d*d*d);
   return;
 }
+
+// Solve  P = x1*(1+e+e*e-e*e*e)*pow(1.0-e,-3) + 0.5*a*x1*x1
+// or     (P*pi*d^3/6)(1.0-e)^3 = e*(1+e+e*e-e*e*e) + 0.5*ae*e*e*(1-e)^3
+double DFT::XLiq_from_P(double P) const
+{
+  if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
+  if(Interactions_.size() != 1) throw std::runtime_error("DFT::spinodal only implemented for a single attractive interaction");
+
+  double d = allSpecies_[0]->getHSD();
+  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
+
+  P *= M_PI*d*d*d/6;
+  
+  double roots[5];
+  int nroots = SolveP5(roots, -3+2/ae,(3*ae-2*P-2)/ae, (-ae+6*P-2)/ae, (-6*P-2)/ae, 2*P/ae);
+
+  double x = -1;
+  
+  for(int i=0;i<nroots;i++)
+    if(roots[i] > 0 && roots[i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
+      x = max(x, roots[i]);
+
+  if(x < 0) throw std::runtime_error("DFT::Xliq_From_P failed");
+
+  // convert from e to x
+  x *= 6/(M_PI*d*d*d);
+  return x;
+}
+
+void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
+{
+  xs1 = xs2 = x1 = x2 = -1;
+
+  spinodal(xs1,xs2);
+  if(xs1 < 0 || xs2 < 0) throw std::runtime_error("No liq-vap coexistence found");
+
+  x1 = xs1;  
+  vector<double> v1(1); v1[0] = x1;
+  double Mu1 = Mu(v1,0);
+
+  vector<double> v2(1);
+  v2[0] = XLiq_from_P(-Omega(v1));
+  double Mu2 = Mu(v2,0);
+
+  if(Mu2 > Mu1) throw std::runtime_error("DFT::liq_vap_coex failed at point 1");
+
+  while(Mu2 < Mu1){ v1[0] /= 2; Mu1 = Mu(v1,0);}
+
+  // the value is between v1[0] and v1[0]*2
+  double a = v1[0];
+  double b = 2*a;
+  while(fabs(b-a) > 1e-10 + 1e-6*fabs(a+b))
+    {
+      v1[0] = (a+b)/2;
+      v2[0] = XLiq_from_P(-Omega(v1));      
+      Mu1 = Mu(v1,0);
+      Mu2 = Mu(v2,0);
+      if(Mu1 < Mu2) a = v1[0];
+      else b = v1[0];
+    }
+  x1 = v1[0];
+  x2 = v2[0];
+}
+
+
 
 
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
@@ -229,7 +269,6 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
   Summation F;
-  double f = 0;
   // Ideal gas contribution  
   if(!onlyFex) 
     for(auto &species : allSpecies_)
@@ -250,35 +289,32 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	    species->addToForce(pos,log(d0)*dV);
 	  }
       }
-  cout << "Fid = " << F << endl;
+  F_id_ = F;
   // Hard-sphere contribution
   if(fmt_)
     {    
       try{
-	f = fmt_->calculateFreeEnergyAndDerivatives(allSpecies_);
-	F += f;
+	F_hs_ = fmt_->calculateFreeEnergyAndDerivatives(allSpecies_);
+	F += F_hs_;
       } catch( Eta_Too_Large_Exception &e) {
 	throw e;
       }
     }
-  cout << "Fhs = " << f << endl;  
   //< Mean field contribution to F and dF
   // Need the following only if the fmt object is not called
   if(!fmt_)
     for(auto &species : allSpecies_)
       species->doFFT();
 
-  f = 0;
+  F_mf_ = 0;
   for(auto &interaction: DFT::Interactions_)    
-    f += interaction->getInteractionEnergyAndForces();
-  F += f;
+    F_mf_ += interaction->getInteractionEnergyAndForces();
+  F += F_mf_;
 
-  cout << "Fmf = " << f << endl;
   // External field + chemical potential
-  f = 0;
+  F_ext_ = 0;
   for(auto &species : allSpecies_)
-    f += species->externalField(true); // bCalcForces = true: obsolete?
-  F += f;
-  cout << "Fxt = " << f << endl;  
+    F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
+  F += F_ext_;
   return F.sum();  
 }

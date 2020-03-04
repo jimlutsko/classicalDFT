@@ -54,9 +54,8 @@ void parseHeader(string &line, vector<double> &header)
     }
 }
 
-void processFile(string &s, vector<double> &header1, vector<double> &header2, double &Dsol, double &Osol, double &Cvac)
+void processFile(string &s, vector<double> &header1, vector<double> &header2, vector<double> &coex, double &Dsol, double &Osol, double &Cvac)
 {
-  cout << "File " << s << endl;
   string::size_type sz;
   ifstream in(s);
   string line;
@@ -64,6 +63,7 @@ void processFile(string &s, vector<double> &header1, vector<double> &header2, do
   // parse the first line to get the thermodynamic variables  
   getline(in,line); parseHeader(line, header1);
   getline(in,line); parseHeader(line, header2);
+  getline(in,line); parseHeader(line, coex);
   
   // skip the next line if there was a second header
   if(header2.size() != 0)
@@ -103,9 +103,10 @@ int main()
   string prefix("scan_mu_");
   string suffix(".dat");
 
-
   vector< vector<double> > thermo1;
   vector< vector<double> > thermo2;
+  vector<double> coex;
+  
   DIR *dirp = opendir(".");
   struct dirent *dp;  
   while ((dp = readdir(dirp)) != NULL)
@@ -118,26 +119,34 @@ int main()
 	{
 	  vector<double> header1;
 	  vector<double> header2;
-	  
-	  processFile(s, header1, header2, Dsol, Osol, Cvac);
 
-	  vector<double> v;
-	  v.push_back(header1[0]);
-	  v.push_back(header1[1]);
-	  v.push_back(header1[2]);
-	  v.push_back(Dsol);
-	  v.push_back(Osol);
-	  v.push_back(Cvac);
-	  thermo1.push_back(v);
+	  try {
+	    processFile(s, header1, header2, coex, Dsol, Osol, Cvac);
+
+	    if(header1[2] > 0.0) // negative density means nothing found
+	      {
+		vector<double> v;
+		v.push_back(header1[0]);
+		v.push_back(header1[1]);
+		v.push_back(header1[2]);
+		v.push_back(Dsol);
+		v.push_back(Osol);
+		v.push_back(Cvac);
+		thermo1.push_back(v);
+	      }
 	  
-	  if(header2.size() > 0)
-	    {
-	      vector<double> v2(v);
-	      v2.push_back(header2[0]);
-	      v2.push_back(header2[1]);
-	      v2.push_back(header2[2]);
-	      thermo2.push_back(v2);	      
-	    }
+	    if(header2.size() > 0 && header2[2] > 0.0)
+	      {
+		vector<double> v;
+		v.push_back(header2[0]);
+		v.push_back(header2[1]);
+		v.push_back(header2[2]);
+		v.push_back(Dsol);
+		v.push_back(Osol);
+		v.push_back(Cvac);
+		thermo2.push_back(v);	      
+	      }
+	  } catch (...) {; } // cout << "Could not find minimum in " << s << endl;}
 	      
 	}
     }
@@ -163,24 +172,61 @@ int main()
 	       << setw(nw) << "Osol = " << setw(nw) << thermo[i][4]
 	       << setw(nw) << "Cvac = " << setw(nw) << thermo[i][5]
 	       << endl;
+
+	  
 	  int sgn2 = (thermo[i][1] - thermo[i][4] > 0 ? 1 : -1);
 	  if(i == 0) sgn = sgn2;
 	  else if(sgn*sgn2 < 0 && p < 0) p = i-1;
 	}
-      if(p < 0) throw std::runtime_error("No coexistence found");
+      if(p < 0)
+	{
+	  cout  << "No coexistence found" << endl;
+	  continue;
+	}
       double x0 = p-(thermo[p][1]-thermo[p][4])/(thermo[p+1][1]-thermo[p+1][4]-thermo[p][1]+thermo[p][4]);
       p = x0;
 
+      nw = 14;
       cout << endl;
       cout << "Coexistence: " << endl;
-      cout << " Mu   = " << thermo[p][0]+(thermo[p+1][0]-thermo[p][0])*(x0-p) << endl
-	   << " Dliq = " << thermo[p][2]+(thermo[p+1][2]-thermo[p][2])*(x0-p) << endl
-	   << " Oliq = " << thermo[p][1]+(thermo[p+1][1]-thermo[p][1])*(x0-p) << endl
-	   << " Dsol = " << thermo[p][3]+(thermo[p+1][3]-thermo[p][3])*(x0-p) << endl
-	   << " Osol = " << thermo[p][4]+(thermo[p+1][4]-thermo[p][4])*(x0-p) << endl
-	   << " Cvac = " << thermo[p][5]+(thermo[p+1][5]-thermo[p][5])*(x0-p) << endl
+      cout << " kT "
+	   << setw(nw) << "      Mu      "	
+	   << setw(nw) << "     Dliq     "
+	   << setw(nw) << "     Oliq     "
+	   << setw(nw) << "       Dsol   "
+	   << setw(nw) << "     Osol     "
+	   << setw(nw) << "       Cvac   "
+	   << endl;
+      cout << coex[0]
+	   << setw(nw) << thermo[p][0]+(thermo[p+1][0]-thermo[p][0])*(x0-p)
+	   << setw(nw) << thermo[p][2]+(thermo[p+1][2]-thermo[p][2])*(x0-p)
+	   << setw(nw) << thermo[p][1]+(thermo[p+1][1]-thermo[p][1])*(x0-p)
+	   << setw(nw) << thermo[p][3]+(thermo[p+1][3]-thermo[p][3])*(x0-p)
+	   << setw(nw) << thermo[p][4]+(thermo[p+1][4]-thermo[p][4])*(x0-p)
+	   << setw(nw) << thermo[p][5]+(thermo[p+1][5]-thermo[p][5])*(x0-p)
 	   << endl;
     }
+
+  int nw = 16;
+  
+  cout << "Liquid-Vapor: " << endl;
+  cout << " kT "
+       << setw(nw) << "   x_vap_spinodal  "
+       << setw(nw) << " x_liq_spinodal "
+       << setw(nw) << " x_vap_coex     "
+       << setw(nw) << "   x_liq_coex     "
+       << setw(nw) << " beta Mu_coex   "
+       << setw(nw) << " beta P_coex    "
+       <<endl;
+
+  cout << coex[0]
+       << setw(nw) << coex[1]
+       << setw(nw) << coex[2]
+       << setw(nw) << coex[3]
+       << setw(nw) << coex[4]
+       << setw(nw) << coex[5]
+       << setw(nw) << coex[6]
+       <<endl;  
   
   
 }
