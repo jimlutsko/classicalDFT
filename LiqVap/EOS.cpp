@@ -37,17 +37,34 @@ int main()
 
   double rcut1 = 3.0;
 
-  JZG eos(rcut1);
+  //  JZG eos(rcut1);
   //WRDF_Colloid eos;
+  WRDF_LJ eos;
+
   eos.findCriticalPoint(density,kT);
   cout << "critical density = " << density << " kT = " << kT << endl;
 
   double sigma1 = 1.0;
   double eps1   = 1.0;
-  LJ potential1(sigma1, eps1, rcut1);
+  //  LJ potential1(sigma1, eps1, rcut1);
   // potential1.set_WCA_limit(0.625);
+  WHDF potential1(sigma1, eps1, 2.0);
 
 
+  while(1)
+    {
+      double kT, den;
+      cout << "Enter kT: "; cin >> kT;
+      cout << "Enter Density: "; cin >> den;
+
+      double hsd = potential1.getHSD(kT);
+      VDW1 vdw(hsd,potential1.getVDW_Parameter(kT));
+      
+      cout << "P = " << eos.Pressure(den,kT) << " vDW P = " << kT*vdw.pressure(den) << " hsd = " << hsd << endl << endl;
+    }
+
+
+  
   int Npoints = 2;
   double dx = 0.0125;
   
@@ -64,22 +81,6 @@ int main()
   double xs1 = 0.7;
   double xs2 = 0.01;
   
-  /*
-    double x1 = 0.5;
-    double x2 = 0.001;
-
-    double xs1 = 0.3;
-    double xs2 = 0.01;
-  */
-  /*
-    double x1 = density*4.0;
-    double x2 = density/100.0;
-
-    double xs1 = (x1+density)/2;
-    double xs2 = 10*x2;
-  */
-
-
   g.addPoint(density,kT,0);
   g.addPoint(density,kT,1);
 
@@ -98,7 +99,7 @@ int main()
   for(double kT1 = kT-0.01; kT1 > kT/3; kT1 -= dT)
     {
       double hsd1 = potential1.getHSD(kT1);
-
+      /*
       Density theDensity1(dx, L);      
       FMT_Species_Analytic species1(theDensity1,hsd1,1);
       Interaction_Interpolation_QF i1(species1,species1,potential1,kT,logger);
@@ -112,7 +113,7 @@ int main()
       DFT dft(&species1);
       dft.addHardCoreContribution(&fmt);  
       dft.addInteraction(&i1);  
-
+      */
 
 
 
