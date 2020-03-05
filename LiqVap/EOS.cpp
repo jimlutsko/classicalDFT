@@ -54,8 +54,8 @@ int main()
   while(1)
     {
       double kT, den;
-      cout << "Enter kT: "; cin >> kT;
-      cout << "Enter Density: "; cin >> den;
+      cout << "Enter kT, density: "; cin >> kT >> den;
+      if(den < 0) break;
 
       double hsd = potential1.getHSD(kT);
       VDW1 vdw(hsd,potential1.getVDW_Parameter(kT));
