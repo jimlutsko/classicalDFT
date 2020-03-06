@@ -206,7 +206,23 @@ class DFT
   /**
    *   @brief  Only implemented for single species and one interaction
    */     
-  virtual void liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const;  
+  virtual void liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const;
+
+  /**
+   *   @brief  Only implemented for single species and one interaction
+   */     
+  virtual void getCriticalPoint(Potential1& p, double &xc, double &Tc)
+  {
+    if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::getCriticalPoint only implemented for exactly 1 species and 1 interaction");
+    double T1 = Tc;
+    
+    do{
+      T1 = Tc;
+      double hsd = p.getHSD(Tc);
+      xc = 0.13044*(6.0/M_PI)*pow(hsd,-3.0);
+      Tc = -0.090082*2*p.getVDW_Parameter(Tc)*pow(hsd,-3.0)*Tc;
+    } while(fabs(T1-Tc) > 1e-8*(T1+Tc));
+  }
 
  protected:
   

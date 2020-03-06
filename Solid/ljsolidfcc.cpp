@@ -511,7 +511,6 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
 
   prefac = 1.0;
   for(double alf = 10; alf < 10000 && prefac > prefac_limit; alf += 1)
-  //    for(double alf = 230; alf < 2231; alf += 1000)
     {
       //    if(alf > 1001) exit(0);
 
@@ -541,6 +540,7 @@ bool findGaussian(SolidFCC& theDensity1, double bmu, DFT& dft, Log& log, double 
 
       firstIteration = false;
     }
+  
   if(isDecending & alf_old_2 > 0)  // Min is between alf_old_2 and alf
     {
       double R = 0.61803399;
