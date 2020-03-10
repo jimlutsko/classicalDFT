@@ -24,11 +24,18 @@ double DFT::Mu(const vector<double> &x, int species) const
 {
   double mu = log(x[species]);
 
+  //  cout << "Muid = " << mu << endl;
+  
   if(fmt_)
     mu += fmt_->BulkMuex(x, allSpecies_, species);
 
+  //  cout << "Mu hsd = " << fmt_->BulkMuex(x, allSpecies_, species) << endl;
+  
   for(auto &interaction: Interactions_)
     mu += interaction->Mu(x,species);
+
+  //  cout << "Mu interaction = " << Interactions_[0]->Mu(x,species);
+  
   return mu;
 }
 
@@ -50,11 +57,23 @@ double DFT::Fhelmholtz(const vector<double> &x) const
   for(auto &y: x)
     F += y*log(y)-y;
 
-  if(fmt_)
-    F += fmt_->BulkFex(x, allSpecies_);
+  //  cout << "DFT::Fhelmholtz Fid/(VkT) = " << F << endl;
 
+  double Fhs = 0.0;
+  if(fmt_)
+    Fhs += fmt_->BulkFex(x, allSpecies_);
+
+  F += Fhs;
+  
+  //  cout << "DFT::Fhelmholtz Fhs/(VkT) = " << Fhs << endl;  
+  
+  double Fmf = 0.0;
   for(auto &interaction: Interactions_)
-    F += interaction->Fhelmholtz(x);  
+    Fmf += interaction->Fhelmholtz(x);
+
+  F += Fmf;
+  //  cout << "DFT::Fhelmholtz Fmf/(VkT) = " << Fmf << endl;
+    
   return F;  
 }  
 
@@ -218,12 +237,14 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
   spinodal(xs1,xs2);
   if(xs1 < 0 || xs2 < 0) throw std::runtime_error("No liq-vap coexistence found");
 
+  if(xs1 > xs2) swap(xs1,xs2);
+  
   x1 = xs1;  
   vector<double> v1(1); v1[0] = x1;
   double Mu1 = Mu(v1,0);
 
   vector<double> v2(1);
-  v2[0] = XLiq_from_P(-Omega(v1));
+  v2[0] = max(XLiq_from_P(-Omega(v1)),xs2);
   double Mu2 = Mu(v2,0);
 
   if(Mu2 > Mu1) throw std::runtime_error("DFT::liq_vap_coex failed at point 1");
@@ -236,7 +257,7 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
   while(fabs(b-a) > 1e-10 + 1e-6*fabs(a+b))
     {
       v1[0] = (a+b)/2;
-      v2[0] = XLiq_from_P(-Omega(v1));      
+      v2[0] = max(XLiq_from_P(-Omega(v1)),xs2);      
       Mu1 = Mu(v1,0);
       Mu2 = Mu(v2,0);
       if(Mu1 < Mu2) a = v1[0];
@@ -316,5 +337,6 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   for(auto &species : allSpecies_)
     F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
   F += F_ext_;
+
   return F.sum();  
 }
