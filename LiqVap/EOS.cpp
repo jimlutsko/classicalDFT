@@ -16,6 +16,7 @@ using namespace std;
 
 #include "Potential1.h"
 #include "VDW1.h"
+#include "DFT.h"
 
 #include "EOS.h"
 #include "LJ.h"
@@ -29,15 +30,45 @@ using namespace std;
 
 int main()
 {
+  Log logger;
+
   double kT = 0.5;
   double density = 0.15;
 
-double rcut1 = 3.0;
+  double rcut1 = 3.0;
 
-JZG eos(rcut1);
+  //  JZG eos(rcut1);
   //WRDF_Colloid eos;
+  WRDF_LJ eos;
+
   eos.findCriticalPoint(density,kT);
   cout << "critical density = " << density << " kT = " << kT << endl;
+
+  double sigma1 = 1.0;
+  double eps1   = 1.0;
+  //  LJ potential1(sigma1, eps1, rcut1);
+  // potential1.set_WCA_limit(0.625);
+  WHDF potential1(sigma1, eps1, 2.0);
+
+
+  while(1)
+    {
+      double kT, den;
+      cout << "Enter kT, density: "; cin >> kT >> den;
+      if(den < 0) break;
+
+      double hsd = potential1.getHSD(kT);
+      VDW1 vdw(hsd,potential1.getVDW_Parameter(kT));
+      
+      cout << "P = " << eos.Pressure(den,kT) << " vDW P = " << kT*vdw.pressure(den) << " hsd = " << hsd << endl << endl;
+    }
+
+
+  
+  int Npoints = 2;
+  double dx = 0.0125;
+  
+  double L[] = {Npoints*dx, Npoints*dx, Npoints*dx};
 
   Grace g;
 
@@ -50,22 +81,6 @@ JZG eos(rcut1);
   double xs1 = 0.7;
   double xs2 = 0.01;
   
-  /*
-  double x1 = 0.5;
-  double x2 = 0.001;
-
-  double xs1 = 0.3;
-  double xs2 = 0.01;
-  */
-  /*
-  double x1 = density*4.0;
-  double x2 = density/100.0;
-
-  double xs1 = (x1+density)/2;
-  double xs2 = 10*x2;
-  */
-
-
   g.addPoint(density,kT,0);
   g.addPoint(density,kT,1);
 
@@ -79,23 +94,36 @@ JZG eos(rcut1);
   xs1 = (x1+density)/2;
   xs2 = (x2+density)/2;
 
-double sigma1 = 1.0;
-double eps1   = 1.0;
-
-
-  LJ potential1(sigma1, eps1, rcut1);
-  potential1.set_WCA_limit(0.625);
   
   //  for(double kT1 = kT/3; kT1 < kT; kT1 += dT)
   for(double kT1 = kT-0.01; kT1 > kT/3; kT1 -= dT)
     {
-double hsd1 = potential1.getHSD(kT1);
-hsd1 = 0.967;
-potential1.set_WCA_limit(hsd1);
-  VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT1));  
+      double hsd1 = potential1.getHSD(kT1);
+      /*
+      Density theDensity1(dx, L);      
+      FMT_Species_Analytic species1(theDensity1,hsd1,1);
+      Interaction_Interpolation_QF i1(species1,species1,potential1,kT,logger);
+      RSLT fmt;
+
+      i1.initialize();
+      cout << "VDW parameter (potential)   = " << potential1.getVDW_Parameter(kT) << endl;      
+      cout << "VDW parameter (interaction) = " << 0.5*i1.getVDWParameter() << endl;
+      cout << "Diff in vdw parameter       = " << potential1.getVDW_Parameter(kT) - 0.5*i1.getVDWParameter() << endl << endl;
+
+      DFT dft(&species1);
+      dft.addHardCoreContribution(&fmt);  
+      dft.addInteraction(&i1);  
+      */
 
 
-if(eos.findCoexistence(x1,x2,kT1))
+
+      //hsd1 = 0.967;
+      //potential1.set_WCA_limit(hsd1);
+      VDW1 vdw(hsd1,potential1.getVDW_Parameter(kT1));
+      cout << "kT = " << kT1 << " HSD = " << hsd1 << " beta vdw = " << potential1.getVDW_Parameter(kT1) << " vdw = " << kT1*potential1.getVDW_Parameter(kT1) << endl;
+
+
+      if(eos.findCoexistence(x1,x2,kT1))
 	{
 	  g.addPoint(max(x1,x2),kT1,0);
 	  g.addPoint(min(x1,x2),kT1,1);
@@ -111,12 +139,12 @@ if(eos.findCoexistence(x1,x2,kT1))
 	}
       double xw1 = 1e-10;
       double xw2 = 1;
-try{
-      vdw.findCoexistence(xw1,xw2);
-      g.addPoint(max(xw1,xw2),kT1,4);
-      g.addPoint(min(xw1,xw2),kT1,5);
-      g.redraw();
-} catch (...) {}
+      try{
+	vdw.findCoexistence(xw1,xw2);
+	g.addPoint(max(xw1,xw2),kT1,4);
+	g.addPoint(min(xw1,xw2),kT1,5);
+	g.redraw();
+      } catch (...) {}
     }
     
   g.redraw();
@@ -165,6 +193,7 @@ int print_state (size_t iter, gsl_multiroot_fsolver * s)
           gsl_vector_get (s->x, 1),
           gsl_vector_get (s->f, 0),
           gsl_vector_get (s->f, 1));
+  return 1;
 }
 
 // Solve for dP/dn = 0, d2P/dn2 = 0;

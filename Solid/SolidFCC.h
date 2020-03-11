@@ -105,9 +105,15 @@ class SolidFCC : public Density
 		for(int kcell=0;kcell < ncells; kcell++)
 		  for(int l=0;l<4;l++)	     
 		    {
+<<<<<<< HEAD
 		      double dx = fabs(x-atoms[l][0]-icell*a_latt); //if(dx > L_[0]/2) dx -= L_[0];
 		      double dy = fabs(y-atoms[l][1]-jcell*a_latt); // if(dy > L_[1]/2) dy -= L_[1];
 		      double dz = fabs(z-atoms[l][2]-kcell*a_latt); //if(dz > L_[2]/2) dz -= L_[2];
+=======
+		      double dx = fabs(x-atoms[l][0]-icell*a_latt); if(dx > L_[0]/2) dx -= L_[0];
+		      double dy = fabs(y-atoms[l][1]-jcell*a_latt);  if(dy > L_[1]/2) dy -= L_[1];
+		      double dz = fabs(z-atoms[l][2]-kcell*a_latt); if(dz > L_[2]/2) dz -= L_[2];
+>>>>>>> acd559d2fdf3ad48d8e538d3bb42984c3b387542
 
 		      double r2 = dx*dx+dy*dy+dz*dz;
 		      dsum += prefac*pow(alpha/M_PI,1.5)*exp(-alpha*r2);

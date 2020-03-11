@@ -194,9 +194,35 @@ class DFT
   virtual double XVap_From_Mu(double mu, double high_density) const;
 
   /**
+   *   @brief  Determines xliq (largest value less than close packing) from beta P. Only implemented for single species and one interaction
+   */     
+  virtual double XLiq_from_P(double P) const;
+  
+  /**
    *   @brief  Only implemented for single species and one interaction
    */     
-  virtual void spinodal(double &xs1, double &xs2) const;  
+  virtual void spinodal(double &xs1, double &xs2) const;
+
+  /**
+   *   @brief  Only implemented for single species and one interaction
+   */     
+  virtual void liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const;
+
+  /**
+   *   @brief  Only implemented for single species and one interaction
+   */     
+  virtual void getCriticalPoint(Potential1& p, double &xc, double &Tc)
+  {
+    if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::getCriticalPoint only implemented for exactly 1 species and 1 interaction");
+    double T1 = Tc;
+    
+    do{
+      T1 = Tc;
+      double hsd = p.getHSD(Tc);
+      xc = 0.13044*(6.0/M_PI)*pow(hsd,-3.0);
+      Tc = -0.090082*2*p.getVDW_Parameter(Tc)*pow(hsd,-3.0)*Tc;
+    } while(fabs(T1-Tc) > 1e-8*(T1+Tc));
+  }
 
  protected:
   
@@ -208,11 +234,43 @@ class DFT
    */  
   virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex);
 
+  /**
+   *   @brief  Returns ideal gas contribution to free energy
+   *  
+   *   @return Ideal part of free energy
+   */  
+  double get_f_id() const { return F_id_;}
+
+    /**
+   *   @brief  Returns external field contribution to free energy including chemical potential
+   *  
+   *   @return External field contribution to free energy (including chemical potential)
+   */  
+  double get_f_ext() const { return F_ext_;}
+
+    /**
+   *   @brief  Returns hard-sphere contribution to free energy
+   *  
+   *   @return Hard-sphere contribution to free energy
+   */  
+  double get_f_hs() const { return F_hs_;}
+
+  /**
+   *   @brief  Returns mean field contribution to free energy
+   *  
+   *   @return Mean-field contribution to free energy
+   */  
+  double get_f_mf() const { return F_mf_;}
+  
 
  protected:
   vector<Species*> allSpecies_; ///< array holding the species objects
   vector<Interaction_Base*> Interactions_; ///< array holding the interactions
   FMT *fmt_;
+  double F_id_  = 0.0; ///< Ideal part of free energy
+  double F_ext_ = 0.0; ///< External field contribution to free energy (including chemical potential)
+  double F_hs_  = 0.0; ///< Hard-sphere contribution to free energy
+  double F_mf_  = 0.0; ///< Mean-field contribution to free energy
 };
 
 

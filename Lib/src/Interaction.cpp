@@ -115,7 +115,7 @@ void Interaction_Base::generateWeights(Potential1 &v, Log& log)
   int Nz_lim = 1+int(Rc/dz);    
     
   // Add up the weights for each point.
-  long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+1))/2) + Nx_lim+1;
+  long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+2))/2) + Nx_lim+1;
   int chunk = 1000; 
   size_t steps_completed = 0;
   size_t total_steps = Nmax/chunk;
@@ -197,6 +197,8 @@ void Interaction_Base::generateWeights(Potential1 &v, Log& log)
 	    if(nz > nx) swap(nx,nz);
 	    if(nz > ny) swap(ny,nz);
 	    long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
+
+	    if(p > Nmax) throw std::runtime_error("counter out of range in Interaction_Base::generateWeights");
 	    double w = w2[p];
 	    // and get the point it contributes to
 	    long pos = s1_.getDensity().get_PBC_Pos(ix,iy,iz);
