@@ -82,6 +82,11 @@ void Minimizer::run(long maxSteps)
 	log_ << "maxSteps = " << maxSteps << " reached ... normal exit" << endl;
 	break;
       }
+    if(Ntotal/Volume < minDensity_)
+      {
+	log_ << "Density is " << Ntotal/Volume << " < minDensity_ = " << minDensity_ << " ... exiting" << endl;
+	break;
+      }
   } while(1);
 
 }

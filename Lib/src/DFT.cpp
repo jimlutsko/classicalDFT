@@ -46,6 +46,8 @@ double DFT::Omega(const vector<double> &x) const
     {
       omega -= x[i]*Mu(x,i);
     }
+
+  cout << "Mu adds " << x[0]*Mu(x,0) * lattice().getVolume() << endl;
   
   return omega;
 }
@@ -54,10 +56,12 @@ double DFT::Fhelmholtz(const vector<double> &x) const
 {
   double F = 0.0;
 
+  double V = lattice().getVolume();
+
   for(auto &y: x)
     F += y*log(y)-y;
 
-  //  cout << "DFT::Fhelmholtz Fid/(VkT) = " << F << endl;
+  cout << "DFT::Fhelmholtz Fid/(VkT) = " << V*F << endl;
 
   double Fhs = 0.0;
   if(fmt_)
@@ -65,14 +69,14 @@ double DFT::Fhelmholtz(const vector<double> &x) const
 
   F += Fhs;
   
-  //  cout << "DFT::Fhelmholtz Fhs/(VkT) = " << Fhs << endl;  
+  cout << "DFT::Fhelmholtz Fhs/(VkT) = " << V*Fhs << " hsd = " << allSpecies_[0]->getHSD() << endl;  
   
   double Fmf = 0.0;
   for(auto &interaction: Interactions_)
     Fmf += interaction->Fhelmholtz(x);
 
   F += Fmf;
-  //  cout << "DFT::Fhelmholtz Fmf/(VkT) = " << Fmf << endl;
+  cout << "DFT::Fhelmholtz Fmf/(VkT) = " << V*Fmf << endl;
     
   return F;  
 }  
@@ -310,6 +314,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	  }
       }
   F_id_ = F;
+  cout << "Fid = " << F_id_ << endl;
   // Hard-sphere contribution
   if(fmt_)
     {    
@@ -320,6 +325,8 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	throw e;
       }
     }
+  cout << "Fhs = " << F_hs_ << " hsd = " << allSpecies_[0]->getHSD() << endl;
+  
   //< Mean field contribution to F and dF
   // Need the following only if the fmt object is not called
   if(!fmt_)
@@ -331,11 +338,15 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
     F_mf_ += interaction->getInteractionEnergyAndForces();
   F += F_mf_;
 
+  cout << "Fmf = " << F_mf_ << endl;  
+
   // External field + chemical potential
   F_ext_ = 0;
   for(auto &species : allSpecies_)
     F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
   F += F_ext_;
+
+  cout << "Fext = " << F_ext_ << endl;  
 
   return F.sum();  
 }

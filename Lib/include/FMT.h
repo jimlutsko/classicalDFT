@@ -331,7 +331,6 @@ class WhiteBearI : public FMT
    double F = ((1.0/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*log(1-n3);
    F += n1*n2/(1-n3);
    F += (1.0/(36*M_PI))*n2*n2*n2/(n3*(1-n3)*(1-n3));
-		  
    return F;
  }
 
@@ -416,7 +415,17 @@ class RSLT : public FMT
     double F = ((1.0/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*log(1-n3);
     F += n1*n2/(1-n3);
     F += (1.0/(36*M_PI))*n2*n2*n2/(n3*(1-n3)*(1-n3));
+
+    cout << "n0 = " << n0 << " n0*M_PI = " << n0*M_PI << " n3 = " << n3 << " n2 = " << n2 << endl;
+    cout << "Phi0 = " << (-n0)*log(1-n3) << endl;
+    cout << "Phi1 = " <<  n1*n2/(1-n3) << endl;
+    cout << "Phi2 = " << ((1.0/(36*M_PI))*n2*n2*n2/(n3*(1-n3)*(1-n3))) + ((1.0/(36*M_PI))*(n2*n2*n2/(n3*n3)))*log(1-n3) << endl;
 		  
+    
+    return F;
+
+
+    
     return F;
   }
   
