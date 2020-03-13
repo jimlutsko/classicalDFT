@@ -50,7 +50,7 @@ class Minimizer
   virtual double getDF_DX();
   virtual double get_convergence_monitor() const { return dft_.get_convergence_monitor();}
 
-  double setMinDensity(double m) { minDensity_ = m;}
+  void setMinDensity(double m) { minDensity_ = m;}
   
  protected:
   DFT &dft_;

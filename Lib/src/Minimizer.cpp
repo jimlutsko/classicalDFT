@@ -298,9 +298,13 @@ void fireMinimizer2::initialize()
   vv_ = 1.0;
   
   steps_since_backtrack_ = 0;
+
+  log_ << "get forces ... " << endl;
   
   F_ = getDF_DX();
 
+  log_ << "get forces ... done" << endl;  
+  
   for(auto &v: v_)
     v.zeros();
 
