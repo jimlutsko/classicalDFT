@@ -24,18 +24,12 @@ double DFT::Mu(const vector<double> &x, int species) const
 {
   double mu = log(x[species]);
 
-  //  cout << "Muid = " << mu << endl;
-  
   if(fmt_)
     mu += fmt_->BulkMuex(x, allSpecies_, species);
 
-  //  cout << "Mu hsd = " << fmt_->BulkMuex(x, allSpecies_, species) << endl;
-  
   for(auto &interaction: Interactions_)
     mu += interaction->Mu(x,species);
 
-  //  cout << "Mu interaction = " << Interactions_[0]->Mu(x,species);
-  
   return mu;
 }
 
@@ -57,22 +51,17 @@ double DFT::Fhelmholtz(const vector<double> &x) const
   for(auto &y: x)
     F += y*log(y)-y;
 
-  //  cout << "DFT::Fhelmholtz Fid/(VkT) = " << F << endl;
-
   double Fhs = 0.0;
   if(fmt_)
     Fhs += fmt_->BulkFex(x, allSpecies_);
 
   F += Fhs;
-  
-  //  cout << "DFT::Fhelmholtz Fhs/(VkT) = " << Fhs << endl;  
-  
+
   double Fmf = 0.0;
   for(auto &interaction: Interactions_)
     Fmf += interaction->Fhelmholtz(x);
 
   F += Fmf;
-  //  cout << "DFT::Fhelmholtz Fmf/(VkT) = " << Fmf << endl;
     
   return F;  
 }  

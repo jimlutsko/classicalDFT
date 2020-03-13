@@ -479,6 +479,28 @@ double J_eta_helper(double R, double Sx, double Sy, double Sz, double c, double 
 
 double J_eta(double R, double Sx, double Sy, double Sz, int wx, int wy, int wz)
 {
+  
+  if(Sx < 0)
+  {
+    if(wx != -1) throw std::runtime_error("What is this x1?");
+    if(Sx != -1) throw std::runtime_error("What is this x2?");
+    else Sx = wx = 1;
+  }
+
+  if(Sy < 0)
+  {
+    if(wy != -1) throw std::runtime_error("What is this y1?");
+    if(Sy != -1) throw std::runtime_error("What is this y2?");
+    else Sy = wy = 1;
+  }
+
+  if(Sz < 0)
+  {
+    if(wz != -1) throw std::runtime_error("What is this z1?");
+    if(Sz != -1) throw std::runtime_error("What is this z2?");
+    else Sz = wz = 1;
+  }  
+  
   int va[2] = {0,wz};
   int vb[2] = {0,wy};
   int vc[2] = {0,wx};
@@ -547,6 +569,29 @@ double J_Vz_helper(double R, double Sx, double Sy, double Sz, double c, double b
 
 double J_Vz(double R, double Sx, double Sy, double Sz, int wx, int wy, int wz)
 {
+  int eps = 1;
+  if(Sx < 0)
+  {
+    if(wx != -1) throw std::runtime_error("What is this x1?");
+    if(Sx != -1) throw std::runtime_error("What is this x2?");
+    else Sx = wx = 1;
+  }
+
+  if(Sy < 0)
+  {
+    if(wy != -1) throw std::runtime_error("What is this y1?");
+    if(Sy != -1) throw std::runtime_error("What is this y2?");
+    else Sy = wy = 1;
+  }
+
+  if(Sz < 0)
+  {
+    if(wz != -1) throw std::runtime_error("What is this z1?");
+    if(Sz != -1) throw std::runtime_error("What is this z2?");
+    else {Sz = wz = 1; eps = -1;}
+  }  
+
+  
   int va[2] = {0,wz};
   int vb[2] = {0,wy};
   int vc[2] = {0,wx};
@@ -586,7 +631,7 @@ double J_Vz(double R, double Sx, double Sy, double Sz, int wx, int wy, int wz)
 	  j += sgn * j0;
 	}
   
-  return j;
+  return j*eps;
 }
 
 double J_s_helper(double R, double Sx, double Sy, double Sz, double c, double b, double a)
@@ -604,6 +649,28 @@ double J_s_helper(double R, double Sx, double Sy, double Sz, double c, double b,
 
 double J_s(double R, double Sx, double Sy, double Sz, int wx, int wy, int wz)
 {
+  if(Sx < 0)
+  {
+    if(wx != -1) throw std::runtime_error("What is this x1?");
+    if(Sx != -1) throw std::runtime_error("What is this x2?");
+    else Sx = wx = 1;
+  }
+
+  if(Sy < 0)
+  {
+    if(wy != -1) throw std::runtime_error("What is this y1?");
+    if(Sy != -1) throw std::runtime_error("What is this y2?");
+    else Sy = wy = 1;
+  }
+
+  if(Sz < 0)
+  {
+    if(wz != -1) throw std::runtime_error("What is this z1?");
+    if(Sz != -1) throw std::runtime_error("What is this z2?");
+    else Sz = wz = 1;
+  }  
+
+  
   int va[2] = {0,wz};
   int vb[2] = {0,wy};
   int vc[2] = {0,wx};
@@ -681,7 +748,7 @@ void FMT_Species_Analytic::generateWeights()
 	  counter++;
 	  if(counter%1000 == 0) {if(counter > 0) cout << '\r'; cout << "\t" << int(double(counter)*100.0/pmax) << "% finished: " << counter << " out of " << pmax; cout.flush();}
 
-	  double R2_min = (Sx-1)*(Sx-1)+(Sy-1)*(Sy-1)+(Sz-1)*(Sz-1);
+	  double R2_min = (Sx-(Sx == 0 ? 0 : 1))*(Sx-(Sx == 0 ? 0 : 1))+(Sy-(Sy == 0 ? 0 : 1))*(Sy-(Sy == 0 ? 0 : 1))+(Sz-(Sz == 0 ? 0 : 1))*(Sz-(Sz == 0 ? 0 : 1));
 	  double R2_max = (Sx+1)*(Sx+1)+(Sy+1)*(Sy+1)+(Sz+1)*(Sz+1);
 	  
 	  double w_eta = 0.0;
@@ -689,8 +756,8 @@ void FMT_Species_Analytic::generateWeights()
 	  double w_v[3] = {0.0,0.0,0.0};
 
 	  // The weight for point Sx,Sy,Sz has contributions from all adjoining cells
-	  // The furthest corner is Sx+1,Sy+1,Sz+1 and if this less than hsd*hsd, the volume weights are 1, and the surface weights are zero
-	  // else, the nearest corner is Sx-1,Sy-1,Sz-1 and if this is less than hsd*hsd, then the boundary is between these limits and we must compute
+	  // The furthest corner is Sx+1,Sy+1,Sz+1 and if this less than hsr*hsr, the volume weights are 1, and the surface weights are zero
+	  // else, the nearest corner is Sx-1,Sy-1,Sz-1 (unless Sx, Sy or Sz = 0) and if this is less than hsr*hsr, then the boundary is between these limits and we must compute
 	  // else, all hsd boundary is less than the nearest corner and all weights are zero.
 
 	  double R = hsr/dx;

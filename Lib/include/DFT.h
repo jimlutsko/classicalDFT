@@ -224,7 +224,7 @@ class DFT
     } while(fabs(T1-Tc) > 1e-8*(T1+Tc));
   }
 
- protected:
+  // protected:
   
   /**
    *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions. Here, this is just the ideal gas contribution.
