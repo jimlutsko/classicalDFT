@@ -48,7 +48,7 @@ class DFT
    *  
    *   @param s: the first species. It makes no sense to create a DFT object without at least one species.
    */  
- DFT(Species *s) : fmt_(NULL) {allSpecies_.push_back(s);}
+  DFT(Species *s = NULL) : fmt_(NULL) {if(s) allSpecies_.push_back(s);}
   /**
    *   @brief  Default  destructor for DFT
    *  
@@ -213,7 +213,7 @@ class DFT
    */     
   virtual void getCriticalPoint(Potential1& p, double &xc, double &Tc)
   {
-    if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::getCriticalPoint only implemented for exactly 1 species and 1 interaction");
+    //    if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::getCriticalPoint only implemented for exactly 1 species and 1 interaction");
     double T1 = Tc;
     
     do{

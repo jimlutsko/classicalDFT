@@ -22,15 +22,17 @@ using namespace std;
 
 double DFT::Mu(const vector<double> &x, int species) const
 {
-  double mu = log(x[species]);
+  Summation mu;
+
+  mu += log(x[species]);
 
   if(fmt_)
     mu += fmt_->BulkMuex(x, allSpecies_, species);
 
   for(auto &interaction: Interactions_)
     mu += interaction->Mu(x,species);
-
-  return mu;
+  
+  return mu.sum();
 }
 
 double DFT::Omega(const vector<double> &x) const
@@ -41,7 +43,8 @@ double DFT::Omega(const vector<double> &x) const
       omega -= x[i]*Mu(x,i);
     }
 
-  cout << "Mu adds " << x[0]*Mu(x,0) * lattice().getVolume() << endl;
+  cout << "-- Fmu = " << -x[0]*Mu(x,0)*lattice().getVolume() << endl;
+
   
   return omega;
 }
@@ -55,18 +58,25 @@ double DFT::Fhelmholtz(const vector<double> &x) const
   for(auto &y: x)
     F += y*log(y)-y;
 
+  cout << "-- Fid = " << F*V << endl;
+  
   double Fhs = 0.0;
   if(fmt_)
     Fhs += fmt_->BulkFex(x, allSpecies_);
 
   F += Fhs;
 
+
+  cout << "-- Fhs = " << Fhs*V << endl;
+
   double Fmf = 0.0;
   for(auto &interaction: Interactions_)
     Fmf += interaction->Fhelmholtz(x);
 
   F += Fmf;
-    
+
+  cout << "-- Fmf = " << Fmf*V << endl;  
+
   return F;  
 }  
 
@@ -239,6 +249,10 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
   v2[0] = max(XLiq_from_P(-Omega(v1)),xs2);
   double Mu2 = Mu(v2,0);
 
+  cout << "xs1 = " << xs1 << " xs2 = " << xs2 << endl;
+  cout << "Ps = " << -Omega(v1) << endl;
+  cout << "x1 = " << x1 << " x2 = " << v2[0] << endl;
+  cout << "Mu1 = " << Mu1 << " Mu2 = " << Mu2 << endl;
   if(Mu2 > Mu1) throw std::runtime_error("DFT::liq_vap_coex failed at point 1");
 
   while(Mu2 < Mu1){ v1[0] /= 2; Mu1 = Mu(v1,0);}
@@ -246,7 +260,7 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
   // the value is between v1[0] and v1[0]*2
   double a = v1[0];
   double b = 2*a;
-  while(fabs(b-a) > 1e-10 + 1e-6*fabs(a+b))
+  while(fabs(b-a) > 1e-12 + 1e-12*fabs(a+b))
     {
       v1[0] = (a+b)/2;
       v2[0] = max(XLiq_from_P(-Omega(v1)),xs2);      
@@ -303,7 +317,9 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	  }
       }
   F_id_ = F;
+
   cout << "Fid = " << F_id_ << endl;
+  
   // Hard-sphere contribution
   if(fmt_)
     {    
@@ -314,14 +330,15 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	throw e;
       }
     }
-  cout << "Fhs = " << F_hs_ << " hsd = " << allSpecies_[0]->getHSD() << endl;
+
+  cout << "Fhs = " << F_hs_ << endl;
   
   //< Mean field contribution to F and dF
   // Need the following only if the fmt object is not called
   if(!fmt_)
     for(auto &species : allSpecies_)
       species->doFFT();
-
+  
   F_mf_ = 0;
   for(auto &interaction: DFT::Interactions_)    
     F_mf_ += interaction->getInteractionEnergyAndForces();
@@ -335,7 +352,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
     F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
   F += F_ext_;
 
-  cout << "Fext = " << F_ext_ << endl;  
-
+  cout << "Fext = " << F_ext_ << endl;
+  
   return F.sum();  
 }

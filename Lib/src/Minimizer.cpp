@@ -19,20 +19,22 @@ void Minimizer::run(long maxSteps)
   initialize();
 
   
-  
-  log_ << "Initialized ... removing old images ... " << endl;
+  if(verbose_)
+    {
+      log_ << "Initialized ... removing old images ... " << endl;
 
-  log_ << "Initial free energy = " << F_ << endl;
-  log_ << setw(12) <<"step_counter"
-       << setw(20) << myColor::YELLOW << "F    "  << myColor::RESET
-       << setw(20) << "F/N    "
-       << setw(20) << "F/V    "
-       << setw(20) << myColor::RED << "f_abs_max    "  << myColor::RESET
-       << setw(20) << "N    "
-       << setw(20) << "Density    "
-       << setw(10) << myColor::RED << "Time(sec)"  << myColor::RESET
-       << setw(20) << "dF/dt "
-       << endl;
+      log_ << "Initial free energy = " << F_ << endl;
+      log_ << setw(12) <<"step_counter"
+	   << setw(20) << myColor::YELLOW << "F    "  << myColor::RESET
+	   << setw(20) << "F/N    "
+	   << setw(20) << "F/V    "
+	   << setw(20) << myColor::RED << "f_abs_max    "  << myColor::RESET
+	   << setw(20) << "N    "
+	   << setw(20) << "Density    "
+	   << setw(10) << myColor::RED << "Time(sec)"  << myColor::RESET
+	   << setw(20) << "dF/dt "
+	   << endl;
+    }
   
   int image_counter = 0;
 
@@ -53,38 +55,41 @@ void Minimizer::run(long maxSteps)
 
     f_abs_max_ = get_convergence_monitor();
 
-    log_.precision(12);    
-    log_ << setw(12) << step_counter_
-	 << setw(20) << myColor::YELLOW << F_  << myColor::RESET
-	 << setw(20) << F_/Ntotal
-	 << setw(20) << F_/Volume
-	 << setw(20) << myColor::RED << f_abs_max_  << myColor::RESET
-	 << setw(20) << Ntotal
-	 << setw(20) << Ntotal/Volume;
-    log_.precision(4);        
-    log_ << setw(10) << myColor::RED << elapsed_seconds.count() << myColor::RESET
-	 << setw(20) << vv_
-	 << endl;
+    if(verbose_)
+      {
+	log_.precision(12);    
+	log_ << setw(12) << step_counter_
+	     << setw(20) << myColor::YELLOW << F_  << myColor::RESET
+	     << setw(20) << F_/Ntotal
+	     << setw(20) << F_/Volume
+	     << setw(20) << myColor::RED << f_abs_max_  << myColor::RESET
+	     << setw(20) << Ntotal
+	     << setw(20) << Ntotal/Volume;
+	log_.precision(4);        
+	log_ << setw(10) << myColor::RED << elapsed_seconds.count() << myColor::RESET
+	     << setw(20) << vv_
+	     << endl;
 
     
-    if(std::isnan(f_abs_max_))
-	log_  << "INF detected" << endl; 
-
+	if(std::isnan(f_abs_max_))
+	  log_  << "INF detected" << endl; 
+      }
+    
     draw_after();
 
     if(f_abs_max_ < forceLimit_)
       {
-	log_ << "dF sufficiently small ... normal exit" << endl;
+	if(verbose_) log_ << "dF sufficiently small ... normal exit" << endl;
 	break;
       }
     if(maxSteps > 0 && step_counter_ == maxSteps)
       {
-	log_ << "maxSteps = " << maxSteps << " reached ... normal exit" << endl;
+	if(verbose_) log_ << "maxSteps = " << maxSteps << " reached ... normal exit" << endl;
 	break;
       }
     if(Ntotal/Volume < minDensity_)
       {
-	log_ << "Density is " << Ntotal/Volume << " < minDensity_ = " << minDensity_ << " ... exiting" << endl;
+	if(verbose_) log_ << "Density is " << Ntotal/Volume << " < minDensity_ = " << minDensity_ << " ... exiting" << endl;
 	break;
       }
   } while(1);
@@ -176,7 +181,7 @@ void fireMinimizer_Mu::verlet()
 	x_[Jspecies].set(y[Jspecies]);
 	v_[Jspecies].zeros(v_[Jspecies].size());
       }
-    log_ << "Backtrack .. " << endl;
+    if(verbose_) log_ << "Backtrack .. " << endl;
     throw e;
   }
 }
@@ -261,12 +266,12 @@ void fireMinimizer_Mu::draw_after() {}
 
 int fireMinimizer_Mu::draw_during()
 {
-  log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
+  if(verbose_) log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
   return 1;
 }
 
 
-fireMinimizer2::fireMinimizer2(DFT &dft, ostream &log) :  Minimizer(dft, log)
+fireMinimizer2::fireMinimizer2(DFT &dft, ostream &log, bool verbose) :  Minimizer(dft, log,verbose)
 {
   v_.resize(dft_.getNumberOfSpecies());
   for(auto &v: v_) v.resize(dft_.lattice().Ntot());
@@ -299,11 +304,7 @@ void fireMinimizer2::initialize()
   
   steps_since_backtrack_ = 0;
 
-  log_ << "get forces ... " << endl;
-  
   F_ = getDF_DX();
-
-  log_ << "get forces ... done" << endl;  
   
   for(auto &v: v_)
     v.zeros();
@@ -369,7 +370,7 @@ double fireMinimizer2::step()
 	  dt_ *= f_dec_;
 	alpha_ = alpha_start_;
       }
-    log_ << "Uphill motion stopped" << endl;
+    if(verbose_) log_ << "Uphill motion stopped" << endl;
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
 	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
@@ -449,7 +450,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
     F_ = getDF_DX(); // get new forces
     bSuccess = true;
   } catch (Eta_Too_Large_Exception &e) {
-    log_ << "Backtrack .. " << endl;    
+    if(verbose_) log_ << "Backtrack .. " << endl;    
     throw(e);
   }
 

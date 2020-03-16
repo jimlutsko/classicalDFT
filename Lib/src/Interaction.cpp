@@ -210,7 +210,6 @@ void Interaction_Base::generateWeights(Potential1 &v, Log& log)
   // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
   // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
   a_vdw_ /= (dx*dy*dz); 
-
   cout << std::defaultfloat << std::setprecision(6);
     
   cout << myColor::GREEN;

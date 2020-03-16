@@ -13,7 +13,7 @@ using namespace std;
 class Minimizer
 {
  public:
- Minimizer(DFT &dft, ostream& log) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false), log_(log)
+  Minimizer(DFT &dft, ostream& log, bool verbose = true) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false), log_(log), verbose_(verbose)
   {
     x_.resize(dft.getNumberOfSpecies());
 
@@ -69,6 +69,8 @@ class Minimizer
   double vv_ = 0;
 
   double minDensity_ = -1;
+
+  bool verbose_ = true;
 };
 
 /**
@@ -277,7 +279,7 @@ class fireMinimizer_Mu : public Minimizer
 class fireMinimizer2 : public Minimizer 
 {
  public:
-  fireMinimizer2(DFT &dft, ostream &log);
+  fireMinimizer2(DFT &dft, ostream &log, bool verbose);
 
   virtual void   initialize();
   virtual double step();

@@ -9,7 +9,7 @@
 class Species
 {
  public:
-  Species(Density &density, double mu = 0, int seq = -1) : density_(density), dF_(density.Ntot()), mu_(mu), fixedMass_(-1) { if(seq >=0) seq_num_ = seq; else seq_num_ = SequenceNumber_++;}
+  Species(Density &density, double mu = 0, int seq = -1) : density_(density), dF_(density.Ntot()), mu_(mu), fixedMass_(-1) { if(seq >=0) {seq_num_ = seq; SequenceNumber_ = seq+1;} else seq_num_ = SequenceNumber_++;}
   ~Species(){}
 
   int getSequenceNumber() const { return seq_num_;}
