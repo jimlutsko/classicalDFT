@@ -14,6 +14,8 @@ using namespace std;
 
 #include "poly34.h"
 
+#include "Poly.h"
+
 #ifdef USE_OMP
 #include <omp.h>
 #endif
@@ -43,9 +45,6 @@ double DFT::Omega(const vector<double> &x) const
       omega -= x[i]*Mu(x,i);
     }
 
-  cout << "-- Fmu = " << -x[0]*Mu(x,0)*lattice().getVolume() << endl;
-
-  
   return omega;
 }
 
@@ -58,8 +57,6 @@ double DFT::Fhelmholtz(const vector<double> &x) const
   for(auto &y: x)
     F += y*log(y)-y;
 
-  cout << "-- Fid = " << F*V << endl;
-  
   double Fhs = 0.0;
   if(fmt_)
     Fhs += fmt_->BulkFex(x, allSpecies_);
@@ -67,15 +64,11 @@ double DFT::Fhelmholtz(const vector<double> &x) const
   F += Fhs;
 
 
-  cout << "-- Fhs = " << Fhs*V << endl;
-
   double Fmf = 0.0;
   for(auto &interaction: Interactions_)
     Fmf += interaction->Fhelmholtz(x);
 
   F += Fmf;
-
-  cout << "-- Fmf = " << Fmf*V << endl;  
 
   return F;  
 }  
@@ -116,7 +109,7 @@ double DFT::XLiq_From_Mu(double mu, double high_density) const
       	if(fc > mu) { fb = fc; bx = cx;}
 	else {fa = fc; ax = cx;}
     }
-  } while(fabs(fa-fb) > 1e-8 + 1e-6*fabs(fa+fb));
+  } while(fabs(fa-fb) > 1e-12 + 1e-6*fabs(fa+fb));
   return cx;
 }
 
@@ -182,19 +175,25 @@ void DFT::spinodal(double &xs1, double &xs2) const
   
   double d = allSpecies_[0]->getHSD();
   double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
-  double roots[5];
-  int nroots = SolveP5(roots, (1-4*ae)/ae, (-4+6*ae)/ae, (4-4*ae)/ae, (4+ae)/ae, 1.0/ae);
+
+  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
+  double roots[10];
+  gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(6);
+  gsl_poly_complex_solve(a, 6, w, roots);
+  gsl_poly_complex_workspace_free (w);
+  int nroots = 5;
 
   for(int i=0;i<nroots;i++)
-    if(roots[i] > 0 && roots[i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
-      {
-	if(xs2 < 0) xs2 = roots[i];
-	else {
-	  if(xs1 < 0) xs1 = min(roots[i],xs2);
-	  else xs1 = min(xs1, roots[i]);
-	  xs2 = max(xs2, roots[i]);
+    if(fabs(gsl_poly_eval(a,6,roots[2*i])) < 1e-12) // only check real roots
+      if(roots[2*i] > 0 && roots[2*i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
+	{
+	  if(xs2 < 0) xs2 = roots[2*i];
+	  else {
+	    if(xs1 < 0) xs1 = min(roots[2*i],xs2);
+	    else xs1 = min(xs1, roots[2*i]);
+	    xs2 = max(xs2, roots[2*i]);
+	  }
 	}
-      }
 
   if(xs1 < 0 || xs2 < 0) throw std::runtime_error("Determination of spinodal failed 2");
 
@@ -249,10 +248,6 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
   v2[0] = max(XLiq_from_P(-Omega(v1)),xs2);
   double Mu2 = Mu(v2,0);
 
-  cout << "xs1 = " << xs1 << " xs2 = " << xs2 << endl;
-  cout << "Ps = " << -Omega(v1) << endl;
-  cout << "x1 = " << x1 << " x2 = " << v2[0] << endl;
-  cout << "Mu1 = " << Mu1 << " Mu2 = " << Mu2 << endl;
   if(Mu2 > Mu1) throw std::runtime_error("DFT::liq_vap_coex failed at point 1");
 
   while(Mu2 < Mu1){ v1[0] /= 2; Mu1 = Mu(v1,0);}
@@ -318,8 +313,6 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
       }
   F_id_ = F;
 
-  cout << "Fid = " << F_id_ << endl;
-  
   // Hard-sphere contribution
   if(fmt_)
     {    
@@ -330,9 +323,6 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	throw e;
       }
     }
-
-  cout << "Fhs = " << F_hs_ << endl;
-  
   //< Mean field contribution to F and dF
   // Need the following only if the fmt object is not called
   if(!fmt_)
@@ -344,15 +334,11 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
     F_mf_ += interaction->getInteractionEnergyAndForces();
   F += F_mf_;
 
-  cout << "Fmf = " << F_mf_ << endl;  
-
   // External field + chemical potential
   F_ext_ = 0;
   for(auto &species : allSpecies_)
     F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
   F += F_ext_;
 
-  cout << "Fext = " << F_ext_ << endl;
-  
   return F.sum();  
 }
