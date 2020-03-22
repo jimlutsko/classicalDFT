@@ -160,9 +160,9 @@ double DFT::XVap_From_Mu(double mu, double maxDensity) const
 // and here 
 //     double e = M_PI*x*d_*d_*d_/6;
 //    double e1 = 1-e;
-//    dbetaP/dx (1+e*(4+e*(4+e*(-4+e))))/(e1*e1*e1*e1) + 2*a_*x;
+//    dbetaP/dx (1+e*(4+e*(4+e*(-4+e))))/(e1*e1*e1*e1) + a_*x + 6*b_*x*x;
 // so we wish to solve
-// 1+4e+4e^2-4e^3+e4 + 2a_ x(1-4e+6e^2-4e^3+e^4)
+// 1+4e+4e^2-4e^3+e4 + a_ x(1-4e+6e^2-4e^3+e^4)+ 6*b_ x^2 (1-4e+6e^2-4e^3+e^4)
 void DFT::spinodal(double &xs1, double &xs2) const
 {
   if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
@@ -174,17 +174,28 @@ void DFT::spinodal(double &xs1, double &xs2) const
   xs1 = xs2 = -1;
   
   double d = allSpecies_[0]->getHSD();
-  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
+  double fac = 6/(M_PI*d*d*d);
+  double ae = Interactions_[0]->getVDWParameter()*fac/Interactions_[0]->a_;
 
-  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
-  double roots[10];
-  gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(6);
-  gsl_poly_complex_solve(a, 6, w, roots);
-  gsl_poly_complex_workspace_free (w);
-  int nroots = 5;
+  double be = Interactions_[0]->b_*ae*ae;
+  ae *= Interactions_[0]->a_;
 
-  for(int i=0;i<nroots;i++)
-    if(fabs(gsl_poly_eval(a,6,roots[2*i])) < 1e-12) // only check real roots
+  vector<double> a;
+  a.push_back(1);
+  a.push_back( 4 + ae);
+  a.push_back( 4 - 4*ae +  6*be);
+  a.push_back(-4 + 6*ae - 24*be);
+  a.push_back( 1 - 4*ae + 36*be);
+  a.push_back(       ae - 24*be);
+  if(fabs(be) > 1e-12) a.push_back(6*be);
+    
+  double roots[2*(a.size()-1)];
+  gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(a.size());
+  gsl_poly_complex_solve(a.data(), a.size(), w, roots);
+  gsl_poly_complex_workspace_free(w);
+
+  for(int i=0;i<a.size()-1;i++)
+    if(fabs(gsl_poly_eval(a.data(),a.size(),roots[2*i])) < 1e-8) // only check real roots
       if(roots[2*i] > 0 && roots[2*i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
 	{
 	  if(xs2 < 0) xs2 = roots[2*i];
@@ -203,26 +214,62 @@ void DFT::spinodal(double &xs1, double &xs2) const
   return;
 }
 
-// Solve  P = x1*(1+e+e*e-e*e*e)*pow(1.0-e,-3) + 0.5*a*x1*x1
-// or     (P*pi*d^3/6)(1.0-e)^3 = e*(1+e+e*e-e*e*e) + 0.5*ae*e*e*(1-e)^3
+// Solve  P = x1*(1+e+e*e-e*e*e)*pow(1.0-e,-3) + 0.5*a*x1*x1 + 2b*x1*x1*x1
+// or     (P*pi*d^3/6)(1.0-e)^3 = e*(1+e+e*e-e*e*e) + 0.5*ae*e*e*(1-e)^3 + 2*be*e*e*e*(1-e)^3
 double DFT::XLiq_from_P(double P) const
 {
   if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
   if(Interactions_.size() != 1) throw std::runtime_error("DFT::spinodal only implemented for a single attractive interaction");
 
   double d = allSpecies_[0]->getHSD();
-  double ae = Interactions_[0]->getVDWParameter()*6/(M_PI*d*d*d);
-
-  P *= M_PI*d*d*d/6;
+  double fac = 6/(M_PI*d*d*d);
+  double ae = Interactions_[0]->getVDWParameter()*fac/Interactions_[0]->a_;
+  double be = Interactions_[0]->b_*ae*ae;
+  ae *= Interactions_[0]->a_;  
   
-  double roots[5];
-  int nroots = SolveP5(roots, -3+2/ae,(3*ae-2*P-2)/ae, (-ae+6*P-2)/ae, (-6*P-2)/ae, 2*P/ae);
+  P *= M_PI*d*d*d/6;
 
   double x = -1;
+  
+  /*  
+  double roots[5];
+  int nroots = SolveP5(roots, -3+2/ae,(3*ae-2*P-2)/ae, (-ae+6*P-2)/ae, (-6*P-2)/ae, 2*P/ae);
   
   for(int i=0;i<nroots;i++)
     if(roots[i] > 0 && roots[i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
       x = max(x, roots[i]);
+  */
+  /*
+  const int order = 6;
+  double a[] = { -P, 3*P+1, -3*P+1+0.5*ae, P+1-1.5*ae+2*be, -1+1.5*ae-6*be, -0.5*ae+6*be, -2*be};  
+  double roots[order*2];
+  gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(order+1);
+  gsl_poly_complex_solve(a, order+1, w, roots);
+  gsl_poly_complex_workspace_free (w);
+  int nroots = order;
+
+  for(int i=0;i<nroots;i++)
+    if(fabs(gsl_poly_eval(a,1+order,roots[2*i])) < 1e-12) // only check real roots
+  */
+
+  vector<double> a;
+  a.push_back(-P);
+  a.push_back(  3*P+1);
+  a.push_back( -3*P+1+0.5*ae);
+  a.push_back(  P+1-1.5*ae+2*be);
+  a.push_back(  -1+1.5*ae-6*be);
+  a.push_back(   -0.5*ae+6*be);
+  if(fabs(be) > 1e-12) a.push_back( -2*be);  
+    
+  double roots[2*(a.size()-1)];
+  gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(a.size());
+  gsl_poly_complex_solve(a.data(), a.size(), w, roots);
+  gsl_poly_complex_workspace_free(w);
+
+  for(int i=0;i<a.size()-1;i++)
+    if(fabs(gsl_poly_eval(a.data(),a.size(),roots[2*i])) < 1e-12) // only check real roots      
+      if(roots[2*i] > 0 && roots[2*i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
+        x = max(x, roots[2*i]);
 
   if(x < 0) throw std::runtime_error("DFT::Xliq_From_P failed");
 
@@ -269,6 +316,22 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
 }
 
 
+void DFT::setCriticalPoint(double xc, double kTc, double kT, Potential1 &potential)
+{
+
+  if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::setCriticalPoint only implemented for exactly 1 species and 1 interaction");
+
+  Interaction_Base &i1 = *(Interactions_[0]);
+  
+  double avdw = kT*i1.getVDWParameter();
+  double dc   = potential.getHSD(kTc);
+  double eta  = M_PI*xc*dc*dc*dc/6;
+
+  i1.a_ = (kTc/(xc*avdw))*2*(-1+eta*(1+eta*(10+eta*(6+eta*(-5+eta)))))*pow(1-eta,-5);
+  i1.b_ = kTc * kTc * pow(1.0/(xc*avdw),2)*(1+eta*(-5+eta*(-20+eta*(-4+eta*(5-eta)))))*pow(1-eta,-5)/6;
+
+  cout << "i1.a_ = " << i1.a_ << " i1.b_ = " << i1.b_ << endl;
+}
 
 
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)

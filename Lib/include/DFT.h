@@ -220,9 +220,11 @@ class DFT
       T1 = Tc;
       double hsd = p.getHSD(Tc);
       xc = 0.13044*(6.0/M_PI)*pow(hsd,-3.0);
-      Tc = -0.090082*2*p.getVDW_Parameter(Tc)*pow(hsd,-3.0)*Tc;
+      Tc = -0.090082*2*Interactions_[0]->a_*p.getVDW_Parameter(Tc)*pow(hsd,-3.0)*Tc;
     } while(fabs(T1-Tc) > 1e-8*(T1+Tc));
   }
+
+  void setCriticalPoint(double xc, double kTc, double kT, Potential1 &potential);
 
   // protected:
   

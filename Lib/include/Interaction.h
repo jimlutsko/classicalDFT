@@ -84,11 +84,14 @@ class Interaction_Base
     double mu = 0.0;
 
     if(s1_.getSequenceNumber() == species)
-      mu += 0.5*a_vdw_*x[s2_.getSequenceNumber()];
+      mu += 0.5*a_*a_vdw_*x[s2_.getSequenceNumber()];
 
     if(s2_.getSequenceNumber() == species)
-      mu += 0.5*a_vdw_*x[s1_.getSequenceNumber()];    
+      mu += 0.5*a_*a_vdw_*x[s1_.getSequenceNumber()];
 
+    mu += 3*b_*a_vdw_*a_vdw_*x[s1_.getSequenceNumber()]*x[s1_.getSequenceNumber()];
+
+    
     return mu;
   }
 
@@ -99,15 +102,20 @@ class Interaction_Base
    *
    *   @return the mean-field contribution to the free energy per unit volume divided by kT
    */  
-  double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];}  
+  double Fhelmholtz(const vector<double> &x) const {return 0.5*a_*a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()] + b_*a_vdw_*a_vdw_*pow(x[s1_.getSequenceNumber()],3);}  
 
   /**
    *   @brief  Returns the vDW parameter calculated from the weights
    *
    *   @return sum_{\mathbf R} w({\mathbf R})/kT
    */    
-  double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_vdw_;}
+  double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_*a_vdw_;}
+  double a_ = 1.0;
+  double b_ = 0.0;
+  
 
+
+  
  protected:
   
   /**
@@ -128,7 +136,8 @@ class Interaction_Base
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
    */          
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v) = 0;
-  
+
+
  protected:
   Species &s1_; ///< First of the interacting species
   Species &s2_; ///< Second of the interacting species
