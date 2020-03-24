@@ -225,7 +225,9 @@ class DFT
   }
 
   void setCriticalPoint(double xc, double kTc, double kT, Potential1 &potential);
+  void set_parameters_from_virial(Potential1 &potential1, double kT, int Npoints = 100);
 
+  
   // protected:
   
   /**

@@ -38,8 +38,8 @@ class Minimizer
     dft_.doDisplay(title, file);
     return 1;
   }
-  virtual int draw_during() = 0;  // Display something during the minimization
-  virtual void draw_after()  = 0;  // Display something after the minimization
+  virtual int draw_during() { return 1;};  // Display something during the minimization
+  virtual void draw_after() {};  // Display something after the minimization
 
   int getCalls() const { return calls_;}
   double getF() const { return F_;}

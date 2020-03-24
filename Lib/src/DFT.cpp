@@ -11,6 +11,7 @@ using namespace std;
 
 #include <gsl/gsl_multiroots.h>
 #include <gsl/gsl_poly.h>
+#include <gsl/gsl_sf_gamma.h>
 
 #include "poly34.h"
 
@@ -331,6 +332,54 @@ void DFT::setCriticalPoint(double xc, double kTc, double kT, Potential1 &potenti
   i1.b_ = kTc * kTc * pow(1.0/(xc*avdw),2)*(1+eta*(-5+eta*(-20+eta*(-4+eta*(5-eta)))))*pow(1-eta,-5)/6;
 
   cout << "i1.a_ = " << i1.a_ << " i1.b_ = " << i1.b_ << endl;
+}
+
+void DFT::set_parameters_from_virial(Potential1 &v, double kT, int Npoints)
+{
+  if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::set_parameters_from_virial only implemented for exactly 1 species and 1 interaction");
+
+  Interaction_Base &i1 = *(Interactions_[0]);
+
+  gsl_integration_glfixed_table *tr = gsl_integration_glfixed_table_alloc(Npoints);
+
+  double B2 = 0.0;
+  double B3 = 0.0;
+
+  for(int i = 0; i<Npoints; i++)
+    {
+      double r1, w1; 
+      gsl_integration_glfixed_point(1e-1, v.getRcut(), i, &r1, &w1, tr);
+      double f1 = w1*r1*r1*(exp(-v.V2(r1*r1)/kT) -1);
+      B2 += f1;
+      
+      for(int j = 0; j<Npoints; j++)
+	{
+	  double r2, w2; 
+	  gsl_integration_glfixed_point(1e-1, v.getRcut(), j, &r2, &w2, tr);
+	  double f2 = w2*r2*r2*(exp(-v.V2(r2*r2)/kT) -1);      
+
+	  for(double ix = 0; ix < Npoints; ix++)
+	    {
+	      double x,wx;
+	      gsl_integration_glfixed_point(-1.0, 1.0, ix, &x, &wx, tr);
+	      B3 += f1*f2*wx*(exp(-v.V2(r1*r1+r2*r2-2*r1*r2*x)/kT) -1);
+	    }
+	}
+    }
+  B2 *= -2*M_PI;
+  B3 *= -8*M_PI*M_PI/3;
+
+  double hsd = v.getHSD(kT);
+  double avdw = i1.getVDWParameter();
+
+  double hsd3 = hsd*hsd*hsd;
+  
+  i1.a_ = (2*B2-4*M_PI*hsd3/3)/avdw;
+  i1.b_ = (B3-(5.0/18)*M_PI*M_PI*hsd3*hsd3)/(2*avdw*avdw);
+
+  cout << "avdw = " << avdw << " " << " a = " << i1.a_ << " b = " << i1.b_ << endl;
+  
+  //  cout << "kT = " << kT << " B2 = " << B2 << " b2 = " << B2/(2*M_PI/3) << " B3 = " << B3 << endl;
 }
 
 
