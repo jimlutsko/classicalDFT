@@ -19,34 +19,15 @@ void Minimizer::run(long maxSteps)
   initialize();
 
   
-  if(verbose_)
-    {
-      log_ << "Initialized ... removing old images ... " << endl;
-
-      log_ << "Initial free energy = " << F_ << endl;
-      log_ << setw(12) <<"step_counter"
-	   << setw(20) << myColor::YELLOW << "F    "  << myColor::RESET
-	   << setw(20) << "F/N    "
-	   << setw(20) << "F/V    "
-	   << setw(20) << myColor::RED << "f_abs_max    "  << myColor::RESET
-	   << setw(20) << "N    "
-	   << setw(20) << "Density    "
-	   << setw(10) << myColor::RED << "Time(sec)"  << myColor::RESET
-	   << setw(20) << "dF/dt "
-	   << endl;
-    }
-  
   int image_counter = 0;
 
   do {
-    draw_before();
-
     std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
     
     F_ = step();
 
     std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-    std::chrono::duration<double> elapsed_seconds = now-start;
+    elapsed_seconds_ = now-start;
     
     step_counter_++;
 
@@ -55,41 +36,27 @@ void Minimizer::run(long maxSteps)
 
     f_abs_max_ = get_convergence_monitor();
 
-    if(verbose_)
-      {
-	log_.precision(12);    
-	log_ << setw(12) << step_counter_
-	     << setw(20) << myColor::YELLOW << F_  << myColor::RESET
-	     << setw(20) << F_/Ntotal
-	     << setw(20) << F_/Volume
-	     << setw(20) << myColor::RED << f_abs_max_  << myColor::RESET
-	     << setw(20) << Ntotal
-	     << setw(20) << Ntotal/Volume;
-	log_.precision(4);        
-	log_ << setw(10) << myColor::RED << elapsed_seconds.count() << myColor::RESET
-	     << setw(20) << vv_
-	     << endl;
-
-    
-	if(std::isnan(f_abs_max_))
-	  log_  << "INF detected" << endl; 
-      }
-    
     draw_after();
 
     if(f_abs_max_ < forceLimit_)
       {
-	if(verbose_) log_ << "dF sufficiently small ... normal exit" << endl;
+	stringstream s;	
+	s << "dF sufficiently small ... normal exit";
+	reportMessage(s.str());
 	break;
       }
     if(maxSteps > 0 && step_counter_ == maxSteps)
       {
-	if(verbose_) log_ << "maxSteps = " << maxSteps << " reached ... normal exit" << endl;
+	stringstream s;
+	s << "maxSteps = " << maxSteps << " reached ... normal exit";
+	reportMessage(s.str());
 	break;
       }
     if(Ntotal/Volume < minDensity_)
       {
-	if(verbose_) log_ << "Density is " << Ntotal/Volume << " < minDensity_ = " << minDensity_ << " ... exiting" << endl;
+	stringstream s;
+	s << "Density is " << Ntotal/Volume << " < minDensity_ = " << minDensity_ << " ... exiting" << endl;
+	reportMessage(s.str());
 	break;
       }
   } while(1);
@@ -181,7 +148,7 @@ void fireMinimizer_Mu::verlet()
 	x_[Jspecies].set(y[Jspecies]);
 	v_[Jspecies].zeros(v_[Jspecies].size());
       }
-    if(verbose_) log_ << "Backtrack .. " << endl;
+    reportMessage("Backtrack .. ");
     throw e;
   }
 }
@@ -262,16 +229,7 @@ double fireMinimizer_Mu::step()
   return F_;
 }
 
-void fireMinimizer_Mu::draw_after() {}
-
-int fireMinimizer_Mu::draw_during()
-{
-  if(verbose_) log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
-  return 1;
-}
-
-
-fireMinimizer2::fireMinimizer2(DFT &dft, ostream &log, bool verbose) :  Minimizer(dft, log,verbose)
+fireMinimizer2::fireMinimizer2(DFT &dft) :  Minimizer(dft)
 {
   v_.resize(dft_.getNumberOfSpecies());
   for(auto &v: v_) v.resize(dft_.lattice().Ntot());
@@ -314,8 +272,6 @@ void fireMinimizer2::initialize()
 double fireMinimizer2::step()
 {
 
-  //  if(steps_since_backtrack_ >= 1000) {log_ << "Increasing dt_max_" << endl; dt_max_ *= 10; steps_since_backtrack_ = 0;}
-  
   it_++;
   static double fold = F_;
 
@@ -370,7 +326,7 @@ double fireMinimizer2::step()
 	  dt_ *= f_dec_;
 	alpha_ = alpha_start_;
       }
-    if(verbose_) log_ << "Uphill motion stopped" << endl;
+    reportMessage("Uphill motion stopped");
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
 	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
@@ -450,7 +406,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
     F_ = getDF_DX(); // get new forces
     bSuccess = true;
   } catch (Eta_Too_Large_Exception &e) {
-    if(verbose_) log_ << "Backtrack .. " << endl;    
+    reportMessage("Backtrack .. ");
     throw(e);
   }
 

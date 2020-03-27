@@ -110,7 +110,7 @@ double DFT::XLiq_From_Mu(double mu, double high_density) const
       	if(fc > mu) { fb = fc; bx = cx;}
 	else {fa = fc; ax = cx;}
     }
-  } while(fabs(fa-fb) > 1e-12 + 1e-6*fabs(fa+fb));
+  } while(fabs(fa-fb) > 1e-12 + 1e-12*fabs(fa+fb));
   return cx;
 }
 

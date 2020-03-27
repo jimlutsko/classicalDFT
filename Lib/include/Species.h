@@ -71,10 +71,10 @@ class Species
       
 	for(long p=0;p<density_.Ntot();p++)
 	  mu_ += dF_.get(p)*density_.getDensity(p);
-	mu_ *= density_.dV()/fixedMass_;
+	mu_ /= fixedMass_;
 	  
 	for(long p=0;p<density_.Ntot();p++)
-	  dF_.set(p, dF_.get(p)-mu_);
+	  dF_.set(p, dF_.get(p)-mu_*density_.dV());
       }
   }
   

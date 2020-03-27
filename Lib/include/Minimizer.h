@@ -13,7 +13,7 @@ using namespace std;
 class Minimizer
 {
  public:
-  Minimizer(DFT &dft, ostream& log, bool verbose = true) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false), log_(log), verbose_(verbose)
+  Minimizer(DFT &dft) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false)
   {
     x_.resize(dft.getNumberOfSpecies());
 
@@ -28,19 +28,11 @@ class Minimizer
 
   virtual double step() = 0;
 
-  virtual int draw_before() // Display something before the next step
-  {
-    stringstream ts;
-    ts << "calls = " << calls_ << " F = " << F_ << " err = " << f_abs_max_;  //" N = " << density_.getNumberAtoms();
-
-    string title = ts.str();
-    string file("image_current.png");
-    dft_.doDisplay(title, file);
-    return 1;
-  }
-  virtual int draw_during() { return 1;};  // Display something during the minimization
   virtual void draw_after() {};  // Display something after the minimization
 
+  virtual void reportMessage(string message){}
+
+  
   int getCalls() const { return calls_;}
   double getF() const { return F_;}
 
@@ -64,13 +56,12 @@ class Minimizer
   double forceLimit_;
   double f_abs_max_; // max absolute value of dF_
   bool bFrozenBoundary_;
-  ostream &log_;
 
   double vv_ = 0;
 
   double minDensity_ = -1;
 
-  bool verbose_ = true;
+  std::chrono::duration<double> elapsed_seconds_;  
 };
 
 /**
@@ -81,8 +72,8 @@ class Minimizer
 class DDFT : public Minimizer
 {
  public:
- DDFT(DFT &dft, ostream &log,   bool showGraphics = true)
-   : Minimizer(dft, log), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
+ DDFT(DFT &dft, bool showGraphics = true)
+   : Minimizer(dft), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
   {
     double dx = dft_.lattice().getDX();
     dt_ = 10*0.1*dx*dx;
@@ -92,8 +83,8 @@ class DDFT : public Minimizer
   ~DDFT() {}
 
   virtual void initialize();
-  
-  virtual int draw_during(){ return 1;}  // Display something during the minimization
+
+  /*
   virtual void draw_after()  // Display something after the minimization
   {
     cout << "After DDFT step " << step_counter_ 
@@ -102,7 +93,7 @@ class DDFT : public Minimizer
 	 << " and N = " << dft_.getDensity(0).getNumberAtoms() 
 	 << endl;
   }
-
+  */
   void Display(double F, double dFmin, double dFmax, double N);
     
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
@@ -146,8 +137,8 @@ class DDFT : public Minimizer
 class DDFT_IF : public DDFT
 {
  public:
- DDFT_IF(DFT &dft, ostream &log,  bool showGraphics = true)
-   : DDFT(dft,  log, showGraphics) {}
+ DDFT_IF(DFT &dft, bool showGraphics = true)
+   : DDFT(dft) {}
 
   ~DDFT_IF() {}
 
@@ -177,8 +168,8 @@ class DDFT_IF : public DDFT
 class DDFT_IF_Open : public DDFT
 {
  public:
- DDFT_IF_Open(DFT &dft, double background, ostream &log,  bool showGraphics = true)
-   : DDFT(dft, log, showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
+ DDFT_IF_Open(DFT &dft, double background,  bool showGraphics = true)
+   : DDFT(dft), background_(background), sin_in_(NULL), sin_out_(NULL)
     {}
   ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
 
@@ -219,7 +210,7 @@ class DDFT_IF_Open : public DDFT
 class fireMinimizer_Mu : public Minimizer
 {
  public:
- fireMinimizer_Mu(DFT &dft, ostream &log) :  Minimizer(dft, log)
+ fireMinimizer_Mu(DFT &dft) :  Minimizer(dft)
   {
     v_.resize(dft_.getNumberOfSpecies());
     for(auto &v: v_) v.resize(dft_.lattice().Ntot());
@@ -241,8 +232,6 @@ class fireMinimizer_Mu : public Minimizer
 
   virtual double step();
 
-  virtual int  draw_during();
-  virtual void draw_after();
 
   void verlet();
 
@@ -279,7 +268,7 @@ class fireMinimizer_Mu : public Minimizer
 class fireMinimizer2 : public Minimizer 
 {
  public:
-  fireMinimizer2(DFT &dft, ostream &log, bool verbose);
+  fireMinimizer2(DFT &dft);
 
   virtual void   initialize();
   virtual double step();
@@ -288,9 +277,6 @@ class fireMinimizer2 : public Minimizer
 
   void onlyRelaxSpecies(int j) { onlyRelax_ = j;}  
   
-  virtual int  draw_during(){ log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;  return 1;}
-  //  virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
-
   void setTimeStep(double dt)    { dt_ = dt;}
   void setTimeStepMax(double dt) { dt_max_ = dt;}  
   void setAlphaStart(double a)   { alpha_start_ = a;}
@@ -336,111 +322,11 @@ class fireMinimizer2 : public Minimizer
 
 };
 
-class adamMinimizer : public Minimizer
-{
- public:
- adamMinimizer(DFT &dft, ostream &log) :  Minimizer(dft, log)
-    {
-      m_.resize(dft_.getNumberOfSpecies());
-      s_.resize(dft_.getNumberOfSpecies());      
-      for(auto &m: m_) m.resize(dft_.lattice().Ntot());
-      for(auto &s: s_) s.resize(dft_.lattice().Ntot());
-    }
-
-  virtual void   initialize()
-  {
-    Minimizer::initialize();
-    
-    F_ = getDF_DX();
-
-    beta1_t_ = beta1_;
-    beta2_t_ = beta2_;
-    
-    for(auto &m: m_)
-      m.zeros(m.size());
-    for(auto &s: s_)
-      s.zeros(s.size());    
-  }
-
-  void setTimeStep(double dt) { dt_ = dt_start_ = dt;}
-
-  virtual double step()
-  {
-    int numSpecies = dft_.getNumberOfSpecies();
-    
-    vector<DFT_Vec> x_rem(numSpecies);
-    vector<DFT_Vec> m_rem(numSpecies);
-    vector<DFT_Vec> s_rem(numSpecies);
-
-    for(int Jspecies =0; Jspecies < numSpecies; Jspecies++)
-      {
-	x_rem[Jspecies].set(x_[Jspecies]);
-	m_rem[Jspecies].set(m_[Jspecies]);
-	s_rem[Jspecies].set(s_[Jspecies]);
-      }
-
-    long Ntot = x_[0].size();
-
-    for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
-      for(long i = 0; i<Ntot; i++)
-	{
-	  double d = dft_.getDF(Jspecies).get(i);
-	  double mm = m_[Jspecies].get(i)*beta1_+(1-beta1_)*d;
-	  double ss = s_[Jspecies].get(i)*beta2_+(1-beta2_)*d*d;
-	  
-	  m_[Jspecies].set(i, mm);
-	  s_[Jspecies].set(i, ss);
-	}
-
-    try {
-      for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
-	for(long i = 0; i<Ntot; i++)
-	  {
-	    double mm = m_[Jspecies].get(i);
-	    double ss = s_[Jspecies].get(i);	    
-	    x_[Jspecies].set(i,x_[Jspecies].get(i) - dt_*(mm/(1-beta1_t_))/(small_eps_ + sqrt(ss/(1-beta2_t_))));
-	  }
-      F_ = getDF_DX();
-      dt_ = min(dt_*2, dt_start_);
-    } catch (Eta_Too_Large_Exception &e) {
-      dt_ /= 2;
-      log_ << "Backtrack .. dt_ is now " << dt_ << endl;
-    }
-    beta1_t_ *= beta1_;
-    beta2_t_ *= beta2_;
-    return F_;
-  }
-  virtual void draw_after() { cout << "dt_ = " << dt_ << endl;}
-  double getRMS_Force() const { return rms_force_;}
-
-int draw_during()
-{
-  log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
-  return 1;
-}
-  
- protected:
-  double beta1_ = 0.9;
-  double beta2_ = 0.99;
-
-  double beta1_t_ = 0.9;
-  double beta2_t_ = 0.99;
-  
-  double small_eps_ = 1e-8;
-  vector<DFT_Vec> m_;
-  vector<DFT_Vec> s_;
-
-  double dt_ = 1;
-  double dt_start_ = 1;
-  
-  double rms_force_ = 0.0; // for reporting
-};
-
 
 class picardMinimizer : public Minimizer
 {
  public:
- picardMinimizer(DFT &dft, ostream &log, double alpha) :  Minimizer(dft, log), alpha_(alpha) {}
+ picardMinimizer(DFT &dft,  double alpha) :  Minimizer(dft), alpha_(alpha) {}
 
   virtual void   initialize()
   {
@@ -481,7 +367,9 @@ class picardMinimizer : public Minimizer
 	bSuccess = true;
       } catch (Eta_Too_Large_Exception &e) {
 	alpha_ /= 2;
-	log_ << "Backtrack .. alpha_ is now " << alpha_ << endl;
+	stringstream s;
+	s << "Backtrack .. alpha_ is now " << alpha_;
+	reportMessage(s.str());
 	
 	for(int Jspecies = 0; Jspecies < numSpecies; Jspecies++)
 	  dft_.set_density(Jspecies, x_rem[Jspecies]);	
@@ -490,17 +378,8 @@ class picardMinimizer : public Minimizer
     return F_;
   }
 
-
-  
-  virtual void draw_after() { cout << "alpha_ = " << alpha_ << endl;}
   double getRMS_Force() const { return rms_force_;}
 
-  int draw_during()
-  {
-    log_ << "\t1D minimization F-mu*N = " << F_  << " N = " << dft_.getNumberAtoms(0) << endl;
-    return 1;
-  }
-  
  protected:
   double alpha_ = 0.1;
   double rms_force_ = 0.0; // for reporting

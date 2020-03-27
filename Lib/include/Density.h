@@ -102,8 +102,8 @@ class Density : public Lattice
     double dV1 = dV();
     Summation s;
     for(long i=0;i<Ntot(); i++)
-      s.add(Density_.cReal().get(i)*dV1);
-    return s;
+      s.add(Density_.cReal().get(i));
+    return s*dV1;
 
   }
 
