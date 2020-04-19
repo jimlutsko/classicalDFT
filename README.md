@@ -17,8 +17,7 @@ TBD
 
 ## Installation
 
-1. Switch to the branch MultiSpecies (command "git checkout MultiSpecies").
-2. Perform the following to setup and compile the library:
+1. Perform the following to setup and compile the library:
 
 >cd Lib
 
@@ -26,7 +25,7 @@ TBD
 
 >../dft_make.sh
 
-3. To build the model application do the following
+2. To build the model application do the following
 
 >cd ../Droplet
 
