@@ -1,8 +1,23 @@
 # Welcome to classicalDFT
 
-This is a suite of code for doing classical DFT calculations.
+This is a suite of code for doing classical DFT calculations. Documentation will eventually appear here.  
 
-# Installation
+The main branch of this repository is no longer supported: all functionality will eventually be restored in a new branch called "MultiSpecies".
+
+## Getting Started
+
+TBD
+
+### Prerequisites
+
+What things you need to install the software and how to install them
+
+```
+TBD
+```
+
+
+## Installation
 
 1. Switch to the branch MultiSpecies (command "git checkout MultiSpecies").
 2. Perform the following to setup and compile the library:
@@ -33,6 +48,20 @@ You can cd into TEST and run using ../Droplet input.dat.
    * Note that "dft_make.sh debug lib" causes both the app and the libraries to be built in debug mode. Similarly, "dft_make.sh lib" causes both to be built in release mode.
 
 4. The first few lines of CMakeLists.txt contain information that you will want to modify if this is used as a model to create another application.
+
+
+
+## Authors
+
+* **James F. Lutsko** - *Initial work* - [lutsko.com](http://lutsko.com)
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE.md](LICENSE.md) file for details
+
+## Acknowledgments
+
+* Development was funded by ESA
 
 
 
