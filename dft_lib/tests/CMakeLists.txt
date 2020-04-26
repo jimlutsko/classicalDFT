@@ -11,4 +11,3 @@ include_directories(${dft_core_include_dirs})
 add_executable(${PROJECT_NAME} ${ALL_SOURCES})
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} "classical_dft" "grace_np" "gtest" "pthread")
-

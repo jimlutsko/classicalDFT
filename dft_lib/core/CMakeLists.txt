@@ -1,13 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 
-
 project(classical_dft LANGUAGES CXX)
 include_directories(${DFT_LIB_INCLUDE_PATH})
 
 # Set up the source files required for the compilation to succeed
 set(ALL_SOURCES
     ${dft_lib_src_path}/graph/grace.cpp
-    ${dft_lib_src_path}/utils/example.cpp)
+    ${dft_lib_src_path}/exceptions/grace_exceptions.cpp)
 
 # Set up the dependencies and naming of the library
 set(BINARY ${PROJECT_NAME})
