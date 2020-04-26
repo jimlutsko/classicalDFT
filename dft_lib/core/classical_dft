@@ -1,5 +1,3 @@
-// Utils
-#include "dft_lib/utils/example.h"
-
 // Graphs
 #include "dft_lib/graph/grace.h"
+#include "dft_lib/exceptions/grace_exception.h"
