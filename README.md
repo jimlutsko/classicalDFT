@@ -1,52 +1,56 @@
-# Welcome to classicalDFT
+# classicalDFT
 
-This is a suite of code for doing classical DFT calculations. Documentation will eventually appear here.  
+## Welcome to classicalDFT
 
-The main branch of this repository is no longer supported: all functionality will eventually be restored in a new branch called "MultiSpecies".
+*classicalDFT* aims at making possible to do 
+[classical density functional theory](https://en.wikipedia.org/wiki/Density_functional_theory#Classical_Density_Functional_Theory) 
+(DFT) calculations in a smooth manner.
 
-## Getting Started
+**classicalDFT** is a repository which started as a suite of code for doing advanced calculations in various research 
+projects on the broad field of statistical physics. This suite of code has matured over the years and it successfully 
+served its purpose. The evolution of this repository into a standard library (*classicalDFT*) was motivated by the 
+apparent lack of a standard open-source repository for classical DFT calculations in a compiled and robust language, 
+as is the case of C++.
 
-TBD
+In the future, a mailing list will be advertised here for questions, discussions, and other topics which might be worth 
+channeling in a unnified way.
 
-### Prerequisites
+### Getting started
 
-What things you need to install the software and how to install them
+The standard rules for installing a C++ library from an external repository apply in this case too. However, such 
+standard steps which might be obvious for experienced developers could become overwhelming for developers or researchers 
+who just have some basic understanding of software development with CMake and C++. Considering the broad audience this 
+project might be subject to, we recommend the following documentation links for the different users:
 
-TBD
+* Beginners: [classicalDFT Primer]()
+* Experienced programmers: [How to install classicalDFT](Documentation/Installation/README.md)
 
+## Requirements
 
-## Installation
+**classicalDFT** is thought to keep requirements for building at minimum. However, there are some requirements which 
+need to be satisfied for the correct funcitoning of the library. Such dependencies are:
 
-1. Perform the following to setup and compile the library:
+* C++11/14-standard-compliant compiler, we recommend to check [GNU Compiler Collection](https://gcc.gnu.org/) 
+* [CMake](https://cmake.org/download/) (version >= 3.8)
+* [GNU Scientific Library](https://www.gnu.org/software/gsl/)
+* [FFTW3](http://www.fftw.org/) a library designed to compute discrete Fourier transforms
+* [Grace](http://plasma-gate.weizmann.ac.il/Grace/) plotting tool for the X Window System
 
->cd Lib
+If you notice any problems on your platform, please notify [classicaldft@classicaldftgroup.com](). Patches for fixing 
+them are more than welcome!
 
->../Config.sh
+## Features
 
->../dft_make.sh
+In this section we will list the main features implemented in **classicalDFT**, e.g. the different DFT energy models, 
+differentiation methods, etc.
 
-2. To build the model application do the following
+## Platforms
 
->cd ../Droplet
+**classicalDFT** has been used on a variety of platforms:
 
->../Config.sh
-
->../dft_make.sh'
-
-
-You can cd into TEST and run using ../Droplet input.dat.
-
-## Notes:
-1. The Config.sh command is only run the first time the application is created. It configures things for cmake.
-2. Rebuild using ../dft_make.sh. Note that this also takes three possible arguments in any order: "clean", "debug" and "lib". Their effects are as follows:
-   * "clean" causes a clean build (all objects are first deleted)
-   * "debug" performs a debug build
-   * "lib" causes the libraries to be rebuilt also.
-   * Note that "dft_make.sh debug lib" causes both the app and the libraries to be built in debug mode. Similarly, "dft_make.sh lib" causes both to be built in release mode.
-
-4. The first few lines of CMakeLists.txt contain information that you will want to modify if this is used as a model to create another application.
-
-
+- Linux
+- Mac OSX
+- Windows (by using [WSL](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux))
 
 ## Authors
 
@@ -54,7 +58,7 @@ You can cd into TEST and run using ../Droplet input.dat.
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the GNU General Public License v3.0 - see the [License.md](License.md) file for details
 
 ## Acknowledgments
 
