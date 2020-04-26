@@ -2,22 +2,33 @@
 
 ## Welcome to classicalDFT
 
-*classicalDFT* aims at making possible to do [classical density functional theory](https://en.wikipedia.org/wiki/Density_functional_theory#Classical_Density_Functional_Theory) (DFT) calculations in a smooth manner.
+*classicalDFT* aims at making possible to do 
+[classical density functional theory](https://en.wikipedia.org/wiki/Density_functional_theory#Classical_Density_Functional_Theory) 
+(DFT) calculations in a smooth manner.
 
-**classicalDFT** is a repository which started as a suite of code for doing advanced calculations in various research projects on the broad field of statistical physics. This suite of code has matured over the years and it successfully served its purpose for many years. The evolution of this repository into a standard library (*classicalDFT*) was motivated by the apparent lack of a standard open-source repository for classical DFT calculations in a compiled and robust language, as is the case fo C++.
+**classicalDFT** is a repository which started as a suite of code for doing advanced calculations in various research 
+projects on the broad field of statistical physics. This suite of code has matured over the years and it successfully 
+served its purpose. The evolution of this repository into a standard library (*classicalDFT*) was motivated by the 
+apparent lack of a standard open-source repository for classical DFT calculations in a compiled and robust language, 
+as is the case of C++.
 
-In the future, a mailing list will be advertised here for questions, discussions, and other topics which might be worth channeling in a unnified way.
+In the future, a mailing list will be advertised here for questions, discussions, and other topics which might be worth 
+channeling in a unnified way.
 
 ### Getting started
 
-The standard rules for installing a C++ library from an external repository apply in this case too. However, such standard steps which might be obvious for experienced developers could become overwhelming for developers or researchers who just have some basic understanding of software development with CMake and C++. Considering the broad audience this project might be subject to, we recommend the following documentation links for the different users:
+The standard rules for installing a C++ library from an external repository apply in this case too. However, such 
+standard steps which might be obvious for experienced developers could become overwhelming for developers or researchers 
+who just have some basic understanding of software development with CMake and C++. Considering the broad audience this 
+project might be subject to, we recommend the following documentation links for the different users:
 
 * Beginners: [classicalDFT Primer]()
 * Experienced programmers: [How to install classicalDFT](Documentation/Installation/README.md)
 
 ## Requirements
 
-**classicalDFT** is thought to keep requirements for building at minimum. However, there are some requirements which need to be satisfied for the correct funcitoning of the library. Such dependencies are:
+**classicalDFT** is thought to keep requirements for building at minimum. However, there are some requirements which 
+need to be satisfied for the correct funcitoning of the library. Such dependencies are:
 
 * C++11/14-standard-compliant compiler, we recommend to check [GNU Compiler Collection](https://gcc.gnu.org/) 
 * [CMake](https://cmake.org/download/) (version >= 3.8)
@@ -25,11 +36,13 @@ The standard rules for installing a C++ library from an external repository appl
 * [FFTW3](http://www.fftw.org/) a library designed to compute discrete Fourier transforms
 * [Grace](http://plasma-gate.weizmann.ac.il/Grace/) plotting tool for the X Window System
 
-If you notice any problems on your platform, please notify [classicaldft@classicaldftgroup.com](). Patches for fixing them are more than welcome!
+If you notice any problems on your platform, please notify [classicaldft@classicaldftgroup.com](). Patches for fixing 
+them are more than welcome!
 
 ## Features
 
-In this section we will list the main features implemented in **classicalDFT**, e.g. the different DFT energy models, differentiation methods, etc.
+In this section we will list the main features implemented in **classicalDFT**, e.g. the different DFT energy models, 
+differentiation methods, etc.
 
 ## Platforms
 
