@@ -19,10 +19,9 @@ channeling in a unnified way.
 
 The standard rules for installing a C++ library from an external repository apply in this case too. However, such 
 standard steps which might be obvious for experienced developers could become overwhelming for developers or researchers 
-who just have some basic understanding of software development with CMake and C++. Considering the broad audience this 
-project might be subject to, we recommend the following documentation links for the different users:
+who just have some basic understanding of software development with CMake and C++. Considering the broad audience this project might be subject to, we recommend the following documentation links for the different users:
 
-* Beginners: [classicalDFT Primer]()
+* Beginners: [classicalDFT Primer](README.md)
 * Experienced programmers: [How to install classicalDFT](Documentation/Installation/README.md)
 
 ## Requirements
@@ -30,11 +29,12 @@ project might be subject to, we recommend the following documentation links for 
 **classicalDFT** is thought to keep requirements for building at minimum. However, there are some requirements which 
 need to be satisfied for the correct funcitoning of the library. Such dependencies are:
 
-* C++11/14-standard-compliant compiler, we recommend to check [GNU Compiler Collection](https://gcc.gnu.org/) 
+* C++14-standard-compliant compiler, we recommend to check [GNU Compiler Collection](https://gcc.gnu.org/) 
 * [CMake](https://cmake.org/download/) (version >= 3.8)
 * [GNU Scientific Library](https://www.gnu.org/software/gsl/)
 * [FFTW3](http://www.fftw.org/) a library designed to compute discrete Fourier transforms
 * [Grace](http://plasma-gate.weizmann.ac.il/Grace/) plotting tool for the X Window System
+* [Google Test](https://github.com/google/googletest) a testing framework developed by Google's Testing Technology team
 
 If you notice any problems on your platform, please notify [classicaldft@classicaldftgroup.com](). Patches for fixing 
 them are more than welcome!
@@ -63,7 +63,3 @@ This project is licensed under the GNU General Public License v3.0 - see the [Li
 ## Acknowledgments
 
 * Development was funded by ESA
-
-
-
-

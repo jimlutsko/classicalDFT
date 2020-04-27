@@ -121,6 +121,28 @@ Thus, Ubuntu is up and running in Windows10. Now we can proceed and install the 
   > sudo apt-get install -y grace
   > sudo apt-get install -y gnuplot
   ```
+  
+* [Google Test](https://github.com/google/googletest) a testing framework developed by Google's Testing Technology team. This library is a bit trickier than the prototypical `sudo apt-get install`. This is because there was a [deliberate decision](https://askubuntu.com/questions/145887/why-no-library-files-installed-for-google-test/145913#145913) to stop distributing the static libraries, in order to guarantee correct working of the library.  Thus, `libgtest-dev` is now stored in `/usr/src/googletest/googletest`. Hence, we should make symbolic links to the **googletest** folder. Following these instructions should make it work (see [also](https://gist.github.com/Cartexius/4c437c084d6e388288201aadf9c8cdd5)): 
+
+  ```bash
+  > sudo apt-get install libgtest-dev
+  > cd /usr/src/googletest/googletest
+  > sudo mkdir build
+  > cd build
+  > sudo cmake ..
+  > sudo make
+  > sudo cp libgtest* /usr/lib/
+  > cd ..
+  > sudo rm -rf build
+  ```
+
+  Then do:
+
+  ```bash
+  > sudo mkdir /usr/local/lib/googletest
+  > sudo ln -s /usr/lib/libgtest.a /usr/local/lib/googletest/libgtest.a
+  > sudo ln -s /usr/lib/libgtest_main.a /usr/local/lib/googletest/libgtest_main.a
+  ```
 
 With all the previous steps, the WSL/Ubuntu system must be already prepared for the use and development of our library. 
 
