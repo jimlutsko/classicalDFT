@@ -6,4 +6,5 @@ log.*
 **/*.o
 **/*.d
 libclassicalDFT.a
+Lib/src/GitSHA1.cpp
 
