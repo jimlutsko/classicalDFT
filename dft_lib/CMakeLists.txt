@@ -21,14 +21,19 @@ set(dft_lib_src_path ${PROJECT_SOURCE_DIR}/core/src)
 
 if (LINUX AND NOT APPLE)
     # Main include folder
-    include_directories(${dft_lib_include_path})
+    message(STATUS "Linux system detected...")
+    include_directories(
+        ${dft_lib_include_path})
+elseif(WIN32)
+    message(STATUS "Windows system detected...")
+    include_directories(
+        ${dft_lib_include_path})
 elseif(APPLE)
     # Check whether we are linux or macOS
     set(brew_include_path /usr/local/include)
     include_directories(
             ${dft_lib_include_path}
-            ${brew_include_path}
-    )
+            ${brew_include_path})
 endif()
 
 # dft_lib sub-projects:
