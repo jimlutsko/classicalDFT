@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(classical_dft LANGUAGES CXX)
-include_directories(${DFT_LIB_INCLUDE_PATH})
+include_directories(${dft_lib_include_path})
 
 # Set up the source files required for the compilation to succeed
 set(ALL_SOURCES
