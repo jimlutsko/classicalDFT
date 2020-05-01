@@ -72,7 +72,74 @@ With all the previous steps, the WSL/Ubuntu system must be already prepared for 
 
 ## OSX
 
-The steps to follow under OSX are quite similar to those followed for [Linux](#Linux).
+The steps to follow under OSX are quite similar to those followed for [Linux](#Linux). The installation of the Google Test libraries can be a bit trickier though. The best way of proper installation we have found is summarised in this [post](https://gist.github.com/butuzov/e7df782c31171f9563057871d0ae444a), from where we have picked up the following script:
+
+```bash
+#!/usr/bin/env bash
+
+# Current directory
+__THIS_DIR=$(pwd)
+
+
+# Downloads the 1.8.0 to disc
+function dl {
+    printf "\n  Downloading Google Test Archive\n\n"
+    curl -LO https://github.com/google/googletest/archive/release-1.8.0.tar.gz
+    tar xf release-1.8.0.tar.gz
+}
+
+# Unpack and Build
+function build {
+    printf "\n  Building GTest and Gmock\n\n"
+    cd googletest-release-1.8.0
+    mkdir build 
+    cd $_
+    cmake -Dgtest_build_samples=OFF -Dgtest_build_tests=OFF ../
+    make
+}
+
+# Install header files and library
+function install {
+    printf "\n  Installing GTest and Gmock\n\n"
+
+    USR_LOCAL_INC="/usr/local/include"
+    GTEST_DIR="/usr/local/Cellar/gtest/"
+    GMOCK_DIR="/usr/local/Cellar/gmock/"
+
+    mkdir $GTEST_DIR
+
+    cp googlemock/gtest/*.a $GTEST_DIR
+    cp -r ../googletest/include/gtest/  $GTEST_DIR
+    ln -snf $GTEST_DIR $USR_LOCAL_INC/gtest
+    ln -snf $USR_LOCAL_INC/gtest/libgtest.a /usr/local/lib/libgtest.a
+    ln -snf $USR_LOCAL_INC/gtest/libgtest_main.a /usr/local/lib/libgtest_main.a
+
+    mkdir $GMOCK_DIR
+    cp googlemock/*.a   $GMOCK_DIR
+    cp -r ../googlemock/include/gmock/  $GMOCK_DIR
+    ln -snf $GMOCK_DIR $USR_LOCAL_INC/gmock
+    ln -snf $USR_LOCAL_INC/gmock/libgmock.a /usr/local/lib/libgmock.a
+    ln -snf $USR_LOCAL_INC/gmock/libgmock_main.a /usr/local/lib/libgmock_main.a
+}
+
+# Final Clean up.
+function cleanup {
+    printf "\n  Running Cleanup\n\n"
+
+    cd $__THIS_DIR
+    rm -rf $(pwd)/googletest-release-1.8.0
+    unlink $(pwd)/release-1.8.0.tar.gz
+}
+
+dl && build && install && cleanup 
+```
+
+To use it, just copy-paste the previous code into a file, e.g. `gtest_installer.sh` and proceed as follows:
+
+```bash
+chmod +x ./gtest_installer.sh
+sudo ./gtest_installer.sh
+```
 
 ## Windows10 
 
