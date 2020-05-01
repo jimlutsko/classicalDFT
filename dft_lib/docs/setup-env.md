@@ -4,7 +4,75 @@ The library [classicalDFT](https://github.com/jimlutsko/classicalDFT ) is a `C++
 
 ## Linux
 
-(To be complemented with the already existing Readme.md)
+As we've just mentioned, classicalDFT is natively developed under linux. Thus, the set up here boils down to ensure we have all the requirements installed appropriately. The following steps can be easily reproduce in almost any Linux environment, although they've been 100% tested under Ubuntu 18.04LTS:
+
+* C++ compilers, gdb, ssh, rsync, ninja, and zip. On Debian-based systems, you can use this command to install these dependencies:
+
+  ```cmd
+  > sudo apt install -y openssh-server build-essential gdb rsync ninja-build zip
+  ```
+
+* A recent version of [CMake]( https://cmake.org/download/ ) on the Linux machine that has server mode enabled (at least 3.8). You can get the CMake binaries from [the Microsoft fork of the CMake repo](https://github.com/Microsoft/CMake/releases) on GitHub. Go to that page and download the version that matches the system architecture on your Linux machine, then mark it as an executable, e.g:
+
+  ```cmd
+  > wget https://github.com/microsoft/CMake/releases/download/v3.17.3587832/cmake-3.17.3587832-MSVC_2-Linux-x64.sh
+  > chmod a+x cmake-3.17.3587832-MSVC_2-Linux-x64.sh
+  > sudo ./cmake-3.17.3587832-MSVC_2-Linux-x64.sh --skip-license --prefix=/usr
+  ```
+
+* [GSL]( https://www.gnu.org/software/gsl/ ) need to be installed:
+
+  ```cmd
+  > sudo apt-get install libgsl-dev
+  ```
+
+* [FFTW3](http://www.fftw.org/) is a library designed to compute discrete Fourier transforms. As described in the the official website, there are various versions available, with different features and different levels of maturity. We can install the development version as follows:
+
+  ```cmd
+   > sudo apt-get install libfftw3-dev libfftw3-doc
+  ```
+
+* [Grace]( http://plasma-gate.weizmann.ac.il/Grace/ )  plotting tool for the X Window System. Grace runs on practically any version of Unix-like OS. It is a tool used across the library with the aim of providing a graphical support in various numerical tasks. An alternative can be [GnuPlot]( http://www.gnuplot.info/ ), for which we will also give a wrapper and instructions to install:
+
+  ```cmd
+  > sudo apt-get update -y
+  > sudo apt-get install -y grace
+  > sudo apt-get install -y gnuplot
+  ```
+
+* [Armadillo](http://arma.sourceforge.net/) a high quality linear algebra library (matrix maths) for the C++ language. The installation is pretty standard:
+
+  ```bash
+  > sudo apt-get install -y libarmadillo-dev
+  ```
+
+* [Google Test](https://github.com/google/googletest) a testing framework developed by Google's Testing Technology team. This library is a bit trickier than the prototypical `sudo apt-get install`. This is because there was a [deliberate decision](https://askubuntu.com/questions/145887/why-no-library-files-installed-for-google-test/145913#145913) to stop distributing the static libraries, in order to guarantee correct working of the library.  Thus, `libgtest-dev` is now stored in `/usr/src/googletest/googletest`. Hence, we should make symbolic links to the **googletest** folder. Following these instructions should make it work (see [also](https://gist.github.com/Cartexius/4c437c084d6e388288201aadf9c8cdd5)): 
+
+  ```bash
+  > sudo apt-get install libgtest-dev
+  > cd /usr/src/googletest/googletest
+  > sudo mkdir build
+  > cd build
+  > sudo cmake ..
+  > sudo make
+  > sudo cp libgtest* /usr/lib/
+  > cd ..
+  > sudo rm -rf build
+  ```
+
+  Then do:
+
+  ```bash
+  > sudo mkdir /usr/local/lib/googletest
+  > sudo ln -s /usr/lib/libgtest.a /usr/local/lib/googletest/libgtest.a
+  > sudo ln -s /usr/lib/libgtest_main.a /usr/local/lib/googletest/libgtest_main.a
+  ```
+
+With all the previous steps, the WSL/Ubuntu system must be already prepared for the use and development of our library. 
+
+## OSX
+
+The steps to follow under OSX are quite similar to those followed for [Linux](#Linux).
 
 ## Windows10 
 
@@ -86,67 +154,36 @@ which should result in something like the following picture:
 
 <img src="images/UbuntuRunning.jpg" alt="UbuntuRunning" style="zoom:50%;" />
 
-Thus, Ubuntu is up and running in Windows10. Now we can proceed and install the dependencies to be fulfilled:
-
-* C++ compilers, gdb, ssh, rsync, ninja, and zip. On Debian-based systems, you can use this command to install these dependencies:
-
-  ```cmd
-  > sudo apt install -y openssh-server build-essential gdb rsync ninja-build zip
-  ```
-
-* A recent version of [CMake]( https://cmake.org/download/ ) on the Linux machine that has server mode enabled (at least 3.8). You can get the CMake binaries from [the Microsoft fork of the CMake repo](https://github.com/Microsoft/CMake/releases) on GitHub. Go to that page and download the version that matches the system architecture on your Linux machine, then mark it as an executable, e.g:
-
-  ```cmd
-  > wget https://github.com/microsoft/CMake/releases/download/v3.17.3587832/cmake-3.17.3587832-MSVC_2-Linux-x64.sh
-  > chmod a+x cmake-3.17.3587832-MSVC_2-Linux-x64.sh
-  > sudo ./cmake-3.17.3587832-MSVC_2-Linux-x64.sh --skip-license --prefix=/usr
-  ```
-
-* [GSL]( https://www.gnu.org/software/gsl/ ) need to be installed:
-
-  ```cmd
-  > sudo apt-get install libgsl-dev
-  ```
-
-* [FFTW3](http://www.fftw.org/) is a library designed to compute discrete Fourier transforms. As described in the the official website, there are various versions available, with different features and different levels of maturity. We can install the development version as follows:
-
-  ```cmd
-   > sudo apt-get install libfftw3-dev libfftw3-doc
-  ```
-
-* [Grace]( http://plasma-gate.weizmann.ac.il/Grace/ )  plotting tool for the X Window System. Grace runs on practically any version of Unix-like OS. It is a tool used across the library with the aim of providing a graphical support in various numerical tasks. An alternative can be [GnuPlot]( http://www.gnuplot.info/ ), for which we will also give a wrapper and instructions to install:
-
-  ```cmd
-  > sudo apt-get update -y
-  > sudo apt-get install -y grace
-  > sudo apt-get install -y gnuplot
-  ```
-  
-* [Google Test](https://github.com/google/googletest) a testing framework developed by Google's Testing Technology team. This library is a bit trickier than the prototypical `sudo apt-get install`. This is because there was a [deliberate decision](https://askubuntu.com/questions/145887/why-no-library-files-installed-for-google-test/145913#145913) to stop distributing the static libraries, in order to guarantee correct working of the library.  Thus, `libgtest-dev` is now stored in `/usr/src/googletest/googletest`. Hence, we should make symbolic links to the **googletest** folder. Following these instructions should make it work (see [also](https://gist.github.com/Cartexius/4c437c084d6e388288201aadf9c8cdd5)): 
-
-  ```bash
-  > sudo apt-get install libgtest-dev
-  > cd /usr/src/googletest/googletest
-  > sudo mkdir build
-  > cd build
-  > sudo cmake ..
-  > sudo make
-  > sudo cp libgtest* /usr/lib/
-  > cd ..
-  > sudo rm -rf build
-  ```
-
-  Then do:
-
-  ```bash
-  > sudo mkdir /usr/local/lib/googletest
-  > sudo ln -s /usr/lib/libgtest.a /usr/local/lib/googletest/libgtest.a
-  > sudo ln -s /usr/lib/libgtest_main.a /usr/local/lib/googletest/libgtest_main.a
-  ```
-
-With all the previous steps, the WSL/Ubuntu system must be already prepared for the use and development of our library. 
+Thus, Ubuntu is up and running in Windows10. As of this point, you can follow the steps explained above for the set up under [Linux](#Linux).
 
 The development cycle can be entirely carried out via terminal commands, without the need of any programming GUI. If this is your case, you can stop reading already, you're done, congrats! For those utilizing a GUI such as VS Code, you can keep on reading the next section, so that you can keep working with your favourite GUI on Windows but compiling in WSL/Ubuntu.
+
+#### Fixing error due to metadata
+
+It might happen to you that when using cmake for building the project you struggle with messages like:
+
+```bash
+CMake Error at /usr/share/cmake-3.7/Modules/CMakeDetermineCCompiler.cmake:175 (configure_file):
+  configure_file Problem configuring file
+Call Stack (most recent call first):
+  CMakeLists.txt
+```
+
+If this is the case, it could be the case that metadata is not enabled on your `/mnt/c`. To enable metadata on your `/mnt/c`:
+
+```
+> sudo vim /etc/wsl.conf
+```
+
+and add:
+
+```bash
+[automount]
+enabled = true
+options = "metadata"
+```
+
+This change [won't take effect](https://github.com/microsoft/WSL/issues/3994) right away. We recommend `wsl --terminate` or a reboot the OS to be sure that the metadata is enabled.
 
 #### Visual Studio Code
 
@@ -276,7 +313,3 @@ For this you only need to follow the first 3 steps explained before for CLion. T
 3. Follow the steps 7-8 of the previous section, i.e. configure your username, password and the localhost **PORT = 2222**
 
 And you are done!
-
-## OSX
-
-(To be completed)
