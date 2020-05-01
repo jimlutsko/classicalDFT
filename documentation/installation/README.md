@@ -7,7 +7,7 @@ To build and run an example that use it, you need to go through the following st
 1. Perform the following to setup and compile the library:
 
    ```bash
-   $ cd Lib
+   $ cd legacy_lib
    $ ../Config.sh
    $ ../dft_make.sh
    ```
@@ -15,28 +15,28 @@ To build and run an example that use it, you need to go through the following st
 2. To build the model application do the following:
 
    ```bash
-   $ cd ../Droplet
-   $ ../Droplet
-   $ ../dft_make.sh
+   $ cd ../Examples/Droplet
+   $ ./../Config.sh
+   $ ./../dft_make.sh
    ```
 
-You can also do:
+You can cd into TEST and run using:
 
 ```bash
 $ cd TEST
-$ ../Droplet
+$ ../Droplet input.dat
 ```
 
 #### Remarks
 
-1. The [Config.sh](../../Config.sh) command is only run the first time the application is created. It configures things for cmake.
+1. The [Config.sh](../../config.sh) command is only run the first time the application is created. It configures things for cmake.
 2. Rebuild using [dft_make.sh](../../dft_make.sh). Note that this also takes three possible arguments in any order: **clean**, **debug** and **lib**. Their effects are as follows:
    * **clean** causes a clean build (all objects are first deleted)
    * **debug** performs a debug build
    * **lib** causes the libraries to be rebuilt also.
    * Note that `dft_make.sh debug lib` causes both the app and the libraries to be built in debug mode. Similarly, "dft_make.sh lib" causes both to be built in release mode.
 
-3. The first few lines of [CMakeLists.txt](../../Lib/CMakeLists.txt) contain information that you will want to modify if this is used as a model to create another application.
+3. The first few lines of [CMakeLists.txt](../../legacy_lib/CMakeLists.txt) contain information that you will want to modify if this is used as a model to create another application.
 
 ### Building classicalDFT v2.0
 

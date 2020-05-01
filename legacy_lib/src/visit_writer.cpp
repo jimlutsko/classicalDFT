@@ -725,7 +725,7 @@ void write_point_mesh(const char *filename, int ub, int npts, float *pts,
  *  Modifications:
  * 
  *    Hank Childs, Mon Jun 28 12:19:25 PDT 2010
- *    Support for pixels and voxels.
+ *    Notes for pixels and voxels.
  *
  * ************************************************************************* */
 

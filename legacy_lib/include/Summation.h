@@ -11,7 +11,7 @@
 
 /**
   *  @brief Implementation of the improved Kahan–Babuška algorithm of Neumaier (Zeitschrift für Angewandte Mathematik und Mechanik (in German). 54 (1): 39–51).
-  */  
+  */
 class Summation
 {
  public:

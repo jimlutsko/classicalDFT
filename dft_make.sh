@@ -23,7 +23,7 @@ if [ $Lib1 == '1' ]
 then
     here=$(pwd)
     echo $here
-    cd ../Lib
+    cd ../legacy_lib
     echo "Making Library"
     echo cmake --build $DIR1 $FLAG1
     cmake --build $DIR1 $FLAG1
@@ -32,6 +32,3 @@ fi
 
 echo cmake --build $DIR1 $FLAG1 
 cmake --build $DIR1 $FLAG1
-
-
-	

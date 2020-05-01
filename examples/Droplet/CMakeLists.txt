@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 # MODIFY: Project name: used to name the executable 
 project(Droplet)
 
-# MODIFY: This needs to point to the Lib directory
+# MODIFY: This needs to point to the legacy_lib directory
 set(PATH_TO_DFT_LIB ${PROJECT_SOURCE_DIR}/../Lib)
 
 # MODIFY: this is the app file 
@@ -18,7 +18,7 @@ set(USE_MGL true)
 ################### End of customizations
 
 ## Set up the compilation
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
+set(EXECUTABLE_OUTPUT_PATH ../..)
 set(CMAKE_CXX_EXTENSIONS ON)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 
