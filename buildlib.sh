@@ -1,7 +1,8 @@
 #!/bin/bash
 
-ROOT_FOLDER=$(pwd)
 DFT_LIB="dft_lib"
+ROOT_FOLDER="$(pwd)/$DFT_LIB"
+DFT_TEST="gtests"
 BUILD_DIR="build/release"
 OPTION_FLAG=""
 
@@ -14,10 +15,10 @@ prepare_subfolder(){
   local folder=$1
   local build_type=$2
 
-  mkdir -p $folder
-  cd $folder
+  mkdir -p "$folder"
+  cd "$folder"
 
-  echo $folder $build_typep
+  echo "$folder $build_typep"
   cmake -DCMAKE_BUILD_TYPE=$build_type ../../
 }
 
@@ -25,8 +26,7 @@ prepare_folders(){
   echo "======================================"
   echo "  Starting folder configuration"
   echo "======================================"
-  local root_dir=$ROOT_FOLDER
-  parent_dir="$(dirname "$root_dir")"
+  cd "$ROOT_FOLDER" || exit
 
   mkdir -p build
 
@@ -47,23 +47,10 @@ default_build_lib(){
   cmake --build $build_dir $option_flag
 }
 
-build_lib(){
-  echo "Runninf default build..."
-  echo $ROOT_FOLDER
-  cd ../$DFT_LIB
-
-  echo "Making Library"
-  echo cmake --build $BUILD_DIR $OPTION_FLAG
-  cmake --build $BUILD_DIR $OPTION_FLAG
-
-  cp core/
-  cd $ROOT_FOLDER
-}
-
 run_tests(){
   local build_dir=$1
   cd $build_dir
-  make gtests
+  make $DFT_TEST
   cd $ROOT_FOLDER
 }
 
