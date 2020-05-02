@@ -1,0 +1,18 @@
+name: Unit tests
+
+on:
+  push:
+    branches: [ develop, feature/* ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Docker image
+        run: docker build . --file Dockerfile --tag classical_dft_v2:$(date +%s) --tag classical_dft_v2:latest
+      - name: Run tests
+        run: docker run classical_dft_v2:latest

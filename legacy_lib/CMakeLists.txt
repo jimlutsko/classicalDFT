@@ -15,7 +15,10 @@ configure_file (
   "${PROJECT_SOURCE_DIR}/include/config.h"
   )
 
-include_directories(${PROJECT_SOURCE_DIR}/include) 
+include_directories(
+        ${PROJECT_SOURCE_DIR}/include
+        "/usr/local/include"
+)
 
 #file(GLOB all_SRCS "${PROJECT_SOURCE_DIR}/src/*.cpp")
 set(all_SRCS
@@ -41,6 +44,10 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 #target_compile_options(${PROJECT_NAME} PUBLIC ${CMAKE_CXX} -O3 -MMD)
 
 #find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+
+# find gsl
+link_directories("/usr/local/lib")
+
 
 # enable omp if it exists
 find_package(OpenMP)

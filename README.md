@@ -1,3 +1,5 @@
+[![Unit tests](https://github.com/jimlutsko/classicalDFT/workflows/Unit%20tests/badge.svg)](https://github.com/jimlutsko/classicalDFT/actions?query=workflow%3A%22Unit%20tests%22)
+
 # classicalDFT
 
 ## Welcome to classicalDFT
@@ -22,7 +24,7 @@ standard steps which might be obvious for experienced developers could become ov
 who just have some basic understanding of software development with CMake and C++. Considering the broad audience this project might be subject to, we recommend the following documentation links for the different users:
 
 * Beginners: [classicalDFT Primer](README.md)
-* Experienced programmers: [How to install classicalDFT](Documentation/Installation/README.md)
+* Experienced programmers: [How to install classicalDFT](documentation/installation/README.md)
 
 ## Requirements
 

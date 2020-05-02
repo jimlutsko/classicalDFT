@@ -52,6 +52,7 @@ namespace dft_core
 
     /**
      * @brief Exception to be thrown when detecting that `xmgrace` communication fails
+     *
      * This class is just a derived class from the general `GraceException` which particularises the message to
      * specify that there is a communication error when trying to open the communication pipe or when sending a
      * command to an open communication.

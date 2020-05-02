@@ -13,7 +13,7 @@ namespace dft_core
   {
 
     /**
-     * Supported file formats when saving a graph
+     * @brief Supported file formats when saving a graph
      *
      * These values are used in arguments to various functions in this package.
      */
@@ -26,7 +26,7 @@ namespace dft_core
     };
 
     /**
-     * Supported shapes for the data points
+     * @brief Supported shapes for the data points
      */
     enum Shape {
       CIRCLE,
@@ -47,7 +47,7 @@ namespace dft_core
     const auto max_axis_value = 10.0;
 
     /**
-     * Sends a string command to the Grace CLI
+     * @brief Sends a string command to the Grace CLI
      *
      * Helper function which sends a command string to xmgrace by using `GracePrintf` from `grace_np.h`.
      * @param[in] cmd the command string to be run in xmgrace
@@ -57,11 +57,11 @@ namespace dft_core
     void SendCommand(const std::string &cmd);
 
     /**
-     * Parse and prints an error message from xmgrace.
+     * @brief Parse and prints an error message from xmgrace.
      *
      * The library `grace_np.h` allows for registering a personalised function which will act as an error parser.
-     * Unfortunately, due to legacy reasons, such a function must deal with char* instead of modern strings.
      * @param[in] msg the message (char*) received from `xmgrace` which will be printed out.
+     * @remark Unfortunately, due to legacy reasons, such a function must deal with char* instead of modern strings.
      */
     void ErrorParsingFunction(const char *msg);
 
