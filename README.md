@@ -1,4 +1,4 @@
-[![Unit tests](https://github.com/jimlutsko/classicalDFT/workflows/Docker%20Image%20CI/badge.svg)](https://github.com/jimlutsko/classicalDFT/actions?query=workflow%3A%22Docker%20Image%20CI%22)
+[![Unit tests](https://github.com/jimlutsko/classicalDFT/workflows/Unit%20tests/badge.svg)](https://github.com/jimlutsko/classicalDFT/actions?query=workflow%3A%22Unit%20tests%22)
 
 # classicalDFT
 
