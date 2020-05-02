@@ -2,7 +2,8 @@
 log.*
 **/build
 **/debug
+**/cmake-build-*
 **/dummy
 **/*.o
 **/*.d
-
+.idea/**
