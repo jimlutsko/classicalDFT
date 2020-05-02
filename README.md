@@ -1,3 +1,5 @@
+[![Unit tests](https://github.com/jimlutsko/classicalDFT/workflows/Docker%20Image%20CI/badge.svg)](https://github.com/jimlutsko/classicalDFT/actions?query=workflow%3A%22Docker%20Image%20CI%22)
+
 # classicalDFT
 
 ## Welcome to classicalDFT
