@@ -1,0 +1,20 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ develop, feat* ]
+  pull_request:
+    branches: [ develop, feat* ]
+
+jobs:
+
+  build:
+
+    runs-on: debian:stretch-slim
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Docker image
+        run: docker build . --file Dockerfile --tag classical_dft_v2:$(date +%s)
+      - name: Run tests
+        run: docker run classical_dft_v2:$(date +%s)
