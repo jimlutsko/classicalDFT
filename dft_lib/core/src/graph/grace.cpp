@@ -15,6 +15,50 @@ namespace dft_core
 {
   namespace grace_plot
   {
+    namespace command
+    {
+      std::string Arrange(const int& number_of_rows, const int& number_of_columns, const float& offset, const float& horizontal_gap, const float& vertical_gap)
+      {
+        std::string cmd = "ARRANGE(" + std::to_string(number_of_rows) + ", "
+                          + std::to_string(number_of_columns) + ", "
+                          + std::to_string(offset) + ", "
+                          + std::to_string(horizontal_gap) + ", "
+                          + std::to_string(vertical_gap) + ")";
+        return cmd;
+      }
+      std::string SetXMinCommand(const double& x_min)
+      {
+        auto x_rounded = static_cast<float>(x_min);
+        std::string cmd = "WORLD XMIN " + std::to_string(x_rounded);
+        return cmd;
+      }
+      std::string SetXMaxCommand(const double& x_max)
+      {
+        auto x_rounded = static_cast<float>(x_max);
+        std::string cmd = "WORLD XMAX " + std::to_string(x_rounded);
+        return cmd;
+      }
+      std::string SetYMinCommand(const double& y_min)
+      {
+        auto y_rounded = static_cast<float>(y_min);
+        std::string cmd = "WORLD YMIN " + std::to_string(y_rounded);
+        return cmd;
+      }
+      std::string SetYMaxCommand(const double& y_max)
+      {
+        auto y_rounded = static_cast<float>(y_max);
+        std::string cmd = "WORLD YMAX " + std::to_string(y_rounded);
+        return cmd;
+      }
+    }
+  }
+}
+
+
+namespace dft_core
+{
+  namespace grace_plot
+  {
     void SendCommand(const std::string& cmd)
     {
       if (GraceIsOpen()) {
@@ -77,28 +121,6 @@ namespace dft_core
       return number_of_columns;
     }
 
-    std::string ArrangeCommand(const int& number_of_rows, const int& number_of_columns, const float& offset, const float& horizontal_gap, const float& vertical_gap)
-    {
-      std::string cmd = "ARRANGE(" + std::to_string(number_of_rows) + ", "
-          + std::to_string(number_of_columns) + ", "
-          + std::to_string(offset) + ", "
-          + std::to_string(horizontal_gap) + ", "
-          + std::to_string(vertical_gap) + ")";
-      return cmd;
-    }
-
-    std::string SetXMinCommand(const double& x_min)
-    {
-      std::string cmd = "WORLD XMIN " + std::to_string(x_min);
-      return cmd;
-    }
-
-    std::string SetXMaxCommand(const double& x_max)
-    {
-      std::string cmd = "WORLD XMAX " + std::to_string(x_max);
-      return cmd;
-    }
-
     /// The configuration command which eventually sets up the graph
     void SetupGrace(
         const double& x_min, const double& x_max,
@@ -110,11 +132,11 @@ namespace dft_core
       {
         int number_of_rows = GetNumberOfRows(number_of_graphs);
         int number_of_columns = GetNumberOfColumns(number_of_graphs, number_of_rows);
-        SendCommand(ArrangeCommand(number_of_rows, number_of_columns, offset, hspace, vspace));
+        SendCommand(command::Arrange(number_of_rows, number_of_columns, offset, hspace, vspace));
       }
 
-      SendCommand(SetXMinCommand(x_min));
-      SendCommand(SetXMaxCommand(x_max));
+      SendCommand(command::SetXMinCommand(x_min));
+      SendCommand(command::SetXMaxCommand(x_max));
 
       // tick major must be set up befor minor to avoid glitch
       SendCommand( "XAXIS TICK MAJOR 5");
@@ -127,7 +149,7 @@ namespace dft_core
       SendCommand( "YAXIS TICK MAJOR " + std::to_string(static_cast<int>(y_max)));
       SendCommand( "YAXIS TICK MINOR " + std::to_string(static_cast<int>(y_max/2)));
 
-       SendCommand( "AUTOSCALE ONREAD XYAXES");
+      SendCommand( "AUTOSCALE ONREAD XYAXES");
     }
 
     Grace::Grace(int x_size, int y_size, int n_graph, bool show) :
@@ -151,9 +173,17 @@ namespace dft_core
       if (x_min < 0 || x_max <0 ) { throw exception::GraceException("Limits cannot be negative!"); }
       if (x_min > x_max) { throw exception::GraceException("Lower limit cannot be greater than upper limit!"); }
 
-      SendCommand(SetXMinCommand(x_min));
-      SendCommand(SetXMaxCommand(x_max));
+      SendCommand(command::SetXMinCommand(x_min));
+      SendCommand(command::SetXMaxCommand(x_max));
     }
 
+    void Grace::SetYLimits(const double& y_min, const double& y_max) const
+    {
+      if (y_min < 0 || y_max <0 ) { throw exception::GraceException("Limits cannot be negative!"); }
+      if (y_min > y_max) { throw exception::GraceException("Lower limit cannot be greater than upper limit!"); }
+
+      SendCommand(command::SetYMinCommand(y_min));
+      SendCommand(command::SetYMaxCommand(y_max));
+    }
   }
 }

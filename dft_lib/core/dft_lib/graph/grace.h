@@ -42,6 +42,51 @@ namespace dft_core
       const std::string GEOMETRY = "-geometry";
     }
 
+    /**
+     * @brief Collection of wrappers for xmgrace commands (see https://plasma-gate.weizmann.ac.il/Grace/doc/UsersGuide.html)
+     */
+    namespace command
+    {
+      /**
+       * @brief Returns the ARRANGE(nrows, ncols, offset, hgap, vgap) command as string
+       *
+       * @param number_of_rows the number of rows to be used
+       * @param number_of_columns the number of columns to be used
+       * @param offset the space left at each page edge with
+       * @param horizontal_gap horizontal spacing
+       * @param vertical_gap vertical spacing
+       */
+      std::string Arrange(const int& number_of_rows, const int& number_of_columns, const float& offset, const float& horizontal_gap, const float& vertical_gap);
+
+      /**
+       * @brief Returns the "WORLD XMIN x_min" command as string
+       *
+       * @param x_min the minimum value the X-axis will show
+       */
+      std::string SetXMinCommand(const double& x_min);
+
+      /**
+       * @brief Returns the "WORLD XMAX x_min" command as string
+       *
+       * @param x_max the max value the X-axis will show
+       */
+      std::string SetXMaxCommand(const double& x_max);
+
+      /**
+       * @brief Returns the "WORLD YMIN y_min" command as string
+       *
+       * @param x_min the minimum value the Y-axis will show
+       */
+      std::string SetYMinCommand(const double& y_min);
+
+      /**
+       * @brief Returns the "WORLD YMAX y_min" command as string
+       *
+       * @param x_max the max value the Y-axis will show
+       */
+      std::string SetYMaxCommand(const double& y_max);
+    }
+
     /// The default X-size of the grace canvas
     const int default_x_size = 800;
     /// The default Y-size of the grace canvas
@@ -105,7 +150,7 @@ namespace dft_core
      */
     void StartGraceCommunication(const int& x_size, const int& y_size, int buffer_size = 2048);
 
-    /*
+    /**
      * @brief Returns the number of rows in which the graphs will be placed
      *
      * This simple method just returns 1 if the `number_of_graphs` = 1, and 2 if `number_of_graphs` > 1
@@ -114,7 +159,7 @@ namespace dft_core
      */
     int GetNumberOfRows(const int& number_of_graphs);
 
-    /*
+    /**
      * @brief Returns the number of columns in which the graphs will be placed
      *
      * @param number_of_graphs the number of graphs to be shown
@@ -122,17 +167,6 @@ namespace dft_core
      * @throw GraceException when any of the parameters are not strictly positive
      */
     int GetNumberOfColumns(const int& number_of_graphs, const int& number_of_rows);
-
-    /*
-     * @brief Returns the ARRANGE(nrows, ncols, offset, hgap, vgap) command as string
-     *
-     * @param number_of_rows the number of rows to be used
-     * @param number_of_columns the number of columns to be used
-     * @param offset the space left at each page edge with
-     * @param horizontal_gap horizontal spacing
-     * @param vertical_gap vertical spacing
-     */
-    std::string ArrangeCommand(const int& number_of_rows, const int& number_of_columns, const float& offset, const float& horizontal_gap, const float& vertical_gap);
 
     /**
      * @brief  Utility: Wrapper for xmgrace graphics program.
@@ -167,6 +201,7 @@ namespace dft_core
 
         /// Setters:
         void SetXLimits(const double& x_min, const double& x_max) const;
+        void SetYLimits(const double& y_min, const double& y_max) const;
 
       private:
         double x_min_ = default_min_axis_value;

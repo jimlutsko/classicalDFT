@@ -91,8 +91,36 @@ TEST(gace_plot_options, geometry_constant)
 
 TEST(grace_plot, arrange_command_ok_test)
 {
-  std::string actual = dft_core::grace_plot::ArrangeCommand(1,2,0.3,0.4,0.5);
+  std::string actual = dft_core::grace_plot::command::Arrange(1, 2, 0.3, 0.4, 0.5);
   std::string expected = "ARRANGE(1, 2, 0.300000, 0.400000, 0.500000)";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot, x_min_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::SetXMinCommand(1.5);
+  std::string expected = "WORLD XMIN 1.500000";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot, x_max_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::SetXMaxCommand(1.5);
+  std::string expected = "WORLD XMAX 1.500000";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot, y_min_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::SetYMinCommand(1.5);
+  std::string expected = "WORLD YMIN 1.500000";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot, y_max_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::SetYMaxCommand(1.5);
+  std::string expected = "WORLD YMAX 1.500000";
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
 
