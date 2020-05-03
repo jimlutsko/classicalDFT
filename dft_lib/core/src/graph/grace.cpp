@@ -5,11 +5,9 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
-#include <sstream>
 #include <string>
 
 #include "dft_lib/exceptions/grace_exception.h"
-#include "dft_lib/exceptions/parameter_exceptions.h"
 
 namespace dft_core
 {
@@ -161,29 +159,64 @@ namespace dft_core
         n_max_data_set_(default_dataset_number), n_graph_(n_graph),
         show_(show)
     {
-      if (show) {
+      if (show_) {
         RegisterGraceErrorFunction();
         StartGraceCommunication(x_size, y_size);
         SetupGrace(x_min_, x_max_, y_min_, y_max_, n_graph_, offset_, horizontal_space_, vertical_space_);
       }
     }
 
-    void Grace::SetXLimits(const double& x_min, const double& x_max) const
+    void Grace::SetXMin(const double& value)
     {
-      if (x_min < 0 || x_max <0 ) { throw exception::GraceException("Limits cannot be negative!"); }
-      if (x_min > x_max) { throw exception::GraceException("Lower limit cannot be greater than upper limit!"); }
-
-      SendCommand(command::SetXMinCommand(x_min));
-      SendCommand(command::SetXMaxCommand(x_max));
+      x_min_ = value;
     }
 
-    void Grace::SetYLimits(const double& y_min, const double& y_max) const
+    void Grace::SetXMax(const double& value)
     {
-      if (y_min < 0 || y_max <0 ) { throw exception::GraceException("Limits cannot be negative!"); }
+      x_max_ = value;
+    }
+
+    void Grace::SetYMin(const double& value)
+    {
+      y_min_ = value;
+    }
+
+    void Grace::SetYMax(const double& value)
+    {
+      y_max_ = value;
+    }
+
+    void Grace::SetXLimits(const double& x_min, const double& x_max)
+    {
+      if (x_min > x_max) { throw exception::GraceException("Lower limit cannot be greater than upper limit!"); }
+
+      this->SetXMin(x_min);
+      this->SetXMax(x_max);
+
+      if (this->show_) {
+        SendCommand(command::SetXMinCommand(this->x_min()));
+        SendCommand(command::SetXMaxCommand(this->x_max()));
+      }
+    }
+
+    void Grace::SetYLimits(const double& y_min, const double& y_max)
+    {
       if (y_min > y_max) { throw exception::GraceException("Lower limit cannot be greater than upper limit!"); }
 
-      SendCommand(command::SetYMinCommand(y_min));
-      SendCommand(command::SetYMaxCommand(y_max));
+      this->SetYMin(y_min);
+      this->SetYMax(y_max);
+
+      if (this->show_) {
+        SendCommand(command::SetYMinCommand(this->y_min()));
+        SendCommand(command::SetYMaxCommand(this->y_max()));
+      }
+    }
+
+    void Grace::Close() const
+    {
+      if (this->is_initialised()) {
+        GraceClose();
+      }
     }
   }
 }

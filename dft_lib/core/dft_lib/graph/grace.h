@@ -179,7 +179,7 @@ namespace dft_core
         /// Explicit constructor, which avoids implicit conversions
         explicit Grace(int x_size = default_x_size, int y_size = default_y_size, int n_graph = default_number_of_graphs, bool show = true);
         /// Default destructor
-        ~Grace() { GraceClose(); };
+        ~Grace() { this->Close(); };
 
         /// Inspector of the property `show_` which governs the construction of a Grace object in case of being `false`
         const bool& is_initialised() const { return show_; }
@@ -188,9 +188,9 @@ namespace dft_core
         /// The maximum value for the X axis
         const double& x_max() const { return x_max_; }
         /// The minimum value for the Y axis
-        const double& y_min() const { return x_min_; }
+        const double& y_min() const { return y_min_; }
         /// The maximum value for the Y axis
-        const double& y_max() const { return x_max_; }
+        const double& y_max() const { return y_max_; }
 
         /// The offset
         const float& offset() const { return offset_; }
@@ -200,8 +200,20 @@ namespace dft_core
         const float& vertical_space() const { return vertical_space_; }
 
         /// Setters:
-        void SetXLimits(const double& x_min, const double& x_max) const;
-        void SetYLimits(const double& y_min, const double& y_max) const;
+        void SetXMin(const double& value);
+        void SetXMax(const double& value);
+        void SetYMin(const double& value);
+        void SetYMax(const double& value);
+
+        void SetXLimits(const double& x_min, const double& x_max);
+        void SetYLimits(const double& y_min, const double& y_max);
+
+        /// Methods:
+
+        /**
+         * @brief Closes the opened session (if it was opened with the constructor, via `show=true`
+         */
+        void Close() const;
 
       private:
         double x_min_ = default_min_axis_value;
