@@ -39,5 +39,9 @@ endif()
 # dft_lib sub-projects:
 add_subdirectory(core)
 
+# dft_lib tests:
 enable_testing()
 add_subdirectory(tests)
+
+# dft_lib examples:
+add_subdirectory(examples/console)
