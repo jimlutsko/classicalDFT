@@ -11,7 +11,6 @@ namespace dft_core
 {
   namespace grace_plot
   {
-
     /**
      * @brief Supported file formats when saving a graph
      *
@@ -33,6 +32,16 @@ namespace dft_core
       SQUARE
     };
 
+    namespace option
+    {
+      /// Option to specify free page layout
+      const std::string FREE = "-free";
+      /// Option to disable safe mode
+      const std::string NO_SAFE = "-nosafe";
+      /// Option to
+      const std::string GEOMETRY = "-geometry";
+    }
+
     /// The default X-size of the grace canvas
     const int default_x_size = 800;
     /// The default Y-size of the grace canvas
@@ -42,9 +51,16 @@ namespace dft_core
     /// The default number of graphs to be drawn on the same canvas
     const int default_number_of_graphs = 1;
     /// The value to be used as the default minimum of an axis
-    const auto min_axis_value = 0.0;
+    const auto default_min_axis_value = 0.0;
     /// The value to be used as the default maximum of an axis
-    const auto max_axis_value = 10.0;
+    const auto default_max_axis_value = 10.0;
+
+    /// The default offset to be used when setting up the appearance of the graphs
+    const auto default_offset = 0.1;
+    /// The default relative horizontal space to be left
+    const auto default_horizontal_space = 0.15;
+    /// The default relative vertical space to be left
+    const auto default_vertical_space = 0.2;
 
     /**
      * @brief Sends a string command to the Grace CLI
@@ -87,7 +103,36 @@ namespace dft_core
      * @throw GraceException when any of the parameters are not strictly positive
      * @throw GraceCommunicationFailedException  when something goes wrong in the communication with the communication
      */
-    void StartGraceCommunication(const double& x_size, const double& y_size, int buffer_size = 2048);
+    void StartGraceCommunication(const int& x_size, const int& y_size, int buffer_size = 2048);
+
+    /*
+     * @brief Returns the number of rows in which the graphs will be placed
+     *
+     * This simple method just returns 1 if the `number_of_graphs` = 1, and 2 if `number_of_graphs` > 1
+     * @param number_of_graphs the number of graphs to be shown
+     * @throw GraceException when any of the parameters are not strictly positive
+     */
+    int GetNumberOfRows(const int& number_of_graphs);
+
+    /*
+     * @brief Returns the number of columns in which the graphs will be placed
+     *
+     * @param number_of_graphs the number of graphs to be shown
+     * @param number_of_rows the number of rows to use
+     * @throw GraceException when any of the parameters are not strictly positive
+     */
+    int GetNumberOfColumns(const int& number_of_graphs, const int& number_of_rows);
+
+    /*
+     * @brief Returns the ARRANGE(nrows, ncols, offset, hgap, vgap) command as string
+     *
+     * @param number_of_rows the number of rows to be used
+     * @param number_of_columns the number of columns to be used
+     * @param offset the space left at each page edge with
+     * @param horizontal_gap horizontal spacing
+     * @param vertical_gap vertical spacing
+     */
+    std::string ArrangeCommand(const int& number_of_rows, const int& number_of_columns, const float& offset, const float& horizontal_gap, const float& vertical_gap);
 
     /**
      * @brief  Utility: Wrapper for xmgrace graphics program.
@@ -100,7 +145,7 @@ namespace dft_core
         /// Explicit constructor, which avoids implicit conversions
         explicit Grace(int x_size = default_x_size, int y_size = default_y_size, int n_graph = default_number_of_graphs, bool show = true);
         /// Default destructor
-        ~Grace() = default;
+        ~Grace() { GraceClose(); };
 
         /// Inspector of the property `show_` which governs the construction of a Grace object in case of being `false`
         const bool& is_initialised() const { return show_; }
@@ -113,14 +158,29 @@ namespace dft_core
         /// The maximum value for the Y axis
         const double& y_max() const { return x_max_; }
 
+        /// The offset
+        const float& offset() const { return offset_; }
+        /// The hspace to be used when setting up the graphs
+        const float& horizontal_space() const { return horizontal_space_; }
+        /// The vspace to be used when setting up the graphs
+        const float& vertical_space() const { return vertical_space_; }
+
+        /// Setters:
+        void SetXLimits(const double& x_min, const double& x_max) const;
+
       private:
-        double x_min_ = min_axis_value;
-        double x_max_ = max_axis_value;
-        double y_min_ = min_axis_value;
-        double y_max_ = max_axis_value;
+        double x_min_ = default_min_axis_value;
+        double x_max_ = default_max_axis_value;
+        double y_min_ = default_min_axis_value;
+        double y_max_ = default_max_axis_value;
+
         int n_max_data_set_ = default_dataset_number;
         int n_graph_ = default_number_of_graphs;
         bool show_ = false;
+
+        float offset_ = default_offset;
+        float horizontal_space_ = default_horizontal_space;
+        float vertical_space_ = default_vertical_space;
     };
   }
 }
