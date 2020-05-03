@@ -6,7 +6,7 @@
 
 namespace dft_core
 {
-  namespace grace_plot
+  namespace exception
   {
 
     /**
@@ -62,7 +62,7 @@ namespace dft_core
     {
       public:
         GraceCommunicationFailedException();
-        explicit GraceCommunicationFailedException(const std::string& msg);
+        explicit GraceCommunicationFailedException(std::string msg);
     };
 
   }
