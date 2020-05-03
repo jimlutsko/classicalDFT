@@ -48,6 +48,12 @@ namespace dft_core
         std::string cmd = "WORLD YMAX " + std::to_string(y_rounded);
         return cmd;
       }
+      std::string AddPointCommand(const double& x, const double& y, const int& dataset_id, const int& graph_id)
+      {
+        std::string cmd = "g" + std::to_string(graph_id) + ".s" + std::to_string(dataset_id)
+            + " point " + std::to_string(x) + "," + std::to_string(y);
+        return cmd;
+      }
     }
   }
 }
@@ -57,6 +63,7 @@ namespace dft_core
 {
   namespace grace_plot
   {
+    //region General methods
     void SendCommand(const std::string& cmd)
     {
       if (GraceIsOpen()) {
@@ -118,7 +125,9 @@ namespace dft_core
 
       return number_of_columns;
     }
+    //endregion
 
+    //region Grace
     /// The configuration command which eventually sets up the graph
     void SetupGrace(
         const double& x_min, const double& x_max,
@@ -214,9 +223,21 @@ namespace dft_core
 
     void Grace::Close() const
     {
-      if (this->is_initialised()) {
+      if (this->show_) {
         GraceClose();
       }
     }
+
+    void Grace::AddPoint(const double &x, const double &y, const int &dataset_id, const int &graph_id) const
+    {
+      if (graph_id > (n_graph_ - 1)) {
+        throw exception::GraceException("The graph id is out of bounds: Max id =" + std::to_string(n_graph_));
+      }
+
+      if (this->show_) {
+        SendCommand(command::AddPointCommand(x, y, dataset_id, graph_id));
+      }
+    }
+    //endregion
   }
 }

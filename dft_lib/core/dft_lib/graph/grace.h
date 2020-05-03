@@ -85,6 +85,16 @@ namespace dft_core
        * @param x_max the max value the Y-axis will show
        */
       std::string SetYMaxCommand(const double& y_max);
+
+      /**
+       * @brief Returns the "G{N}.S{M} point {X},{Y} command as string
+       *
+       * @param x the x-coordinate of the point
+       * @param y the y-coordinate of the point
+       * @param dataset_id the integer number identifying the dataset the point will be associated top
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       */
+       std::string AddPointCommand(const double& x, const double& y, const int& dataset_id, const int& graph_id);
     }
 
     /// The default X-size of the grace canvas
@@ -199,7 +209,7 @@ namespace dft_core
         /// The vspace to be used when setting up the graphs
         const float& vertical_space() const { return vertical_space_; }
 
-        /// Setters:
+        //region Setters
         void SetXMin(const double& value);
         void SetXMax(const double& value);
         void SetYMin(const double& value);
@@ -207,13 +217,19 @@ namespace dft_core
 
         void SetXLimits(const double& x_min, const double& x_max);
         void SetYLimits(const double& y_min, const double& y_max);
+        //endregion
 
-        /// Methods:
+        //region Methods
+        /**
+         * @brief Adds a point to a certain dataset (`dataset_id`) for given graph (`graph_id`)
+         */
+        void AddPoint(const double& x, const double& y, const int& dataset_id=0, const int& graph_id=0) const;
 
         /**
          * @brief Closes the opened session (if it was opened with the constructor, via `show=true`
          */
         void Close() const;
+        //endregion
 
       private:
         double x_min_ = default_min_axis_value;

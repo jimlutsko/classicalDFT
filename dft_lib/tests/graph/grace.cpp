@@ -81,6 +81,13 @@ TEST(grace_plot_command, y_max_command_ok_test)
   std::string expected = "WORLD YMAX 1.500000";
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
+
+TEST(grace_plot_command, add_point_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::AddPointCommand(1, 2, 0, 0);
+  std::string expected = "g0.s0 point 1.000000,2.000000";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
 //endregion
 
 //region Methods
@@ -313,4 +320,15 @@ TEST(grace_class, getters_setter_y_limits_throws_excp_test)
       dft_core::exception::GraceException
   );
 }
+
+TEST(grace_class, add_point_throws_excp_test)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,0,false);
+
+  EXPECT_THROW(
+      g.AddPoint(1, 1, 0, 3),
+      dft_core::exception::GraceException
+  );
+}
+
 //endregion
