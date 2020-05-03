@@ -1,6 +1,12 @@
-// Graphs
+//region Graphs
 #include "dft_lib/graph/grace.h"
+//endregion
 
-// Exceptions
+//region Exceptions
 #include "dft_lib/exceptions/grace_exception.h"
 #include "dft_lib/exceptions/parameter_exceptions.h"
+//endregion
+
+//region Utils
+#include "dft_lib/utils/console.h"
+//endregion
