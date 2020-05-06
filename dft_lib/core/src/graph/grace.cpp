@@ -15,7 +15,7 @@ namespace dft_core
   {
     namespace command
     {
-      std::string Arrange(const int& number_of_rows, const int& number_of_columns, const float& offset, const float& horizontal_gap, const float& vertical_gap)
+      std::string ArrangeCommand(const int& number_of_rows, const int& number_of_columns, const float& offset, const float& horizontal_gap, const float& vertical_gap)
       {
         std::string cmd = "ARRANGE(" + std::to_string(number_of_rows) + ", "
                           + std::to_string(number_of_columns) + ", "
@@ -50,8 +50,28 @@ namespace dft_core
       }
       std::string AddPointCommand(const double& x, const double& y, const int& dataset_id, const int& graph_id)
       {
-        std::string cmd = "g" + std::to_string(graph_id) + ".s" + std::to_string(dataset_id)
-            + " point " + std::to_string(x) + "," + std::to_string(y);
+        std::string cmd = "G" + std::to_string(graph_id) + ".S" + std::to_string(dataset_id)
+            + " POINT " + std::to_string(x) + "," + std::to_string(y);
+        return cmd;
+      }
+      std::string RedrawCommand()
+      {
+        std::string cmd = "REDRAW";
+        return cmd;
+      }
+      std::string AutoScaleCommand()
+      {
+        std::string cmd = "AUTOSCALE";
+        return cmd;
+      }
+      std::string AutoTicksCommand()
+      {
+        std::string cmd = "AUTOTICKS";
+        return cmd;
+      }
+      std::string FocusCommand(const int& graph_id)
+      {
+        std::string cmd = "FOCUS G" + std::to_string(graph_id);
         return cmd;
       }
     }
@@ -139,7 +159,7 @@ namespace dft_core
       {
         int number_of_rows = GetNumberOfRows(number_of_graphs);
         int number_of_columns = GetNumberOfColumns(number_of_graphs, number_of_rows);
-        SendCommand(command::Arrange(number_of_rows, number_of_columns, offset, hspace, vspace));
+        SendCommand(command::ArrangeCommand(number_of_rows, number_of_columns, offset, hspace, vspace));
       }
 
       SendCommand(command::SetXMinCommand(x_min));
@@ -236,6 +256,24 @@ namespace dft_core
 
       if (this->show_) {
         SendCommand(command::AddPointCommand(x, y, dataset_id, graph_id));
+      }
+    }
+
+    void Grace::Redraw(const bool& auto_scale, const int& graph_id) const
+    {
+      if (this->show_) {
+        if ((graph_id > (n_graph_ - 1)) || (graph_id < 0)) {
+          throw exception::GraceException("The graph id is out of bounds: Min id = 0; Max id =" + std::to_string(n_graph_));
+        } else {
+          SendCommand(command::FocusCommand(graph_id));
+        }
+
+        if (auto_scale) {
+          SendCommand(command::AutoScaleCommand());
+          SendCommand(command::AutoTicksCommand());
+        }
+
+        SendCommand(command::RedrawCommand());
       }
     }
     //endregion

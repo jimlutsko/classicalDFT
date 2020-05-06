@@ -49,7 +49,7 @@ TEST(grace_plot, default_vspace_test)
 //region Commands
 TEST(grace_plot_command, arrange_command_ok_test)
 {
-  std::string actual = dft_core::grace_plot::command::Arrange(1, 2, 0.3, 0.4, 0.5);
+  std::string actual = dft_core::grace_plot::command::ArrangeCommand(1, 2, 0.3, 0.4, 0.5);
   std::string expected = "ARRANGE(1, 2, 0.300000, 0.400000, 0.500000)";
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
@@ -85,7 +85,35 @@ TEST(grace_plot_command, y_max_command_ok_test)
 TEST(grace_plot_command, add_point_command_ok_test)
 {
   std::string actual = dft_core::grace_plot::command::AddPointCommand(1, 2, 0, 0);
-  std::string expected = "g0.s0 point 1.000000,2.000000";
+  std::string expected = "G0.S0 POINT 1.000000,2.000000";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot_command, redraw_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::RedrawCommand();
+  std::string expected = "REDRAW";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot_command, autoticks_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::AutoTicksCommand();
+  std::string expected = "AUTOTICKS";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot_command, autoscale_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::AutoScaleCommand();
+  std::string expected = "AUTOSCALE";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot_command, focus_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::FocusCommand(0);
+  std::string expected = "FOCUS G0";
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
 //endregion
@@ -220,7 +248,6 @@ TEST(grace_class, cttor_show_false_test)
   ASSERT_FALSE(g.is_initialised());
 }
 
-
 TEST(grace_class, getters_setter_xmin_ok_test)
 {
   auto g = dft_core::grace_plot::Grace(10,10,0,false);
@@ -331,4 +358,18 @@ TEST(grace_class, add_point_throws_excp_test)
   );
 }
 
+TEST(grace_class, redraw_throws_excp_graph_id_test)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,0,true);
+
+  EXPECT_THROW(
+      g.Redraw(0, 12),
+      dft_core::exception::GraceException
+  );
+
+  EXPECT_THROW(
+      g.Redraw(0, -10),
+      dft_core::exception::GraceException
+  );
+}
 //endregion

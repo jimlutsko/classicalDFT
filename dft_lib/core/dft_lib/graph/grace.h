@@ -55,13 +55,15 @@ namespace dft_core
        * @param offset the space left at each page edge with
        * @param horizontal_gap horizontal spacing
        * @param vertical_gap vertical spacing
+       * @return std::string
        */
-      std::string Arrange(const int& number_of_rows, const int& number_of_columns, const float& offset, const float& horizontal_gap, const float& vertical_gap);
+      std::string ArrangeCommand(const int& number_of_rows, const int& number_of_columns, const float& offset, const float& horizontal_gap, const float& vertical_gap);
 
       /**
        * @brief Returns the "WORLD XMIN x_min" command as string
        *
        * @param x_min the minimum value the X-axis will show
+       * @return std::string
        */
       std::string SetXMinCommand(const double& x_min);
 
@@ -69,6 +71,7 @@ namespace dft_core
        * @brief Returns the "WORLD XMAX x_min" command as string
        *
        * @param x_max the max value the X-axis will show
+       * @return std::string
        */
       std::string SetXMaxCommand(const double& x_max);
 
@@ -76,6 +79,7 @@ namespace dft_core
        * @brief Returns the "WORLD YMIN y_min" command as string
        *
        * @param x_min the minimum value the Y-axis will show
+       * @return std::string
        */
       std::string SetYMinCommand(const double& y_min);
 
@@ -83,6 +87,7 @@ namespace dft_core
        * @brief Returns the "WORLD YMAX y_min" command as string
        *
        * @param x_max the max value the Y-axis will show
+       * @return std::string
        */
       std::string SetYMaxCommand(const double& y_max);
 
@@ -93,8 +98,34 @@ namespace dft_core
        * @param y the y-coordinate of the point
        * @param dataset_id the integer number identifying the dataset the point will be associated top
        * @param graph_id the integer number identifying the graph the point will be represented on
+       * @return std::string
        */
-       std::string AddPointCommand(const double& x, const double& y, const int& dataset_id, const int& graph_id);
+      std::string AddPointCommand(const double& x, const double& y, const int& dataset_id, const int& graph_id);
+
+      /**
+        * @brief Returns the "REDRAW" command as string
+        * @return std::string
+        */
+      std::string RedrawCommand();
+
+      /**
+       * @brief Returns the "AUTOSCALE" command as string
+       * @return std::string
+       */
+      std::string AutoScaleCommand();
+
+      /**
+       * @brief Returns the "AUTOTICKS" command as string
+       * @return std::string
+       */
+      std::string AutoTicksCommand();
+
+      /**
+       * @brief Returns the "FOCUS G{N}"
+       * @param graph_id the graph int identifier to focus
+       * @return std::string
+       */
+      std::string FocusCommand(const int& graph_id);
     }
 
     /// The default X-size of the grace canvas
@@ -185,65 +216,79 @@ namespace dft_core
     */
     class Grace
     {
-      public:
-        /// Explicit constructor, which avoids implicit conversions
-        explicit Grace(int x_size = default_x_size, int y_size = default_y_size, int n_graph = default_number_of_graphs, bool show = true);
-        /// Default destructor
-        ~Grace() { this->Close(); };
+    public:
+      /// Explicit constructor, which avoids implicit conversions
+      explicit Grace(int x_size = default_x_size, int y_size = default_y_size, int n_graph = default_number_of_graphs, bool show = true);
+      /// Default destructor
+      ~Grace() { this->Close(); };
 
-        /// Inspector of the property `show_` which governs the construction of a Grace object in case of being `false`
-        const bool& is_initialised() const { return show_; }
-        /// The minimum value for the X axis
-        const double& x_min() const { return x_min_; }
-        /// The maximum value for the X axis
-        const double& x_max() const { return x_max_; }
-        /// The minimum value for the Y axis
-        const double& y_min() const { return y_min_; }
-        /// The maximum value for the Y axis
-        const double& y_max() const { return y_max_; }
+      /// Inspector of the property `show_` which governs the construction of a Grace object in case of being `false`
+      const bool& is_initialised() const { return show_; }
+      /// The minimum value for the X axis
+      const double& x_min() const { return x_min_; }
+      /// The maximum value for the X axis
+      const double& x_max() const { return x_max_; }
+      /// The minimum value for the Y axis
+      const double& y_min() const { return y_min_; }
+      /// The maximum value for the Y axis
+      const double& y_max() const { return y_max_; }
 
-        /// The offset
-        const float& offset() const { return offset_; }
-        /// The hspace to be used when setting up the graphs
-        const float& horizontal_space() const { return horizontal_space_; }
-        /// The vspace to be used when setting up the graphs
-        const float& vertical_space() const { return vertical_space_; }
+      /// The offset
+      const float& offset() const { return offset_; }
+      /// The hspace to be used when setting up the graphs
+      const float& horizontal_space() const { return horizontal_space_; }
+      /// The vspace to be used when setting up the graphs
+      const float& vertical_space() const { return vertical_space_; }
 
-        //region Setters
-        void SetXMin(const double& value);
-        void SetXMax(const double& value);
-        void SetYMin(const double& value);
-        void SetYMax(const double& value);
+      //region Setters
+      void SetXMin(const double& value);
+      void SetXMax(const double& value);
+      void SetYMin(const double& value);
+      void SetYMax(const double& value);
 
-        void SetXLimits(const double& x_min, const double& x_max);
-        void SetYLimits(const double& y_min, const double& y_max);
-        //endregion
+      void SetXLimits(const double& x_min, const double& x_max);
+      void SetYLimits(const double& y_min, const double& y_max);
+      //endregion
 
-        //region Methods
-        /**
-         * @brief Adds a point to a certain dataset (`dataset_id`) for given graph (`graph_id`)
-         */
-        void AddPoint(const double& x, const double& y, const int& dataset_id=0, const int& graph_id=0) const;
+      //region Methods
+      /**
+       * @brief Adds a point to a certain dataset (`dataset_id`) for given graph (`graph_id`)
+       *
+       * @param x the x-coordinate of the point
+       * @param y the y-coordinate of the point
+       * @param dataset_id the integer number identifying the dataset the point will be associated top
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       */
+      void AddPoint(const double& x, const double& y, const int& dataset_id=0, const int& graph_id=0) const;
 
-        /**
-         * @brief Closes the opened session (if it was opened with the constructor, via `show=true`
-         */
-        void Close() const;
-        //endregion
+      /**
+       * @brief Closes the opened session (if it was opened with the constructor, via `show=true`
+       */
+      void Close() const;
 
-      private:
-        double x_min_ = default_min_axis_value;
-        double x_max_ = default_max_axis_value;
-        double y_min_ = default_min_axis_value;
-        double y_max_ = default_max_axis_value;
+      /**
+       * @brief Updates the graph by using the `redraw` command
+       *
+       * @param auto_scale if true will autoscale the graph when redrawing
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       */
+      void Redraw(const bool& auto_scale, const int& graph_id) const;
 
-        int n_max_data_set_ = default_dataset_number;
-        int n_graph_ = default_number_of_graphs;
-        bool show_ = false;
+      //endregion
 
-        float offset_ = default_offset;
-        float horizontal_space_ = default_horizontal_space;
-        float vertical_space_ = default_vertical_space;
+    private:
+      double x_min_ = default_min_axis_value;
+      double x_max_ = default_max_axis_value;
+      double y_min_ = default_min_axis_value;
+      double y_max_ = default_max_axis_value;
+
+      int n_max_data_set_ = default_dataset_number;
+      int n_graph_ = default_number_of_graphs;
+      bool show_ = false;
+
+      float offset_ = default_offset;
+      float horizontal_space_ = default_horizontal_space;
+      float vertical_space_ = default_vertical_space;
     };
   }
 }
