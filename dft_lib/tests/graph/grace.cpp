@@ -3,6 +3,9 @@
 #include "dft_lib/graph/grace.h"
 #include "dft_lib/exceptions/grace_exception.h"
 
+template<class T = double>
+using Vector = std::vector<T>;
+
 //region Default values
 TEST(grace_plot, default_min_axis_value_test)
 {
@@ -16,7 +19,7 @@ TEST(grace_plot, default_max_axis_value_test)
 
 TEST(grace_plot, default_dataset_number_test)
 {
-  EXPECT_EQ(dft_core::grace_plot::default_dataset_number, 0);
+  EXPECT_EQ(dft_core::grace_plot::default_dataset_id, 0);
 }
 
 TEST(grace_plot, default_x_y_size_test)
@@ -243,6 +246,8 @@ TEST(grace_class, cttor_show_false_test)
   ASSERT_DOUBLE_EQ(g.y_min(), 0.0);
   ASSERT_DOUBLE_EQ(g.y_max(), 10.0);
   ASSERT_FLOAT_EQ(g.offset(), 0.1);
+  ASSERT_EQ(g.last_dataset_id(), 0);
+  ASSERT_EQ(g.number_of_graphs(), 0);
   ASSERT_FLOAT_EQ(g.horizontal_space(), 0.15);
   ASSERT_FLOAT_EQ(g.vertical_space(), 0.2);
   ASSERT_FALSE(g.is_initialised());
@@ -363,13 +368,50 @@ TEST(grace_class, redraw_throws_excp_graph_id_test)
   auto g = dft_core::grace_plot::Grace(10,10,0,true);
 
   EXPECT_THROW(
-      g.Redraw(0, 12),
+      g.Redraw(false, false, 12),
       dft_core::exception::GraceException
   );
 
   EXPECT_THROW(
-      g.Redraw(0, -10),
+      g.Redraw(false, false, -10),
       dft_core::exception::GraceException
   );
+}
+
+TEST(grace_class, add_dataset_throws_excp_xy_size_test)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,0,true);
+
+  auto x = Vector<>(10);
+  auto y = Vector<>(12);
+
+  EXPECT_THROW(
+      g.AddDataset(x, y),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, add_dataset_throws_excp_graph_id_test)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,0,true);
+
+  auto x = Vector<>(10);
+  auto y = Vector<>(10);
+
+  EXPECT_THROW(
+      g.AddDataset(x, y, 12),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, add_dataset_works_ok)
+{
+  auto g = dft_core::grace_plot::Grace(10,10);
+
+  auto x = Vector<>(10);
+  auto y = Vector<>(10);
+
+  int dataset_id = g.AddDataset(x, y);
+  ASSERT_EQ(g.last_dataset_id(), dataset_id);
 }
 //endregion

@@ -185,13 +185,13 @@ namespace dft_core
         offset_(default_offset),
         horizontal_space_(default_horizontal_space),
         vertical_space_(default_vertical_space),
-        n_max_data_set_(default_dataset_number), n_graph_(n_graph),
+        last_dataset_id_(default_dataset_id), number_of_graphs_(n_graph),
         show_(show)
     {
       if (show_) {
         RegisterGraceErrorFunction();
         StartGraceCommunication(x_size, y_size);
-        SetupGrace(x_min_, x_max_, y_min_, y_max_, n_graph_, offset_, horizontal_space_, vertical_space_);
+        SetupGrace(x_min_, x_max_, y_min_, y_max_, number_of_graphs_, offset_, horizontal_space_, vertical_space_);
       }
     }
 
@@ -250,8 +250,8 @@ namespace dft_core
 
     void Grace::AddPoint(const double &x, const double &y, const int &dataset_id, const int &graph_id) const
     {
-      if (graph_id > (n_graph_ - 1)) {
-        throw exception::GraceException("The graph id is out of bounds: Max id =" + std::to_string(n_graph_));
+      if (graph_id > (number_of_graphs_ - 1)) {
+        throw exception::GraceException("The graph id is out of bounds: Max id =" + std::to_string(number_of_graphs_));
       }
 
       if (this->show_) {
@@ -259,17 +259,38 @@ namespace dft_core
       }
     }
 
-    void Grace::Redraw(const bool& auto_scale, const int& graph_id) const
+    int Grace::AddDataset(std::vector<double> const& x, std::vector<double> const& y, const int& graph_id)
+    {
+      if (x.size() != y.size()) {
+        throw exception::GraceException("The dataset must have equal-size X and Y:"
+                                        " x_size = " + std::to_string(x.size()) + "!=" +
+                                        " y_size = " + std::to_string(y.size()));
+      }
+
+      last_dataset_id_ += 1;
+
+      unsigned int length = x.size();
+      for (uint k = 0; k < length; k++) {
+        this->AddPoint(x[k], y[k], last_dataset_id_, graph_id);
+      }
+
+      return last_dataset_id_;
+    }
+
+    void Grace::Redraw(const bool& auto_scale, const bool& auto_ticks, const int& graph_id) const
     {
       if (this->show_) {
-        if ((graph_id > (n_graph_ - 1)) || (graph_id < 0)) {
-          throw exception::GraceException("The graph id is out of bounds: Min id = 0; Max id =" + std::to_string(n_graph_));
+        if ((graph_id > (number_of_graphs_ - 1)) || (graph_id < 0)) {
+          throw exception::GraceException("The graph id is out of bounds: Min id = 0; Max id =" + std::to_string(number_of_graphs_));
         } else {
           SendCommand(command::FocusCommand(graph_id));
         }
 
         if (auto_scale) {
           SendCommand(command::AutoScaleCommand());
+        }
+
+        if (auto_ticks) {
           SendCommand(command::AutoTicksCommand());
         }
 

@@ -132,8 +132,8 @@ namespace dft_core
     const int default_x_size = 800;
     /// The default Y-size of the grace canvas
     const int default_y_size = 600;
-
-    const int default_dataset_number = 0;
+    /// The default dataset id
+    const int default_dataset_id = 0;
     /// The default number of graphs to be drawn on the same canvas
     const int default_number_of_graphs = 1;
     /// The value to be used as the default minimum of an axis
@@ -232,6 +232,10 @@ namespace dft_core
       const double& y_min() const { return y_min_; }
       /// The maximum value for the Y axis
       const double& y_max() const { return y_max_; }
+      /// The total number of graphs
+      const int& number_of_graphs() const { return number_of_graphs_; }
+      /// The integer id of the last dataset
+      const int& last_dataset_id() const { return last_dataset_id_; }
 
       /// The offset
       const float& offset() const { return offset_; }
@@ -257,9 +261,22 @@ namespace dft_core
        * @param x the x-coordinate of the point
        * @param y the y-coordinate of the point
        * @param dataset_id the integer number identifying the dataset the point will be associated top
-       * @param graph_id the integer number identifying the graph the point will be represented on
+       * @param graph_id the integer number identifying the graph the point will be represented on (default=0)
+       * @throw GraceException when the graph_id given is out of bounds
        */
       void AddPoint(const double& x, const double& y, const int& dataset_id=0, const int& graph_id=0) const;
+
+      /**
+       * @brief Adds a tuple (X, Y) of `std::vector` objects which represent a dataset
+       *
+       * @param x a std::vector of X double-like values
+       * @param y a std:vector of Y double-like values
+       * @param graph_id the integer number identifying the graph the dataset will be represented on (default=0)
+       * @returns the integer identifying the dataset within the graph
+       * @throw GraceException when the dataset size is not well-balanced, i.e. x.size() != y.size()
+       * @throw GraceException when the graph_id given is out of bounds
+       */
+      int AddDataset(std::vector<double> const &x, std::vector<double> const &y, const int& graph_id = 0);
 
       /**
        * @brief Closes the opened session (if it was opened with the constructor, via `show=true`
@@ -270,10 +287,10 @@ namespace dft_core
        * @brief Updates the graph by using the `redraw` command
        *
        * @param auto_scale if true will autoscale the graph when redrawing
-       * @param graph_id the integer number identifying the graph the point will be represented on
+       * @param auto_ticks if true will set automatically the best-fit ticks for X and Y axes
+       * @param graph_id the integer number identifying the graph the point will be represented on (default=0)
        */
-      void Redraw(const bool& auto_scale, const int& graph_id) const;
-
+      void Redraw(const bool& auto_scale = false, const bool& auto_ticks = true, const int& graph_id = 0) const;
       //endregion
 
     private:
@@ -282,8 +299,8 @@ namespace dft_core
       double y_min_ = default_min_axis_value;
       double y_max_ = default_max_axis_value;
 
-      int n_max_data_set_ = default_dataset_number;
-      int n_graph_ = default_number_of_graphs;
+      int last_dataset_id_ = default_dataset_id;
+      int number_of_graphs_ = default_number_of_graphs;
       bool show_ = false;
 
       float offset_ = default_offset;
