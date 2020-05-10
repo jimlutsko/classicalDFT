@@ -462,4 +462,32 @@ TEST(grace_class, replace_dataset_works_ok)
 
   EXPECT_EQ(0, g.last_dataset_id());
 }
+
+TEST(grace_class, delete_dataset_throws_excp_dataset_id)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+
+  auto x = Vector<>(10);
+  auto y = Vector<>(10);
+
+  g.AddPoint(0, 0);
+  EXPECT_THROW(
+      g.DeleteDataset(1, 0),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, delete_dataset_throws_excp_graph_id)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+
+  auto x = Vector<>(10);
+  auto y = Vector<>(10);
+
+  g.AddPoint(0, 0);
+  EXPECT_THROW(
+      g.DeleteDataset(0, 1),
+      dft_core::exception::GraceException
+  );
+}
 //endregion

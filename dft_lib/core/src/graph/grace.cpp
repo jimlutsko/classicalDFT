@@ -333,12 +333,22 @@ namespace dft_core
       return last_dataset_id_;
     }
 
-    void Grace::ReplaceDataset(std::vector<double> const& x, std::vector<double> const& y, const int& dataset_id, const int& graph_id) const
+    void Grace::DeleteDataset(const int& dataset_id, const int& graph_id)
+    {
+      CheckDatasetInBounds(dataset_id, this->last_dataset_id());
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+
+      SendCommand(command::KillSetCommand(dataset_id, graph_id));
+      this->DecreaseLastDatasetId();
+    }
+
+    void Grace::ReplaceDataset(std::vector<double> const& x, std::vector<double> const& y, const int& dataset_id, const int& graph_id)
     {
       CheckEqualLength(x, y);
       CheckDatasetInBounds(dataset_id, this->last_dataset_id());
       CheckGraphIdInBounds(graph_id, this->number_of_graphs());
 
+      this->DeleteDataset(dataset_id, graph_id);
       AddDatasetToGraceObject(this, x, y, dataset_id, graph_id);
     }
 

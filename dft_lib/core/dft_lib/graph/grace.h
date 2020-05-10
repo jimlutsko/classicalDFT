@@ -121,18 +121,18 @@ namespace dft_core
       std::string AutoTicksCommand();
 
       /**
-       * @brief Returns the "FOCUS G{N}"
+       * @brief Returns the "FOCUS G{N}" command as string
        * @param graph_id the graph int identifier to focus
        * @return std::string
        */
       std::string FocusCommand(const int& graph_id);
 
       /**
-       * @brief Kills set at a given graph
+       * @brief Returns the "KILL G{N}.S{M}" command as string
        *
        * @param dataset_id the dataset int identifier to remove
        * @param graph_id the graph int identifier where the dataset lives in
-       * @return
+       * @return std::string
        */
       std::string KillSetCommand(const int& dataset_id, const int& graph_id);
     }
@@ -298,7 +298,15 @@ namespace dft_core
        * @throw GraceException when the dataset size is not well-balanced, i.e. x.size() != y.size()
        * @throw GraceException when the graph_id given is out of bounds
        */
-      void ReplaceDataset(std::vector<double> const &x, std::vector<double> const &y, const int& dataset_id, const int& graph_id = 0) const;
+      void ReplaceDataset(std::vector<double> const &x, std::vector<double> const &y, const int& dataset_id, const int& graph_id = 0);
+
+      /**
+       * @brief Deletes a dataset identified by `dataset_id` on the graph identified by `graph_id`
+       *
+       * @param dataset_id the integer identifier of the dataset to be deleted
+       * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       */
+      void DeleteDataset(const int& dataset_id, const int& graph_id = 0);
 
       /**
        * @brief Closes the opened session (if it was opened with the constructor, via `show=true`
