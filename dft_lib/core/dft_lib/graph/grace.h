@@ -135,6 +135,8 @@ namespace dft_core
        * @return std::string
        */
       std::string KillSetCommand(const int& dataset_id, const int& graph_id);
+
+      std::string SetLegendCommand(const std::string& legend);
     }
 
     /// The default X-size of the grace canvas
@@ -337,6 +339,8 @@ namespace dft_core
        * @throws GraceException in case the graph_id given is out of bounds
        */
       void RedrawAndWait(const bool& auto_scale = false, const bool& auto_ticks = true, const int& graph_id = 0) const;
+
+      void SetLegend(const std::string& legend) const;
       //endregion
 
     private:

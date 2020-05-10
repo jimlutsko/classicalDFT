@@ -80,6 +80,11 @@ namespace dft_core
         std::string cmd = "KILL G" + std::to_string(graph_id) + "." + "S" + std::to_string(dataset_id);
         return cmd;
       }
+      std::string SetLegendCommand(const std::string& legend)
+      {
+        std::string cmd = "S LEGEND \"" + legend + "\"";
+        return cmd;
+      }
     }
   }
 }
@@ -339,7 +344,7 @@ namespace dft_core
       CheckGraphIdInBounds(graph_id, this->number_of_graphs());
 
       SendCommand(command::KillSetCommand(dataset_id, graph_id));
-      this->DecreaseLastDatasetId();
+      //this->DecreaseLastDatasetId();
     }
 
     void Grace::ReplaceDataset(std::vector<double> const& x, std::vector<double> const& y, const int& dataset_id, const int& graph_id)
@@ -382,6 +387,11 @@ namespace dft_core
     {
       this->Redraw(auto_scale, auto_ticks, graph_id);
       this->Wait();
+    }
+
+    void Grace::SetLegend(const std::string& legend) const
+    {
+      SendCommand(command::SetLegendCommand(legend));
     }
     //endregion
   }

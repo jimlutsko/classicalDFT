@@ -126,6 +126,13 @@ TEST(grace_plot_command, kill_set_command_ok_test)
   std::string expected = "KILL G2.S1";
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
+
+TEST(grace_plot_command, set_legend_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::SetLegendCommand("test");
+  std::string expected = "S LEGEND \"test\"";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
 //endregion
 
 //region Methods
