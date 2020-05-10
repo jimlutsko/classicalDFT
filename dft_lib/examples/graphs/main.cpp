@@ -23,21 +23,41 @@ int main(int argc, char **argv)
   g.SetXLimits(x_vector.min(), x_vector.max());
   g.SetYLimits(y_vector.min(), y_vector.max());
 
-  g.Redraw();
-  console::wait();
+  g.RedrawAndWait();
   //endregion
 
   //region Example of adding dataset
   console::info("Adding new dataset");
   arma::vec z_vector = arma::cos(x_vector);
 
-  auto graph_id = g.AddDataset(
+  auto dataset_id = g.AddDataset(
       arma::conv_to<std::vector<double>>::from(x_vector),
       arma::conv_to<std::vector<double>>::from(z_vector)
-      );
-
-  g.Redraw();
-  console::debug("The graph id = " + std::to_string(graph_id));
-  console::wait();
+  );
+  console::debug("The new dataset id = " + std::to_string(dataset_id));
+  g.RedrawAndWait();
   //endregion
+
+  //region Example of replacing dataset
+  console::info("Example: Replacing existing dataset");
+  arma::vec w_vector = arma::tan(x_vector);
+
+  auto existing_dataset_id = g.AddDataset(
+      arma::conv_to<std::vector<double>>::from(x_vector),
+      arma::conv_to<std::vector<double>>::from(w_vector)
+  );
+  console::debug("The new dataset id = " + std::to_string(dataset_id));
+  g.RedrawAndWait();
+
+  console::warning("Replacing dataset id: " + std::to_string(existing_dataset_id));
+  w_vector = arma::sqrt(x_vector)/sqrt(2*M_PI);
+  g.ReplaceDataset(
+      arma::conv_to<std::vector<double>>::from(x_vector),
+      arma::conv_to<std::vector<double>>::from(w_vector),
+      existing_dataset_id
+  );
+  console::debug("The replaced graph id = " + std::to_string(existing_dataset_id));
+  g.RedrawAndWait();
+  //endregion
+
 }

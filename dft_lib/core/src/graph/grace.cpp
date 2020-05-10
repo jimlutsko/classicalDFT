@@ -8,6 +8,7 @@
 #include <string>
 
 #include "dft_lib/exceptions/grace_exception.h"
+#include "dft_lib/utils/console.h"
 
 namespace dft_core
 {
@@ -74,6 +75,11 @@ namespace dft_core
         std::string cmd = "FOCUS G" + std::to_string(graph_id);
         return cmd;
       }
+      std::string KillSetCommand(const int& dataset_id, const int& graph_id)
+      {
+        std::string cmd = "KILL G" + std::to_string(graph_id) + "." + "S" + std::to_string(dataset_id);
+        return cmd;
+      }
     }
   }
 }
@@ -83,10 +89,54 @@ namespace dft_core
 {
   namespace grace_plot
   {
+    //region static methods
+
+    static void AddDatasetToGraceObject(const Grace* g, std::vector<double> const& x, std::vector<double> const& y, const int& dataset_id, const int& graph_id)
+    {
+      unsigned int length = x.size();
+      for (uint k = 0; k < length; k++)
+      {
+        g->AddPoint(x[k], y[k], dataset_id, graph_id);
+      }
+    }
+
+    static bool CheckEqualLength(std::vector<double> const& x, std::vector<double> const& y)
+    {
+      if (x.size() != y.size())
+      {
+        throw exception::GraceException("The dataset must have equal-size X and Y:"
+                                        " x_size = " + std::to_string(x.size()) + "!=" +
+                                        " y_size = " + std::to_string(y.size()));
+      }
+      return true;
+    }
+
+    static bool CheckGraphIdInBounds(const int& graph_id, const int& total_number_of_graphs)
+    {
+      if ((graph_id > (total_number_of_graphs - 1)) || (graph_id < 0))
+      {
+        throw exception::GraceException("The graph id is out of bounds: Min id = 0; Max id =" + std::to_string(total_number_of_graphs));
+      }
+      return true;
+    }
+
+    static bool CheckDatasetInBounds(const int& dataset_id, const int& last_dataset_id)
+    {
+      if (dataset_id < 0 || dataset_id > last_dataset_id)
+      {
+        throw exception::GraceException("The dataset id is out of bounds: Min id = 0; Last dataset id =" + std::to_string(last_dataset_id));
+      }
+      return true;
+    }
+
+    //endregion
+
     //region General methods
+
     void SendCommand(const std::string& cmd)
     {
-      if (GraceIsOpen()) {
+      if (GraceIsOpen())
+      {
         try { GracePrintf(cmd.c_str()); }
         catch (...) { throw dft_core::exception::GraceCommunicationFailedException(); }
       }
@@ -100,20 +150,24 @@ namespace dft_core
 
     void RegisterGraceErrorFunction()
     {
-      try {
+      try
+      {
         GraceRegisterErrorFunction(ErrorParsingFunction);
       }
-      catch (const std::exception& e) {
+      catch (const std::exception& e)
+      {
         throw dft_core::exception::GraceException("ErrorParsingFunction could not be registered by xmgrace");
       }
     }
 
     void StartGraceCommunication(const int& x_size, const int& y_size, int buffer_size)
     {
-      if ((x_size <= 0) || (y_size <= 0)) {
+      if ((x_size <= 0) || (y_size <= 0))
+      {
         throw dft_core::exception::GraceException("The xmgrace-canvas dimensions cannot be negative!");
       }
-      if (buffer_size <= 0) {
+      if (buffer_size <= 0)
+      {
         throw dft_core::exception::GraceException("The communication buffer size cannot be negative!");
       }
 
@@ -148,6 +202,7 @@ namespace dft_core
     //endregion
 
     //region Grace
+
     /// The configuration command which eventually sets up the graph
     void SetupGrace(
         const double& x_min, const double& x_max,
@@ -235,7 +290,8 @@ namespace dft_core
       this->SetYMin(y_min);
       this->SetYMax(y_max);
 
-      if (this->show_) {
+      if (this->show_)
+      {
         SendCommand(command::SetYMinCommand(this->y_min()));
         SendCommand(command::SetYMaxCommand(this->y_max()));
       }
@@ -243,46 +299,55 @@ namespace dft_core
 
     void Grace::Close() const
     {
-      if (this->show_) {
+      if (this->show_)
+      {
         GraceClose();
       }
     }
 
     void Grace::AddPoint(const double &x, const double &y, const int &dataset_id, const int &graph_id) const
     {
-      if (graph_id > (number_of_graphs_ - 1)) {
-        throw exception::GraceException("The graph id is out of bounds: Max id =" + std::to_string(number_of_graphs_));
-      }
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
 
-      if (this->show_) {
+      if (this->show_)
+      {
         SendCommand(command::AddPointCommand(x, y, dataset_id, graph_id));
       }
     }
 
+    void Grace::IncreaseLastDatasetId()
+    {
+      this->last_dataset_id_ += 1;
+    }
+
+    void Grace::DecreaseLastDatasetId()
+    {
+      this->last_dataset_id_ -= 1;
+    }
+
     int Grace::AddDataset(std::vector<double> const& x, std::vector<double> const& y, const int& graph_id)
     {
-      if (x.size() != y.size()) {
-        throw exception::GraceException("The dataset must have equal-size X and Y:"
-                                        " x_size = " + std::to_string(x.size()) + "!=" +
-                                        " y_size = " + std::to_string(y.size()));
-      }
-
-      last_dataset_id_ += 1;
-
-      unsigned int length = x.size();
-      for (uint k = 0; k < length; k++) {
-        this->AddPoint(x[k], y[k], last_dataset_id_, graph_id);
-      }
-
+      CheckEqualLength(x, y);
+      this->IncreaseLastDatasetId();
+      AddDatasetToGraceObject(this, x, y, this->last_dataset_id(), graph_id);
       return last_dataset_id_;
+    }
+
+    void Grace::ReplaceDataset(std::vector<double> const& x, std::vector<double> const& y, const int& dataset_id, const int& graph_id) const
+    {
+      CheckEqualLength(x, y);
+      CheckDatasetInBounds(dataset_id, this->last_dataset_id());
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+
+      AddDatasetToGraceObject(this, x, y, dataset_id, graph_id);
     }
 
     void Grace::Redraw(const bool& auto_scale, const bool& auto_ticks, const int& graph_id) const
     {
-      if (this->show_) {
-        if ((graph_id > (number_of_graphs_ - 1)) || (graph_id < 0)) {
-          throw exception::GraceException("The graph id is out of bounds: Min id = 0; Max id =" + std::to_string(number_of_graphs_));
-        } else {
+      if (this->show_)
+      {
+        if (CheckGraphIdInBounds(graph_id, this->number_of_graphs()))
+        {
           SendCommand(command::FocusCommand(graph_id));
         }
 
@@ -296,6 +361,17 @@ namespace dft_core
 
         SendCommand(command::RedrawCommand());
       }
+    }
+
+    void Grace::Wait() const
+    {
+      console::wait();
+    }
+
+    void Grace::RedrawAndWait(const bool& auto_scale, const bool& auto_ticks, const int& graph_id) const
+    {
+      this->Redraw(auto_scale, auto_ticks, graph_id);
+      this->Wait();
     }
     //endregion
   }

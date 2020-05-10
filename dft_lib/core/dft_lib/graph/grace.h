@@ -126,6 +126,15 @@ namespace dft_core
        * @return std::string
        */
       std::string FocusCommand(const int& graph_id);
+
+      /**
+       * @brief Kills set at a given graph
+       *
+       * @param dataset_id the dataset int identifier to remove
+       * @param graph_id the graph int identifier where the dataset lives in
+       * @return
+       */
+      std::string KillSetCommand(const int& dataset_id, const int& graph_id);
     }
 
     /// The default X-size of the grace canvas
@@ -279,9 +288,27 @@ namespace dft_core
       int AddDataset(std::vector<double> const &x, std::vector<double> const &y, const int& graph_id = 0);
 
       /**
+       * @brief Replace an existing dataset with a tuple (X, Y) of `std::vector` objects which represent a new dataset
+       *
+       * @param x a std::vector of X double-like values
+       * @param y a std:vector of Y double-like values
+       * @param dataset_id the integer identifier of the dataset to be replaced with new data
+       * @param graph_id the integer number identifying the graph the dataset will be represented on (default=0)
+       * @returns the integer identifying the dataset within the graph
+       * @throw GraceException when the dataset size is not well-balanced, i.e. x.size() != y.size()
+       * @throw GraceException when the graph_id given is out of bounds
+       */
+      void ReplaceDataset(std::vector<double> const &x, std::vector<double> const &y, const int& dataset_id, const int& graph_id = 0) const;
+
+      /**
        * @brief Closes the opened session (if it was opened with the constructor, via `show=true`
        */
       void Close() const;
+
+      /**
+       * @brief Pauses the terminal awaiting for the user interaction
+       */
+      void Wait() const;
 
       /**
        * @brief Updates the graph by using the `redraw` command
@@ -289,8 +316,19 @@ namespace dft_core
        * @param auto_scale if true will autoscale the graph when redrawing
        * @param auto_ticks if true will set automatically the best-fit ticks for X and Y axes
        * @param graph_id the integer number identifying the graph the point will be represented on (default=0)
+       * @throws GraceException in case the graph_id given is out of bounds
        */
       void Redraw(const bool& auto_scale = false, const bool& auto_ticks = true, const int& graph_id = 0) const;
+
+      /**
+       * @brief Wrapper of Redraw and Wait functionality to play together for convenience
+       *
+       * @param auto_scale if true will autoscale the graph when redrawing
+       * @param auto_ticks if true will set automatically the best-fit ticks for X and Y axes
+       * @param graph_id the integer number identifying the graph the point will be represented on (default=0)
+       * @throws GraceException in case the graph_id given is out of bounds
+       */
+      void RedrawAndWait(const bool& auto_scale = false, const bool& auto_ticks = true, const int& graph_id = 0) const;
       //endregion
 
     private:
@@ -306,6 +344,9 @@ namespace dft_core
       float offset_ = default_offset;
       float horizontal_space_ = default_horizontal_space;
       float vertical_space_ = default_vertical_space;
+
+      void IncreaseLastDatasetId();
+      void DecreaseLastDatasetId();
     };
   }
 }

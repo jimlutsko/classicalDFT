@@ -119,6 +119,13 @@ TEST(grace_plot_command, focus_command_ok_test)
   std::string expected = "FOCUS G0";
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
+
+TEST(grace_plot_command, kill_set_command_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::KillSetCommand(1, 2);
+  std::string expected = "KILL G2.S1";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
 //endregion
 
 //region Methods
@@ -413,5 +420,46 @@ TEST(grace_class, add_dataset_works_ok)
 
   int dataset_id = g.AddDataset(x, y);
   ASSERT_EQ(g.last_dataset_id(), dataset_id);
+}
+
+TEST(grace_class, replace_dataset_throws_excp_dataset_id_test)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+
+  auto x = Vector<>(10);
+  auto y = Vector<>(10);
+
+  g.AddPoint(0, 0);
+  EXPECT_THROW(
+      g.ReplaceDataset(x, y, 1),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, replace_dataset_throws_excp_graph_id_test)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+
+  auto x = Vector<>(10);
+  auto y = Vector<>(10);
+
+  g.AddPoint(0, 0);
+  EXPECT_THROW(
+      g.ReplaceDataset(x, y, 0, 2),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, replace_dataset_works_ok)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+
+  auto x = Vector<>(10);
+  auto y = Vector<>(10);
+
+  g.AddPoint(0, 0);
+  g.ReplaceDataset(x, y, 0, 0);
+
+  EXPECT_EQ(0, g.last_dataset_id());
 }
 //endregion
