@@ -129,8 +129,15 @@ TEST(grace_plot_command, kill_set_command_ok_test)
 
 TEST(grace_plot_command, set_legend_ok_test)
 {
-  std::string actual = dft_core::grace_plot::command::SetLegendCommand("test");
-  std::string expected = "S LEGEND \"test\"";
+  std::string actual = dft_core::grace_plot::command::SetLegendCommand("test", 1, 0);
+  std::string expected = "G0.S1 LEGEND \"test\"";
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot_command, set_line_color_id_ok_test)
+{
+  std::string actual = dft_core::grace_plot::command::SetLineColorCommand(dft_core::grace_plot::RED, 1, 0);
+  std::string expected = "G0.S1 LINE COLOR 2";
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
 //endregion
@@ -494,6 +501,50 @@ TEST(grace_class, delete_dataset_throws_excp_graph_id)
   g.AddPoint(0, 0);
   EXPECT_THROW(
       g.DeleteDataset(0, 1),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, set_legend_throws_excp_dataset_id)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  g.AddPoint(0, 0);
+
+  EXPECT_THROW(
+      g.SetLegend("test", 1, 0),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, set_legend_throws_excp_graph_id)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  g.AddPoint(0, 0);
+
+  EXPECT_THROW(
+      g.SetLegend("test", 0, 1),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, set_color_throws_excp_dataset_id)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  g.AddPoint(0, 0);
+
+  EXPECT_THROW(
+      g.SetColor(dft_core::grace_plot::BLUE, 1, 0),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, set_color_throws_excp_graph_id)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  g.AddPoint(0, 0);
+
+  EXPECT_THROW(
+      g.SetColor(dft_core::grace_plot::RED, 0, 1),
       dft_core::exception::GraceException
   );
 }

@@ -32,6 +32,25 @@ namespace dft_core
       SQUARE
     };
 
+    enum Color {
+      WHITE = 0,
+      BLACK,
+      RED,
+      GREEN,
+      BLUE,
+      YELLOW,
+      BROWN,
+      GREY,
+      VIOLET,
+      CYAN,
+      MAGENTA,
+      ORANGE,
+      INDIGO,
+      MAROON,
+      TURQUOISE,
+      DARKGREEN
+    };
+
     namespace option
     {
       /// Option to specify free page layout
@@ -136,7 +155,15 @@ namespace dft_core
        */
       std::string KillSetCommand(const int& dataset_id, const int& graph_id);
 
-      std::string SetLegendCommand(const std::string& legend);
+      /**
+       * @brief Returns the "S LEGEND `legend`" command as string
+       * @param legend the legend to be set
+       * @return std::string
+       */
+      std::string SetLegendCommand(const std::string& legend, const int& dataset_id, const int& graph_id);
+
+      std::string SetLineColorCommand(const grace_plot::Color& color_id, const int& dataset_id, const int& graph_id);
+      std::string SetSymbolColorCommand(const grace_plot::Color& color_id, const int& dataset_id, const int& graph_id);
     }
 
     /// The default X-size of the grace canvas
@@ -307,6 +334,8 @@ namespace dft_core
        *
        * @param dataset_id the integer identifier of the dataset to be deleted
        * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       * @throws GraceException in case the dataset_id given is out of bounds
+       * @throws GraceException in case the graph_id given is out of bounds
        */
       void DeleteDataset(const int& dataset_id, const int& graph_id = 0);
 
@@ -340,7 +369,27 @@ namespace dft_core
        */
       void RedrawAndWait(const bool& auto_scale = false, const bool& auto_ticks = true, const int& graph_id = 0) const;
 
-      void SetLegend(const std::string& legend) const;
+      /**
+       * @brief Sets the legend of the graph
+       *
+       * @param legend the string to be set as legend of the graph
+       * @param dataset_id the integer identifier of the dataset to be deleted
+       * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       * @throws GraceException in case the dataset_id given is out of bounds
+       * @throws GraceException in case the graph_id given is out of bounds
+       */
+      void SetLegend(const std::string& legend, const int& dataset_id, const int& graph_id = 0) const;
+
+      /**
+       * @brief Sets a given `dataset_id` of a given `graph_id` with the specified `color_id`
+       *
+       * @param color the integer identifying the color
+       * @param dataset_id the integer identifier of the dataset to be deleted
+       * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       * @throws GraceException in case the dataset_id given is out of bounds
+       * @throws GraceException in case the graph_id given is out of bounds
+       */
+      void SetColor(const Color& color, const int& dataset_id, const int& graph_id = 0) const;
       //endregion
 
     private:

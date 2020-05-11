@@ -52,7 +52,7 @@ namespace dft_core
       std::string AddPointCommand(const double& x, const double& y, const int& dataset_id, const int& graph_id)
       {
         std::string cmd = "G" + std::to_string(graph_id) + ".S" + std::to_string(dataset_id)
-            + " POINT " + std::to_string(x) + "," + std::to_string(y);
+                          + " POINT " + std::to_string(x) + "," + std::to_string(y);
         return cmd;
       }
       std::string RedrawCommand()
@@ -80,9 +80,24 @@ namespace dft_core
         std::string cmd = "KILL G" + std::to_string(graph_id) + "." + "S" + std::to_string(dataset_id);
         return cmd;
       }
-      std::string SetLegendCommand(const std::string& legend)
+      std::string SetLegendCommand(const std::string& legend, const int& dataset_id, const int& graph_id)
       {
-        std::string cmd = "S LEGEND \"" + legend + "\"";
+        std::string cmd = "G" + std::to_string(graph_id)
+                          + ".S" + std::to_string(dataset_id)
+                          + " LEGEND \"" + legend + "\"";
+        return cmd;
+      }
+      std::string SetLineColorCommand(const grace_plot::Color& color_id, const int& dataset_id, const int& graph_id)
+      {
+        std::string cmd = "G" + std::to_string(graph_id)
+                          + ".S" + std::to_string(dataset_id)
+                          + " LINE COLOR " + std::to_string(static_cast<int>(color_id));
+        return cmd;
+      }
+      std::string SetSymbolColorCommand(const grace_plot::Color& color_id, const int& dataset_id, const int& graph_id) {
+        std::string cmd = "G" + std::to_string(graph_id)
+                          + ".S" + std::to_string(dataset_id)
+                          + " SYMBOL COLOR " + std::to_string(static_cast<int>(color_id));
         return cmd;
       }
     }
@@ -345,6 +360,8 @@ namespace dft_core
 
       SendCommand(command::KillSetCommand(dataset_id, graph_id));
       //this->DecreaseLastDatasetId();
+
+      this->SetColor(static_cast<Color>((this->last_dataset_id() % 10) + 1), dataset_id, graph_id);
     }
 
     void Grace::ReplaceDataset(std::vector<double> const& x, std::vector<double> const& y, const int& dataset_id, const int& graph_id)
@@ -389,9 +406,21 @@ namespace dft_core
       this->Wait();
     }
 
-    void Grace::SetLegend(const std::string& legend) const
+    void Grace::SetLegend(const std::string& legend, const int& dataset_id, const int& graph_id) const
     {
-      SendCommand(command::SetLegendCommand(legend));
+      CheckDatasetInBounds(dataset_id, this->last_dataset_id());
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+
+      SendCommand(command::SetLegendCommand(legend, dataset_id, graph_id));
+    }
+
+    void Grace::SetColor(const Color& color, const int& dataset_id, const int& graph_id) const
+    {
+      CheckDatasetInBounds(dataset_id, this->last_dataset_id());
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+
+      SendCommand(command::SetLineColorCommand(color, dataset_id, graph_id));
+      SendCommand(command::SetSymbolColorCommand(color, dataset_id, graph_id));
     }
     //endregion
   }
