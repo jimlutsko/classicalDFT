@@ -78,12 +78,18 @@ namespace dft_core
       D_DOTTEDDASHEDLINE_EM,
     };
 
+    /**
+     * @brief The axis X or Y
+     */
     enum Axis
     {
       X,
       Y
     };
 
+    /**
+     * @bried Some fundamental options needed when initialising Grace
+     */
     namespace option
     {
       /// Option to specify free page layout

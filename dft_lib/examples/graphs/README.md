@@ -1,3 +1,25 @@
+# Grace wrapper
+
+### Introduction
+
+One of the main challenges of any numerical project, as is the case of `classicalDFT`, is the tracking of the results being obtained. This is of remarkable importance in any iterative process whose stoping depends on the fulfilment or not of certain numerical criteria, e.g. convergence/distance measures, tolerance matrix values, etc. Obviously, this can always be printed out via console writing. However, a more useful way tends to be the graphical representation of such quantities/measures *in live*. This is why the live connectivity to graphical tools allowing us to can dump large amounts of data for graphical representation, without having to stop the numerical algorithm, is of crucial importance. No need to say, how convenient is the use of such tools for quick "testing" a proof of concept. For this reason, we've chosen a quite simple yet powerful tool which fulfils our needs, the free-software [grace](https://plasma-gate.weizmann.ac.il/Grace/doc/UsersGuide.html#ss1.1). 
+
+Besides being free, grace offers the basic functionality we require for most of our numerical problems. However, the interface offered by its free headers (written in `C`) is quite verbose, which is why we thought convenient to develop a wrapper 100% unit-tested to look alike some of the modern graphical libraries for, say, `Python`.
+
+Our wrapper lives within the `dft_core` namespace, which is the core namespace of the `classicalDFT` library, and is encapsulated within the namespace `grace_plot`. The wrapper consists mainly in a `class` and several `enum` structures. Basically:
+
+* `grace_plot::command`: This is a namespace where we have gathered all the relevant grace commands as standard strings, which will be used in the `Grace` implementation
+* `grace_plot::Color`: This is an `enum` which contains all the colours available in grace
+* `grace_plot::Axis`: An `enum` to contain all possible axes, i.e. `X` and `Y`
+* `grace_plot::Symbol`: The `enum` containing all possible symbol shapes to be used when representing data
+* `grace_plot::ExportFormat`: An `enum` with all possible exporting formats
+* `grace_plot::Grace`: The `class` wrapping `grace_np.h`. This class provides an interface for the xmgrace graphics program which can be called programmatically to provide a tactical solution for displaying dynamically updated line graphs etc.
+
+### Examples
+
+The best way of showing the convenience offered by `grace_plot::Grace` is by example. Thus, we are going to proceed by directing the code in `main.cpp`:
+
+```c++
 #include <cmath>
 #include <armadillo>
 #include "classical_dft"
@@ -134,3 +156,54 @@ int main(int argc, char **argv)
   g.RedrawAndWait(false, false);
   //endregion
 }
+```
+
+We have used `regions` with the aim of better discussing the different parts of the code and their output. After compilation and running we will get the following results (we have left the terminal opened on the right hand side to better show the flow of the program):
+
+#### Constructor and adding points to the default dataset
+
+![example-1](figures/screenshots/example-1.png)
+
+#### Adding dataset
+
+![example-2](figures/screenshots/example-2.png)
+
+#### Replacing dataset
+
+![example-3](figures/screenshots/example-3.png)
+
+#### Setting axis labels
+
+![example-4](figures/screenshots/example-4.png)
+
+#### Setting graph title and subtitle
+
+![example-5](figures/screenshots/example-5.png)
+
+#### Setting limits
+
+![example-6](figures/screenshots/example-6.png)
+
+#### Setting ticks
+
+![example-7](figures/screenshots/example-7.png)
+
+#### Setting line type
+
+![example-8](figures/screenshots/example-8.png)
+
+#### Setting symbol colours and fills
+
+![example-9](figures/screenshots/example-9.png)
+
+#### Setting symbols size
+
+![example-10](figures/screenshots/example-10.png)
+
+#### Exporting to all formats
+
+The result of exporting to `ExportFormat::PDF` can be checked here => [test_graph.pdf](figures/export/test_graph.pdf) 
+
+### Issues
+
+Should you find any issue with the currently implemented methods or should you have any suggestions for new functionality to be implemented, please do let us know by utilising the standard ways of communication in [GitHub](https://guides.github.com/features/issues/).

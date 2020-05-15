@@ -2,11 +2,11 @@
 
 int main(int argc, char **argv)
 {
-  console::info("Hello world");
-  console::warning("This is a warning");
-  console::error("This is an error!!");
-  console::debug("This is a debugging message");
-  console::write_line(console::format::bold("Bold text"));
-  console::write_line(console::format::blink("Blinking"));
-  console::wait();
+  console::Info("Hello world");
+  console::Warning("This is a warning");
+  console::Error("This is an error!!");
+  console::Debug("This is a debugging message");
+  console::WriteLine(console::format::Bold("Bold text"));
+  console::WriteLine(console::format::Blink("Blinking"));
+  console::Wait();
 }

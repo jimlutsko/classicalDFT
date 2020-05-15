@@ -7,7 +7,7 @@ TEST(console, write_works_ok)
 {
   testing::internal::CaptureStdout();
 
-  console::write("test");
+  console::Write("test");
   std::string output = testing::internal::GetCapturedStdout();
 
   auto expected_str = std::string("test");
@@ -18,7 +18,7 @@ TEST(console, write_line_works_ok)
 {
   testing::internal::CaptureStdout();
 
-  console::write_line("test");
+  console::WriteLine("test");
   std::string output = testing::internal::GetCapturedStdout();
 
   auto expected_str = std::string("test\n");
@@ -29,7 +29,7 @@ TEST(console, new_line_works_ok)
 {
   testing::internal::CaptureStdout();
 
-  console::new_line();
+  console::NewLine();
   std::string output = testing::internal::GetCapturedStdout();
 
   auto expected_str = std::string("\n");

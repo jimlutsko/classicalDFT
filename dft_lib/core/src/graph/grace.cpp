@@ -172,7 +172,7 @@ namespace dft_core
         } else if (ExportFormat::EPS1 == format) {
           format_s = "EPS1";
         } else {
-          console::warning("The format specified is not yet implemented. Exporting as PNG...");
+          console::Warning("The format specified is not yet implemented. Exporting as PNG...");
           format_s = "PNG";
         }
 
@@ -497,7 +497,7 @@ namespace dft_core
 
     void Grace::Wait() const
     {
-      console::wait();
+      console::Wait();
     }
 
     void Grace::RedrawAndWait(const bool& auto_scale, const bool& auto_ticks, const int& graph_id) const
