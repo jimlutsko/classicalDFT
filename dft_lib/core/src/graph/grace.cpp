@@ -333,6 +333,12 @@ namespace dft_core
       }
     }
 
+    void Grace::SetLimits(const double &x_min, const double &x_max, const double &y_min, const double &y_max)
+    {
+      this->SetXLimits(x_min, x_max);
+      this->SetYLimits(y_min, y_max);
+    }
+
     void Grace::Close() const
     {
       if (this->show_)

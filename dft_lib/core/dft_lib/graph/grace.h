@@ -336,6 +336,8 @@ namespace dft_core
 
       void SetXLimits(const double& x_min, const double& x_max);
       void SetYLimits(const double& y_min, const double& y_max);
+
+      void SetLimits(const double& x_min, const double& x_max, const double& y_min, const double& y_max);
       //endregion
 
       //region Methods
