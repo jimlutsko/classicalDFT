@@ -339,6 +339,11 @@ namespace dft_core
       this->SetYLimits(y_min, y_max);
     }
 
+    void Grace::SetLimits(const std::vector<double>& x_limits, const std::vector<double>& y_limits)
+    {
+      this->SetLimits(x_limits.front(), x_limits.back(), y_limits.front(), y_limits.back());
+    }
+
     void Grace::Close() const
     {
       if (this->show_)

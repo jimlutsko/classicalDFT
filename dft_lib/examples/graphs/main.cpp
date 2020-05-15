@@ -78,4 +78,10 @@ int main(int argc, char **argv)
   g.SetSubtitle("And this is the subtitle");
   g.RedrawAndWait();
   //endregion
+
+  //region Example of setting limits
+  console::info("Example: Setting the limits");
+  g.SetLimits(std::vector<double>{ -0.1, 2*M_PI+0.1 }, std::vector<double>{-1.2, 1.2});
+  g.RedrawAndWait();
+  //endregion
 }

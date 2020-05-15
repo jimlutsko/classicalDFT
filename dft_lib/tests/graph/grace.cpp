@@ -402,6 +402,27 @@ TEST(grace_class, getters_setter_y_limits_throws_excp_test)
   );
 }
 
+TEST(grace_class, getters_setter_limits_ok_test)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,0,false);
+
+  double expected_x_min = -5; double expected_x_max = 12;
+  double expected_y_min = -10; double expected_y_max = 20;
+
+  std::vector<double> x_limits { expected_x_min, expected_x_max };
+  std::vector<double> y_limits { expected_y_min, expected_y_max };
+
+  g.SetLimits(x_limits, y_limits);
+
+  auto actual_x_min = g.x_min(); auto actual_x_max = g.x_max();
+  auto actual_y_min = g.y_min(); auto actual_y_max = g.y_max();
+
+  ASSERT_DOUBLE_EQ(actual_x_min, expected_x_min);
+  ASSERT_DOUBLE_EQ(actual_y_min, expected_y_min);
+  ASSERT_DOUBLE_EQ(actual_x_max, expected_x_max);
+  ASSERT_DOUBLE_EQ(actual_y_max, expected_y_max);
+}
+
 TEST(grace_class, add_point_throws_excp_test)
 {
   auto g = dft_core::grace_plot::Grace(10,10,0,false);
