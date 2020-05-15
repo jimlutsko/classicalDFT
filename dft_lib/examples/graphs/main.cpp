@@ -71,4 +71,11 @@ int main(int argc, char **argv)
   g.SetLabel("This is Y", dft_core::grace_plot::Axis::Y);
   g.RedrawAndWait();
   //endregion
+
+  //region Example of graph title
+  console::info("Example: Setting the Title and Subtitle");
+  g.SetTitle("This is the title");
+  g.SetSubtitle("And this is the subtitle");
+  g.RedrawAndWait();
+  //endregion
 }

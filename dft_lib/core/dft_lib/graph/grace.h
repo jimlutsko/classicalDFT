@@ -189,7 +189,27 @@ namespace dft_core
        */
       std::string SetSymbolColorCommand(const grace_plot::Color& color, const int& dataset_id, const int& graph_id);
 
+      /**
+       * @brief Returns the "{XY}AXIS LABEL {TEXT}" command as string
+       * @param label the text to be set as label of the axis
+       * @param axis the `grace_plot::Axis` where the text will serve as label, either X or Y
+       * @return std::string
+       */
       std::string SetAxisLabelCommand(const std::string& label, const grace_plot::Axis& axis);
+
+      /**
+       * @brief Returns the "TITLE '{TEXT}'" command as string
+       * @param title the text to be set as the title of the graph
+       * @return std::string
+       */
+      std::string SetTitleCommand(const std::string& title);
+
+      /**
+       * @brief Returns the "SUBTITLE '{TEXT}'" command as string
+       * @param title the text to be set as the subtitle of the graph
+       * @return std::string
+       */
+      std::string SetSubtitleCommand(const std::string& subtitle);
     }
 
     /// The default X-size of the grace canvas
@@ -426,6 +446,20 @@ namespace dft_core
        * @throws GraceException in case the graph_id given is out of bounds
        */
       void SetLabel(const std::string& label, const Axis& axis, const int& graph_id = 0) const;
+
+      /**
+       * @brief Sets the graph's Title
+       *
+       * @param title the text which will be set as the title of the graph
+       */
+      void SetTitle(const std::string& title) const;
+
+      /**
+       * @brief Sets the graph's Subitle
+       *
+       * @param title the text which will be set as the subtitle of the graph
+       */
+      void SetSubtitle(const std::string& subtitle) const;
       //endregion
 
     private:

@@ -154,6 +154,20 @@ TEST(grace_plot_command, set_label_yaxis_ok_test)
   std::string actual = dft_core::grace_plot::command::SetAxisLabelCommand("test", dft_core::grace_plot::Axis::Y);
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
+
+TEST(grace_plot_command, set_title_ok_test)
+{
+  std::string expected = "TITLE \"test\"";
+  std::string actual = dft_core::grace_plot::command::SetTitleCommand("test");
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot_command, set_subtitle_ok_test)
+{
+  std::string expected = "SUBTITLE \"subtest\"";
+  std::string actual = dft_core::grace_plot::command::SetSubtitleCommand("subtest");
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
 //endregion
 
 //region Methods

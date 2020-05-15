@@ -106,6 +106,16 @@ namespace dft_core
         std::string cmd = axis_string + "AXIS LABEL \"" + label + "\"";
         return cmd;
       }
+      std::string SetTitleCommand(const std::string& title)
+      {
+        std::string cmd = "TITLE \"" + title + "\"";
+        return cmd;
+      }
+      std::string SetSubtitleCommand(const std::string& subtitle)
+      {
+        std::string cmd = "SUBTITLE \"" + subtitle + "\"";
+        return cmd;
+      }
     }
   }
 }
@@ -435,6 +445,16 @@ namespace dft_core
 
       if (graph_id > 0) { SendCommand(command::FocusCommand(graph_id)); }
       SendCommand(command::SetAxisLabelCommand(label, axis));
+    }
+
+    void Grace::SetTitle(const std::string &title) const
+    {
+      SendCommand(command::SetTitleCommand(title));
+    }
+
+    void Grace::SetSubtitle(const std::string &subtitle) const
+    {
+      SendCommand(command::SetSubtitleCommand(subtitle));
     }
     //endregion
   }
