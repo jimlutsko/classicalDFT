@@ -27,9 +27,17 @@ namespace dft_core
     /**
      * @brief Supported shapes for the data points
      */
-    enum Shape {
-      CIRCLE,
-      SQUARE
+    enum Symbol {
+      CIRCLE=1,
+      SQUARE,
+      DIAMOND,
+      TRIANGLE_UP,
+      TRIANGLE_LEFT,
+      TRIANGLE_DOWN,
+      TRIANGLE_RIGHT,
+      PLUS,
+      CROSS,
+      STAR,
     };
 
     /**
@@ -217,6 +225,16 @@ namespace dft_core
        * @return std::string
        */
       std::string SetTicksCommand(const double& tick_sep, const Axis& axis);
+
+
+      /**
+       * @brief Returns the "G{N}.S{M} SYMBOL {ID}" command as string
+       * @param symbol_id one of the possible symbol values
+       * @param dataset_id the integer number identifying the dataset the point will be associated top
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       * @return std::string
+       */
+      std::string SetSymbolCommand(const Symbol& symbol, const int& dataset_id, const int& graph_id);
     }
 
     /// The default X-size of the grace canvas
@@ -485,6 +503,17 @@ namespace dft_core
        * @param graph_id
        */
       void SetTicks(const double& dx, const double& dy, const int& graph_id = 0) const;
+
+      /**
+       * @brief Sets the symbol shape of given `dataset_id` of a given `graph_id`
+       *
+       * @param symbol_id one of the possible values of enum::Symbol
+       * @param dataset_id the integer identifier of the dataset to be deleted
+       * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       * @throws GraceException in case the dataset_id given is out of bounds
+       * @throws GraceException in case the graph_id given is out of bounds
+       */
+      void SetSymbol(const Symbol& symbol, const int& dataset_id, const int& graph_id = 0) const;
 
       //endregion
 

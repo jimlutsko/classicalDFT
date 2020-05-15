@@ -175,6 +175,13 @@ TEST(grace_plot_command, set_ticks_ok_test)
   std::string actual = dft_core::grace_plot::command::SetTicksCommand(0.01, dft_core::grace_plot::Axis::X);
   ASSERT_STREQ(expected.c_str(), actual.c_str());
 }
+
+TEST(grace_plot_command, set_symbol_ok_test)
+{
+  std::string expected = "G0.S1 SYMBOL 2";
+  std::string actual = dft_core::grace_plot::command::SetSymbolCommand(dft_core::grace_plot::Symbol::SQUARE, 1, 0);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+}
 //endregion
 
 //region Methods

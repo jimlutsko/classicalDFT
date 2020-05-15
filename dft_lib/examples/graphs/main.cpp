@@ -90,4 +90,12 @@ int main(int argc, char **argv)
   g.SetTicks(0.5, 0.1);
   g.RedrawAndWait(false, false);
   //endregion
+
+  //region Example of setting symbols
+  console::info("Example: Setting the tick spacing");
+  g.SetSymbol(dft_core::grace_plot::Symbol::TRIANGLE_DOWN, 0);
+  g.SetSymbol(dft_core::grace_plot::Symbol::TRIANGLE_LEFT, 1);
+  g.SetSymbol(dft_core::grace_plot::Symbol::DIAMOND, 2);
+  g.RedrawAndWait(false, false);
+  //endregion
 }

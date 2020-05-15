@@ -123,6 +123,13 @@ namespace dft_core
         std::string cmd = axis_string + "AXIS TICK MAJOR " + std::to_string(tick_sep_f);
         return cmd;
       }
+      std::string SetSymbolCommand(const Symbol& symbol_id, const int& dataset_id, const int& graph_id)
+      {
+        std::string cmd = "G" + std::to_string(graph_id)
+            + ".S" + std::to_string(dataset_id)
+            + " SYMBOL " + std::to_string(static_cast<int>(symbol_id));
+        return cmd;
+      }
     }
   }
 }
@@ -487,6 +494,14 @@ namespace dft_core
       SendCommand(command::FocusCommand(graph_id));
       SendCommand(command::SetTicksCommand(dx, Axis::X));
       SendCommand(command::SetTicksCommand(dy, Axis::Y));
+    }
+
+    void Grace::SetSymbol(const Symbol &symbol, const int &dataset_id, const int &graph_id) const
+    {
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+      CheckDatasetInBounds(dataset_id, this->last_dataset_id());
+
+      SendCommand(command::SetSymbolCommand(symbol, dataset_id, graph_id));
     }
     //endregion
   }
