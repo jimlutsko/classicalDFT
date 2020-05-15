@@ -142,6 +142,13 @@ namespace dft_core
             + " SYMBOL " + std::to_string(static_cast<int>(symbol_id));
         return cmd;
       }
+      std::string SetLineType(const LineType& line_type, const int& dataset_id, const int& graph_id)
+      {
+        std::string cmd = "G" + std::to_string(graph_id)
+                          + ".S" + std::to_string(dataset_id)
+                          + " LINE TYPE " + std::to_string(static_cast<int>(line_type));
+        return cmd;
+      }
     }
   }
 }
@@ -531,6 +538,14 @@ namespace dft_core
 
       SendCommand(command::SetSymbolColorFillPattern(pattern_id, dataset_id, graph_id));
       SendCommand(command::SetSymbolColorFillCommand(color, dataset_id, graph_id));
+    }
+
+    void Grace::SetLineType(const LineType &line_type, const int &dataset_id, const int &graph_id) const
+    {
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+      CheckDatasetInBounds(dataset_id, this->last_dataset_id());
+
+      SendCommand(command::SetLineType(line_type, dataset_id, graph_id));
     }
     //endregion
   }

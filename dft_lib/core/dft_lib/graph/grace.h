@@ -62,6 +62,22 @@ namespace dft_core
       DARKGREEN
     };
 
+    /**
+    * @brief The possible line patterns
+    */
+    enum LineType
+    {
+      NO_LINE=0,
+      LINE=1,
+      DOTTEDLINE,
+      DASHEDLINE_EN,
+      DASHEDLINE_EM,
+      DOTTEDDASHEDLINE_EN,
+      DOTTEDDASHEDLINE_EM,
+      D_DOTTEDDASHEDLINE_EN,
+      D_DOTTEDDASHEDLINE_EM,
+    };
+
     enum Axis
     {
       X,
@@ -247,12 +263,21 @@ namespace dft_core
 
       /**
        * @brief Returns the "G{N}.S{M} SYMBOL {SYMBOL}" command as string
-       * @param symbol_id one of the possible symbol values
+       * @param symbol one of the possible symbol values
        * @param dataset_id the integer number identifying the dataset the point will be associated top
        * @param graph_id the integer number identifying the graph the point will be represented on
        * @return std::string
        */
       std::string SetSymbolCommand(const Symbol& symbol, const int& dataset_id, const int& graph_id);
+
+      /**
+       * @brief Returns the "G{N}.S{M} LINE TYPE {LINE_TYPE}" command as string
+       * @param line_type one of the possible symbol values
+       * @param dataset_id the integer number identifying the dataset the point will be associated top
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       * @return std::string
+       */
+      std::string SetLineType(const LineType& line_type, const int& dataset_id, const int& graph_id);
     }
 
     /// The default X-size of the grace canvas
@@ -557,6 +582,16 @@ namespace dft_core
        */
       void SetSymbolFill(const Color& color, const int& dataset_id, const int& graph_id = 0, const int& pattern_id = 1) const;
 
+      /**
+       * @brief Sets the symbol fill in a given `dataset_id` of a given `graph_id`
+       *
+       * @param line_type one of the possible values of enum::LineType
+       * @param dataset_id the integer identifier of the dataset to be deleted
+       * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       * @throws GraceException in case the dataset_id given is out of bounds
+       * @throws GraceException in case the graph_id given is out of bounds
+       */
+      void SetLineType(const LineType& line_type, const int& dataset_id, const int& graph_id = 0) const;
       //endregion
 
     private:

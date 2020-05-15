@@ -91,7 +91,19 @@ int main(int argc, char **argv)
   g.RedrawAndWait(false, false);
   //endregion
 
-  //region Example of setting symbols
+  //region Example of setting line type
+  console::info("Example: Setting the line type");
+  g.SetLineType(dft_core::grace_plot::LineType::NO_LINE, 0);
+  g.RedrawAndWait(false, false);
+  g.SetLineType(dft_core::grace_plot::LineType::LINE, 0);
+  g.RedrawAndWait(false, false);
+  g.SetLineType(dft_core::grace_plot::LineType::DOTTEDLINE, 0);
+  g.RedrawAndWait(false, false);
+  g.SetLineType(dft_core::grace_plot::LineType::DASHEDLINE_EN, 0);
+  g.RedrawAndWait(false, false);
+  //endregion
+
+  //region Example of setting symbols and fills
   console::info("Example: Setting symbol and symbol color");
   g.SetSymbol(dft_core::grace_plot::Symbol::TRIANGLE_DOWN, 0);
   g.SetSymbolColor(dft_core::grace_plot::Color::BLUE, 0);
