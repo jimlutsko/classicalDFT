@@ -123,5 +123,4 @@ int main(int argc, char **argv)
   g.SetSymbolSize(1.5,1);
   g.RedrawAndWait(false, false);
   //endregion
-
 }
