@@ -92,10 +92,16 @@ int main(int argc, char **argv)
   //endregion
 
   //region Example of setting symbols
-  console::info("Example: Setting the tick spacing");
+  console::info("Example: Setting symbol and symbol color");
   g.SetSymbol(dft_core::grace_plot::Symbol::TRIANGLE_DOWN, 0);
+  g.SetSymbolColor(dft_core::grace_plot::Color::BLUE, 0);
+  g.SetSymbolFill(dft_core::grace_plot::Color::BLUE, 0, 0, 4);
+
   g.SetSymbol(dft_core::grace_plot::Symbol::TRIANGLE_LEFT, 1);
+  g.SetSymbolColor(dft_core::grace_plot::Color::DARKGREEN, 1);
+
   g.SetSymbol(dft_core::grace_plot::Symbol::DIAMOND, 2);
+  g.SetSymbolFill(dft_core::grace_plot::Color::RED, 2);
   g.RedrawAndWait(false, false);
   //endregion
 }

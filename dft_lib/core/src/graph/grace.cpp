@@ -100,6 +100,18 @@ namespace dft_core
                           + " SYMBOL COLOR " + std::to_string(static_cast<int>(color));
         return cmd;
       }
+      std::string SetSymbolColorFillCommand(const grace_plot::Color& color, const int& dataset_id, const int& graph_id) {
+        std::string cmd = "G" + std::to_string(graph_id)
+                          + ".S" + std::to_string(dataset_id)
+                          + " SYMBOL FILL COLOR " + std::to_string(static_cast<int>(color));
+        return cmd;
+      }
+      std::string SetSymbolColorFillPattern(const int& pattern_id, const int& dataset_id, const int& graph_id) {
+        std::string cmd = "G" + std::to_string(graph_id)
+                          + ".S" + std::to_string(dataset_id)
+                          + " SYMBOL FILL PATTERN " + std::to_string(pattern_id);
+        return cmd;
+      }
       std::string SetAxisLabelCommand(const std::string& label, const grace_plot::Axis& axis)
       {
         std::string axis_string = (axis == Axis::X ? "X" : "Y");
@@ -502,6 +514,23 @@ namespace dft_core
       CheckDatasetInBounds(dataset_id, this->last_dataset_id());
 
       SendCommand(command::SetSymbolCommand(symbol, dataset_id, graph_id));
+    }
+
+    void Grace::SetSymbolColor(const Color &color, const int &dataset_id, const int &graph_id) const
+    {
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+      CheckDatasetInBounds(dataset_id, this->last_dataset_id());
+
+      SendCommand(command::SetSymbolColorCommand(color, dataset_id, graph_id));
+    }
+
+    void Grace::SetSymbolFill(const Color &color, const int &dataset_id, const int &graph_id, const int &pattern_id) const
+    {
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+      CheckDatasetInBounds(dataset_id, this->last_dataset_id());
+
+      SendCommand(command::SetSymbolColorFillPattern(pattern_id, dataset_id, graph_id));
+      SendCommand(command::SetSymbolColorFillCommand(color, dataset_id, graph_id));
     }
     //endregion
   }

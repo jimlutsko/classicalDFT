@@ -189,13 +189,31 @@ namespace dft_core
       std::string SetLineColorCommand(const grace_plot::Color& color, const int& dataset_id, const int& graph_id);
 
       /**
-       * @brief Returns the "G{N}.S{M} SYMBOL COLOR {ID}" command as string
+       * @brief Returns the "G{N}.S{M} SYMBOL COLOR {COLOR}" command as string
        * @param color one of the possible grace_plot::Color values
        * @param dataset_id the integer number identifying the dataset the point will be associated top
        * @param graph_id the integer number identifying the graph the point will be represented on
        * @return std::string
        */
       std::string SetSymbolColorCommand(const grace_plot::Color& color, const int& dataset_id, const int& graph_id);
+
+      /**
+       * @brief Returns the "G{N}.S{M} SYMBOL FILL COLOR {COLOR}" command as string
+       * @param color one of the possible grace_plot::Color values
+       * @param dataset_id the integer number identifying the dataset the point will be associated top
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       * @return std::string
+       */
+      std::string SetSymbolColorFillCommand(const grace_plot::Color& color, const int& dataset_id, const int& graph_id);
+
+      /**
+       * @brief Returns the "G{N}.S{M} SYMBOL FILL COLOR {COLOR}" command as string
+       * @param pattern_id integer determining the fill pattern of the symbol
+       * @param dataset_id the integer number identifying the dataset the point will be associated top
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       * @return std::string
+       */
+      std::string SetSymbolColorFillPattern(const int& pattern_id, const int& dataset_id, const int& graph_id);
 
       /**
        * @brief Returns the "{XY}AXIS LABEL {TEXT}" command as string
@@ -228,7 +246,7 @@ namespace dft_core
 
 
       /**
-       * @brief Returns the "G{N}.S{M} SYMBOL {ID}" command as string
+       * @brief Returns the "G{N}.S{M} SYMBOL {SYMBOL}" command as string
        * @param symbol_id one of the possible symbol values
        * @param dataset_id the integer number identifying the dataset the point will be associated top
        * @param graph_id the integer number identifying the graph the point will be represented on
@@ -507,13 +525,37 @@ namespace dft_core
       /**
        * @brief Sets the symbol shape of given `dataset_id` of a given `graph_id`
        *
-       * @param symbol_id one of the possible values of enum::Symbol
+       * @param symbol one of the possible values of enum::Symbol
        * @param dataset_id the integer identifier of the dataset to be deleted
        * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
        * @throws GraceException in case the dataset_id given is out of bounds
        * @throws GraceException in case the graph_id given is out of bounds
        */
       void SetSymbol(const Symbol& symbol, const int& dataset_id, const int& graph_id = 0) const;
+
+      /**
+       * @brief Sets the symbol color in a given `dataset_id` of a given `graph_id`
+       *
+       * @param color one of the possible values of enum::Color
+       * @param dataset_id the integer identifier of the dataset to be deleted
+       * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       * @throws GraceException in case the dataset_id given is out of bounds
+       * @throws GraceException in case the graph_id given is out of bounds
+       */
+      void SetSymbolColor(const Color& color, const int& dataset_id, const int& graph_id = 0) const;
+
+
+      /**
+       * @brief Sets the symbol fill in a given `dataset_id` of a given `graph_id`
+       *
+       * @param color one of the possible values of enum::Color
+       * @param dataset_id the integer identifier of the dataset to be deleted
+       * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       * @param pattern_id an integer identifying the pattern to fill the symbol (default=1)
+       * @throws GraceException in case the dataset_id given is out of bounds
+       * @throws GraceException in case the graph_id given is out of bounds
+       */
+      void SetSymbolFill(const Color& color, const int& dataset_id, const int& graph_id = 0, const int& pattern_id = 1) const;
 
       //endregion
 

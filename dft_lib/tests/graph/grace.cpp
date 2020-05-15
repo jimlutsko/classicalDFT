@@ -182,6 +182,27 @@ TEST(grace_plot_command, set_symbol_ok_test)
   std::string actual = dft_core::grace_plot::command::SetSymbolCommand(dft_core::grace_plot::Symbol::SQUARE, 1, 0);
   ASSERT_STREQ(expected.c_str(), actual.c_str());
 }
+
+TEST(grace_plot_command, set_symbol_color_ok_test)
+{
+  std::string expected = "G0.S1 SYMBOL COLOR 1";
+  std::string actual = dft_core::grace_plot::command::SetSymbolColorCommand(dft_core::grace_plot::Color::BLACK, 1, 0);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+}
+
+TEST(grace_plot_command, set_symbol_fill_color_ok_test)
+{
+  std::string expected = "G0.S1 SYMBOL FILL COLOR 1";
+  std::string actual = dft_core::grace_plot::command::SetSymbolColorFillCommand(dft_core::grace_plot::Color::BLACK, 1, 0);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+}
+
+TEST(grace_plot_command, set_symbol_fill_pattern_ok_test)
+{
+  std::string expected = "G0.S1 SYMBOL FILL PATTERN 1";
+  std::string actual = dft_core::grace_plot::command::SetSymbolColorFillPattern(1, 1, 0);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+}
 //endregion
 
 //region Methods
