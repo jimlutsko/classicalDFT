@@ -111,4 +111,4 @@ main(){
 #     - debug
 #     - test
 exec_mode=$1
-main $exec_mode
+main "$exec_mode"

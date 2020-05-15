@@ -12,6 +12,7 @@ WORKDIR ${APP_DIR}
 COPY ${LIB_DIR}/cmake ./${LIB_DIR}/cmake
 COPY ${LIB_DIR}/core ./${LIB_DIR}/core
 COPY ${LIB_DIR}/tests ./${LIB_DIR}/tests
+COPY ${LIB_DIR}/examples ./${LIB_DIR}/examples
 COPY ${LIB_DIR}/CMakeLists.txt ./${LIB_DIR}/CMakeLists.txt
 
 COPY ${BUILD_SH} .
@@ -50,4 +51,3 @@ RUN mkdir /usr/local/lib/googletest \
 # Testing:
 WORKDIR ${APP_DIR}
 ENTRYPOINT ["./buildlib.sh", "test"]
-

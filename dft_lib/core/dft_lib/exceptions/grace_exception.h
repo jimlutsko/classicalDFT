@@ -2,10 +2,11 @@
 #define CLASSICALDFT_GRACE_EXCEPTION_H
 
 #include <string>
+#include <utility>
 
 namespace dft_core
 {
-  namespace grace_plot
+  namespace exception
   {
 
     /**
@@ -26,10 +27,10 @@ namespace dft_core
 
       public:
         /// Explicit constructor of the exception, to avoid unintentional implicit conversions
-        explicit GraceException(const std::string& msg): error_message_(msg) {}
+        explicit GraceException(std::string msg): error_message_(std::move(msg)) {}
 
-        /// Standard virtual destructor to be used, it should not throw an exception and if it does the program just crash
-        virtual ~GraceException() noexcept {}
+        /// Standard default destructor to be used, it should not throw an exception and if it does the program just crash
+        ~GraceException() noexcept override = default;
 
         /// Overrides the `what` method which is used when catching the message of a `std::exception`
         virtual const char* what() const noexcept override { return error_message_.c_str(); }
@@ -61,7 +62,7 @@ namespace dft_core
     {
       public:
         GraceCommunicationFailedException();
-        explicit GraceCommunicationFailedException(const std::string& msg);
+        explicit GraceCommunicationFailedException(std::string msg);
     };
 
   }
