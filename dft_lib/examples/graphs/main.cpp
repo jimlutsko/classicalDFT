@@ -65,4 +65,10 @@ int main(int argc, char **argv)
   g.RedrawAndWait();
   //endregion
 
+  //region Example of axis labels
+  console::info("Example: Setting the X and Y labels");
+  g.SetLabel("This is X", dft_core::grace_plot::Axis::X);
+  g.SetLabel("This is Y", dft_core::grace_plot::Axis::Y);
+  g.RedrawAndWait();
+  //endregion
 }

@@ -140,6 +140,20 @@ TEST(grace_plot_command, set_line_color_id_ok_test)
   std::string expected = "G0.S1 LINE COLOR 2";
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
+
+TEST(grace_plot_command, set_label_xaxis_ok_test)
+{
+  std::string expected = "XAXIS LABEL \"test\"";
+  std::string actual = dft_core::grace_plot::command::SetAxisLabelCommand("test", dft_core::grace_plot::Axis::X);
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
+
+TEST(grace_plot_command, set_label_yaxis_ok_test)
+{
+  std::string expected = "YAXIS LABEL \"test\"";
+  std::string actual = dft_core::grace_plot::command::SetAxisLabelCommand("test", dft_core::grace_plot::Axis::Y);
+  ASSERT_STREQ(actual.c_str(), expected.c_str());
+}
 //endregion
 
 //region Methods
@@ -544,7 +558,23 @@ TEST(grace_class, set_color_throws_excp_graph_id)
   g.AddPoint(0, 0);
 
   EXPECT_THROW(
-      g.SetColor(dft_core::grace_plot::RED, 0, 1),
+      g.SetColor(dft_core::grace_plot::Color::RED, 0, 1),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, set_lable_throws_excp_graph_id)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  g.AddPoint(0, 0);
+
+  EXPECT_THROW(
+      g.SetLabel("test", dft_core::grace_plot::Axis::X, 12),
+      dft_core::exception::GraceException
+  );
+
+  EXPECT_THROW(
+      g.SetLabel("test", dft_core::grace_plot::Axis::Y, 12),
       dft_core::exception::GraceException
   );
 }

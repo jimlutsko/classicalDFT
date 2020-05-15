@@ -87,17 +87,23 @@ namespace dft_core
                           + " LEGEND \"" + legend + "\"";
         return cmd;
       }
-      std::string SetLineColorCommand(const grace_plot::Color& color_id, const int& dataset_id, const int& graph_id)
+      std::string SetLineColorCommand(const grace_plot::Color& color, const int& dataset_id, const int& graph_id)
       {
         std::string cmd = "G" + std::to_string(graph_id)
                           + ".S" + std::to_string(dataset_id)
-                          + " LINE COLOR " + std::to_string(static_cast<int>(color_id));
+                          + " LINE COLOR " + std::to_string(static_cast<int>(color));
         return cmd;
       }
-      std::string SetSymbolColorCommand(const grace_plot::Color& color_id, const int& dataset_id, const int& graph_id) {
+      std::string SetSymbolColorCommand(const grace_plot::Color& color, const int& dataset_id, const int& graph_id) {
         std::string cmd = "G" + std::to_string(graph_id)
                           + ".S" + std::to_string(dataset_id)
-                          + " SYMBOL COLOR " + std::to_string(static_cast<int>(color_id));
+                          + " SYMBOL COLOR " + std::to_string(static_cast<int>(color));
+        return cmd;
+      }
+      std::string SetAxisLabelCommand(const std::string& label, const grace_plot::Axis& axis)
+      {
+        std::string axis_string = (axis == Axis::X ? "X" : "Y");
+        std::string cmd = axis_string + "AXIS LABEL \"" + label + "\"";
         return cmd;
       }
     }
@@ -421,6 +427,14 @@ namespace dft_core
 
       SendCommand(command::SetLineColorCommand(color, dataset_id, graph_id));
       SendCommand(command::SetSymbolColorCommand(color, dataset_id, graph_id));
+    }
+
+    void Grace::SetLabel(const std::string &label, const Axis &axis, const int& graph_id) const
+    {
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+
+      if (graph_id > 0) { SendCommand(command::FocusCommand(graph_id)); }
+      SendCommand(command::SetAxisLabelCommand(label, axis));
     }
     //endregion
   }

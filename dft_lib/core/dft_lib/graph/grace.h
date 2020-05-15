@@ -32,6 +32,9 @@ namespace dft_core
       SQUARE
     };
 
+    /**
+     * @brief The possible colors we can use
+     */
     enum Color {
       WHITE = 0,
       BLACK,
@@ -49,6 +52,12 @@ namespace dft_core
       MAROON,
       TURQUOISE,
       DARKGREEN
+    };
+
+    enum Axis
+    {
+      X,
+      Y
     };
 
     namespace option
@@ -162,8 +171,25 @@ namespace dft_core
        */
       std::string SetLegendCommand(const std::string& legend, const int& dataset_id, const int& graph_id);
 
-      std::string SetLineColorCommand(const grace_plot::Color& color_id, const int& dataset_id, const int& graph_id);
-      std::string SetSymbolColorCommand(const grace_plot::Color& color_id, const int& dataset_id, const int& graph_id);
+      /**
+       * @brief Returns the "G{N}.S{M} LINE COLOR {ID}" command as string
+       * @param color one of the possible grace_plot::Color values
+       * @param dataset_id the integer number identifying the dataset the point will be associated top
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       * @return std::string
+       */
+      std::string SetLineColorCommand(const grace_plot::Color& color, const int& dataset_id, const int& graph_id);
+
+      /**
+       * @brief Returns the "G{N}.S{M} SYMBOL COLOR {ID}" command as string
+       * @param color one of the possible grace_plot::Color values
+       * @param dataset_id the integer number identifying the dataset the point will be associated top
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       * @return std::string
+       */
+      std::string SetSymbolColorCommand(const grace_plot::Color& color, const int& dataset_id, const int& graph_id);
+
+      std::string SetAxisLabelCommand(const std::string& label, const grace_plot::Axis& axis);
     }
 
     /// The default X-size of the grace canvas
@@ -390,6 +416,16 @@ namespace dft_core
        * @throws GraceException in case the graph_id given is out of bounds
        */
       void SetColor(const Color& color, const int& dataset_id, const int& graph_id = 0) const;
+
+      /**
+       * @brief Sets the Axis label of a given `graph_id`
+       *
+       * @param label the text which will be set as label of the axis
+       * @param axis either Axis::X or Axis::Y
+       * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       * @throws GraceException in case the graph_id given is out of bounds
+       */
+      void SetLabel(const std::string& label, const Axis& axis, const int& graph_id = 0) const;
       //endregion
 
     private:
@@ -406,7 +442,13 @@ namespace dft_core
       float horizontal_space_ = default_horizontal_space;
       float vertical_space_ = default_vertical_space;
 
+      /**
+       * @brief Adds the unit to the last dataset id registered to keep track of how many are active
+       */
       void IncreaseLastDatasetId();
+      /**
+       * @brief Removes the unit to the last dataset id registered to keep track of how many are active
+       */
       void DecreaseLastDatasetId();
     };
   }
