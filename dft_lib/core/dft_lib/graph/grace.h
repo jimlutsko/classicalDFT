@@ -286,7 +286,27 @@ namespace dft_core
        * @param graph_id the integer number identifying the graph the point will be represented on
        * @return std::string
        */
-      std::string SetLineType(const LineType& line_type, const int& dataset_id, const int& graph_id);
+      std::string SetLineTypeCommand(const LineType& line_type, const int& dataset_id, const int& graph_id);
+
+      /**
+       * @brief Returns the "HARDCOPY DEVICE {FORMAT}" command as string
+       * @param format one of the possible export format values
+       * @return std::string
+       */
+      std::string SetFormatCommand(const ExportFormat& format);
+
+      /**
+       * @brief Returns the "PRINT TO {FILE_PATH}" command as string
+       * @param file_path the file path where the graph will be saved to
+       * @return std::string
+       */
+      std::string PrintToFileCommand(const std::string& file_path);
+
+      /**
+       * @brief Returns the "PRINT" command as string
+       * @return std::string
+       */
+      std::string PrintCommand();
     }
 
     /// The default X-size of the grace canvas
@@ -612,6 +632,14 @@ namespace dft_core
        * @throws GraceException in case the graph_id given is out of bounds
        */
       void SetLineType(const LineType& line_type, const int& dataset_id, const int& graph_id = 0) const;
+
+      /**
+       * @brief Saves the graph with the `format` specified at the given `file_path`
+       *
+       * @param file_path the full path of the file where the graph will be saved
+       * @param format one of the possible ExportFormat values (default=ExportFormat::PDF)
+       */
+      void PrintToFile(const std::string& file_path, const ExportFormat& format = ExportFormat::PNG) const;
       //endregion
 
     private:

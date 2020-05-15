@@ -123,4 +123,14 @@ int main(int argc, char **argv)
   g.SetSymbolSize(1.5,1);
   g.RedrawAndWait(false, false);
   //endregion
+
+  //region Example of Export
+  console::info("Example: Saving the result as PNG");
+  g.PrintToFile("test_graph.png", dft_core::grace_plot::ExportFormat::PNG);
+  //g.PrintToFile("test_graph.pdf", dft_core::grace_plot::ExportFormat::PDF);
+  //g.PrintToFile("test_graph.jpg", dft_core::grace_plot::ExportFormat::JPG);
+  //g.PrintToFile("test_graph.eps", dft_core::grace_plot::ExportFormat::EPS1);
+  //g.PrintToFile("test_graph.ps", dft_core::grace_plot::ExportFormat::PS);
+  g.RedrawAndWait(false, false);
+  //
 }

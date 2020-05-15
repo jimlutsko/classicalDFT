@@ -149,11 +149,44 @@ namespace dft_core
             + " SYMBOL " + std::to_string(static_cast<int>(symbol_id));
         return cmd;
       }
-      std::string SetLineType(const LineType& line_type, const int& dataset_id, const int& graph_id)
+      std::string SetLineTypeCommand(const LineType& line_type, const int& dataset_id, const int& graph_id)
       {
         std::string cmd = "G" + std::to_string(graph_id)
                           + ".S" + std::to_string(dataset_id)
                           + " LINE TYPE " + std::to_string(static_cast<int>(line_type));
+        return cmd;
+      }
+      std::string SetFormatCommand(const ExportFormat& format)
+      {
+        std::string cmd = "HARDCOPY DEVICE ";
+        std::string format_s;
+
+        if (ExportFormat::PNG == format) {
+          format_s = "PNG";
+        } else if (ExportFormat::PDF == format) {
+          format_s = "PDF";
+        } else if (ExportFormat::JPG == format) {
+          format_s = "JPG";
+        } else if (ExportFormat::PS == format) {
+          format_s = "PS";
+        } else if (ExportFormat::EPS1 == format) {
+          format_s = "EPS1";
+        } else {
+          console::warning("The format specified is not yet implemented. Exporting as PNG...");
+          format_s = "PNG";
+        }
+
+        cmd += "\"" + format_s + "\"";
+        return cmd;
+      }
+      std::string PrintToFileCommand(const std::string& file_path)
+      {
+        std::string cmd = "PRINT TO \"" + file_path + "\"";
+        return cmd;
+      }
+      std::string PrintCommand()
+      {
+        std::string cmd = "PRINT";
         return cmd;
       }
     }
@@ -560,7 +593,14 @@ namespace dft_core
       CheckGraphIdInBounds(graph_id, this->number_of_graphs());
       CheckDatasetInBounds(dataset_id, this->last_dataset_id());
 
-      SendCommand(command::SetLineType(line_type, dataset_id, graph_id));
+      SendCommand(command::SetLineTypeCommand(line_type, dataset_id, graph_id));
+    }
+
+    void Grace::PrintToFile(const std::string &file_path, const ExportFormat &format) const
+    {
+      SendCommand(command::SetFormatCommand(format));
+      SendCommand(command::PrintToFileCommand(file_path));
+      SendCommand(command::PrintCommand());
     }
     //endregion
   }

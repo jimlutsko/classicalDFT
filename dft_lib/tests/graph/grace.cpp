@@ -207,7 +207,7 @@ TEST(grace_plot_command, set_symbol_fill_pattern_ok_test)
 TEST(grace_plot_command, set_symbol_line_type_ok_test)
 {
   std::string expected = "G0.S1 LINE TYPE 1";
-  std::string actual = dft_core::grace_plot::command::SetLineType(dft_core::grace_plot::LineType::LINE, 1, 0);
+  std::string actual = dft_core::grace_plot::command::SetLineTypeCommand(dft_core::grace_plot::LineType::LINE, 1, 0);
   ASSERT_STREQ(expected.c_str(), actual.c_str());
 }
 
@@ -215,6 +215,43 @@ TEST(grace_plot_command, set_symbol_size_ok_test)
 {
   std::string expected = "G0.S1 SYMBOL SIZE 0.500000";
   std::string actual = dft_core::grace_plot::command::SetSymbolSizeCommand(0.5, 1, 0);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+}
+
+TEST(grace_plot_command, set_format_ok_test)
+{
+  std::string expected = "HARDCOPY DEVICE \"PDF\"";
+  std::string actual = dft_core::grace_plot::command::SetFormatCommand(dft_core::grace_plot::ExportFormat::PDF);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+
+  expected = "HARDCOPY DEVICE \"PNG\"";
+  actual = dft_core::grace_plot::command::SetFormatCommand(dft_core::grace_plot::ExportFormat::PNG);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+
+  expected = "HARDCOPY DEVICE \"JPG\"";
+  actual = dft_core::grace_plot::command::SetFormatCommand(dft_core::grace_plot::ExportFormat::JPG);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+
+  expected = "HARDCOPY DEVICE \"EPS1\"";
+  actual = dft_core::grace_plot::command::SetFormatCommand(dft_core::grace_plot::ExportFormat::EPS1);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+
+  expected = "HARDCOPY DEVICE \"PS\"";
+  actual = dft_core::grace_plot::command::SetFormatCommand(dft_core::grace_plot::ExportFormat::PS);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+}
+
+TEST(grace_plot_command, print_to_file_test_ok)
+{
+  std::string expected = "PRINT TO \"test.t\"";
+  std::string actual = dft_core::grace_plot::command::PrintToFileCommand("test.t");
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+}
+
+TEST(grace_plot_command, print_test_ok)
+{
+  std::string expected = "PRINT";
+  std::string actual = dft_core::grace_plot::command::PrintCommand();
   ASSERT_STREQ(expected.c_str(), actual.c_str());
 }
 //endregion
