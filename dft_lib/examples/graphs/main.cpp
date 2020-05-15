@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 #include <armadillo>
 #include "classical_dft"
 
@@ -83,5 +83,11 @@ int main(int argc, char **argv)
   console::info("Example: Setting the limits");
   g.SetLimits(std::vector<double>{ -0.1, 2*M_PI+0.1 }, std::vector<double>{-1.2, 1.2});
   g.RedrawAndWait();
+  //endregion
+
+  //region Example of setting ticks
+  console::info("Example: Setting the tick spacing");
+  g.SetTicks(0.5, 0.1);
+  g.RedrawAndWait(false, false);
   //endregion
 }

@@ -210,6 +210,13 @@ namespace dft_core
        * @return std::string
        */
       std::string SetSubtitleCommand(const std::string& subtitle);
+
+      /**
+       * @brief Returns the "{XY}AXIS TICK MAJOR {TICK_SIZE}" command as string
+       * @param tick_sep the space separation between the different ticks
+       * @return std::string
+       */
+      std::string SetTicksCommand(const double& tick_sep, const Axis& axis);
     }
 
     /// The default X-size of the grace canvas
@@ -329,19 +336,26 @@ namespace dft_core
       const float& vertical_space() const { return vertical_space_; }
 
       //region Setters
+
       void SetXMin(const double& value);
       void SetXMax(const double& value);
       void SetYMin(const double& value);
       void SetYMax(const double& value);
 
+      //region SetLimits
+
       void SetXLimits(const double& x_min, const double& x_max);
       void SetYLimits(const double& y_min, const double& y_max);
-
       void SetLimits(const double& x_min, const double& x_max, const double& y_min, const double& y_max);
       void SetLimits(const std::vector<double>& x_limits, const std::vector<double>& y_limits);
+
       //endregion
 
+      //endregion
+
+
       //region Methods
+
       /**
        * @brief Adds a point to a certain dataset (`dataset_id`) for given graph (`graph_id`)
        *
@@ -463,6 +477,15 @@ namespace dft_core
        * @param title the text which will be set as the subtitle of the graph
        */
       void SetSubtitle(const std::string& subtitle) const;
+
+      /**
+       * @brief Sets the tick distancing on the X and Y axis
+       * @param dx the spacing between X-axis ticks
+       * @param dy the spacing between Y-axis ticks
+       * @param graph_id
+       */
+      void SetTicks(const double& dx, const double& dy, const int& graph_id = 0) const;
+
       //endregion
 
     private:

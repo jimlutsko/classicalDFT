@@ -116,6 +116,13 @@ namespace dft_core
         std::string cmd = "SUBTITLE \"" + subtitle + "\"";
         return cmd;
       }
+      std::string SetTicksCommand(const double& tick_sep, const Axis& axis)
+      {
+        std::string axis_string = (axis == Axis::X ? "X" : "Y");
+        auto tick_sep_f = static_cast<float>(tick_sep);
+        std::string cmd = axis_string + "AXIS TICK MAJOR " + std::to_string(tick_sep_f);
+        return cmd;
+      }
     }
   }
 }
@@ -466,6 +473,20 @@ namespace dft_core
     void Grace::SetSubtitle(const std::string &subtitle) const
     {
       SendCommand(command::SetSubtitleCommand(subtitle));
+    }
+
+    void Grace::SetTicks(const double &dx, const double &dy, const int &graph_id) const
+    {
+      CheckGraphIdInBounds(graph_id, this->number_of_graphs());
+
+      if (dx <= 0 || dy <= 0) {
+        std::string msg = "Minimum tick-size is 0: dx = " + std::to_string(dx) + " dy = " + std::to_string(dy);
+        throw exception::GraceException(msg);
+      }
+
+      SendCommand(command::FocusCommand(graph_id));
+      SendCommand(command::SetTicksCommand(dx, Axis::X));
+      SendCommand(command::SetTicksCommand(dy, Axis::Y));
     }
     //endregion
   }

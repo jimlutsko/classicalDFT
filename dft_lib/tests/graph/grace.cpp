@@ -168,6 +168,13 @@ TEST(grace_plot_command, set_subtitle_ok_test)
   std::string actual = dft_core::grace_plot::command::SetSubtitleCommand("subtest");
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
+
+TEST(grace_plot_command, set_ticks_ok_test)
+{
+  std::string expected = "XAXIS TICK MAJOR 0.010000";
+  std::string actual = dft_core::grace_plot::command::SetTicksCommand(0.01, dft_core::grace_plot::Axis::X);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+}
 //endregion
 
 //region Methods
@@ -528,7 +535,7 @@ TEST(grace_class, replace_dataset_works_ok)
 
 TEST(grace_class, delete_dataset_throws_excp_dataset_id)
 {
-  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  auto g = dft_core::grace_plot::Grace(10,10,1,false);
 
   auto x = Vector<>(10);
   auto y = Vector<>(10);
@@ -542,7 +549,7 @@ TEST(grace_class, delete_dataset_throws_excp_dataset_id)
 
 TEST(grace_class, delete_dataset_throws_excp_graph_id)
 {
-  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  auto g = dft_core::grace_plot::Grace(10,10,1,false);
 
   auto x = Vector<>(10);
   auto y = Vector<>(10);
@@ -556,7 +563,7 @@ TEST(grace_class, delete_dataset_throws_excp_graph_id)
 
 TEST(grace_class, set_legend_throws_excp_dataset_id)
 {
-  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  auto g = dft_core::grace_plot::Grace(10,10,1,false);
   g.AddPoint(0, 0);
 
   EXPECT_THROW(
@@ -567,7 +574,7 @@ TEST(grace_class, set_legend_throws_excp_dataset_id)
 
 TEST(grace_class, set_legend_throws_excp_graph_id)
 {
-  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  auto g = dft_core::grace_plot::Grace(10,10,1,false);
   g.AddPoint(0, 0);
 
   EXPECT_THROW(
@@ -578,7 +585,7 @@ TEST(grace_class, set_legend_throws_excp_graph_id)
 
 TEST(grace_class, set_color_throws_excp_dataset_id)
 {
-  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  auto g = dft_core::grace_plot::Grace(10,10,1,false);
   g.AddPoint(0, 0);
 
   EXPECT_THROW(
@@ -589,7 +596,7 @@ TEST(grace_class, set_color_throws_excp_dataset_id)
 
 TEST(grace_class, set_color_throws_excp_graph_id)
 {
-  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  auto g = dft_core::grace_plot::Grace(10,10,1,false);
   g.AddPoint(0, 0);
 
   EXPECT_THROW(
@@ -600,7 +607,7 @@ TEST(grace_class, set_color_throws_excp_graph_id)
 
 TEST(grace_class, set_lable_throws_excp_graph_id)
 {
-  auto g = dft_core::grace_plot::Grace(10,10,1,true);
+  auto g = dft_core::grace_plot::Grace(10,10,1,false);
   g.AddPoint(0, 0);
 
   EXPECT_THROW(
@@ -610,6 +617,27 @@ TEST(grace_class, set_lable_throws_excp_graph_id)
 
   EXPECT_THROW(
       g.SetLabel("test", dft_core::grace_plot::Axis::Y, 12),
+      dft_core::exception::GraceException
+  );
+}
+
+TEST(grace_class, set_ticks_throws_excp_negative_sep)
+{
+  auto g = dft_core::grace_plot::Grace(10,10,1,false);
+  g.AddPoint(0, 0);
+
+  EXPECT_THROW(
+      g.SetTicks(-0.01, 0.02),
+      dft_core::exception::GraceException
+  );
+
+  EXPECT_THROW(
+      g.SetTicks(0.01, -0.02),
+      dft_core::exception::GraceException
+  );
+
+  EXPECT_THROW(
+      g.SetTicks(0.01, -0.02, 2),
       dft_core::exception::GraceException
   );
 }
