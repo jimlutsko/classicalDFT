@@ -116,4 +116,12 @@ int main(int argc, char **argv)
   g.SetSymbolFill(dft_core::grace_plot::Color::RED, 2);
   g.RedrawAndWait(false, false);
   //endregion
+
+  //region Example of setting symbol size
+  console::info("Example: Setting symbol size");
+  g.SetSymbolSize(0.5,0);
+  g.SetSymbolSize(1.5,1);
+  g.RedrawAndWait(false, false);
+  //endregion
+
 }

@@ -200,7 +200,7 @@ TEST(grace_plot_command, set_symbol_fill_color_ok_test)
 TEST(grace_plot_command, set_symbol_fill_pattern_ok_test)
 {
   std::string expected = "G0.S1 SYMBOL FILL PATTERN 1";
-  std::string actual = dft_core::grace_plot::command::SetSymbolColorFillPattern(1, 1, 0);
+  std::string actual = dft_core::grace_plot::command::SetSymbolColorFillPatternCommand(1, 1, 0);
   ASSERT_STREQ(expected.c_str(), actual.c_str());
 }
 
@@ -208,6 +208,13 @@ TEST(grace_plot_command, set_symbol_line_type_ok_test)
 {
   std::string expected = "G0.S1 LINE TYPE 1";
   std::string actual = dft_core::grace_plot::command::SetLineType(dft_core::grace_plot::LineType::LINE, 1, 0);
+  ASSERT_STREQ(expected.c_str(), actual.c_str());
+}
+
+TEST(grace_plot_command, set_symbol_size_ok_test)
+{
+  std::string expected = "G0.S1 SYMBOL SIZE 0.500000";
+  std::string actual = dft_core::grace_plot::command::SetSymbolSizeCommand(0.5, 1, 0);
   ASSERT_STREQ(expected.c_str(), actual.c_str());
 }
 //endregion

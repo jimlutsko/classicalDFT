@@ -229,7 +229,16 @@ namespace dft_core
        * @param graph_id the integer number identifying the graph the point will be represented on
        * @return std::string
        */
-      std::string SetSymbolColorFillPattern(const int& pattern_id, const int& dataset_id, const int& graph_id);
+      std::string SetSymbolColorFillPatternCommand(const int& pattern_id, const int& dataset_id, const int& graph_id);
+
+      /**
+       * @brief Returns the "G{N}.S{M} SYMBOL SIZE {X}" command as string
+       * @param size the symbol size
+       * @param dataset_id the integer number identifying the dataset the point will be associated top
+       * @param graph_id the integer number identifying the graph the point will be represented on
+       * @return std::string
+       */
+      std::string SetSymbolSizeCommand(const double& size, const int& dataset_id, const int& graph_id);
 
       /**
        * @brief Returns the "{XY}AXIS LABEL {TEXT}" command as string
@@ -581,6 +590,17 @@ namespace dft_core
        * @throws GraceException in case the graph_id given is out of bounds
        */
       void SetSymbolFill(const Color& color, const int& dataset_id, const int& graph_id = 0, const int& pattern_id = 1) const;
+
+      /**
+       * @brief Sets the symbol fill in a given `dataset_id` of a given `graph_id`
+       *
+       * @param size the symbol size
+       * @param dataset_id the integer identifier of the dataset to be deleted
+       * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
+       * @throws GraceException in case the dataset_id given is out of bounds
+       * @throws GraceException in case the graph_id given is out of bounds
+       */
+      void SetSymbolSize(const double& size, const int& dataset_id, const int& graph_id = 0) const;
 
       /**
        * @brief Sets the symbol fill in a given `dataset_id` of a given `graph_id`
