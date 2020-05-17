@@ -454,3 +454,87 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 
   return F.sum();  
 }
+
+namespace dft_util {
+/**
+ *   @brief  This will fit the value of thethe vDW coefficient to the supplied data for a single species. The input densities are supplied in dimensionless form, 
+ *           so they imply some length scale  l. The output is the hsd/l and the vdw parmeter in the form  beta a/l^3. Normally, for a potential with length scale sigma and energy scale epsilon, the
+ *           calculated vdw parameter is some number times beta epsilon sigma^3 so one could match the two either by adjusting epsilon or sigma or both. 
+ *  
+ *   @param  data is the array of pairs of densities and z_factor = P/(n kT) for which the pressure is being supplied
+ *   @param hsd: this is the hard-sphere diameter.
+ *   @returns the vDW parameter in the dimensionless form beta avdw/l^3. 
+ */   
+double fit_avdw_to_data(vector<pair<double, double> > &data, double hsd)
+{
+  double s1 = 0.0;
+  double s2 = 0.0;
+
+  for(auto &p: data)
+    {
+      double e = p.first*M_PI*hsd*hsd*hsd/6;
+      double Z = (1+e*(1+e*(1-e)))/pow(1-e,3);
+      s1 += (p.second - Z)*p.first;
+      s2 += p.first*p.first;
+    }
+  return 2*s1/s2;
+}
+
+static double objective(vector<pair<double, double> > &data, double hsd)
+{
+  double sum = 0.0;
+  double a   = fit_avdw_to_data(data,hsd);
+
+  for(auto &p: data)
+    {      
+      double e = p.first*M_PI*hsd*hsd*hsd/6;
+      double Z = (1+e*(1+e*(1-e)))/pow(1-e,3);
+      Z += 0.5*a*p.first;
+      Z -= p.second;
+
+      sum += Z*p.first*(2+2*e-e*e)*pow(1-e,-4);
+    }
+  return sum; 
+}
+
+/**
+ *   @brief  This will fit the value of the hsd and the vDW coefficient to the supplied data for a single species. The input densities are supplied in dimensionless form, 
+ *           so they imply some length scale  l. The output is the hsd/l and the vdw parmeter in the form  beta a/l^3. Normally, for a potential with length scale sigma and energy scale epsilon, the
+ *           calculated vdw parmaeter is some number times beta epsilon sigma^3 so one could match the two either by adjusting epsilon or sigma or both. 
+ *  
+ *   @param  data is the array of pairs of densities and z_factor = P/(n kT) for which the pressure is being supplied
+ *   @param hsd: this is an in/out parameter. The supplied value is used as an initial guess in the numerical search. Afterwards, it contains the determined value.
+ *   @param aVDW this is an output parameter. It is actually  beta aVDW/l^3 . 
+ *   @param tol is the tolerence of the fit. 
+ */   
+
+double fit_to_data(std::vector<std::pair<double, double> > &data, double &avdw, double tol)
+{
+  double a = 0;
+  double b = 0;
+  double fa = 0;
+  double fb = 0;
+
+  for(double d = 0.5; d < 2.0; d += 0.1)
+    {
+      a = b;
+      b = d;
+      fa = fb;
+      fb = objective(data, d);
+      if(fa*fb < 0) break;
+    }
+
+  if(fa*fb > 0) throw std::runtime_error("No crossing found in fit_to_data");
+
+  while(fabs(a-b) > tol*(a+b))
+    {
+      double c = (a+b)/2;
+      double fc = objective(data,c);
+      if(fa*fc > 0) {a = c; fa = fc;}
+      else { b = c; fb = fc;}
+    }
+
+  avdw = fit_avdw_to_data(data,(a+b)/2);  
+  return (a+b)/2;
+}
+}  

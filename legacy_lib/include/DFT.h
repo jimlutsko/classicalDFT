@@ -279,6 +279,33 @@ class DFT
 };
 
 
+namespace dft_util {
+/**
+ *   @brief  This will fit the value of thethe vDW coefficient to the supplied data for a single species. The input densities are supplied in dimensionless form, 
+ *           so they imply some length scale  l. The output is the hsd/l and the vdw parmeter in the form  beta a/l^3. Normally, for a potential with length scale sigma and energy scale epsilon, the
+ *           calculated vdw parameter is some number times beta epsilon sigma^3 so one could match the two either by adjusting epsilon or sigma or both. 
+ *  
+ *   @param  data is the array of pairs of densities and z_factor = P/(n kT) for which the pressure is being supplied
+ *   @param hsd: this is the hard-sphere diameter.
+ *   @returns the vDW parameter in the dimensionless form beta avdw/l^3. 
+ */   
+  double fit_avdw_to_data(vector<pair<double, double> > &data, double hsd);
+
+/**
+ *   @brief  This will fit the value of the hsd and the vDW coefficient to the supplied data for a single species. The input densities are supplied in dimensionless form, 
+ *           so they imply some length scale  l. The output is the hsd/l and the vdw parmeter in the form  beta a/l^3. Normally, for a potential with length scale sigma and energy scale epsilon, the
+ *           calculated vdw parmaeter is some number times beta epsilon sigma^3 so one could match the two either by adjusting epsilon or sigma or both. 
+ *  
+ *   @param  data is the array of pairs of densities and z_factor = P/(n kT) for which the pressure is being supplied
+ *   @param hsd: this is an in/out parameter. The supplied value is used as an initial guess in the numerical search. Afterwards, it contains the determined value.
+ *   @param aVDW this is an output parameter. It is actually  beta aVDW/l^3 . 
+ *   @param tol is the tolerence of the fit. 
+ */   
+
+  double fit_to_data(std::vector<std::pair<double, double> > &data, double &avdw, double tol);
+}  
+
+
 /**
   *  @brief DFT_VDW_Surfactant class
   *
