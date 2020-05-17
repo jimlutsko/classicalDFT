@@ -49,6 +49,17 @@ class Interaction_Base
   virtual void initialize();
 
   /**
+   *   @brief  Scale the attractive interaction: i.e. same as multiplying the potential by a factor.
+   *  
+   *   @param scale_fac is the scale factor
+   */    
+  void scale_interaction(double scale_fac)
+  {
+    a_vdw_ *= scale_fac;
+    w_att_.MultBy(scale_fac);  
+  }
+  
+  /**
    *   @brief  This executes the basic functionality of computing energies and forces
    *  
    *   @returns The mean-field contribution to the (total) free energy divided by kT.
@@ -84,14 +95,11 @@ class Interaction_Base
     double mu = 0.0;
 
     if(s1_.getSequenceNumber() == species)
-      mu += 0.5*a_*a_vdw_*x[s2_.getSequenceNumber()];
+      mu += 0.5*a_vdw_*x[s2_.getSequenceNumber()];
 
     if(s2_.getSequenceNumber() == species)
-      mu += 0.5*a_*a_vdw_*x[s1_.getSequenceNumber()];
+      mu += 0.5*a_vdw_*x[s1_.getSequenceNumber()];
 
-    mu += 3*b_*a_vdw_*a_vdw_*x[s1_.getSequenceNumber()]*x[s1_.getSequenceNumber()];
-
-    
     return mu;
   }
 
@@ -102,19 +110,14 @@ class Interaction_Base
    *
    *   @return the mean-field contribution to the free energy per unit volume divided by kT
    */  
-  double Fhelmholtz(const vector<double> &x) const {return 0.5*a_*a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()] + b_*a_vdw_*a_vdw_*pow(x[s1_.getSequenceNumber()],3);}  
+  double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];}  
 
   /**
    *   @brief  Returns the vDW parameter calculated from the weights
    *
    *   @return sum_{\mathbf R} w({\mathbf R})/kT
    */    
-  double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_*a_vdw_;}
-  double a_ = 1.0;
-  double b_ = 0.0;
-  
-
-
+  double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_vdw_;}
   
  protected:
   

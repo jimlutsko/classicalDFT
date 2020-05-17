@@ -146,6 +146,8 @@ class DFT_FFT
   void do_real_2_fourier() {fftw_execute(real_2_four_);}
   void do_fourier_2_real() {fftw_execute(four_2_real_);}
 
+  void MultBy(double val) { RealSpace_.MultBy(val);  FourierSpace_.MultBy(val);}
+  
  protected:
   DFT_Vec RealSpace_;
   DFT_Vec_Complex FourierSpace_;

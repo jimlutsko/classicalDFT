@@ -107,6 +107,9 @@ class Density : public Lattice
 
   }
 
+  double min() const { return Density_.cReal().min();}
+  double max() const { return Density_.cReal().max();}
+  
   
   /**
   *   @brief  Center of mass

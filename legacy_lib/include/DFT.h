@@ -221,14 +221,9 @@ class DFT
       double hsd = p.getHSD(Tc);
       xc = 0.13044*(6.0/M_PI)*pow(hsd,-3.0);
       Tc = -0.090082*2*p.getVDW_Parameter(Tc)*pow(hsd,-3.0)*Tc;
-      if(Interactions_.size() > 0) Tc *= Interactions_[0]->a_;
     } while(fabs(T1-Tc) > 1e-8*(T1+Tc));
   }
 
-  void setCriticalPoint(double xc, double kTc, double kT, Potential1 &potential);
-  void set_parameters_from_virial(Potential1 &potential1, double kT, int Npoints = 100);
-
-  
   // protected:
   
   /**
@@ -302,7 +297,7 @@ namespace dft_util {
  *   @param tol is the tolerence of the fit. 
  */   
 
-  double fit_to_data(std::vector<std::pair<double, double> > &data, double &avdw, double tol);
+  double fit_to_data(std::vector<std::pair<double, double> > &data, double &avdw, double tol = 1e-8);
 }  
 
 

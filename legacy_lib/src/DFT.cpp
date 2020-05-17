@@ -161,9 +161,9 @@ double DFT::XVap_From_Mu(double mu, double maxDensity) const
 // and here 
 //     double e = M_PI*x*d_*d_*d_/6;
 //    double e1 = 1-e;
-//    dbetaP/dx (1+e*(4+e*(4+e*(-4+e))))/(e1*e1*e1*e1) + a_*x + 6*b_*x*x;
+//    dbetaP/dx (1+e*(4+e*(4+e*(-4+e))))/(e1*e1*e1*e1) + a_*x 
 // so we wish to solve
-// 1+4e+4e^2-4e^3+e4 + a_ x(1-4e+6e^2-4e^3+e^4)+ 6*b_ x^2 (1-4e+6e^2-4e^3+e^4)
+// 1+4e+4e^2-4e^3+e4 + a_ x(1-4e+6e^2-4e^3+e^4)
 void DFT::spinodal(double &xs1, double &xs2) const
 {
   if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
@@ -176,19 +176,15 @@ void DFT::spinodal(double &xs1, double &xs2) const
   
   double d = allSpecies_[0]->getHSD();
   double fac = 6/(M_PI*d*d*d);
-  double ae = Interactions_[0]->getVDWParameter()*fac/Interactions_[0]->a_;
-
-  double be = Interactions_[0]->b_*ae*ae;
-  ae *= Interactions_[0]->a_;
+  double ae = Interactions_[0]->getVDWParameter()*fac;
 
   vector<double> a;
   a.push_back(1);
   a.push_back( 4 + ae);
-  a.push_back( 4 - 4*ae +  6*be);
-  a.push_back(-4 + 6*ae - 24*be);
-  a.push_back( 1 - 4*ae + 36*be);
-  a.push_back(       ae - 24*be);
-  if(fabs(be) > 1e-12) a.push_back(6*be);
+  a.push_back( 4 - 4*ae);
+  a.push_back(-4 + 6*ae);
+  a.push_back( 1 - 4*ae);
+  a.push_back(       ae);
     
   double roots[2*(a.size()-1)];
   gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(a.size());
@@ -224,9 +220,7 @@ double DFT::XLiq_from_P(double P) const
 
   double d = allSpecies_[0]->getHSD();
   double fac = 6/(M_PI*d*d*d);
-  double ae = Interactions_[0]->getVDWParameter()*fac/Interactions_[0]->a_;
-  double be = Interactions_[0]->b_*ae*ae;
-  ae *= Interactions_[0]->a_;  
+  double ae = Interactions_[0]->getVDWParameter()*fac;
   
   P *= M_PI*d*d*d/6;
 
@@ -257,10 +251,9 @@ double DFT::XLiq_from_P(double P) const
   a.push_back(-P);
   a.push_back(  3*P+1);
   a.push_back( -3*P+1+0.5*ae);
-  a.push_back(  P+1-1.5*ae+2*be);
-  a.push_back(  -1+1.5*ae-6*be);
-  a.push_back(   -0.5*ae+6*be);
-  if(fabs(be) > 1e-12) a.push_back( -2*be);  
+  a.push_back(  P+1-1.5*ae);
+  a.push_back(  -1+1.5*ae);
+  a.push_back(   -0.5*ae);
     
   double roots[2*(a.size()-1)];
   gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(a.size());
@@ -316,71 +309,6 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
   x2 = v2[0];
 }
 
-
-void DFT::setCriticalPoint(double xc, double kTc, double kT, Potential1 &potential)
-{
-
-  if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::setCriticalPoint only implemented for exactly 1 species and 1 interaction");
-
-  Interaction_Base &i1 = *(Interactions_[0]);
-  
-  double avdw = kT*i1.getVDWParameter();
-  double dc   = potential.getHSD(kTc);
-  double eta  = M_PI*xc*dc*dc*dc/6;
-
-  i1.a_ = (kTc/(xc*avdw))*2*(-1+eta*(1+eta*(10+eta*(6+eta*(-5+eta)))))*pow(1-eta,-5);
-  i1.b_ = kTc * kTc * pow(1.0/(xc*avdw),2)*(1+eta*(-5+eta*(-20+eta*(-4+eta*(5-eta)))))*pow(1-eta,-5)/6;
-
-  cout << "i1.a_ = " << i1.a_ << " i1.b_ = " << i1.b_ << endl;
-}
-
-void DFT::set_parameters_from_virial(Potential1 &v, double kT, int Npoints)
-{
-  if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::set_parameters_from_virial only implemented for exactly 1 species and 1 interaction");
-
-  Interaction_Base &i1 = *(Interactions_[0]);
-
-  gsl_integration_glfixed_table *tr = gsl_integration_glfixed_table_alloc(Npoints);
-
-  double B2 = 0.0;
-  double B3 = 0.0;
-
-  for(int i = 0; i<Npoints; i++)
-    {
-      double r1, w1; 
-      gsl_integration_glfixed_point(1e-1, v.getRcut(), i, &r1, &w1, tr);
-      double f1 = w1*r1*r1*(exp(-v.V2(r1*r1)/kT) -1);
-      B2 += f1;
-      
-      for(int j = 0; j<Npoints; j++)
-	{
-	  double r2, w2; 
-	  gsl_integration_glfixed_point(1e-1, v.getRcut(), j, &r2, &w2, tr);
-	  double f2 = w2*r2*r2*(exp(-v.V2(r2*r2)/kT) -1);      
-
-	  for(double ix = 0; ix < Npoints; ix++)
-	    {
-	      double x,wx;
-	      gsl_integration_glfixed_point(-1.0, 1.0, ix, &x, &wx, tr);
-	      B3 += f1*f2*wx*(exp(-v.V2(r1*r1+r2*r2-2*r1*r2*x)/kT) -1);
-	    }
-	}
-    }
-  B2 *= -2*M_PI;
-  B3 *= -8*M_PI*M_PI/3;
-
-  double hsd = v.getHSD(kT);
-  double avdw = i1.getVDWParameter();
-
-  double hsd3 = hsd*hsd*hsd;
-  
-  i1.a_ = (2*B2-4*M_PI*hsd3/3)/avdw;
-  i1.b_ = (B3-(5.0/18)*M_PI*M_PI*hsd3*hsd3)/(2*avdw*avdw);
-
-  cout << "avdw = " << avdw << " " << " a = " << i1.a_ << " b = " << i1.b_ << endl;
-  
-  //  cout << "kT = " << kT << " B2 = " << B2 << " b2 = " << B2/(2*M_PI/3) << " B3 = " << B3 << endl;
-}
 
 
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
