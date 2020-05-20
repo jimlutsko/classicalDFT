@@ -1,6 +1,8 @@
 #ifndef __LUTSKO__LATTICE__
 #define __LUTSKO__LATTICE__
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 
 /**
   *  @brief This class encapsulates all information relating to the lattice: the number of points, the lattice spaceing and the length of the cell in each direction. Allowance is made for different spacings in each direction but current implementations force all spacings to be equal.
@@ -71,6 +73,22 @@ class Lattice
       L_[2] = ref.L_[2];
     }
 
+
+  /**
+  *   @brief  Emptry constructor
+  */  
+
+  Lattice()
+    {
+      Nx_ = Ny_ = Nz_ = 0;
+
+      Ntot_ = Nout_ = 0;
+
+      dx_ = dy_ = dz_ = 0;
+
+      L_[0] =  L_[1] = L_[2] = 0;
+    }
+  
 
   /**
   *   @brief  Translate a (Cartesian) x-index into a position in the cubic box.
@@ -229,7 +247,28 @@ class Lattice
     while(iz >= Nz_) iz -= Nz_; 
   }
 
- protected:
+  friend ostream &operator<<(ostream &of, const Lattice &l) 
+  {
+    of << " " << l.Nx_ << " " << l.Ny_ << " " << l.Nz_
+       << " " << l.Ntot_ << " " << l.Nout_
+       << " " << l.dx_ << " " << l.dy_ << " " << l.dz_
+       << " " << l.L_[0] << " " << l.L_[1] << " " << l.L_[2];
+    
+    return of;
+  }
+
+  friend istream &operator>>(istream  &in, Lattice &l )     
+  {
+    in >> l.Nx_ >> l.Ny_ >> l.Nz_
+       >> l.Ntot_ >> l.Nout_
+       >> l.dx_ >> l.dy_ >> l.dz_
+       >> l.L_[0] >> l.L_[1] >> l.L_[2];
+    
+    return in;
+  }    
+
+  
+protected:
   long Nx_; ///< Number of lattice points in x direction
   long Ny_; ///< Number of lattice points in y direction
   long Nz_; ///< Number of lattice points in z direction

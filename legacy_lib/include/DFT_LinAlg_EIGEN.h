@@ -25,13 +25,12 @@ class DFT_Vec
 
   void set(const DFT_Vec& x) { data_ = x.data_;} 
   void set(const DFT_Vec& v1, const DFT_Vec& v2, double scale) { data_ = v1.data_+v2.data_*scale;}
-  
-  void setFromAlias(const DFT_Vec &x) { data_ = x.data_.cwiseProduct(x.data_); data_ = (data_.array() + 1e-20).matrix();} //{ data_ = 1e-10+exp(x.data_);}
+
+  void setFromAlias(const DFT_Vec &x) { data_ = x.data_.cwiseProduct(x.data_); data_ = (data_.array() + 1e-20).matrix();} 
   void setAliasFromValues(const DFT_Vec &x)
   {
     for(long i=0;i<x.size();i++)
       set(i, sqrt(std::max(0.0, x.get(i)-1e-20)));          
-    //      set(i, log(std::max(1e-15, x.get(i)-1e-10)));    
   }
   void alias_Jacobian(const DFT_Vec &x) { data_ = data_.cwiseProduct(2*x.data_);}
 

@@ -13,12 +13,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <cstring>
-#include <complex>
-#include <complex.h>
 
 #include "Species.h"
 #include "Log.h"
 #include "myColor.h"
+
+// There is some sort of a conflict between Boost headers and <complex> so this needs to come last in order to compile.
+#include <complex>
+
 
 /**
   *  @brief This class encapsulates the interaction between two species (or one species with itself)
