@@ -8,5 +8,6 @@
 //endregion
 
 //region Utils
+#include "dft_lib/utils/config_parser.h"
 #include "dft_lib/utils/console.h"
 //endregion

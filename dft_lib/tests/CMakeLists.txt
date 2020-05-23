@@ -18,3 +18,8 @@ target_link_libraries(
         "pthread")
 
 add_custom_target(gtests ${CMAKE_CTEST_COMMAND} -V)
+
+configure_file(utils/config_files/config.ini config.ini COPYONLY)
+configure_file(utils/config_files/config.json config.json COPYONLY)
+configure_file(utils/config_files/config.xml config.xml COPYONLY)
+configure_file(utils/config_files/config.info config.info COPYONLY)

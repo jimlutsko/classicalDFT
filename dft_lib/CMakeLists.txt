@@ -46,3 +46,4 @@ add_subdirectory(tests)
 # dft_lib examples:
 add_subdirectory(examples/console)
 add_subdirectory(examples/graphs)
+add_subdirectory(examples/config_parser)

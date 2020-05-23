@@ -5,9 +5,10 @@ include_directories(${dft_lib_include_path})
 
 # Set up the source files required for the compilation to succeed
 set(ALL_SOURCES
-    ${dft_lib_src_path}/graph/grace.cpp
-    ${dft_lib_src_path}/exceptions/grace_exceptions.cpp
-    ${dft_lib_src_path}/exceptions/parameter_exceptions.cpp)
+        ${dft_lib_src_path}/graph/grace.cpp
+        ${dft_lib_src_path}/exceptions/grace_exceptions.cpp
+        ${dft_lib_src_path}/exceptions/parameter_exceptions.cpp
+        ${dft_lib_src_path}/utils/config_parser.cpp)
 
 # Set up the dependencies and naming of the library
 set(BINARY ${PROJECT_NAME})
@@ -16,7 +17,7 @@ target_link_libraries(${BINARY})
 
 # Expose project's public includes to other subprojects through cache variable.
 set(${PROJECT_NAME}_include_dirs ${dft_lib_include_path}
-    CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE)
+        CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE)
 
 # Move the static library file lib{project_name}.a to the root folder
 # This does not work OK with tests, as they need to link "-L dft_core"
