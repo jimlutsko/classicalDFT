@@ -24,6 +24,7 @@ need to be satisfied for the correct funcitoning of the library. Such dependenci
 
 * C++14-standard-compliant compiler, we recommend to check [GNU Compiler Collection](https://gcc.gnu.org/) 
 * [CMake](https://cmake.org/download/) (version >= 3.8)
+* [Boost](https://www.boost.org/)
 * [GNU Scientific Library](https://www.gnu.org/software/gsl/)
 * [FFTW3](http://www.fftw.org/) a library designed to compute discrete Fourier transforms
 * [Grace](http://plasma-gate.weizmann.ac.il/Grace/) plotting tool for the X Window System

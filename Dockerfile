@@ -28,6 +28,7 @@ RUN apt-get -qq -y update \
 
 # Dependencies:
 RUN apt-get -qq -y install libgsl-dev \
+    && apt-get -qq -y install libboost-all-dev \
     && apt-get -qq -y install libfftw3-dev libfftw3-doc \
     && apt-get -qq -y install grace \
     && apt-get -qq -y install gnuplot \
