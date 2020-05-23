@@ -17,7 +17,7 @@ Our wrapper lives within the `dft_core` namespace, which is the core namespace o
 
 ### Examples
 
-The best way of showing the convenience offered by `grace_plot::Grace` is by example. Thus, we are going to proceed by directing the code in `main.cpp`:
+The best way of showing the convenience offered by `grace_plot::Grace` is by example. Thus, we are going to proceed by inserting the code in `main.cpp`:
 
 ```c++
 #include <cmath>
