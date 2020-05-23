@@ -8,7 +8,7 @@ But, *why'd we need any configuration file in any case?* If you've worked in any
 
 * Hard coding variables:
 
-  ```c++
+```c++
   #include "my_physics_library/newton_dynamics.hpp"
   
   int main()
@@ -22,50 +22,50 @@ But, *why'd we need any configuration file in any case?* If you've worked in any
     // Time-integration of Newton's law => Export in output_file
     newton_dynamics.simulate(x0, y0, z0, output_file);
   }
-  ```
+```
 
 * Parameters in external file:
 
-  ```c++
-  #include "my_physics_library/newton_dynamics.hpp"
-  #include "dft_lib/utils/config_parser.h"
-  
-  int main()
-  {
-    //Defining the file to read:
-    auto config = config_parser::ConfigParser("config.ini");
+```c++
+#include "my_physics_library/newton_dynamics.hpp"
+#include "dft_lib/utils/config_parser.h"
+
+int main()
+{
+  //Defining the file to read:
+  auto config = config_parser::ConfigParser("config.ini");
     
-    //Reading the parameters from the config file:
-    auto x0 = config.tree.get<double>("initial_position.x");
-    auto y0 = config.tree.get<double>("initial_position.y");
-    auto z0 = config.tree.get<double>("initial_position.z");
+  //Reading the parameters from the config file:
+  auto x0 = config.tree.get<double>("initial_position.x");
+  auto y0 = config.tree.get<double>("initial_position.y");
+  auto z0 = config.tree.get<double>("initial_position.z");
   
-    //Defining the file name:
-    auto output_file_header = config.tree.get<std::string>("output.file_name_header");
-    auto output_file_ext = config.tree.get<std::string>("output.file_extension");
-    auto output_file = output_file_header + "_" 
-      + std::to_string(x0) + "." 
-      + std::to_string(y0) + "." 
-      + std::to_string(z0) + "." 
-      + output_file_ext;
+  //Defining the file name:
+  auto output_file_header = config.tree.get<std::string>("output.file_name_header");
+  auto output_file_ext = config.tree.get<std::string>("output.file_extension");
+  auto output_file = output_file_header + "_" 
+    + std::to_string(x0) + "." 
+    + std::to_string(y0) + "." 
+    + std::to_string(z0) + "." 
+    + output_file_ext;
       
-    // Time-integration of Newton's law => Export in output_file
-    newton_dynamics.simulate(x0, y0, z0, output_file);
-  }
+  // Time-integration of Newton's law => Export in output_file
+  newton_dynamics.simulate(x0, y0, z0, output_file);
+}
 ```
   
 Where `config.ini` would look like:
   
-  ```
-  [initial_position]
-  x = 1.0
-  y = 1.0
-  z = 1.0
+```
+[initial_position]
+x = 1.0
+y = 1.0
+z = 1.0
   
-  [output]
-  file_name_header = out
-  file_extension = dat
-  ```
+[output]
+file_name_header = out
+file_extension = dat
+```
 
 Although the first version is likely the faster to write, it's also the most ineffective if we need to use this program to simulate a bunch of trajectories, as we'd need to modify the source code and recompile every time, besides having to change the name of the file to avoid overwriting the previous simulations. 
 
