@@ -17,7 +17,7 @@ Our wrapper lives within the `dft_core` namespace, which is the core namespace o
 
 ### Examples
 
-The best way of showing the convenience offered by `grace_plot::Grace` is by example. Thus, we are going to proceed by directing the code in `main.cpp`:
+The best way of showing the convenience offered by `grace_plot::Grace` is by example. Thus, we are going to proceed by inserting the code in `main.cpp`:
 
 ```c++
 #include <cmath>
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
       arma::conv_to<std::vector<double>>::from(z_vector)
   );
   console::Debug("The new dataset id = " + std::to_string(dataset_id));
-  g.SetColor(dft_core::grace_plot::RED, dataset_id);
+  g.SetColor(dft_core::grace_plot::Color::RED, dataset_id);
   g.RedrawAndWait();
   //endregion
 

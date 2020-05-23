@@ -20,6 +20,12 @@ As we've just mentioned, classicalDFT is natively developed under linux. Thus, t
   > sudo ./cmake-3.17.3587832-MSVC_2-Linux-x64.sh --skip-license --prefix=/usr
   ```
 
+* [Boost](https://www.boost.org/) libraries are needed, which can be installed running:
+
+  ```cmd
+  > sudo apt-get install libboost-all-dev
+  ```
+
 * [GSL]( https://www.gnu.org/software/gsl/ ) need to be installed:
 
   ```cmd

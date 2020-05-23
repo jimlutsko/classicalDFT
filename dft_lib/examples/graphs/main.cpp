@@ -35,7 +35,7 @@ int main(int argc, char **argv)
       arma::conv_to<std::vector<double>>::from(z_vector)
   );
   console::Debug("The new dataset id = " + std::to_string(dataset_id));
-  g.SetColor(dft_core::grace_plot::RED, dataset_id);
+  g.SetColor(dft_core::grace_plot::Color::RED, dataset_id);
   g.RedrawAndWait();
   //endregion
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
       arma::conv_to<std::vector<double>>::from(w_vector)
   );
   console::Debug("The new dataset id = " + std::to_string(dataset_id));
-  g.SetColor(dft_core::grace_plot::BLUE, existing_dataset_id);
+  g.SetColor(dft_core::grace_plot::Color::BLUE, existing_dataset_id);
   g.RedrawAndWait();
 
   console::Warning("Replacing dataset id: " + std::to_string(existing_dataset_id));
