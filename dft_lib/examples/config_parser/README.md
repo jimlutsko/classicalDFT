@@ -10,6 +10,7 @@ But, *why'd we need any configuration file in any case?* If you've worked in any
 
   ```c++
   #include "my_physics_library/newton_dynamics.hpp"
+  
   int main()
   {
     double x0 = 1.0;
@@ -28,6 +29,7 @@ But, *why'd we need any configuration file in any case?* If you've worked in any
   ```c++
   #include "my_physics_library/newton_dynamics.hpp"
   #include "dft_lib/utils/config_parser.h"
+  
   int main()
   {
     //Defining the file to read:
@@ -42,18 +44,18 @@ But, *why'd we need any configuration file in any case?* If you've worked in any
     auto output_file_header = config.tree.get<std::string>("output.file_name_header");
     auto output_file_ext = config.tree.get<std::string>("output.file_extension");
     auto output_file = output_file_header + "_" 
-      								+ std::to_string(x0) + "." 
-      								+ std::to_string(y0) + "." 
-  								    + std::to_string(z0) + "." 
-      								+ output_file_ext;
+      + std::to_string(x0) + "." 
+      + std::to_string(y0) + "." 
+      + std::to_string(z0) + "." 
+      + output_file_ext;
       
     // Time-integration of Newton's law => Export in output_file
     newton_dynamics.simulate(x0, y0, z0, output_file);
   }
-  ```
-
-  Where `config.ini` would look like:
-
+```
+  
+Where `config.ini` would look like:
+  
   ```
   [initial_position]
   x = 1.0
