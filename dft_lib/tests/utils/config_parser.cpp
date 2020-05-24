@@ -15,20 +15,20 @@ using namespace dft_core;
 TEST(config_parser, default_cttor_works_ok)
 {
   std::string expected_file_path = "config.ini";
-  auto expected_file_type = dft_core::config_parser::FileType::INI;
+  auto expected_file_type = config_parser::FileType::INI;
 
-  auto config = dft_core::config_parser::ConfigParser();
+  auto config = config_parser::ConfigParser();
   ASSERT_STREQ(config.config_file_path().c_str(), expected_file_path.c_str());
   ASSERT_EQ(config.config_file_type(), expected_file_type);
 }
 
 TEST(config_parser, specific_cttor_works_ok)
 {
-  std::vector<dft_core::config_parser::FileType> types {
-      dft_core::config_parser::FileType::INI,
-      dft_core::config_parser::FileType::JSON,
-      dft_core::config_parser::FileType::XML,
-      dft_core::config_parser::FileType::INFO
+  std::vector<config_parser::FileType> types {
+      config_parser::FileType::INI,
+      config_parser::FileType::JSON,
+      config_parser::FileType::XML,
+      config_parser::FileType::INFO
   };
 
   std::vector<std::string> files {
@@ -39,11 +39,11 @@ TEST(config_parser, specific_cttor_works_ok)
   };
 
   std::string f;
-  dft_core::config_parser::FileType t;
+  config_parser::FileType t;
 
   for (const auto& tuple : boost::combine(types, files)) {
     boost::tie(t, f) = tuple;
-    auto config = dft_core::config_parser::ConfigParser(f, t);
+    auto config = config_parser::ConfigParser(f, t);
     auto expected_file_type = t;
     auto expected_file_path = f;
     ASSERT_STREQ(config.config_file_path().c_str(), expected_file_path.c_str());
@@ -53,11 +53,11 @@ TEST(config_parser, specific_cttor_works_ok)
 
 TEST(config_parser, tree_works_ok)
 {
-  std::vector<dft_core::config_parser::FileType> types {
-      dft_core::config_parser::FileType::INI,
-      dft_core::config_parser::FileType::JSON,
-      dft_core::config_parser::FileType::XML,
-      dft_core::config_parser::FileType::INFO
+  std::vector<config_parser::FileType> types {
+      config_parser::FileType::INI,
+      config_parser::FileType::JSON,
+      config_parser::FileType::XML,
+      config_parser::FileType::INFO
   };
 
   std::vector<std::string> files {
@@ -68,11 +68,11 @@ TEST(config_parser, tree_works_ok)
   };
 
   std::string f;
-  dft_core::config_parser::FileType t;
+  config_parser::FileType t;
 
   for (const auto& tuple : boost::combine(types, files)) {
     boost::tie(t, f) = tuple;
-    auto config = dft_core::config_parser::ConfigParser(f, t);
+    auto config = config_parser::ConfigParser(f, t);
     auto expected_file_type = t;
     auto expected_file_path = f;
 
@@ -98,7 +98,7 @@ TEST(config_parser, cttor_reader_throws_ini_parser_error)
   std::string file_path = "config_not.ini";
 
   EXPECT_THROW(
-      dft_core::config_parser::ConfigParser(file_path, file_type),
+      config_parser::ConfigParser(file_path, file_type),
       boost::property_tree::ini_parser::ini_parser_error
   );
 }
@@ -109,7 +109,7 @@ TEST(config_parser, cttor_reader_throws_json_parser_error)
   std::string file_path = "config_not.json";
 
   EXPECT_THROW(
-      dft_core::config_parser::ConfigParser(file_path, file_type),
+      config_parser::ConfigParser(file_path, file_type),
       boost::property_tree::json_parser::json_parser_error
   );
 }
@@ -120,7 +120,7 @@ TEST(config_parser, cttor_reader_throws_xml_parser_error)
   std::string file_path = "config_not.xml";
 
   EXPECT_THROW(
-      dft_core::config_parser::ConfigParser(file_path, file_type),
+      config_parser::ConfigParser(file_path, file_type),
       boost::property_tree::xml_parser::xml_parser_error
   );
 }
@@ -131,7 +131,7 @@ TEST(config_parser, cttor_reader_throws_info_parser_error)
   std::string file_path = "config_not.info";
 
   EXPECT_THROW(
-      dft_core::config_parser::ConfigParser(file_path, file_type),
+      config_parser::ConfigParser(file_path, file_type),
       boost::property_tree::info_parser::info_parser_error
   );
 }
