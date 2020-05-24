@@ -11,6 +11,7 @@ add_executable(${PROJECT_NAME} ${ALL_SOURCES})
 target_link_libraries(
         "${PROJECT_NAME}"
         "classical_dft"
+        "${GSLCBLAS}"
         "${GSLLIB}"
         "${GRACE_NP}"
         "pthread")
