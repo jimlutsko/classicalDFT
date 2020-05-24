@@ -1,6 +1,11 @@
 # Integrator wrapper
 
+### Introduction
+
+Numerical integration methods play a central role in a numerical library without any doubt, to say the least. Thankfully, there is an overwhelming amount of free-software and open-source  projects which provide extensive coverage of top-quality (and some even massively peer-reviewed) mathematical routines which allow us to directly solve mathematical problems without having to reinvent the wheel. We believe in [code reuse](https://en.wikipedia.org/wiki/Code_reuse), and for this reason we make use of external libraries which are either free to use or open source. In the particular case of numerical methods, we believe in the use of widely accepted libraries to avoid wasting time and effort, with the ultimate goal of focussing our energies in developing the new numerical routines required by `classicalDFT`. For this reason we make use of the **GNU Scientific Libraries** ([GSL](https://www.gnu.org/software/gsl/doc/html/index.html)). Unfortunately, the original GSL interface is a bit crude and might be even scary for `C++` developers. The aim of the `Integrator` wrapper is nothing but providing the user of `classicalDFT` with a neat programming interface following (inasmuch as possible) the fundamental clean-code principles. 
+
 ### Examples
+
 The best way of showing the convenience offered by `numerics::Integrator` is by example. Thus, we are going to proceed by inserting the code in [`main.cpp`](main.cpp):
 
 ```c++
