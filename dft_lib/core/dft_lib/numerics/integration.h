@@ -168,6 +168,12 @@ class Integrator
   double numerical_error() const { return error_; };
   ///Gets the numerical result achieved with the integration method
   double numerical_result() const { return result_; };
+  ///Gets the absolute-error tolerance attribute
+  double absolute_error_tolerance() const { return absolute_error_; }
+  ///Gets the relative-error tolerance attribute
+  double relative_error_tolerance() const { return relative_error_; }
+  ///Gets the GSL-work-space size attribute
+  int gsl_working_space_size() const { return working_space_size_; }
 
   //endregion
 
@@ -317,8 +323,8 @@ class Integrator
    */
   double FullInfiniteIntegral()
   {
-    // Quadrature Adaptive General-integration on Infinite Lower interval (QAGIL):
-    // For more information: https://www.gnu.org/software/gsl/doc/html/integration.html?highlight=gsl_integration_qagiu#c.gsl_integration_qagil
+    // Quadrature Adaptive General-integration on Infinite Lower interval (QAGI):
+    // For more information: https://www.gnu.org/software/gsl/doc/html/integration.html?highlight=gsl_integration_qagiu#c.gsl_integration_qagi
     gsl_integration_qagi(
         &gsl_function_,
         this->absolute_error_,
