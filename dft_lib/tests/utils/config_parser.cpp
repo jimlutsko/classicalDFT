@@ -1,9 +1,14 @@
 #include "dft_lib/utils/config_parser.h"
 
 #include <gtest/gtest.h>
+
+#include <boost/property_tree/detail/info_parser_error.hpp>
+#include <boost/property_tree/detail/xml_parser_error.hpp>
 #include <boost/range/combine.hpp>
 
 #include "dft_lib/utils/console.h"
+
+using namespace dft_core;
 
 //region Cttors:
 
@@ -84,3 +89,53 @@ TEST(config_parser, tree_works_ok)
 }
 
 //endregion
+
+//region Exceptions:
+
+TEST(config_parser, cttor_reader_throws_ini_parser_error)
+{
+  auto file_type = config_parser::FileType::INI;
+  std::string file_path = "config_not.ini";
+
+  EXPECT_THROW(
+      dft_core::config_parser::ConfigParser(file_path, file_type),
+      boost::property_tree::ini_parser::ini_parser_error
+  );
+}
+
+TEST(config_parser, cttor_reader_throws_json_parser_error)
+{
+  auto file_type = config_parser::FileType::JSON;
+  std::string file_path = "config_not.json";
+
+  EXPECT_THROW(
+      dft_core::config_parser::ConfigParser(file_path, file_type),
+      boost::property_tree::json_parser::json_parser_error
+  );
+}
+
+TEST(config_parser, cttor_reader_throws_xml_parser_error)
+{
+  auto file_type = config_parser::FileType::XML;
+  std::string file_path = "config_not.xml";
+
+  EXPECT_THROW(
+      dft_core::config_parser::ConfigParser(file_path, file_type),
+      boost::property_tree::xml_parser::xml_parser_error
+  );
+}
+
+TEST(config_parser, cttor_reader_throws_info_parser_error)
+{
+  auto file_type = config_parser::FileType::INFO;
+  std::string file_path = "config_not.info";
+
+  EXPECT_THROW(
+      dft_core::config_parser::ConfigParser(file_path, file_type),
+      boost::property_tree::info_parser::info_parser_error
+  );
+}
+
+//endregion
+
+

@@ -92,6 +92,10 @@ class ConfigParser
    *
    * @param[in] config_file the full path to find the configuration file
    * @param[in] file_type one of the possible `config_parser::FileType` values
+   * @throw boost::property_tree::ini_parser_error In case of error deserialising the property tree (if FileType::INI)
+   * @throw boost::property_tree::json_parser_error In case of error deserialising the property tree (if FileType::JSON)
+   * @throw boost::property_tree::xml_parser_error In case of error deserialising the property tree (if FileType::XML)
+   * @throw boost::property_tree::info_parser_error In case of error deserialising the property tree (if FileType::INFO)
    */
   void ReadConfigFile(const std::string& config_file, const FileType& file_type);
 
