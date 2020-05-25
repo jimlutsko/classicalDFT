@@ -27,6 +27,8 @@ const int DEFAULT_GSL_WORKING_SPACE_SIZE = 1000;
 template<class T, class return_type, class input_type = return_type>
 using class_method = std::function<return_type(const T&, input_type)>;
 
+template<class return_type, class input_type = return_type, class params_type = return_type>
+using general_method = std::function<return_type(input_type, const params_type&)>;
 //endregion
 
 //region Integrator class:
@@ -341,7 +343,53 @@ class Integrator
   //endregion
 };
 
+/**
+ * @brief  UTILITY: wrapper for GSL integration routines.
 
+ * @detailed Provides a simplified, c++ interface for using some of the GSL integration routines.
+ *  This version takes a non-member function we wish to integrate, say
+ *  `return_type func(x_type x, const params_type& params)`, with return_type = double.
+ *  The integration methods implemented are those of the parent class `Integrator`.
+ */
+template<class params_type = double, class return_type = double, class x_type = double>
+class FunctionIntegrator: public Integrator<FunctionIntegrator<params_type, return_type, x_type>, x_type>
+{
+ private:
+  /// The parameters used internally by the integrand function (i.e. `method_`)
+  const params_type& parameters_;
+
+  /// The underlying non-member function to be integrated (so-called integrand)
+  general_method<return_type, x_type, params_type> method_;
+
+ public:
+  /**
+   * @brief Explicit constructor which takes the function `general_method` to be integrated and the
+   *    corresponding `parameters` to be passed to such a function.
+   *
+   * @param method the non-member function to be integrated
+   * @param parameters the parameters to be passed to such a function as const reference
+   * @param absolute_error the absolute-error tolerance for the numerical method
+   * @param relative_error the relative-error tolerance for the numerical method
+   */
+  explicit FunctionIntegrator(
+      general_method<return_type, x_type, params_type> method,
+      const params_type& parameters,
+      double absolute_error = DEFAULT_ABSOLUTE_ERROR_TOLERANCE,
+      double relative_error = DEFAULT_RELATIVE_ERROR_TOLERANCE
+  ): Integrator<FunctionIntegrator<params_type, return_type, x_type>, x_type>(
+      *this,
+      &FunctionIntegrator<params_type, return_type, x_type>::f,
+      absolute_error, relative_error),
+     method_(method),
+     parameters_(parameters) {}
+
+  /**
+   * @brief Helper function needed to initialise the Integrator class
+   * @param x the x-value where the objective `method` will be evaluated at
+   * @return the value of the method evaluated at `x` provided `parameters_`
+   */
+  x_type f(x_type x) const { return method_(x, parameters_); }
+};
 //endregion
 
 }}

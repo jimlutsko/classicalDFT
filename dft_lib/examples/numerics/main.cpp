@@ -13,6 +13,8 @@ class TestProblem
   double PositiveExp(double x) const { return param_ * exp(x); }
   double NormalDist(double x) const { return param_ * exp(-x * x * 0.5) / sqrt(2 * M_PI); }
 };
+
+double NegativeExpFunction(double x, const std::vector<double>& param) { return param[0] * param[1] * exp(-x); }
 }
 
 int main()
@@ -58,4 +60,15 @@ int main()
   console::WriteLine(console::format::Blink("Testing integration methods: QAGI"));
   console::WriteLine("int[-inf, +inf] normal(x) dx = " + std::to_string(integrator.numerical_result()));
   console::WriteLine("numerical_error =  " + std::to_string(integrator.numerical_error()));
+
+  auto parameters = std::vector<double>{ 0.5, 2 };
+  auto func_integrator = numerics::FunctionIntegrator<std::vector<double>>(&example::NegativeExpFunction, parameters);
+
+  result = func_integrator.DefiniteIntegral(0, -log(0.5));
+  console::NewLine();
+  console::WriteLine(console::format::Blink("Testing function-integration vector parameters: p = [0.5, 2]"));
+  console::WriteLine("int[0, -log(0.5)] p[0] * p[1] * exp(-x) dx = " + std::to_string(func_integrator.numerical_result()));
+  console::WriteLine("numerical_error =  " + std::to_string(func_integrator.numerical_error()));
+
+  console::Wait();
 }
