@@ -13,6 +13,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 include(FindDependencies)
 find_library_or_set_default(GRACE_NP grace_np /usr/local)
 find_library_or_set_default(GTEST gtest /usr/local)
+find_library_or_set_default(GSLLIB gsl /usr/local)
+find_library_or_set_default(GSLCBLAS gslcblas /usr/local)
 
 # Setting up the cxx compiler
 set(CMAKE_CXX_STANDARD 14)
@@ -47,3 +49,4 @@ add_subdirectory(tests)
 add_subdirectory(examples/console)
 add_subdirectory(examples/graphs)
 add_subdirectory(examples/config_parser)
+add_subdirectory(examples/numerics)

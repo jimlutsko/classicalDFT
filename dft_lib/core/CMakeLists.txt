@@ -5,10 +5,16 @@ include_directories(${dft_lib_include_path})
 
 # Set up the source files required for the compilation to succeed
 set(ALL_SOURCES
+        # Graphics utils:
         ${dft_lib_src_path}/graph/grace.cpp
+        # Library exceptions:
         ${dft_lib_src_path}/exceptions/grace_exceptions.cpp
         ${dft_lib_src_path}/exceptions/parameter_exceptions.cpp
-        ${dft_lib_src_path}/utils/config_parser.cpp)
+        # Utils:
+        ${dft_lib_src_path}/utils/config_parser.cpp
+        # Numeric:
+        ${dft_lib_src_path}/numerics/integration.cpp
+        )
 
 # Set up the dependencies and naming of the library
 set(BINARY ${PROJECT_NAME})
