@@ -1,6 +1,9 @@
 #ifndef __LUTSKO__SPECIES__
 #define __LUTSKO__SPECIES__
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/export.hpp>
 
 #include "FMT_Weighted_Density.h"
 #include "Potential1.h"
@@ -39,7 +42,13 @@ class Species
   
   DFT_Vec &getDF() {return dF_;}
   void setDF(DFT_Vec &df) {return dF_.set(df);}
-  
+
+  /**
+  *   @brief  This adds in the external field contribution (which is species dependent). Force calculation is optional
+  *  
+  *   @param  bCalcForces: forces are calculated if this is true
+  *   @return  the contribution to the free energy
+  */  
   double externalField(bool bCalcForces)
   {
     double dV = density_.dV();
@@ -51,9 +60,17 @@ class Species
       }
     return Fx;
   }
-
+  /**
+  *   @brief  Get the hard sphere diameter. This is a place-holder for the child objects that actually have a hsd.
+  *  
+  */  
   virtual double getHSD() const { return 0.0;}
 
+
+  /**
+   *   @brief  Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
+   *  
+   */    
   void beginForceCalculation()
   {
     if(fixedMass_ > 0.0)
@@ -63,6 +80,10 @@ class Species
       }
   }
 
+  /**
+   *   @brief  Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
+   *  
+   */    
   void endForceCalculation()
   {
     if(fixedMass_ > 0.0)
@@ -77,9 +98,17 @@ class Species
 	  dF_.set(p, dF_.get(p)-mu_*density_.dV());
       }
   }
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive &ar, const unsigned int file_version){}
   
- private:
-  static int SequenceNumber_;
+  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const Species * t, const unsigned int file_version);
+  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, Species * t, const unsigned int file_version);
+
+  
+protected:
+ 
+  static int SequenceNumber_; ///< Give every species a unique identifier. This generates a new id for each new instance.
   
  protected:
   Density &density_;
@@ -88,6 +117,9 @@ class Species
   int seq_num_;
   double fixedMass_; // if this is > 0, then the mass of this species is being held fixed at this value.
 };
+
+
+
 
   /**
    *  @brief Species Class: hard sphere diameters, etc.
@@ -240,6 +272,15 @@ public:
   // Used in DFT_Surfactant ...
   const DFT_Vec &getV_Real(int J) const { return d_[VI(J)].Real();}
   const DFT_Vec_Complex& getVweight_Four(int J) const { return d_[VI(J)].wk();}  
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
+  {
+    boost::serialization::void_cast_register<FMT_Species, Species>(static_cast<FMT_Species *>(NULL),static_cast<Species *>(NULL));
+  }    
+  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species * t, const unsigned int file_version);
+  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version);
+
   
 protected:
   /**
@@ -298,6 +339,14 @@ public:
   
   ~FMT_Species_Numeric(){}
 
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
+  {
+        boost::serialization::void_cast_register<FMT_Species_Numeric, FMT_Species>(static_cast<FMT_Species_Numeric *>(NULL),static_cast<FMT_Species *>(NULL));
+  }     
+  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Numeric * t, const unsigned int file_version);
+  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Numeric * t, const unsigned int file_version);
+  
  protected:
   /**
    *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
@@ -307,6 +356,9 @@ public:
    *   @param  pointsFile is the file holding the integration points for integrating a spherical shell
    */        
   void generateWeights(string &pointsFile);
+
+
+
 };
 
 
@@ -333,7 +385,17 @@ public:
   
   ~FMT_Species_Analytic(){}
 
- protected:
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
+  {
+    boost::serialization::void_cast_register<FMT_Species_Analytic, FMT_Species>(static_cast<FMT_Species_Analytic *>(NULL),static_cast<FMT_Species *>(NULL));
+  }      
+  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic * t, const unsigned int file_version);
+  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic * t, const unsigned int file_version);
+
+
+  
+protected:
   /**
    *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
    *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
@@ -344,35 +406,145 @@ public:
 
 
 
+template<class Archive>
+inline void boost::serialization::save_construct_data(Archive & ar, const Species * t, const unsigned int file_version)
+{
+  ar << & t->density_;
+  ar << t->mu_;
+  ar << t->seq_num_;
+  ar << t->dF_;
+  ar << t->fixedMass_;
+  ar << t->SequenceNumber_;  
+}
 
-/*
-  class VDW_Species : public FMT_Species
-  {
-  public:
-    VDW_Species(Density& density, double hsd, string &pointsFile, Potential1& potential, double kT);
+template<class Archive>
+inline void boost::serialization::load_construct_data(Archive & ar, Species * t, const unsigned int file_version)
+{
+    // retrieve data from archive required to construct new instance
+  Density *d;
+  ar >> d;
 
-    double get_VDW_Constant() const {return a_vdw_;}
+  // invoke inplace constructor to initialize instance of my_class
+  double mu = 0;
+  double seq = 0;
+  ::new(t)Species(*d,mu,seq);
 
-    double getInteractionEnergyAndForces()
-    {
-      long Ntot = density_.Ntot();
-      double dV = density_.dV();
+  ar >> t->mu_;
+  ar >> t->seq_num_;  
+  ar >> t->dF_;
+  ar >> t->fixedMass_;
+  ar >> t->SequenceNumber_;  
+}
 
-      DFT_FFT v(density_.Nx(), density_.Ny(), density_.Nz());      
 
-      v.Four().Schur(density_.getDK(),w_att_.Four());
-      v.Four().MultBy(dV*dV/Ntot);
-      v.do_fourier_2_real(); 
+template<class Archive>
+inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species * t, const unsigned int file_version)
+{
+  //  ar << static_cast<const Species*>(t);
+  ar << & t->density_;
+  ar << t->mu_;
+  ar << t->seq_num_;
+  ar << t->dF_;
+  ar << t->fixedMass_;
+  ar << t->SequenceNumber_;  
+  ar << t->hsd_;
+  ar << t->d_;
+}
 
-      dF_.IncrementBy(v.Real());
-    
-      return 0.5*density_.getInteractionEnergy(v.Real());
-    }
+template<class Archive>
+inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version)
+{
+    // retrieve data from archive required to construct new instance
+  Density *d;
+  ar >> d;
+
+    // invoke inplace constructor to initialize instance of my_class
+  double mu = 0;
+  int seq_num = 0;
+  ::new(t)FMT_Species(*d,mu,seq_num);
+
+  ar >> t->mu_;
+  ar >> t->seq_num_;  
+  ar >> t->dF_;
+  ar >> t->fixedMass_;
+  ar >> t->SequenceNumber_;
+  ar >> t->hsd_;
+  ar >> t->d_;  
+}
+
+template<class Archive>
+inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic * t, const unsigned int file_version)
+{
+  //  ar << static_cast<const FMT_Species*>(t);
+  ar << & t->density_;
+  ar << t->mu_;
+  ar << t->seq_num_;
+  ar << t->dF_;
+  ar << t->fixedMass_;
+  ar << t->SequenceNumber_;
   
-  protected:
-    Potential1& potential_;
-    double a_vdw_;
-    DFT_FFT w_att_;
-  };
-*/
+  ar << t->hsd_;
+  ar << t->d_;  
+}
+
+template<class Archive>
+inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic * t, const unsigned int file_version)
+{
+    // retrieve data from archive required to construct new instance
+  Density *d;
+  ar >> d;
+
+    // invoke inplace constructor to initialize instance of my_class
+  double mu = 0;
+  int seq_num = 0;
+  double hsd = 1; // place holder
+  ::new(t)FMT_Species_Analytic(*d,hsd, mu, seq_num);
+  
+  ar >> t->mu_;
+  ar >> t->seq_num_;  
+  ar >> t->dF_;
+  ar >> t->fixedMass_;
+  ar >> t->SequenceNumber_;
+  ar >> t->hsd_;
+  ar >> t->d_;  
+}
+
+template<class Archive>
+inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Numeric * t, const unsigned int file_version)
+{
+  //  ar << static_cast<const FMT_Species*>(t);
+  ar << & t->density_;
+  ar << t->mu_;
+  ar << t->seq_num_;
+  ar << t->dF_;
+  ar << t->fixedMass_;
+  ar << t->SequenceNumber_;
+  
+  ar << t->hsd_;
+  ar << t->d_;  
+}
+
+template<class Archive>
+inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Numeric * t, const unsigned int file_version)
+{
+    // retrieve data from archive required to construct new instance
+  Density *d;
+  ar >> d;
+
+  // invoke inplace constructor to initialize instance of my_class
+  double mu = 0;
+  double hsd = 1;
+  int seq_num = 0;
+  string noFile;
+  ::new(t)FMT_Species_Numeric(*d, hsd, noFile, 0, seq_num);
+
+  ar >> t->mu_;
+  ar >> t->seq_num_;    
+  ar >> t->dF_;
+  ar >> t->fixedMass_;
+  ar >> t->SequenceNumber_;
+  ar >> t->hsd_;
+  ar >> t->d_;  
+}
+
 #endif // __LUTSKO__SPECIES__

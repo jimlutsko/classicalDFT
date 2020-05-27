@@ -13,18 +13,21 @@ using namespace std;
 class Minimizer
 {
  public:
-  Minimizer(DFT &dft) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false)
+  Minimizer(DFT *dft) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false)
   {
-    x_.resize(dft.getNumberOfSpecies());
+    x_.resize(dft->getNumberOfSpecies());
 
-    for(auto &x: x_) x.resize(dft_.lattice().Ntot()); 
+    for(auto &x: x_) x.resize(dft_->lattice().Ntot()); 
   }
 
+  Minimizer() {}
+  
   void setFrozenBoundaryFlag(bool f) {bFrozenBoundary_ = f;}
   
   virtual void initialize();
 
   void run(long maxSteps = -1);
+  void resume(long maxSteps = -1);
 
   virtual double step() = 0;
 
@@ -40,12 +43,12 @@ class Minimizer
   void   setForceTerminationCriterion(double v) {forceLimit_ = v;}
   
   virtual double getDF_DX();
-  virtual double get_convergence_monitor() const { return dft_.get_convergence_monitor();}
+  virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
 
   void setMinDensity(double m) { minDensity_ = m;}
   
  protected:
-  DFT &dft_;
+  DFT *dft_ = NULL;
 
   vector<DFT_Vec> x_;
 
@@ -61,14 +64,137 @@ class Minimizer
 
   double minDensity_ = -1;
 
-  std::chrono::duration<double> elapsed_seconds_;  
+  int image_number_ = 0;
+  
+  std::chrono::duration<double> elapsed_seconds_;
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & dft_;
+    ar & x_;
+    ar & calls_;
+    ar & step_counter_;
+    ar & F_;
+    ar & forceLimit_;
+    ar & f_abs_max_;
+    ar & bFrozenBoundary_;
+    ar & vv_;
+    ar & minDensity_;
+  }
+
+  
+};
+
+
+
+/**
+  *  @brief Minimizer using FIRE2 algorithm
+  *
+  */
+
+class fireMinimizer2 : public Minimizer 
+{
+ public:
+  fireMinimizer2(DFT *dft);
+  fireMinimizer2(): Minimizer(){}
+
+  virtual void   initialize();
+  virtual double step();
+
+  double getRMS_Force() const { return rms_force_;}
+
+  void onlyRelaxSpecies(int j) { onlyRelax_ = j;}  
+  
+  void setTimeStep(double dt)    { dt_ = dt;}
+  void setTimeStepMax(double dt) { dt_max_ = dt;}  
+  void setAlphaStart(double a)   { alpha_start_ = a;}
+  void setAlphaFac(double a)     { f_alf_ = a;}
+  void setBacktrackFac(double a) { f_back_ = a;}  
+
+  virtual double get_convergence_monitor() const { return fabs(vv_/dft_->lattice().getVolume());}
+  
+ protected:
+  void SemiImplicitEuler(int begin, int end);
+  
+ protected:
+ vector<DFT_Vec> v_;
+
+  int onlyRelax_ = -1;
+
+  double f_dec_    = 0.5;
+  double f_inc_    = 1.1;
+  double f_alf_    = 0.99;
+  double f_back_   = 0.8;
+
+  double dt_max_ = 1.0;
+  double dt_     = 1.0;
+  double dt_min_ = 0.0;        ///< minimum allowed timestep
+  
+  unsigned it_;     ///< Loop counter
+  unsigned cut_;    ///< used to keep track of number of steps P >0
+  int N_delay_ = 5;
+
+  double alpha_;
+  double alpha_start_ = 0.1;
+  
+  int N_P_positive_ = 0;
+  int N_P_negative_ = 0;
+  int N_P_negative_max_ = 20;
+  
+  double rms_force_ = 0.0; // for reporting
+  double vnorm_     = 0.0; // for reporting
+  
+  bool initial_delay_ = true; ///< flag to allow for a warmup period
+  int steps_since_backtrack_ = 0;
+  double threshold_ = 0.0;
+  double fmax_ = 0.0;
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Minimizer>(*this);
+    ar & v_;
+    ar & onlyRelax_;
+
+    ar & f_dec_;
+    ar & f_inc_;
+    ar & f_alf_;
+    ar & f_back_;
+
+    ar & dt_min_;
+    ar & dt_max_;
+    ar & dt_;
+
+    ar & it_;
+    ar & cut_;
+
+    ar & alpha_start_;
+    ar & alpha_;
+
+    ar & N_delay_;
+    ar & N_P_positive_;
+    ar & N_P_negative_;
+    ar & N_P_negative_;
+
+    ar & rms_force_;
+    ar & vnorm_;
+    ar & initial_delay_;
+    ar & steps_since_backtrack_;
+    ar & threshold_;
+    ar & fmax_;
+
+
+    boost::serialization::void_cast_register<fireMinimizer2, Minimizer>(static_cast<fireMinimizer2 *>(NULL),static_cast<Minimizer *>(NULL));
+  }  
+
 };
 
 /**
   *  @brief Base class for a family of  finite elements ddft integrators. 
   *
   */  
-
+/*  TODO: Update
 class DDFT : public Minimizer
 {
  public:
@@ -84,16 +210,6 @@ class DDFT : public Minimizer
 
   virtual void initialize();
 
-  /*
-  virtual void draw_after()  // Display something after the minimization
-  {
-    cout << "After DDFT step " << step_counter_ 
-	 << " F = " << F_ 
-	 << " max(dF) = " << f_abs_max_
-	 << " and N = " << dft_.getDensity(0).getNumberAtoms() 
-	 << endl;
-  }
-  */
   void Display(double F, double dFmin, double dFmax, double N);
     
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
@@ -125,7 +241,7 @@ class DDFT : public Minimizer
   bool fixedBorder_;
   bool modified_; // for certain derived classes
 };
-
+*/
 
 /**
   *  @brief DDFT minimizer Class using integrating factor
@@ -133,7 +249,7 @@ class DDFT : public Minimizer
   *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
   *
   */  
-
+	  /* TODO : Update
 class DDFT_IF : public DDFT
 {
  public:
@@ -158,13 +274,14 @@ class DDFT_IF : public DDFT
 
   double largest_change_on_border_; // for reporting effect of restore_values_on_border()
 };
+	  */
 
 /**
   *  @brief DDFT minimizer Class using integrating factor. This is for fixed density at the boundaries - a model for an open system.
   *
   *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
   */  
-
+		    /*TODO: Update
 class DDFT_IF_Open : public DDFT
 {
  public:
@@ -201,128 +318,9 @@ class DDFT_IF_Open : public DDFT
   vector<double> Lamy;
   vector<double> Lamz;
 };
+		    */
 
-/**
-  *  @brief Minimizer using FIRE algorithm
-  *
-  */
-
-class fireMinimizer_Mu : public Minimizer
-{
- public:
- fireMinimizer_Mu(DFT &dft) :  Minimizer(dft)
-  {
-    v_.resize(dft_.getNumberOfSpecies());
-    for(auto &v: v_) v.resize(dft_.lattice().Ntot());
-
-    dt_ = 1e-3; // my guess
-    dt_max_ = 10*dt_;
-    
-    N_delay_ = 5;
-  
-    alpha_start_ = 0.1;
-    f_dec_ = 0.5;
-    f_inc_ = 1.1;
-    f_alf_ = 0.99;
-  }
-
-  void onlyRelaxSpecies(int j) { onlyRelax_ = j;}
-  
-  virtual void initialize();
-
-  virtual double step();
-
-
-  void verlet();
-
-  void setTimeStep(double dt)    { dt_ = dt;}
-  void setTimeStepMax(double dt) { dt_max_ = dt;}  
-  void setAlphaStart(double a)   { alpha_start_ = a;}
-  void setAlphaFac(double a)     { f_alf_ = a;}
-
- protected:
-  vector<DFT_Vec> v_;
-
-  int onlyRelax_ = -1;
-
-  double alpha_start_ = 0.1;
-  double f_dec_    = 0.5;
-  double f_inc_    = 1.1;
-  double f_alf_    = 0.99;
-  double dt_max_;
-  double dt_;
-
-  unsigned it_;     ///< Loop counter
-  unsigned cut_;    ///< used to keep track of number of steps P >0
-  int N_delay_ = 5;
-  double alpha_;
-
-};
-
-
-/**
-  *  @brief Minimizer using FIRE2 algorithm
-  *
-  */
-
-class fireMinimizer2 : public Minimizer 
-{
- public:
-  fireMinimizer2(DFT &dft);
-
-  virtual void   initialize();
-  virtual double step();
-
-  double getRMS_Force() const { return rms_force_;}
-
-  void onlyRelaxSpecies(int j) { onlyRelax_ = j;}  
-  
-  void setTimeStep(double dt)    { dt_ = dt;}
-  void setTimeStepMax(double dt) { dt_max_ = dt;}  
-  void setAlphaStart(double a)   { alpha_start_ = a;}
-  void setAlphaFac(double a)     { f_alf_ = a;}
-  void setBacktrackFac(double a) { f_back_ = a;}  
-
-  virtual double get_convergence_monitor() const { return fabs(vv_/dft_.lattice().getVolume());}
-  
- protected:
-  void SemiImplicitEuler(int begin, int end);
-  
- protected:
- vector<DFT_Vec> v_;
-
-  int onlyRelax_ = -1;
-
-  double alpha_start_ = 0.1;
-  double f_dec_    = 0.5;
-  double f_inc_    = 1.1;
-  double f_alf_    = 0.99;
-  double f_back_   = 0.8;
-  double dt_max_;
-  double dt_;
-
-  unsigned it_;     ///< Loop counter
-  unsigned cut_;    ///< used to keep track of number of steps P >0
-  int N_delay_ = 5;
-  double alpha_;
-  
-  int N_P_positive_ = 0;
-  int N_P_negative_ = 0;
-
-  double rms_force_ = 0.0; // for reporting
-  double vnorm_     = 0.0; // for reporting
-  
-  double dt_min_ = 0.0;        ///< minimum allowed timestep
-  bool initial_delay_ = true; ///< flag to allow for a warmup period
-  int N_P_negative_max_ = 20;
-  int steps_since_backtrack_ = 0;
-
-  double threshold_ = 0.0;
-  double fmax_ = 0.0;
-
-};
-
-
+/* Currently not working
 class picardMinimizer : public Minimizer
 {
  public:
@@ -385,6 +383,6 @@ class picardMinimizer : public Minimizer
   double rms_force_ = 0.0; // for reporting
 };
 
-
+*/
 
 #endif // sentinal

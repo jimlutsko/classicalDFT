@@ -248,25 +248,56 @@ class Lattice
   }
 
   friend ostream &operator<<(ostream &of, const Lattice &l) 
-  {
-    of << " " << l.Nx_ << " " << l.Ny_ << " " << l.Nz_
-       << " " << l.Ntot_ << " " << l.Nout_
-       << " " << l.dx_ << " " << l.dy_ << " " << l.dz_
-       << " " << l.L_[0] << " " << l.L_[1] << " " << l.L_[2];
+  {    
+    of.write((char*) &l.Nx_, sizeof(long));
+    of.write((char*) &l.Ny_, sizeof(long));
+    of.write((char*) &l.Nz_, sizeof(long));
+
+    of.write((char*) &l.Ntot_, sizeof(long));
+    of.write((char*) &l.Nout_, sizeof(long));    
+
+    of.write((char*) &l.dx_, sizeof(double));
+    of.write((char*) &l.dy_, sizeof(double));
+    of.write((char*) &l.dz_, sizeof(double));
+
+    of.write((char*) &l.L_, 3*sizeof(double));
     
     return of;
   }
 
   friend istream &operator>>(istream  &in, Lattice &l )     
   {
-    in >> l.Nx_ >> l.Ny_ >> l.Nz_
-       >> l.Ntot_ >> l.Nout_
-       >> l.dx_ >> l.dy_ >> l.dz_
-       >> l.L_[0] >> l.L_[1] >> l.L_[2];
+    in.read((char*) &l.Nx_, sizeof(long));
+    in.read((char*) &l.Ny_, sizeof(long));
+    in.read((char*) &l.Nz_, sizeof(long));
+    
+    in.read((char*) &l.Ntot_, sizeof(long));
+    in.read((char*) &l.Nout_, sizeof(long));    
+    
+    in.read((char*) &l.dx_, sizeof(double));
+    in.read((char*) &l.dy_, sizeof(double));
+    in.read((char*) &l.dz_, sizeof(double));
+    
+    in.read((char*) &l.L_, 3*sizeof(double));
     
     return in;
   }    
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & Nx_;
+    ar & Ny_;
+    ar & Nz_;
 
+    ar & Ntot_;
+    ar & Nout_;
+
+    ar & dx_;
+    ar & dy_;
+    ar & dz_;
+
+    ar & L_;
+  }
   
 protected:
   long Nx_; ///< Number of lattice points in x direction

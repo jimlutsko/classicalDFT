@@ -11,7 +11,7 @@ project(classicalDFT VERSION 1.0 DESCRIPTION "classical DFT library and apps" LA
 
 
 #Required
-#find_package(Boost REQUIRED)
+find_package(Boost REQUIRED REQUIRED COMPONENTS serialization)
 
 #Version information
 configure_file (
@@ -54,6 +54,8 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 # find gsl
 link_directories("/usr/local/lib")
 
+
+target_link_libraries(${PROJECT_NAME} PUBLIC Boost::serialization)
 
 # enable omp if it exists
 find_package(OpenMP)

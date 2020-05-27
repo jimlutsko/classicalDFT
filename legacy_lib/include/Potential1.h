@@ -1,6 +1,9 @@
 #ifndef __LUTSKO_POTENTIAL1__
 #define __LUTSKO_POTENTIAL1__
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/base_object.hpp>
+
 #include "Integrator.h"
 
 /**
@@ -22,6 +25,7 @@ class Potential1
  public:
  Potential1(double sigma, double eps, double rcut) : sigma_(sigma), eps_(eps),rcut_(rcut), shift_(0), rmin_(0), Vmin_(0)
   {}
+  Potential1(){}
 
   virtual double getHardCore() const = 0; ///< Hard core diameter of the original potential (e.g. zero for LJ). 
   
@@ -94,6 +98,22 @@ class Potential1
 
   virtual double dBH_Kernal(double r) const {return (1.0-exp(-V0(r)/kT_));}  ///< Kernal for calcuating hsd
   virtual double vdw_Kernal(double r) const {return r*r*Watt(r);}  ///< Kernel for calculating vDW parameter
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & sigma_;
+    ar & eps_;
+    ar & rcut_;
+    ar & rmin_;
+    ar & shift_;
+    ar & Vmin_;
+    ar & r_att_min_;
+    ar & r0_;
+    ar & bhFlag_;
+    ar & kT_;    
+  }
+
   
  protected:
   double sigma_     =  1.0; ///< Length scale of potential
@@ -123,7 +143,8 @@ class LJ : public Potential1
     Vmin_  = V(rmin_);
     r0_    = pow(0.5*sqrt(1+shift_)+0.5,-1.0/6.0);          
   }
-
+  LJ() : Potential1() {}
+  
   virtual double getRmin() const { return pow(2.0,1.0/6.0)*sigma_;}
   virtual double getHardCore() const { return 0.0;}
   /*
@@ -156,7 +177,15 @@ class LJ : public Potential1
     double y2 = sigma_*sigma_/r2;
     double y6 = y2*y2*y2;
     return 4*eps_*(y6*y6-y6);
-  }  
+  }
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Potential1>(*this);
+    boost::serialization::void_cast_register<LJ, Potential1>(static_cast<LJ *>(NULL),static_cast<Potential1 *>(NULL));            
+  }
+  
 };
 
 /**
@@ -174,6 +203,8 @@ class tWF : public Potential1
     r0_    = sqrt(1+pow(25*sqrt(1+shift_)+25,-1.0/3.0));
   }
 
+  tWF() : Potential1() {}
+  
   virtual double getRmin() const { return sigma_*sqrt(1+pow(2.0/alpha_,1.0/3.0));}
   virtual double getHardCore() const { return sigma_;}
   
@@ -198,6 +229,15 @@ class tWF : public Potential1
     stringstream ss;
     ss << "TWF_" << sigma_ << "_" << eps_ << "_" << alpha_ << "_" << rcut_ << r_att_min_ << "_" << bhFlag_;
     return ss.str();    
+  }
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Potential1>(*this);
+    ar & alpha_;
+
+    boost::serialization::void_cast_register<tWF, Potential1>(static_cast<tWF *>(NULL),static_cast<Potential1 *>(NULL));            
   }
   
  protected:
@@ -242,6 +282,8 @@ class WHDF : public Potential1
     r0_    = 1.0;
   }
 
+  WHDF() : Potential1() {}
+  
   virtual double getRmin() const { return rcut_*pow((1.0+2.0*(rcut_/sigma_)*(rcut_/sigma_))/3.0,-0.5);}
   virtual double getHardCore() const { return 0.0;}
   /*  virtual double getVDW_Parameter(double kT) const
@@ -257,6 +299,13 @@ class WHDF : public Potential1
     stringstream ss;
     ss << "WHDF_" << sigma_ << "_" << eps_ << "_" << rcut_ << r_att_min_ << "_" << bhFlag_;
     return ss.str();    
+  }
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Potential1>(*this);
+    boost::serialization::void_cast_register<WHDF, Potential1>(static_cast<WHDF *>(NULL),static_cast<Potential1 *>(NULL));            
   }  
 
  protected:

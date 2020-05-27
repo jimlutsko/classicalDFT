@@ -347,6 +347,15 @@ class Density : public Lattice
   friend ostream &operator<<(ostream &of, const Density &d) {of << static_cast<const Lattice &>(d) << d.Density_ << d.vWall_; return of;}  
   friend istream &operator>>(istream  &in, Density &d )     {in >> static_cast<Lattice &>(d) >> d.Density_ >> d.vWall_; return in;}
 
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Lattice>(*this);
+    ar & Density_;
+    ar & vWall_;
+  }
+
+  
   /**
   *   @brief  Write the real-space array Density_ to a file in binary format. THIS IS A LEGACY FUNCTION THAT SHOULD BE REMOVED AT SOME POINT.
   *  

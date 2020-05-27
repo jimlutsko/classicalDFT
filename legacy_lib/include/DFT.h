@@ -8,7 +8,8 @@
 #include <cstring>
 #include <complex>
 
-//TEST
+#include <boost/serialization/vector.hpp>
+
 
 
 #include "Enskog.h"
@@ -261,7 +262,18 @@ class DFT
    *   @return Mean-field contribution to free energy
    */  
   double get_f_mf() const { return F_mf_;}
-  
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & allSpecies_;
+    ar & Interactions_;
+    ar & fmt_;
+    ar & F_id_;
+    ar & F_ext_;
+    ar & F_hs_;
+    ar & F_mf_;	
+  }
 
  protected:
   vector<Species*> allSpecies_; ///< array holding the species objects

@@ -1,6 +1,10 @@
 #ifndef __DFT_LINALG_ARMA_LUTSKO__
 #define __DFT_LINALG_ARMA_LUTSKO__
 
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/binary_object.hpp>
+
 
 #include <armadillo>
 
@@ -80,6 +84,27 @@ class DFT_Vec
     return in;
   }    
 
+
+  template<class Archive> void save(Archive & ar, const unsigned int version) const
+  {
+    unsigned N = data_.size();
+    boost::serialization::binary_object buf_wrap(data_.memptr(), N*sizeof(double));
+    ar & N;
+    ar & buf_wrap;
+  }
+  
+  template<class Archive>  void load(Archive & ar, const unsigned int version)
+  {
+    unsigned N  = 0;
+    ar & N;
+    data_.resize(N);    
+    boost::serialization::binary_object buf_wrap(data_.memptr(), N*sizeof(double));
+    ar & buf_wrap;
+  }
+  BOOST_SERIALIZATION_SPLIT_MEMBER()  
+
+
+  
   // These are legacy functions that should be removed at some point. 
   void save(ofstream &of) const {data_.save(of);}
   void load(ifstream &in) {data_.load(in);}
@@ -135,7 +160,25 @@ public:
     v.resize(N);
     in.read((char *)(v.data_.memptr()), N*sizeof(complex<double>));
     return in;
-  }    
+  }
+  
+  template<class Archive> void save(Archive & ar, const unsigned int version) const
+  {
+    unsigned N = data_.size();
+    boost::serialization::binary_object buf_wrap(data_.memptr(), N*sizeof(complex<double>));
+    ar & N;
+    ar & buf_wrap;
+  }
+  
+  template<class Archive>  void load(Archive & ar, const unsigned int version)
+  {
+    unsigned N  = 0;
+    ar & N;
+    data_.resize(N);    
+    boost::serialization::binary_object buf_wrap(data_.memptr(), N*sizeof(complex<double>));
+    ar & buf_wrap;
+  }
+  BOOST_SERIALIZATION_SPLIT_MEMBER()  
   
 protected:
   arma::cx_vec data_;
@@ -211,6 +254,43 @@ class DFT_FFT
 
     return in;
   }
+
+  friend class boost::serialization::access;  
+  template<class Archive> void save(Archive & ar, const unsigned int version) const
+  {
+    ar & RealSpace_;
+    ar & FourierSpace_;
+    ar & Nx_;
+    ar & Ny_;
+    ar & Nz_;
+  }
+  template<class Archive>  void load(Archive & ar, const unsigned int version)
+  {
+    ar & RealSpace_;
+    ar & FourierSpace_;
+    ar & Nx_;
+    ar & Ny_;
+    ar & Nz_;    
+
+    
+    // I do not know how to stream the fftw plans, so I reconstruct them.
+    // BUT, this is really unpleasant in terms of wasted memory:
+    // fftw messes up the data so we have to restore it after making the plans
+    // copy the data:
+    DFT_Vec r(RealSpace_);
+    DFT_Vec_Complex f(FourierSpace_);
+    
+    four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
+    real_2_four_ = fftw_plan_dft_r2c_3d(Nx_, Ny_, Nz_, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
+
+    // restore data:
+    // I could just exchange the memptr's but i hate to count on library internals
+    
+    RealSpace_.set(r);
+    FourierSpace_.set(f);
+    
+  }
+  BOOST_SERIALIZATION_SPLIT_MEMBER()  
   
  protected:
   DFT_Vec RealSpace_;

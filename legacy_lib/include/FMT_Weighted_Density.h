@@ -15,7 +15,7 @@ class FMT_Weighted_Density
  public:
   FMT_Weighted_Density(){ }
 
-  FMT_Weighted_Density(const FMT_Weighted_Density &) = delete;
+  //  FMT_Weighted_Density(const FMT_Weighted_Density &) = delete;
   
   ~FMT_Weighted_Density(){}
     
@@ -67,7 +67,14 @@ class FMT_Weighted_Density
 
   void dump(ofstream &of){weight_.cReal().save(of);}
   void load(ifstream &in){weight_.Real().load(in);}
-  
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & weighted_density_;
+    ar & weight_;
+    ar & dPhi_;
+  }  
  protected:    
   DFT_FFT weighted_density_;
   DFT_FFT weight_;
