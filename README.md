@@ -24,6 +24,7 @@ need to be satisfied for the correct funcitoning of the library. Such dependenci
 
 * C++14-standard-compliant compiler, we recommend to check [GNU Compiler Collection](https://gcc.gnu.org/) 
 * [CMake](https://cmake.org/download/) (version >= 3.8)
+* [Boost](https://www.boost.org/) provides free peer-reviewed portable C++ source libraries
 * [GNU Scientific Library](https://www.gnu.org/software/gsl/)
 * [FFTW3](http://www.fftw.org/) a library designed to compute discrete Fourier transforms
 * [Grace](http://plasma-gate.weizmann.ac.il/Grace/) plotting tool for the X Window System
@@ -37,6 +38,7 @@ In this section we will list the main features implemented in **classicalDFT**, 
 
 1. [Console](dft_lib/examples/console/README.md): A namespace with some convenient functionality when interacting with the console/terminal output
 2. [Grace](dft_lib/examples/graphs/README.md): A wrapper class which allows us to produce live graphs by interacting with xmgrace
+3. [ConfigParser](dft_lib/examples/config_parser/README.md): A wrapper class of the `boost::property_tree::ptree` class which allows for parsing configuration files in the following formats: `INI`, `JSON`, `XML` and `INFO`  
 
 ## Platforms
 

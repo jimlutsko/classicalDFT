@@ -16,7 +16,7 @@ namespace dft_core
      *
      * These values are used in arguments to various functions in this package.
      */
-    enum ExportFormat {
+    enum class ExportFormat {
       JPG,
       PNG,
       EPS1,
@@ -27,7 +27,7 @@ namespace dft_core
     /**
      * @brief Supported shapes for the data points
      */
-    enum Symbol {
+    enum class Symbol {
       CIRCLE=1,
       SQUARE,
       DIAMOND,
@@ -43,7 +43,7 @@ namespace dft_core
     /**
      * @brief The possible colors we can use
      */
-    enum Color {
+    enum class Color {
       WHITE = 0,
       BLACK,
       RED,
@@ -65,7 +65,7 @@ namespace dft_core
     /**
     * @brief The possible line patterns
     */
-    enum LineType
+    enum class LineType
     {
       NO_LINE=0,
       LINE=1,
@@ -81,7 +81,7 @@ namespace dft_core
     /**
      * @brief The axis X or Y
      */
-    enum Axis
+    enum class Axis
     {
       X,
       Y

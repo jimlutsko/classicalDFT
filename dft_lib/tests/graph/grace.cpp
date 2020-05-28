@@ -136,7 +136,7 @@ TEST(grace_plot_command, set_legend_ok_test)
 
 TEST(grace_plot_command, set_line_color_id_ok_test)
 {
-  std::string actual = dft_core::grace_plot::command::SetLineColorCommand(dft_core::grace_plot::RED, 1, 0);
+  std::string actual = dft_core::grace_plot::command::SetLineColorCommand(dft_core::grace_plot::Color::RED, 1, 0);
   std::string expected = "G0.S1 LINE COLOR 2";
   ASSERT_STREQ(actual.c_str(), expected.c_str());
 }
@@ -668,7 +668,7 @@ TEST(grace_class, set_color_throws_excp_dataset_id)
   g.AddPoint(0, 0);
 
   EXPECT_THROW(
-      g.SetColor(dft_core::grace_plot::BLUE, 1, 0),
+      g.SetColor(dft_core::grace_plot::Color::BLUE, 1, 0),
       dft_core::exception::GraceException
   );
 }
