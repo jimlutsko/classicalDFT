@@ -18,9 +18,11 @@ void Minimizer::run(long maxSteps)
 {
   initialize();
 
-  
-  int image_counter = 0;
+  resume(maxSteps);
+}
 
+void Minimizer::resume(long maxSteps)
+{
   do {
     std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
     
@@ -31,8 +33,8 @@ void Minimizer::run(long maxSteps)
     
     step_counter_++;
 
-    double Ntotal = dft_.getNumberAtoms(0);
-    double Volume = dft_.lattice().getVolume();
+    double Ntotal = dft_->getNumberAtoms(0);
+    double Volume = dft_->lattice().getVolume();
 
     f_abs_max_ = get_convergence_monitor();
 
@@ -69,9 +71,9 @@ void Minimizer::initialize()
   step_counter_ = 0;
   calls_ = 0;
 
-  for(int Jspecies=0;Jspecies<dft_.getNumberOfSpecies();Jspecies++)
+  for(int Jspecies=0;Jspecies<dft_->getNumberOfSpecies();Jspecies++)
     {
-      const Density& density = dft_.getDensity(Jspecies);
+      const Density& density = dft_->getDensity(Jspecies);
       x_[Jspecies].setAliasFromValues(density.getDensity());
     }
 }
@@ -82,157 +84,25 @@ double Minimizer::getDF_DX()
   calls_++;
 
   for(int Jspecies=0;Jspecies<x_.size();Jspecies++)
-    dft_.set_density_from_amplitude(Jspecies,x_[Jspecies]);
+    dft_->set_density_from_amplitude(Jspecies,x_[Jspecies]);
 
   double F = 0;
   try {
-    F = dft_.calculateFreeEnergyAndDerivatives(false);   
+    F = dft_->calculateFreeEnergyAndDerivatives(false);   
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
 
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    dft_.getDF(Jspecies).alias_Jacobian(x_[Jspecies]);
+  for(int Jspecies = 0; Jspecies<dft_->getNumberOfSpecies(); Jspecies++)
+    dft_->getDF(Jspecies).alias_Jacobian(x_[Jspecies]);
 
   return F;
 }
 
-void fireMinimizer_Mu::initialize()
+fireMinimizer2::fireMinimizer2(DFT *dft) :  Minimizer(dft)
 {
-  Minimizer::initialize();
-  
-  it_ = 0;
-  cut_ = 0;
-
-  vv_ = 1.0;
-  
-  alpha_ = alpha_start_;
-  
-  F_ = getDF_DX();
-
-  for(auto &v: v_)
-    v.zeros(v.size());
-}
-
-
-void fireMinimizer_Mu::verlet()
-{
-  vector<DFT_Vec> y;
-  for(auto &x: x_) y.push_back(x);
-    
-  try{
-    for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-      {
-	if(onlyRelax_ >= 0)
-	  if(Jspecies != onlyRelax_)
-	    continue;
-	DFT_Vec &df = dft_.getDF(Jspecies);
-	
-	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);           // this gives x_(t+dt)
-	x_[Jspecies].IncrementBy_Scaled_Vector(df,-0.5*dt_*dt_); // dF=dV/dx does not have minus sign ... 
-	v_[Jspecies].IncrementBy_Scaled_Vector(df, -0.5*dt_);    // now do half the v update
-      }
-    F_ = getDF_DX();                          // then get new forces    
-    for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-      	if(onlyRelax_ >= 0)
-	  if(Jspecies != onlyRelax_)
-	    continue;
-	  else v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -0.5*dt_);    // and finish velocity update
-  } catch (Eta_Too_Large_Exception &e) {
-    for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-      {
-	if(onlyRelax_ >= 0)
-	  if(Jspecies != onlyRelax_)
-	    continue;
-	
-	x_[Jspecies].set(y[Jspecies]);
-	v_[Jspecies].zeros(v_[Jspecies].size());
-      }
-    reportMessage("Backtrack .. ");
-    throw e;
-  }
-}
-
-
-double fireMinimizer_Mu::step()
-{
-  it_++;
-
-  bool blewUp = false;
-  
-  do {  
-    try {
-      blewUp = false;
-      verlet();
-    } catch(Eta_Too_Large_Exception &e) {
-      dt_ /= 2;
-      dt_max_ /= 2;
-      blewUp = true;
-    }
-  } while(blewUp);
-
-
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    {
-      if(onlyRelax_ >= 0)
-	if(Jspecies != onlyRelax_)
-	  continue;
-	
-      stringstream s;
-      s << "snapshot_s" << Jspecies << ".dat";
-      string of = s.str();
-      dft_.writeDensity(Jspecies,of);
-    }
-  
-  // dF does not include the minus so we have to put it in by hand everywhere from here down:
-  double p = 0;
-  
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    {
-      if(onlyRelax_ >= 0)
-	if(Jspecies != onlyRelax_)
-	  continue;
-      
-      p += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
-      v_[Jspecies].MultBy(1-alpha_);
-    }
-
-  double vnorm = 0;
-  double fnorm = 0;
-
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)
-    {
-      if(onlyRelax_ >= 0)
-	if(Jspecies != onlyRelax_)
-	  continue;
-	
-      double v = v_[Jspecies].euclidean_norm();
-      double f = dft_.getDF(Jspecies).euclidean_norm();
-      vnorm += v*v;
-      fnorm += f*f;
-    }
-
-  for(int Jspecies = 0; Jspecies<dft_.getNumberOfSpecies(); Jspecies++)  
-    v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
-
-  if(p < 0)
-    {
-      for(auto &v: v_)
-	v.zeros(v.size());
-      cut_ = it_;
-      dt_ *= f_dec_;
-      alpha_ = alpha_start_;
-    } else if(it_-cut_>N_delay_) {
-    dt_ = min(dt_*f_inc_,dt_max_);
-    alpha_ =alpha_*f_alf_;
-  }
-  return F_;
-}
-
-fireMinimizer2::fireMinimizer2(DFT &dft) :  Minimizer(dft)
-{
-  v_.resize(dft_.getNumberOfSpecies());
-  for(auto &v: v_) v.resize(dft_.lattice().Ntot());
+  v_.resize(dft_->getNumberOfSpecies());
+  for(auto &v: v_) v.resize(dft_->lattice().Ntot());
 
   dt_ = 1e-3; // my guess
   dt_max_ = 10*dt_;
@@ -276,14 +146,14 @@ double fireMinimizer2::step()
   static double fold = F_;
 
   int begin_relax = 0;
-  int end_relax   = dft_.getNumberOfSpecies();
+  int end_relax   = dft_->getNumberOfSpecies();
 
   if(onlyRelax_ >= 0) {begin_relax = onlyRelax_; end_relax = begin_relax+1;}
 
   // dF does not include the minus so we have to put it in by hand everywhere from here down:
   Summation P;  
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    P += -v_[Jspecies].dotWith(dft_.getDF(Jspecies));
+    P += -v_[Jspecies].dotWith(dft_->getDF(Jspecies));
 
   //  if(F_ - fold > 1e-10) P = -1;
   fold = F_;
@@ -297,7 +167,7 @@ double fireMinimizer2::step()
     {
       x_rem[Jspecies].set(x_[Jspecies]);
       v_rem[Jspecies].set(v_[Jspecies]);
-      dF_rem[Jspecies].set(dft_.getDF(Jspecies));
+      dF_rem[Jspecies].set(dft_->getDF(Jspecies));
     }
 
   
@@ -348,7 +218,7 @@ double fireMinimizer2::step()
 	x_[Jspecies].set(x_rem[Jspecies]);
 	v_[Jspecies].set(v_rem[Jspecies]);
 	v_[Jspecies].MultBy(0.5);		
-	dft_.setDF(Jspecies,dF_rem[Jspecies]);
+	dft_->setDF(Jspecies,dF_rem[Jspecies]);
       }
     //    dt_ /= 10; // This was previously 2
     dt_ /= 2;
@@ -364,7 +234,7 @@ double fireMinimizer2::step()
 	stringstream s;
 	s << "snapshot_s" << Jspecies << ".dat";
 	string of = s.str();
-	dft_.writeDensity(Jspecies,of);
+	dft_->writeDensity(Jspecies,of);
       }
   ic++;
   
@@ -380,7 +250,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   long   cnorm = 0;
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
-      DFT_Vec &df = dft_.getDF(Jspecies);      
+      DFT_Vec &df = dft_->getDF(Jspecies);      
       v_[Jspecies].IncrementBy_Scaled_Vector(df, -dt_);
 	  
       double v = v_[Jspecies].euclidean_norm();
@@ -397,7 +267,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       v_[Jspecies].MultBy(1-alpha_);      
-      v_[Jspecies].IncrementBy_Scaled_Vector(dft_.getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
+      v_[Jspecies].IncrementBy_Scaled_Vector(dft_->getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
       x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
     }  
   // recalculate forces with back-tracking, if necessary
@@ -415,9 +285,9 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   fmax_ = 0;
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
-      DFT_Vec &df = dft_.getDF(Jspecies);
+      DFT_Vec &df = dft_->getDF(Jspecies);
       double f = df.euclidean_norm();
-      fmax_ = max(fmax_, df.inf_norm()/dft_.getDensity(Jspecies).dV());
+      fmax_ = max(fmax_, df.inf_norm()/dft_->getDensity(Jspecies).dV());
       fnorm += f*f;
       cnorm += df.size();            
     }

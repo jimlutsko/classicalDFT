@@ -13,13 +13,17 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <cstring>
+
+#include "Lattice.h"
+
+// There is some sort of a conflict between Boost headers and <complex> so this needs to come last in order to compile.
+
 #include <complex>
-#include <complex.h>
+
 
 static const double SMALL_VALUE = 1e-18;
 
 #include "DFT_LinAlg.h"
-#include "Lattice.h"
 #include "Summation.h"
 
 
@@ -44,6 +48,15 @@ class Density : public Lattice
       Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
       vWall_.zeros(Ntot_);
     }
+
+  /**
+  *   @brief  Do-nothing  constructor for Density : allows density to be constructed from string.
+  *  
+  *   @return nothing 
+  */  
+  Density()
+    : Lattice(), Density_(), vWall_(){}
+  
 
   /**
   *   @brief  Copy constructor
@@ -137,38 +150,6 @@ class Density : public Lattice
     ry /= m;
     rz /= m;
     return;
-  }
-
-
-  /**
-  *   @brief  Write the real-space array Density_ to a file in binary format.
-  *  
-  *   @param  filename: name of the file to write to.
-  *   @return  
-  */  
-  void writeDensity(string &filename) const
-  {
-    ofstream of(filename.c_str(),ios::binary);
-    Density_.cReal().save(of);
-  }
-
-  /**
-  *   @brief  Read the real-space array Density_ from a file in binary format.
-  *  
-  *   @param  filename: name of the file to read from.
-  *   @return  
-  */  
-  void readDensity(const char *filename)
-  {
-    ifstream in(filename,ios::binary);
-    if(! in.good())
-      {
-	stringstream s;
-	s << "Could not open input file " << filename << " ... aborting ... " << endl;
-	throw std::runtime_error(s.str());
-      }
-    // everything OK so read it. 
-    Density_.Real().load(in);
   }
 
   /**
@@ -362,13 +343,55 @@ class Density : public Lattice
 
 
   DFT_FFT& getFullVector() { return Density_;}
- protected:
+
+  friend ostream &operator<<(ostream &of, const Density &d) {of << static_cast<const Lattice &>(d) << d.Density_ << d.vWall_; return of;}  
+  friend istream &operator>>(istream  &in, Density &d )     {in >> static_cast<Lattice &>(d) >> d.Density_ >> d.vWall_; return in;}
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Lattice>(*this);
+    ar & Density_;
+    ar & vWall_;
+  }
+
+  
+  /**
+  *   @brief  Write the real-space array Density_ to a file in binary format. THIS IS A LEGACY FUNCTION THAT SHOULD BE REMOVED AT SOME POINT.
+  *  
+  *   @param  filename: name of the file to write to.
+  *   @return  
+  */  
+  void writeDensity(string &filename) const
+  {
+    ofstream of(filename.c_str(),ios::binary);
+    Density_.cReal().save(of);
+  }
+
+  /**
+  *   @brief  Read the real-space array Density_ from a file in binary format.  THIS IS A LEGACY FUNCTION THAT SHOULD BE REMOVED AT SOME POINT.
+  *  
+  *   @param  filename: name of the file to read from.
+  *   @return  
+  */  
+  void readDensity(const char *filename)
+  {
+      ifstream in(filename,ios::binary);
+      if(! in.good())
+        {
+	  stringstream s;
+	  s << "Could not open input file " << filename << " ... aborting ... " << endl;
+	  throw std::runtime_error(s.str());
+	}
+  // everything OK so read it. 
+      Density_.Real().load(in);
+  }
+  
+protected:
 
   DFT_FFT Density_;  // The arrays for the real and fourier components of the density
 
   DFT_Vec vWall_;            ///< Array holding wall potential at each lattice point: i = pos(ix,iy,iz)
-
- private:
 
 };
 

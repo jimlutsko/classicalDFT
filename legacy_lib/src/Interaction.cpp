@@ -23,14 +23,15 @@ using namespace std;
 #endif
 
 #include "Interaction.h"
+#include "myColor.h"
 
 
-Interaction_Base::Interaction_Base(Species &s1, Species &s2, Potential1 &v, double kT, Log &log)
-  : s1_(s1), s2_(s2), v_(v), kT_(kT), log_(log), initialized_(false) {}
+Interaction_Base::Interaction_Base(Species *s1, Species *s2, Potential1 *v, double kT)
+  : s1_(s1), s2_(s2), v_(v), kT_(kT), initialized_(false) {}
 
 void Interaction_Base::initialize()
 {
-  const Density &density = s1_.getDensity();
+  const Density &density = s1_->getDensity();
   long Nx = density.Nx();
   long Ny = density.Ny();
   long Nz = density.Nz();
@@ -38,7 +39,7 @@ void Interaction_Base::initialize()
   w_att_.initialize(Nx,Ny,Nz);      
   a_vdw_ = 0.0;
   
-  generateWeights(v_, log_);
+  generateWeights();
     
   // Introduce the temperature
   w_att_.Real().MultBy(1.0/kT_);
@@ -56,7 +57,7 @@ double Interaction_Base::getInteractionEnergyAndForces()
   if(!initialized_)
     initialize();
 
-  const Density &density1 = s1_.getDensity();
+  const Density &density1 = s1_->getDensity();
     
   long Ntot = density1.Ntot();
   double dV = density1.dV();
@@ -65,34 +66,34 @@ double Interaction_Base::getInteractionEnergyAndForces()
   v.zeros();
   double E = 0;
     
-  if(s1_.getSequenceNumber() == s2_.getSequenceNumber())
+  if(s1_->getSequenceNumber() == s2_->getSequenceNumber())
     {
       v.Four().Schur(density1.getDK(),w_att_.Four(),false);
       v.do_fourier_2_real();
       v.Real().MultBy(dV/Ntot);
-      s1_.addToForce(v.Real());
+      s1_->addToForce(v.Real());
       E = 0.5*density1.getInteractionEnergy(v.Real());
     } else {
     v.Four().Schur(density1.getDK(),w_att_.Four());
     v.Four().MultBy(0.5*dV/Ntot);
     v.do_fourier_2_real(); 
-    s2_.addToForce(v.Real());
+    s2_->addToForce(v.Real());
 
-    const Density &density2 = s2_.getDensity();
+    const Density &density2 = s2_->getDensity();
 
     v.Four().Schur(density2.getDK(),w_att_.Four());
     v.Four().MultBy(0.5*dV*dV/Ntot);
     v.do_fourier_2_real(); 
-    s1_.addToForce(v.Real());
+    s1_->addToForce(v.Real());
 
     E = 0.5*density1.getInteractionEnergy(v.Real());	
   }
   return E;
 }
 
-void Interaction_Base::generateWeights(Potential1 &v, Log& log)
+void Interaction_Base::generateWeights()
 {    
-  const Density &density = s1_.getDensity();
+  const Density &density = s1_->getDensity();
       
   // The lattice
   long Nx = density.Nx();
@@ -108,7 +109,7 @@ void Interaction_Base::generateWeights(Potential1 &v, Log& log)
   // This may mean going beyond nearest neighbors in certain conditions.
   // We also compute the vdw parameter at the same time.
       
-  double Rc = v.getRcut();
+  double Rc = v_->getRcut();
 
   int Nx_lim = 1+int(Rc/dx);
   int Ny_lim = 1+int(Rc/dy);
@@ -158,7 +159,7 @@ void Interaction_Base::generateWeights(Potential1 &v, Log& log)
 	if(Sy > Sx || Sz > Sy || Sx*(Sx+1)*(Sx+2)+3*Sy*(Sy+1)+6*Sz != 6*p)
 	  throw std::runtime_error("Bad indices in generateWeights");
 
-	w2[p] = global_factor*generateWeight(Sx, Sy, Sz, dx, v);
+	w2[p] = global_factor*generateWeight(Sx, Sy, Sz, dx);
 	
 	if(local_count++ % chunk == chunk-1)
 	  {
@@ -201,7 +202,7 @@ void Interaction_Base::generateWeights(Potential1 &v, Log& log)
 	    if(p > Nmax) throw std::runtime_error("counter out of range in Interaction_Base::generateWeights");
 	    double w = w2[p];
 	    // and get the point it contributes to
-	    long pos = s1_.getDensity().get_PBC_Pos(ix,iy,iz);
+	    long pos = s1_->getDensity().get_PBC_Pos(ix,iy,iz);
 	    w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
 	    a_vdw_ += w;
 	  }
@@ -219,7 +220,7 @@ void Interaction_Base::generateWeights(Potential1 &v, Log& log)
     
 }
 
-double Interaction_Gauss::generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v)
+double Interaction_Gauss::generateWeight(int Sx, int Sy, int Sz, double dx)
 {
   double sum = 0.0;
   for(int Gx=0; Gx < gauss_p.size(); Gx++)
@@ -235,14 +236,14 @@ double Interaction_Gauss::generateWeight(int Sx, int Sy, int Sz, double dx, Pote
 	      double z  = gauss_p[Gz];
 	      double wz = gauss_w[Gz];
 
-	      sum += wx*wy*wz*getKernel(Sx,Sy,Sz,dx,v,x,y,z);
+	      sum += wx*wy*wz*getKernel(Sx,Sy,Sz,dx,x,y,z);
 	    }
 	}
     }
   return sum;
 }
 
-double Interaction_Gauss_F::getKernel(int Sx, int Sy, int Sz, double dx, Potential1& v, double x, double y, double z)
+double Interaction_Gauss_F::getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z)
 {
   double sum = 0.0;
 
@@ -254,12 +255,12 @@ double Interaction_Gauss_F::getKernel(int Sx, int Sy, int Sz, double dx, Potenti
 	    + (Sy+b-1+y)*(Sy+b-1+y)*dx*dx
 	    + (Sz+c-1+z)*(Sz+c-1+z)*dx*dx;
 	  
-	  sum += (a == 0 ? x : 1-x)*(b == 0 ? y : 1-y)*(c == 0 ? z : 1-z)*v.Watt2(r2);
+	  sum += (a == 0 ? x : 1-x)*(b == 0 ? y : 1-y)*(c == 0 ? z : 1-z)*v_->Watt2(r2);
 	}
   return sum;
 }
 
-double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z)
+double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z)
 {
   double sum = 0.0;
 	      
@@ -291,14 +292,14 @@ double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, Potenti
 		+ (Sy+b+y)*(Sy+b+y)*dx*dx
 		+ (Sz+c+z)*(Sz+c+z)*dx*dx;
 
-	      sum += fx*fy*fz*v.Watt2(r2);
+	      sum += fx*fy*fz*v_->Watt2(r2);
 	    }
 	}
     }
   return sum/216;
 }
 
-double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v)
+double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx)
 {
   double sum = 0.0;
   
@@ -307,14 +308,14 @@ double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double 
       for(int k=0;k<vv_.size();k++)
 	{
 	  double r2 = (Sx+pt_[i])*(Sx+pt_[i])*dx*dx+(Sy+pt_[j])*(Sy+pt_[j])*dx*dx+(Sz+pt_[k])*(Sz+pt_[k])*dx*dx;
-	  sum += vv_[i]*vv_[j]*vv_[k]*v.Watt2(r2);
+	  sum += vv_[i]*vv_[j]*vv_[k]*v_->Watt2(r2);
 	}
   return sum;
 }
 
 double Interaction_Base::checkCalc(int jx, int jy, int jz)
 {
-  const Density &density1 = s1_.getDensity();
+  const Density &density1 = s1_->getDensity();
     
   long Ntot = density1.Ntot();
   double dV = density1.dV();
@@ -344,7 +345,7 @@ double Interaction_Base::checkCalc(int jx, int jy, int jz)
 
 void Interaction::initialize()
 {
-  const Density &density = s1_.getDensity();
+  const Density &density = s1_->getDensity();
   long Nx = density.Nx();
   long Ny = density.Ny();
   long Nz = density.Nz();
@@ -354,7 +355,7 @@ void Interaction::initialize()
   
   // First, try to read the weights from a file
   if(!readWeights())
-    generateWeights(v_, log_);
+    generateWeights();
     
   // Introduce the temperature
   w_att_.Real().MultBy(1.0/kT_);
@@ -367,18 +368,18 @@ void Interaction::initialize()
 
 bool Interaction::readWeights()
 {
-  const Density &density = s1_.getDensity();
+  const Density &density = s1_->getDensity();
   long Nx = density.Nx();
   long Ny = density.Ny();
   long Nz = density.Nz();
         
   weightsFile_ << "weights_"
-      << s1_.getSequenceNumber() << "_"
-      << s2_.getSequenceNumber() << "_"
+      << s1_->getSequenceNumber() << "_"
+      << s2_->getSequenceNumber() << "_"
       << Nx << "_"
       << Ny << "_"
       << Nz << "_"
-      << v_.getIdentifier() << "_";
+      << v_->getIdentifier() << "_";
   weightsFile_ << ".dat";    
   
   bool readWeights = true;
@@ -412,7 +413,7 @@ bool Interaction::readWeights()
     stringstream ss4(buf);      
     string identifier;
     ss4 >> identifier;
-    string pot = v_.getIdentifier();
+    string pot = v_->getIdentifier();
     if(identifier.compare(pot) != 0)
       {readWeights = false; cout << "\n" <<  "Mismatch in potential: expected " << pot << " but read " << identifier <<  endl;}
       
@@ -429,7 +430,7 @@ bool Interaction::readWeights()
       of.precision (std::numeric_limits<double>::digits10 + 1);
 
       of << Nx << " " << Ny << " " << Nz << " " << density.getDX() << endl;
-      of << v_.getIdentifier() << endl;
+      of << v_->getIdentifier() << endl;
       of.close();
   }
   return readWeights;
@@ -449,9 +450,9 @@ bool Interaction::checkWeightsFile(ifstream &in)
   return readWeights;
 }
 
-void Interaction::generateWeights(Potential1 &v, Log& log)
+void Interaction::generateWeights()
 {    
-  const Density &density = s1_.getDensity();
+  const Density &density = s1_->getDensity();
       
   // The lattice
   long Nx = density.Nx();
@@ -467,7 +468,7 @@ void Interaction::generateWeights(Potential1 &v, Log& log)
   // This may mean going beyond nearest neighbors in certain conditions.
   // We also compute the vdw parameter at the same time.
       
-  double Rc = v.getRcut();
+  double Rc = v_->getRcut();
 
   // Generate integration points for spherical surface
 
@@ -583,7 +584,7 @@ void Interaction::generateWeights(Potential1 &v, Log& log)
 	      
 		  gsl_integration_glfixed_point(0, Rc, k, &r, &wr, tr);
 		  
-		  double watt = v.Watt(r); 
+		  double watt = v_->Watt(r); 
 		  
 		  double x = r*points[pos][0];
 		  double y = r*points[pos][1];

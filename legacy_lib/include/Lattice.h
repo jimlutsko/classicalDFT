@@ -1,6 +1,8 @@
 #ifndef __LUTSKO__LATTICE__
 #define __LUTSKO__LATTICE__
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 
 /**
   *  @brief This class encapsulates all information relating to the lattice: the number of points, the lattice spaceing and the length of the cell in each direction. Allowance is made for different spacings in each direction but current implementations force all spacings to be equal.
@@ -71,6 +73,22 @@ class Lattice
       L_[2] = ref.L_[2];
     }
 
+
+  /**
+  *   @brief  Emptry constructor
+  */  
+
+  Lattice()
+    {
+      Nx_ = Ny_ = Nz_ = 0;
+
+      Ntot_ = Nout_ = 0;
+
+      dx_ = dy_ = dz_ = 0;
+
+      L_[0] =  L_[1] = L_[2] = 0;
+    }
+  
 
   /**
   *   @brief  Translate a (Cartesian) x-index into a position in the cubic box.
@@ -229,7 +247,59 @@ class Lattice
     while(iz >= Nz_) iz -= Nz_; 
   }
 
- protected:
+  friend ostream &operator<<(ostream &of, const Lattice &l) 
+  {    
+    of.write((char*) &l.Nx_, sizeof(long));
+    of.write((char*) &l.Ny_, sizeof(long));
+    of.write((char*) &l.Nz_, sizeof(long));
+
+    of.write((char*) &l.Ntot_, sizeof(long));
+    of.write((char*) &l.Nout_, sizeof(long));    
+
+    of.write((char*) &l.dx_, sizeof(double));
+    of.write((char*) &l.dy_, sizeof(double));
+    of.write((char*) &l.dz_, sizeof(double));
+
+    of.write((char*) &l.L_, 3*sizeof(double));
+    
+    return of;
+  }
+
+  friend istream &operator>>(istream  &in, Lattice &l )     
+  {
+    in.read((char*) &l.Nx_, sizeof(long));
+    in.read((char*) &l.Ny_, sizeof(long));
+    in.read((char*) &l.Nz_, sizeof(long));
+    
+    in.read((char*) &l.Ntot_, sizeof(long));
+    in.read((char*) &l.Nout_, sizeof(long));    
+    
+    in.read((char*) &l.dx_, sizeof(double));
+    in.read((char*) &l.dy_, sizeof(double));
+    in.read((char*) &l.dz_, sizeof(double));
+    
+    in.read((char*) &l.L_, 3*sizeof(double));
+    
+    return in;
+  }    
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & Nx_;
+    ar & Ny_;
+    ar & Nz_;
+
+    ar & Ntot_;
+    ar & Nout_;
+
+    ar & dx_;
+    ar & dy_;
+    ar & dz_;
+
+    ar & L_;
+  }
+  
+protected:
   long Nx_; ///< Number of lattice points in x direction
   long Ny_; ///< Number of lattice points in y direction
   long Nz_; ///< Number of lattice points in z direction

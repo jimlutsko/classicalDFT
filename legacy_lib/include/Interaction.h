@@ -13,12 +13,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <cstring>
-#include <complex>
-#include <complex.h>
 
 #include "Species.h"
-#include "Log.h"
-#include "myColor.h"
+
+// There is some sort of a conflict between Boost headers and <complex> so this needs to come last in order to compile.
+#include <complex>
+
 
 /**
   *  @brief This class encapsulates the interaction between two species (or one species with itself)
@@ -38,9 +38,10 @@ class Interaction_Base
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    */  
-  Interaction_Base(Species &s1, Species &s2, Potential1 &v, double kT, Log &log);
+  Interaction_Base(Species *s1, Species *s2, Potential1 *v, double kT);
+
+  Interaction_Base() {}
 
   /**
    *   @brief  Initialization function: must be called before using the object.
@@ -94,11 +95,11 @@ class Interaction_Base
   {
     double mu = 0.0;
 
-    if(s1_.getSequenceNumber() == species)
-      mu += 0.5*a_vdw_*x[s2_.getSequenceNumber()];
+    if(s1_->getSequenceNumber() == species)
+      mu += 0.5*a_vdw_*x[s2_->getSequenceNumber()];
 
-    if(s2_.getSequenceNumber() == species)
-      mu += 0.5*a_vdw_*x[s1_.getSequenceNumber()];
+    if(s2_->getSequenceNumber() == species)
+      mu += 0.5*a_vdw_*x[s1_->getSequenceNumber()];
 
     return mu;
   }
@@ -110,7 +111,7 @@ class Interaction_Base
    *
    *   @return the mean-field contribution to the free energy per unit volume divided by kT
    */  
-  double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_.getSequenceNumber()]*x[s2_.getSequenceNumber()];}  
+  double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_->getSequenceNumber()]*x[s2_->getSequenceNumber()];}  
 
   /**
    *   @brief  Returns the vDW parameter calculated from the weights
@@ -124,10 +125,8 @@ class Interaction_Base
   /**
    *   @brief  This calculates the array w. 
    *  
-   *   @param  v: the interatomic potential
-   *   @param  log: the log object for output
    */      
-  virtual void generateWeights(Potential1 &v, Log& log);  
+  virtual void generateWeights();  
 
   /**
    *   @brief  Calculates the weight w(Sx,Sy,Sz)
@@ -138,21 +137,31 @@ class Interaction_Base
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
    */          
-  virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v) = 0;
+  virtual double generateWeight(int Sx, int Sy, int Sz, double dx) = 0;
 
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & s1_;
+    ar & s2_;
+    ar & a_vdw_;
+    ar & w_att_;
+    ar & initialized_;
+    ar & v_;
+    ar & kT_;
+  }
 
  protected:
-  Species &s1_; ///< First of the interacting species
-  Species &s2_; ///< Second of the interacting species
+  Species *s1_; ///< First of the interacting species
+  Species *s2_; ///< Second of the interacting species
 
   double a_vdw_;  ///< vDW parameter calculted by summing the weights and dividing by temperature
 
   DFT_FFT w_att_; ///< The weights
 
   bool initialized_ = false; ///< Flag to make sure the object has been initialized
-  Potential1 &v_;            ///< The interatomic potential
+  Potential1 *v_;            ///< The interatomic potential
   double kT_;                ///< The temperature
-  Log& log_;                 ///< Log object
 };
 
 
@@ -169,11 +178,13 @@ class Interaction : public Interaction_Base
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    *   @param pointsFile: the name of the file from which the spherical integration points are to be read.
    */  
- Interaction(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, string& pointsFile) :
-  Interaction_Base(s1,s2,v,kT,log), pointsFile_(pointsFile) {};
+ Interaction(Species *s1, Species *s2, Potential1 *v, double kT, string pointsFile) :
+  Interaction_Base(s1,s2,v,kT), pointsFile_(pointsFile) {};
+
+  Interaction() :
+    Interaction_Base(){};
 
   /**
    *   @brief  Initialization function: must be called before using the object.
@@ -202,10 +213,18 @@ class Interaction : public Interaction_Base
   /**
    *   @brief  This calculates the array w. 
    *  
-   *   @param  v: the interatomic potential
-   *   @param  log: the log object for output
    */        
-  virtual void generateWeights(Potential1 &v, Log& log);
+  virtual void generateWeights();
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Base>(*this);
+    ar & weightsFile_;
+    ar & pointsFile_;
+    
+    boost::serialization::void_cast_register<Interaction, Interaction_Base>(static_cast<Interaction *>(NULL),static_cast<Interaction_Base *>(NULL));        
+  }
   
  protected:
   string pointsFile_; ///< The name of the file with the spherical integation points.
@@ -225,11 +244,10 @@ class Interaction_Gauss : public Interaction_Base
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    *   @param Ngauss: number of gauss-lengendre points in each direction
    */    
- Interaction_Gauss(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
-  Interaction_Base(s1,s2,v,kT,log)
+ Interaction_Gauss(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss) :
+  Interaction_Base(s1,s2,v,kT)
   {
     gsl_integration_glfixed_table *tr = gsl_integration_glfixed_table_alloc(Ngauss);
     for(int i=0;i<Ngauss;i++)
@@ -239,6 +257,9 @@ class Interaction_Gauss : public Interaction_Base
 	gauss_p.push_back(p); gauss_w.push_back(w);
       }
   }
+
+  Interaction_Gauss():
+    Interaction_Base() {}  
 
  protected:
   /**
@@ -250,7 +271,7 @@ class Interaction_Gauss : public Interaction_Base
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
    */        
-  virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v);
+  virtual double generateWeight(int Sx, int Sy, int Sz, double dx);
   /**
    *   @brief  Returns the kernel of the integral being evaluated
    *  
@@ -260,7 +281,17 @@ class Interaction_Gauss : public Interaction_Base
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
    */        
-  virtual double getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z) = 0;
+  virtual double getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z) = 0;
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Base>(*this);
+    ar & gauss_p;
+    ar & gauss_w;
+
+    boost::serialization::void_cast_register<Interaction_Gauss, Interaction_Base>(static_cast<Interaction_Gauss *>(NULL),static_cast<Interaction_Base *>(NULL));            
+  }
   
  protected:
   vector<double> gauss_p;
@@ -279,12 +310,20 @@ class Interaction_Gauss_E : public Interaction_Gauss
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    *   @param Ngauss: number of gauss-lengendre points in each direction
    */    
- Interaction_Gauss_E(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
-  Interaction_Gauss(s1,s2,v,kT,log,Ngauss){}
+ Interaction_Gauss_E(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss) :
+  Interaction_Gauss(s1,s2,v,kT,Ngauss){}
 
+  Interaction_Gauss_E():
+    Interaction_Gauss(){}  
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Gauss>(*this);
+    boost::serialization::void_cast_register<Interaction_Gauss_E, Interaction_Gauss>(static_cast<Interaction_Gauss_E *>(NULL),static_cast<Interaction_Gauss *>(NULL));                
+  }
  protected:
   /**
    *   @brief  Returns the kernel of the integral being evaluated
@@ -295,7 +334,7 @@ class Interaction_Gauss_E : public Interaction_Gauss
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
    */        
-  double getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &p, double x, double y, double z);
+  double getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z);
 };
 
 /**
@@ -310,11 +349,20 @@ class Interaction_Gauss_F : public Interaction_Gauss
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    *   @param Ngauss: number of gauss-lengendre points in each direction
    */    
- Interaction_Gauss_F(Species &s1, Species &s2, Potential1 &v, double kT, Log &log, int Ngauss) :
-  Interaction_Gauss(s1,s2,v,kT,log,Ngauss){}
+ Interaction_Gauss_F(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss) :
+  Interaction_Gauss(s1,s2,v,kT,Ngauss){}
+
+  Interaction_Gauss_F():
+    Interaction_Gauss(){}
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Gauss>(*this);
+    boost::serialization::void_cast_register<Interaction_Gauss_F, Interaction_Gauss>(static_cast<Interaction_Gauss_F *>(NULL),static_cast<Interaction_Gauss *>(NULL));                    
+  }
 
  protected:
   /**
@@ -326,7 +374,7 @@ class Interaction_Gauss_F : public Interaction_Gauss
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
    */      
-  double getKernel(int Sx, int Sy, int Sz, double dx, Potential1 &v, double x, double y, double z);
+  double getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z);
 };
 
 /**
@@ -341,10 +389,12 @@ class Interaction_Interpolation : public Interaction_Base
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    */      
- Interaction_Interpolation(Species &s1, Species &s2, Potential1 &v, double kT, Log &log): 
-  Interaction_Base(s1,s2,v,kT,log) {}
+ Interaction_Interpolation(Species *s1, Species *s2, Potential1 *v, double kT): 
+  Interaction_Base(s1,s2,v,kT) {}
+
+  Interaction_Interpolation():
+  Interaction_Base() {}
 
  protected:
   /**
@@ -356,7 +406,17 @@ class Interaction_Interpolation : public Interaction_Base
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
    */        
-  virtual double generateWeight(int Sx, int Sy, int Sz, double dx, Potential1& v);
+  virtual double generateWeight(int Sx, int Sy, int Sz, double dx);
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Base>(*this);
+    ar & vv_;
+    ar & pt_;
+
+    boost::serialization::void_cast_register<Interaction_Interpolation, Interaction_Base>(static_cast<Interaction_Interpolation *>(NULL),static_cast<Interaction_Base *>(NULL));                    
+  }
   
  protected:
   vector<double> vv_; ///< Weights of the interpolant
@@ -375,10 +435,19 @@ class Interaction_Interpolation_Zero : public Interaction_Interpolation
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    */    
- Interaction_Interpolation_Zero(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
-  Interaction_Interpolation(s1,s2,v,kT,log) { vv_.push_back(1.0); pt_.push_back(0.0); }
+ Interaction_Interpolation_Zero(Species *s1, Species *s2, Potential1 *v, double kT) :
+  Interaction_Interpolation(s1,s2,v,kT) { vv_.push_back(1.0); pt_.push_back(0.0); }
+
+ Interaction_Interpolation_Zero() :
+   Interaction_Interpolation() {};
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
+    boost::serialization::void_cast_register<Interaction_Interpolation_Zero, Interaction_Interpolation>(static_cast<Interaction_Interpolation_Zero *>(NULL),static_cast<Interaction_Interpolation *>(NULL));                        
+  }
 };
 
 /**
@@ -393,14 +462,24 @@ class Interaction_Interpolation_LE : public Interaction_Interpolation
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    */      
- Interaction_Interpolation_LE(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
-  Interaction_Interpolation(s1,s2,v,kT,log)
+ Interaction_Interpolation_LE(Species *s1, Species *s2, Potential1 *v, double kT) :
+  Interaction_Interpolation(s1,s2,v,kT)
     { vv_.push_back( 1.0); vv_.push_back(26.0); vv_.push_back(66.0); vv_.push_back(26.0); vv_.push_back(1.0);
       pt_.push_back(-2.0); pt_.push_back(-1.0); pt_.push_back( 0.0); pt_.push_back( 1.0); pt_.push_back(2.0);
       for(auto &x: vv_) x /= 120.0;
     }
+
+  Interaction_Interpolation_LE() : 
+    Interaction_Interpolation(){}
+
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
+    boost::serialization::void_cast_register<Interaction_Interpolation_LE, Interaction_Interpolation>(static_cast<Interaction_Interpolation_LE *>(NULL),static_cast<Interaction_Interpolation *>(NULL));                            
+  }
 };
 
 /**
@@ -415,14 +494,23 @@ class Interaction_Interpolation_QE : public Interaction_Interpolation
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    */      
- Interaction_Interpolation_QE(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
-  Interaction_Interpolation(s1,s2,v,kT,log)
+ Interaction_Interpolation_QE(Species *s1, Species *s2, Potential1 *v, double kT) :
+  Interaction_Interpolation(s1,s2,v,kT)
     { vv_.push_back(-1.0); vv_.push_back(8.0);  vv_.push_back(18.0); vv_.push_back(112.0); vv_.push_back(86.0); vv_.push_back(112.0); vv_.push_back(18.0); vv_.push_back(8.0); vv_.push_back(-1.0);
       pt_.push_back(-2.0); pt_.push_back(-1.5); pt_.push_back(-1.0); pt_.push_back(-0.5);  pt_.push_back(0.0);  pt_.push_back(0.5);   pt_.push_back(1.0);  pt_.push_back(1.5); pt_.push_back(2.0);
       for(auto &x: vv_) x /= 360.0;
     }
+
+  Interaction_Interpolation_QE() : 
+    Interaction_Interpolation(){}  
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
+    boost::serialization::void_cast_register<Interaction_Interpolation_QE, Interaction_Interpolation>(static_cast<Interaction_Interpolation_QE *>(NULL),static_cast<Interaction_Interpolation *>(NULL));                            
+  }
 };
 
 /**
@@ -437,14 +525,23 @@ class Interaction_Interpolation_LF : public Interaction_Interpolation
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    */      
- Interaction_Interpolation_LF(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
-  Interaction_Interpolation(s1,s2,v,kT,log)
+ Interaction_Interpolation_LF(Species *s1, Species *s2, Potential1 *v, double kT) :
+  Interaction_Interpolation(s1,s2,v,kT)
     { vv_.push_back(1.0);  vv_.push_back(4.0); vv_.push_back(1.0);
       pt_.push_back(-1.0); pt_.push_back(0.0); pt_.push_back(1.0);
       for(auto &x: vv_) x /= 6;
     }
+
+  Interaction_Interpolation_LF() : 
+    Interaction_Interpolation(){}
+  
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
+    boost::serialization::void_cast_register<Interaction_Interpolation_LF, Interaction_Interpolation>(static_cast<Interaction_Interpolation_LF *>(NULL),static_cast<Interaction_Interpolation *>(NULL));
+  }
 };
 
 /**
@@ -459,14 +556,22 @@ class Interaction_Interpolation_QF : public Interaction_Interpolation
    *   @param s1: the first species.
    *   @param s2: the second species.
    *   @param kT: the temperature
-   *   @param log: the log object
    */      
- Interaction_Interpolation_QF(Species &s1, Species &s2, Potential1 &v, double kT, Log &log) :
-  Interaction_Interpolation(s1,s2,v,kT,log)
+ Interaction_Interpolation_QF(Species *s1, Species *s2, Potential1 *v, double kT) :
+  Interaction_Interpolation(s1,s2,v,kT)
     { vv_.push_back(1.0);  vv_.push_back(1.0); vv_.push_back(1.0);
       pt_.push_back(-0.5); pt_.push_back(0.0); pt_.push_back(0.5);
       for(auto &x: vv_) x /= 3;      
     }
+  Interaction_Interpolation_QF() : 
+    Interaction_Interpolation(){}
+  
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
+    boost::serialization::void_cast_register<Interaction_Interpolation_QF, Interaction_Interpolation>(static_cast<Interaction_Interpolation_QF *>(NULL),static_cast<Interaction_Interpolation *>(NULL));    
+  }  
 };
 
 

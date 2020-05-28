@@ -19,6 +19,11 @@ using namespace std;
 
 int Species::SequenceNumber_ = 0;
 
+//BOOST_CLASS_EXPORT_GUID(FMT_Species, "FMT_Species")
+//BOOST_CLASS_EXPORT_GUID(FMT_Species_Analytic, "FMT_Species_Analytic")
+//BOOST_CLASS_EXPORT_GUID(FMT_Species_Numeric, "FMT_Species_Numeric")
+
+
 FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Species(density,mu,seq), hsd_(hsd), d_(11)
 {
   long Nx = density_.Nx();
@@ -138,6 +143,9 @@ FMT_Species_Numeric::FMT_Species_Numeric(Density& density, double hsd, string &p
 
 void FMT_Species_Numeric::generateWeights(string &pointsFile)
 {
+  if(pointsFile.size() < 1) return; // do nothing ...
+
+  
   long Nx = density_.Nx();
   long Ny = density_.Ny();
   long Nz = density_.Nz();

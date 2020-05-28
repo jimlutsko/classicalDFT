@@ -9,6 +9,10 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/GitSHA1.cpp.in" "${CMAKE_CURRENT
 # Project name and a few useful settings. Other commands can pick up the results
 project(classicalDFT VERSION 1.0 DESCRIPTION "classical DFT library and apps" LANGUAGES CXX)
 
+
+#Required
+find_package(Boost REQUIRED REQUIRED COMPONENTS serialization)
+
 #Version information
 configure_file (
   "${PROJECT_SOURCE_DIR}/src/config.h.in"
@@ -19,6 +23,8 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/include
         "/usr/local/include"
 )
+
+message("Project source directory is " ${PROJECT_SOURCE_DIR})
 
 #file(GLOB all_SRCS "${PROJECT_SOURCE_DIR}/src/*.cpp")
 set(all_SRCS
@@ -48,6 +54,8 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 # find gsl
 link_directories("/usr/local/lib")
 
+
+target_link_libraries(${PROJECT_NAME} PUBLIC Boost::serialization)
 
 # enable omp if it exists
 find_package(OpenMP)

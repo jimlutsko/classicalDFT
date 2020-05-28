@@ -216,6 +216,13 @@ class FMT
   */        
  virtual string Name() const = 0;
 
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & etaMax_;
+  }
+  
  protected:
  
  double etaMax_; ///< cutoff used to control divergences
@@ -334,7 +341,14 @@ class WhiteBearI : public FMT
    return F;
  }
 
- 
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<FMT>(*this);
+    boost::serialization::void_cast_register<WhiteBearI, FMT>(static_cast<WhiteBearI *>(NULL),static_cast<FMT *>(NULL));    
+  }
+
+  
  virtual string Name() const { return string("WhiteBear I");}
 };
 
@@ -495,6 +509,14 @@ class RSLT : public FMT
     return 0;
   }
 
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<FMT>(*this);
+    boost::serialization::void_cast_register<RSLT, FMT>(static_cast<RSLT *>(NULL),static_cast<FMT *>(NULL));    
+  }
+
+  
   virtual string Name() const { return string("RSLT");}
 };
 
@@ -538,6 +560,13 @@ class RSLT2: public RSLT
 
  virtual string Name() const { return string("RSLT2");}
 
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<RSLT>(*this);
+    boost::serialization::void_cast_register<RSLT2, RSLT>(static_cast<RSLT2 *>(NULL),static_cast<RSLT *>(NULL));    
+  }
+  
 };
 /**
   *  @brief  Rosenfeld modified to give CS EOS.
@@ -585,6 +614,14 @@ class Rosenfeld: public RSLT
 
  virtual string Name() const { return string("Rosenfeld");}
 
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<RSLT>(*this);
+    boost::serialization::void_cast_register<Rosenfeld, RSLT>(static_cast<Rosenfeld *>(NULL),static_cast<RSLT *>(NULL));    
+  }
+
+  
 };
 
 
@@ -687,6 +724,14 @@ class WhiteBearII : public WhiteBearI
     return ((2-5*x+6*x*x-x*x*x)/(x*x*(1-x)*(1-x)*(1-x)))+(2.0/(x*x*x))*log(1-x);
   }
   virtual string Name() const { return string("WhiteBear II");}
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<WhiteBearI>(*this);
+    boost::serialization::void_cast_register<WhiteBearII, WhiteBearI>(static_cast<WhiteBearII *>(NULL),static_cast<WhiteBearI *>(NULL));    
+  }
+  
 };
 
 
