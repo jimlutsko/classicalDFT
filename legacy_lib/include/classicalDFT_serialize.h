@@ -23,6 +23,8 @@ BOOST_CLASS_EXPORT_GUID(Interaction_Interpolation_LF, "Interaction_Interpolation
 BOOST_CLASS_EXPORT_GUID(Interaction_Interpolation_QE, "Interaction_Interpolation_QE")
 BOOST_CLASS_EXPORT_GUID(Interaction_Interpolation_QF, "Interaction_Interpolation_QF")
 
+BOOST_CLASS_EXPORT_GUID(Interaction_Surfactant, "Interaction_Surfactant")
+
 BOOST_CLASS_EXPORT_GUID(LJ, "LJ")
 BOOST_CLASS_EXPORT_GUID(tWF, "tWF")
 BOOST_CLASS_EXPORT_GUID(WHDF, "WHDF")
