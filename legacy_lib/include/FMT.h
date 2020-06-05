@@ -12,6 +12,153 @@
 #include "Density.h"
 #include "Point.h"
 
+
+
+class FundamentalMeasures
+{
+public:
+  FundamentalMeasures(){}
+
+  FundamentalMeasures(const FundamentalMeasures& b)
+  {
+    eta = b.eta;
+    s0 = b.s0;
+    s1 = b.s1;
+    s2 = b.s2;
+    for(int i=0;i<3;i++)
+      {
+	v1[i] = b.v1[i];
+	v2[i] = b.v2[i];
+	vT[i] = b.vT[i];       
+	for(int j=0;j<3;j++)
+	  {
+	    T[i][j] = b.T[i][j];
+	    TT[i][j] = b.TT[i][j];
+	  }
+      }
+    v1_v2 = b.v1_v2;
+    v2_v2 = b.v2_v2;
+    vTv = b.vTv;
+    T2 = b.T2;
+    T3 = b.T3;
+  }
+  
+  FundamentalMeasures(double f[]){fill(f);}  
+
+  void calculate_derived_quantities()
+  {
+    vT[0] = T[0][0]*v2[0] +T[0][1]*v2[1] +T[0][2]*v2[2];
+    vT[1] = T[1][0]*v2[0] +T[1][1]*v2[1] +T[1][2]*v2[2];
+    vT[2] = T[2][0]*v2[0] +T[2][1]*v2[1] +T[2][2]*v2[2];
+
+    TT[0][0] = T[0][0]*T[0][0] +T[0][1]*T[1][0] +T[0][2]*T[2][0];
+    TT[1][0] = T[1][0]*T[0][0] +T[1][1]*T[1][0] +T[1][2]*T[2][0];
+    TT[2][0] = T[2][0]*T[0][0] +T[2][1]*T[1][0] +T[2][2]*T[2][0];
+
+    TT[0][1] = T[0][0]*T[0][1] +T[0][1]*T[1][1] +T[0][2]*T[2][1];
+    TT[1][1] = T[1][0]*T[0][1] +T[1][1]*T[1][1] +T[1][2]*T[2][1];
+    TT[2][1] = T[2][0]*T[0][1] +T[2][1]*T[1][1] +T[2][2]*T[2][1];
+
+    TT[0][2] = T[0][0]*T[0][2] +T[0][1]*T[1][2] +T[0][2]*T[2][2];
+    TT[1][2] = T[1][0]*T[0][2] +T[1][1]*T[1][2] +T[1][2]*T[2][2];
+    TT[2][2] = T[2][0]*T[0][2] +T[2][1]*T[1][2] +T[2][2]*T[2][2];
+
+    v1_v2  = v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2]; 
+    v2_v2  = v2[0]*v2[0]+v2[1]*v2[1]+v2[2]*v2[2]; 
+    vTv    = v2[0]*vT[0]+v2[1]*vT[1]+v2[2]*vT[2]; 
+    T2     = TT[0][0]+TT[1][1]+TT[2][2]; 
+    T3     = TT[0][0]*T[0][0]+TT[0][1]*T[1][0]+TT[0][2]*T[2][0]
+      +TT[1][0]*T[0][1]+TT[1][1]*T[1][1]+TT[1][2]*T[2][1]
+      +TT[2][0]*T[0][2]+TT[2][1]*T[1][2]+TT[2][2]*T[2][2];
+    
+  }
+
+  void fill(double f[])
+  {
+    eta   = f[0];
+    s0    = f[1];
+    s1    = f[2];
+    s2    = f[3];
+    v1[0] = f[4];
+    v1[1] = f[5];
+    v1[2] = f[6];
+    v2[0] = f[7];
+    v2[1] = f[8];
+    v2[2] = f[9];
+
+    T[0][0] = f[10];
+    T[0][1] = f[11];
+    T[0][2] = f[12];
+
+    T[1][0] = f[13];
+    T[1][1] = f[14];
+    T[1][2] = f[15];
+
+    T[2][0] = f[16];
+    T[2][1] = f[17];
+    T[2][2] = f[18];  
+
+    calculate_derived_quantities();  
+  }
+  
+  void copy_to(double f[])
+  {
+    f[0] = eta;
+    f[1] = s0;
+    f[2] = s1;
+    f[3] = s2;
+    f[4] = v1[0];
+    f[5] = v1[1];
+    f[6] = v1[2];
+    f[7] = v2[0];
+    f[8] = v2[1];
+    f[9] = v2[2];
+
+    f[10] = T[0][0];
+    f[11] = T[0][1];
+    f[12] = T[0][2];
+    
+    f[13] = T[1][0];
+    f[14] = T[1][1];
+    f[15] = T[1][2];
+
+    f[16] = T[2][0];
+    f[17] = T[2][1];
+    f[18] = T[2][2];  
+  }
+
+
+
+
+    // fundamental measures
+    double eta = 0.0;
+    double s0 = 0.0;
+    double s1 = 0.0;
+    double s2 = 0.0;
+    double v1[3] = {0.0,0.0,0.0};
+    double v2[3] = {0.0,0.0,0.0};
+    double T[3][3] = {{0.0,0.0,0.0},
+		      {0.0,0.0,0.0},
+		      {0.0,0.0,0.0}};
+
+    // some useful derived quantities
+    double v1_v2 = 0.0; ///< v1 dot v2
+    double v2_v2 = 0.0; ///< v2 dot v2
+    double vTv   = 0.0; ///< v dot T dot v
+    double T2    = 0.0; ///< Tr(T^2)
+    double T3    = 0.0; ///< Tr(T^3)
+
+    double vT[3] = {0.0,0.0,0.0};
+
+  
+    double TT[3][3] = {{0.0,0.0,0.0},
+		       {0.0,0.0,0.0},
+		       {0.0,0.0,0.0}};  
+  };
+  
+
+
+
 /**
   *  @brief FMT Class
   *
@@ -61,6 +208,19 @@ class FMT
   */  
   double calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies);
 
+
+  /**
+  *   @brief  Calculates (d2F/dn_i dn_j)v_j
+  *  
+  *   @param  v: input vector
+  *   @param  d2F: vector to be filled
+  */    
+  void add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies);
+
+  // Brute force calculation: for checking only!
+  double d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies);
+
+  
   double doFreeEnergyLoop(vector<Species*> &allSpecies);
   
   /**
@@ -74,6 +234,31 @@ class FMT
   */  
   double dPHI(long i, vector<Species*> &allSpecies);
 
+  /**
+  *   @brief  Calculate phi given a set of fundamental measures
+  *
+  *   @param  fm is a FundamentalMeasures structure
+  *   @return phi
+  */    
+  double Phi(const FundamentalMeasures &fm) const;
+
+  /**
+  *   @brief  Calculate dphi/dn_a for all fundamental measures, n_a
+  *
+  *   @param  fm are the fundamental measures
+  *   @param  dPhi is the result
+  */      
+  void DPhi(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const;
+  void D2Phi(const FundamentalMeasures& fm, vector<vector<double>>& d2Phi) const;
+  
+  /**
+  *   @brief  Calculates the fundamental measures at lattice point i
+  *
+  *   @param  i is the lattice point
+  *   @param allSpecies is the array of FMT_Species
+  *   @return phi
+  */      
+  FundamentalMeasures getWeightedDensities(long i, vector<Species*> &allSpecies);
 
  /**
   *   @brief  calculate f1 cofactor in FMT PHI function.  This is the same for all models (log(1-eta)) and so is instantiated here.
@@ -127,6 +312,24 @@ class FMT
     
     return -1.0/(1.0-eta);
  }
+
+  /**
+  *   @brief  secondderivative of f1_() with respect to its argument.
+  *  
+  *   @param  eta is the local volume-average density
+  *   @return f1(eta).
+  */     
+ virtual double f1pp_(double eta) const
+ {
+    if(eta > etaMax_)
+      {
+	double a1 = -1.0/(1.0-etaMax_);
+	double a2 = -a1*a1;
+	return a2;
+      }
+    
+    return -1.0/(1.0-2*eta+eta*eta);
+ }
  
  /**
   *   @brief  derivative of f2_() with respect to its argument.
@@ -134,7 +337,8 @@ class FMT
   *   @param  eta is the local volume-average density
   *   @return f2(eta).
   */     
- virtual double f2p_(double eta) const = 0;
+  virtual double f2p_(double eta) const = 0;
+  virtual double f2pp_(double eta) const = 0;
 
  /**
   *   @brief  derivative of f3_() with respect to its argument.
@@ -142,7 +346,8 @@ class FMT
   *   @param  eta is the local volume-average density
   *   @return f3(eta).
   */     
- virtual double f3p_(double eta) const= 0;
+  virtual double f3p_(double eta) const= 0;
+  virtual double f3pp_(double eta) const= 0;
 
   /**
   *   @brief  calculates third contribution to PHI = PHI1 + PHI2 + PHI3. This is model dependent
@@ -154,7 +359,7 @@ class FMT
   *   @param  T3 is trace(T dot T dot T)
   *   @return PHI3
   */     
- virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const = 0;
+ virtual double Phi3(const FundamentalMeasures &fm) const = 0;
 
  /**
   *   @brief  calculates derivative of third contribution to PHI = PHI1 + PHI2 + PHI3 with respect to S2
@@ -166,7 +371,10 @@ class FMT
   *   @param  T3 is trace(T dot T dot T)
   *   @return dPHI3/dS2
   */     
- virtual double dPhi3_dS2(double s2,double v2_v2,double vTv,double T2,double T3) const = 0;
+  virtual double dPhi3_dS2(const FundamentalMeasures &fm) const = 0;
+  virtual double dPhi3_dS2_dS2(const FundamentalMeasures &fm) const { throw std::runtime_error("dPhi3_dS2_dS2 not implemented in FMT-derived class");;}
+  virtual double dPhi3_dV2_dS2(int i, const FundamentalMeasures &fm) const { throw std::runtime_error("dPhi3_dV2_dS2 not implemented in FMT-derived class");;}
+  virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const { throw std::runtime_error("dPhi3_dV2_dS2 not implemented in FMT-derived class");;}
 
  /**
   *   @brief  calculates derivative of third contribution to PHI = PHI1 + PHI2 + PHI3 with respect to v2(k)
@@ -179,7 +387,7 @@ class FMT
   *   @param  T3 is trace(T dot T dot T)
   *   @return dPHI3/dv2(k)
   */      
- virtual double dPhi3_dV2(int k, double s2, double v2_v2, double v2[], double vT[]) const = 0;
+ virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const = 0;
 
  /**
   *   @brief  calculates derivative of third contribution to PHI = PHI1 + PHI2 + PHI3 with respect to T(j,k)
@@ -193,7 +401,7 @@ class FMT
   *   @param  T3 is trace(T dot T dot T)
   *   @return dPHI3/dT(j,k)
   */       
- virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const = 0;
+  virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const = 0;
 
 
  virtual bool needsTensor() const { return true;}
@@ -253,6 +461,12 @@ class WhiteBearI : public FMT
     return f*f;
   }
 
+  virtual double f2pp_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return -2*f*f*f;
+  }  
+
   virtual double f3_(double eta) const
   {
     if(eta < 1e-12)
@@ -266,24 +480,53 @@ class WhiteBearI : public FMT
       return (8.0/3)+7.5*eta+14.4*eta*eta;
     return (1.0/(eta*eta))*((2/((1-eta)*(1-eta)*(1-eta)))-(3/((1-eta)*(1-eta)))-(1.0/(1-eta)))-(2/(eta*eta*eta))*log(1-eta);
   }
+  virtual double f3pp_(double eta) const { return 0.0;}  
 
-  virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
+  virtual double Phi3(const FundamentalMeasures &fm) const
   {
+    double s2     = fm.s2;
+    double vTv    = fm.vTv;
+    double v2_v2  = fm.v2_v2;
+    double T2     = fm.T2;
+    double T3     = fm.T3;
+    
     return (1.0/(8*M_PI))*(vTv-s2*v2_v2-T3+s2*T2);
   }
 
- virtual double dPhi3_dS2(double s2,double v2_v2,double vTv,double T2,double T3) const 
- { 
+ virtual double dPhi3_dS2(const FundamentalMeasures &fm) const 
+ {
+   double v2_v2 = fm.v2_v2;
+   double T2    = fm.T2;
+   
    return (1.0/(8*M_PI))*(-v2_v2+T2);
  }
- virtual double dPhi3_dV2(int k, double s2, double v2_v2, double v2[], double vT[]) const 
- { 
-   return (1.0/(8*M_PI))*(2*vT[k]-2*s2*v2[k]);
+
+  virtual double dPhi3_dS2_dS2(const FundamentalMeasures &fm) const {return 0.0;}
+  virtual double dPhi3_dV2_dS2(int i, const FundamentalMeasures &fm) const { return (1.0/(8*M_PI))*(-2*fm.v2[i]);}
+  virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const
+  {
+    return (1.0/(8*M_PI))*(fm.T[i][j]-(i == j ? fm.s2 : 0.0));
+  }
+  
+  virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
+ {
+   double s2    = fm.s2;
+   double v2_v2 = fm.v2_v2;
+   double v2_k   = fm.v2[k];
+   double vT_k   = fm.vT[k];
+   
+   return (1.0/(8*M_PI))*(2*vT_k-2*s2*v2_k);
  }
 
- virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const 
- { 
-   return (1.0/(8*M_PI))*(v2[j]*v2[k]-3*TT[j][k]+2*s2*T0[j][k]);
+ virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const 
+ {
+   double s2     = fm.s2;
+   double v2_j   = fm.v2[j];
+   double v2_k   = fm.v2[k];
+   double T_T_jk = fm.TT[j][k];
+   double T_jk   = fm.T[j][k];
+   
+   return (1.0/(8*M_PI))*(v2_j*v2_k-3*T_T_jk+2*s2*T_jk);
  }
 
  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
@@ -378,6 +621,35 @@ class RSLT : public FMT
     return 1.0/(1.0-eta);
   }
 
+  virtual double f2p_(double eta) const
+  {
+    if(eta > etaMax_)
+      {
+	double a0 = 1.0/(1.0-etaMax_);	
+	double a1 = a0*a0;
+	double a2 = 2*a1*a0;
+	return a1 + a2*(eta-etaMax_);
+      }
+    
+    double f = 1.0/(1.0-eta);
+    return f*f;
+  }
+
+  virtual double f2pp_(double eta) const
+  {
+    if(eta > etaMax_)
+      {
+	double a0 = 1.0/(1.0-etaMax_);	
+	double a1 = a0*a0;
+	double a2 = 2*a1*a0;
+	return a2;
+      }
+    
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }
+
+  
   virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
   {
     double n0 = 0.0;
@@ -434,19 +706,7 @@ class RSLT : public FMT
   }
   
 
-  virtual double f2p_(double eta) const
-  {
-    if(eta > etaMax_)
-      {
-	double a0 = 1.0/(1.0-etaMax_);	
-	double a1 = a0*a0;
-	double a2 = 2*a1*a0;
-	return a1 + a2*(eta-etaMax_);
-      }
-    
-    double f = 1.0/(1.0-eta);
-    return f*f;
-  }
+
 
   virtual double f3_(double eta) const
   {
@@ -483,28 +743,93 @@ class RSLT : public FMT
     return -(1.0/(eta*eta))*(1.0/((1.0-eta)*(1.0-eta)*(1.0-eta)))*(eta*eta-5*eta+2)-(2.0/(eta*eta*eta))*log(1-eta);
   }
 
-  virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
+
+  virtual double f3pp_(double eta) const
   {
+    if(eta < 1e-12)
+      return 7.5+28.8*eta;
+
+    if(eta > etaMax_)
+      {
+	double x = etaMax_;
+	double a1 = -(1.0/(x*x))*(1.0/((1.0-x)*(1.0-x)*(1.0-x)))*(x*x-5*x+2)-(2.0/(x*x*x))*log(1-x);
+	double a2 = -(1.0/(x*x*x))*(1.0/((1.0-x)*(1.0-x)*(1.0-x)*(1.0-x)))*(5*x*x*x-26*x*x+21*x-6)
+	  +(6.0/(x*x*x*x))*log(1-x);	
+	return a2;
+      }
+    
+    return -(1.0/(eta*eta*eta))*(1.0/((1.0-eta)*(1.0-eta)*(1.0-eta)*(1-eta)))*(5*eta*eta*eta-26*eta*eta+21*eta-6)+(6.0/(eta*eta*eta*eta))*log(1-eta);
+  }
+
+  
+  virtual double Phi3(const FundamentalMeasures &fm) const
+  {
+    double s2     = fm.s2;
+    double v2_v2  = fm.v2_v2;
+    
     if(s2 < 1e-20) return 0.0;
     double psi = v2_v2/(s2*s2);
     return (1.0/(36*M_PI))*s2*s2*s2*(1-psi)*(1-psi)*(1-psi);
   }
 
-  virtual double dPhi3_dS2(double s2,double v2_v2,double vTv,double T2,double T3) const 
-  { 
+  virtual double dPhi3_dS2(const FundamentalMeasures &fm) const 
+  {
+    double s2    = fm.s2;
+    double v2_v2 = fm.v2_v2;
+    
     if(s2 < 1e-20) return 0.0;
     double psi = v2_v2/(s2*s2);
     return (1.0/(12*M_PI))*s2*s2*(1+psi)*(1-psi)*(1-psi);
   }
 
-  virtual double dPhi3_dV2(int k, double s2, double v2_v2, double v2[], double vT[]) const 
-  { 
+  virtual double dPhi3_dS2_dS2(const FundamentalMeasures &fm) const 
+  {
+    double s2    = fm.s2;
+    double v2_v2 = fm.v2_v2;
+    
     if(s2 < 1e-20) return 0.0;
     double psi = v2_v2/(s2*s2);
-    return -(1.0/(6*M_PI))*s2*v2[k]*(1-psi)*(1-psi);
+    return (1.0/(6*M_PI))*s2*(1-psi)*(1+psi+2*psi*psi);
+  }  
+
+  virtual double dPhi3_dV2_dS2(int k, const FundamentalMeasures &fm) const
+  {
+    double s2    = fm.s2;
+    double v2_v2 = fm.v2_v2;
+    double v2_k  = fm.v2[k];
+    
+    if(s2 < 1e-20) return 0.0;
+    double psi = v2_v2/(s2*s2);
+    return (1.0/(36*M_PI))*(-6*v2_k)*(1-psi)*(1+3*psi);
+  }
+  virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const
+  {
+    double s2    = fm.s2;
+    double v2_v2 = fm.v2_v2;
+    double v2_i  = fm.v2[i];
+    double v2_j  = fm.v2[j];
+
+    if(s2 < 1e-20) return 0.0;
+    double psi = v2_v2/(s2*s2);
+    
+    if(i == j) return (1.0/(36*M_PI))*(-6*s2)*(1-psi)*(1-psi-4*v2_i*v2_i/(s2*s2));
+
+    return (1.0/(36*M_PI))*(24/s2)*v2_i*v2_j*(1-psi);
+  }  
+
+  
+  virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const
+  {
+    double s2    = fm.s2;
+    double v2_v2 = fm.v2_v2;
+    double v2_k  = fm.v2[k];
+    
+    if(s2 < 1e-20) return 0.0;
+    double psi = v2_v2/(s2*s2);
+    return -(1.0/(6*M_PI))*s2*v2_k*(1-psi)*(1-psi);
   }
 
-  virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const 
+  virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const 
   { 
     return 0;
   }
@@ -534,26 +859,40 @@ class RSLT2: public RSLT
 
   virtual bool needsTensor() const { return false;}
 
-  virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
+
+  virtual void get_d2Phi(vector< vector<double> > &d2Phi, double eta, double s0, double s1, double s2, double v1[3], double v2[3])
+  { throw std::runtime_error("get_d2Phi not implemented in clas RSLT2");}
+  
+  virtual double Phi3(const FundamentalMeasures &fm) const
   {
+    double s2     = fm.s2;
+    double v2_v2  = fm.v2_v2;
+    
     double psi = v2_v2/(s2*s2);
     return (1.0/(36*M_PI))*s2*s2*s2*(1-1.5*psi)*(1-1.5*psi);
   }
 
- virtual double dPhi3_dS2(double s2,double v2_v2,double vTv,double T2,double T3) const 
- { 
+ virtual double dPhi3_dS2(const FundamentalMeasures &fm) const 
+ {
+   double s2    = fm.s2;
+   double v2_v2 = fm.v2_v2;
+   
    double psi = v2_v2/(s2*s2);
    return (1.0/(36*M_PI))*3*s2*s2*(1-1.5*psi)*(1-1.5*psi)
      +(1.0/(36*M_PI))*s2*s2*s2*2*(1-3*psi/2)*(-1.5)*(-2*psi/s2);
  }
 
- virtual double dPhi3_dV2(int k, double s2, double v2_v2, double v2[], double vT[]) const 
- { 
+ virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
+ {
+   double s2     = fm.s2;
+   double v2_v2  = fm.v2_v2;
+   double v2_k   = fm.v2[k];
+   
     double psi = v2_v2/(s2*s2);
-    return (1.0/(36*M_PI))*s2*2*(1-3*psi/2)*(-1.5)*2*v2[k];
+    return (1.0/(36*M_PI))*s2*2*(1-3*psi/2)*(-1.5)*2*v2_k;
  }
 
- virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const 
+ virtual double dPhi3_dT(int j,int k,const FundamentalMeasures &fm) const 
  { 
    return 0;
  }
@@ -590,24 +929,43 @@ class Rosenfeld: public RSLT
   }
   */
 
+  virtual void get_d2Phi(vector< vector<double> > &d2Phi, double eta, double s0, double s1, double s2, double v1[3], double v2[3])
+  { throw std::runtime_error("get_d2Phi not implemented in clas Rosenfeld");}  
+
  virtual bool needsTensor() const { return false;}  
   
-  virtual double Phi3(double s2, double v2_v2, double vTv, double T2, double T3) const
+  virtual double Phi3(const FundamentalMeasures &fm) const
   {
+    double s2     = fm.s2;
+    double v2_v2  = fm.v2_v2;
     return (1.0/(36*M_PI))*(s2*s2*s2-3*s2*v2_v2);
   }
 
- virtual double dPhi3_dS2(double s2,double v2_v2,double vTv,double T2,double T3) const 
- { 
+ virtual double dPhi3_dS2(const FundamentalMeasures &fm) const 
+ {
+   double s2    = fm.s2;
+   double v2_v2 = fm.v2_v2;
+   
    return (1.0/(36*M_PI))*(3*s2*s2-3*v2_v2);
  }
 
- virtual double dPhi3_dV2(int k, double s2, double v2_v2, double v2[], double vT[]) const 
- { 
-   return (1.0/(36*M_PI))*s2*(-6)*v2[k];
+ virtual double dPhi3_dS2_dS2(const FundamentalMeasures &fm) const 
+ {
+   double s2    = fm.s2;
+   double v2_v2 = fm.v2_v2;
+   
+   return (1.0/(6*M_PI))*s2;
+ }  
+
+ virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
+ {
+   double s2  = fm.s2;
+   double v2_k = fm.v2[k];
+   
+   return (1.0/(36*M_PI))*s2*(-6)*v2_k;
  }
 
- virtual double dPhi3_dT(int j,int k,double s2, double v2[], double T0[3][3], double TT[3][3]) const 
+ virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const 
  { 
    return 0;
  }
@@ -723,6 +1081,8 @@ class WhiteBearII : public WhiteBearI
       return (7.0/3)+7.5*x+12.6*x*x;
     return ((2-5*x+6*x*x-x*x*x)/(x*x*(1-x)*(1-x)*(1-x)))+(2.0/(x*x*x))*log(1-x);
   }
+  virtual double f3pp_(double eta) const { return 0.0;}
+  
   virtual string Name() const { return string("WhiteBear II");}
 
   friend class boost::serialization::access;

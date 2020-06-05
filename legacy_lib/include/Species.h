@@ -43,6 +43,10 @@ class Species
   DFT_Vec &getDF() {return dF_;}
   void setDF(DFT_Vec &df) {return dF_.set(df);}
 
+  // This species is held as allSpecies_[index_]
+  void setIndex(int i) { index_ = i;}
+  int  getIndex() const { return index_;}
+  
   /**
   *   @brief  This adds in the external field contribution (which is species dependent). Force calculation is optional
   *  
@@ -116,6 +120,7 @@ protected:
   double mu_;
   int seq_num_;
   double fixedMass_; // if this is > 0, then the mass of this species is being held fixed at this value.
+  int index_ = -1;
 };
 
 
@@ -200,7 +205,7 @@ public:
    *   @param  pos is the mesh position
    *   @return none
    */        
-  void Set_dPhi_Eta(long i,double val)  {d_[EI()].Set_dPhi(i,val);}
+  void Set_dPhi_Eta(long pos,double val)  {d_[EI()].Set_dPhi(pos,val);}
 
   /**
    *   @brief  set value of dPhi_dS at pos
@@ -208,7 +213,7 @@ public:
    *   @param  pos is the mesh position
    *   @return none
    */        
-  void Set_dPhi_S(long i,double val)               {d_[SI()].Set_dPhi(i,val);}
+  void Set_dPhi_S(long pos,double val) {d_[SI()].Set_dPhi(pos,val);}
 
   /**
    *   @brief  set value of dPhi_dV_j at pos
@@ -217,7 +222,7 @@ public:
    *   @param  pos is the mesh position
    *   @return none
    */        
-  void Set_dPhi_V(int j, long i,double val)        {d_[VI(j)].Set_dPhi(i,val);}
+  void Set_dPhi_V(int j, long pos,double val) {d_[VI(j)].Set_dPhi(pos,val);}
 
   /**
    *   @brief  set value of dPhi_dT(j,k) at pos
@@ -247,6 +252,21 @@ public:
       d_[i].convolute(rho_k);      
   }
 
+  void convolute_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
+  { convolute_weight_with(EI(),v,result,bConjugate);}
+
+  void convolute_s_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
+  { convolute_weight_with(SI(),v,result,bConjugate);}
+
+  void convolute_v_weight_with(int i, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
+  { convolute_weight_with(VI(i),v,result, bConjugate);}    
+
+  void convolute_weight_with(int pos, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
+  {
+    result.Four().Schur(v.cFour(), d_[pos].wk(),bConjugate);
+    result.do_fourier_2_real();
+  }  
+  
   /**
    *   @brief Loop over the weighted densities and ask each one to add its contribution to dPhi
    *          In other words:   SUM_{a} d PHI/d n_{a}
@@ -261,13 +281,29 @@ public:
       d_[i].add_to_dPhi(dPhi);
   }
 
-  FMT_Weighted_Density& getEta() { return d_[0];}
-  // density from eta
-  //  void set_density_from_eta()
-  //  {
-  //    d_[0].extractDensity(density_.getFullVector());
-  //  }
+  // These return the real weight at position K using the extended notation: eta, s0,s1,s2,v1,v2
+  double getExtendedWeight(long K, int a)
+  {
+    if(a == 0) return d_[EI()].getWeight(K);
 
+    if(a == 1) return d_[SI()].getWeight(K)/(hsd_*hsd_);
+    if(a == 2) return d_[SI()].getWeight(K)/hsd_;
+    if(a == 3) return d_[SI()].getWeight(K);
+
+    if(a == 4) return d_[VI(0)].getWeight(K)/hsd_;
+    if(a == 5) return d_[VI(1)].getWeight(K)/hsd_;
+    if(a == 6) return d_[VI(2)].getWeight(K)/hsd_;
+
+    if(a == 7) return d_[VI(0)].getWeight(K);
+    if(a == 8) return d_[VI(1)].getWeight(K);
+    if(a == 9) return d_[VI(2)].getWeight(K);
+
+    throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeight");
+  }
+
+
+    
+  FMT_Weighted_Density& getEta() { return d_[0];}
   
   // Used in DFT_Surfactant ...
   const DFT_Vec &getV_Real(int J) const { return d_[VI(J)].Real();}
@@ -414,7 +450,8 @@ inline void boost::serialization::save_construct_data(Archive & ar, const Specie
   ar << t->seq_num_;
   ar << t->dF_;
   ar << t->fixedMass_;
-  ar << t->SequenceNumber_;  
+  ar << t->SequenceNumber_;
+  ar << t->index_;
 }
 
 template<class Archive>
@@ -433,7 +470,8 @@ inline void boost::serialization::load_construct_data(Archive & ar, Species * t,
   ar >> t->seq_num_;  
   ar >> t->dF_;
   ar >> t->fixedMass_;
-  ar >> t->SequenceNumber_;  
+  ar >> t->SequenceNumber_;
+  ar >> t->index_;  
 }
 
 
@@ -446,7 +484,8 @@ inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Sp
   ar << t->seq_num_;
   ar << t->dF_;
   ar << t->fixedMass_;
-  ar << t->SequenceNumber_;  
+  ar << t->SequenceNumber_;
+  ar << t->index_;  
   ar << t->hsd_;
   ar << t->d_;
 }
@@ -468,6 +507,7 @@ inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species 
   ar >> t->dF_;
   ar >> t->fixedMass_;
   ar >> t->SequenceNumber_;
+  ar >> t->index_;  
   ar >> t->hsd_;
   ar >> t->d_;  
 }
@@ -482,6 +522,7 @@ inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Sp
   ar << t->dF_;
   ar << t->fixedMass_;
   ar << t->SequenceNumber_;
+  ar << t->index_;
   
   ar << t->hsd_;
   ar << t->d_;  
@@ -505,6 +546,8 @@ inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_
   ar >> t->dF_;
   ar >> t->fixedMass_;
   ar >> t->SequenceNumber_;
+  ar >> t->index_;
+  
   ar >> t->hsd_;
   ar >> t->d_;  
 }
@@ -519,6 +562,7 @@ inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Sp
   ar << t->dF_;
   ar << t->fixedMass_;
   ar << t->SequenceNumber_;
+  ar << t->index_;
   
   ar << t->hsd_;
   ar << t->d_;  
@@ -543,6 +587,8 @@ inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_
   ar >> t->dF_;
   ar >> t->fixedMass_;
   ar >> t->SequenceNumber_;
+  ar >> t->index_;
+  
   ar >> t->hsd_;
   ar >> t->d_;  
 }

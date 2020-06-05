@@ -41,11 +41,9 @@ class FMT_Weighted_Density
   void convolute(const DFT_Vec_Complex& density) 
   {
     weighted_density_.Four().Schur(density,weight_.Four(),true);
-
     weighted_density_.do_fourier_2_real();
   }
 
-  
   void add_to_dPhi(DFT_Vec_Complex& dPhi)
   {
     dPhi_.do_real_2_fourier();

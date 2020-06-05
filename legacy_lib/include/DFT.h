@@ -49,7 +49,7 @@ class DFT
    *  
    *   @param s: the first species. It makes no sense to create a DFT object without at least one species.
    */  
-  DFT(Species *s = NULL) : fmt_(NULL) {if(s) allSpecies_.push_back(s);}
+  DFT(Species *s = NULL) : fmt_(NULL) {if(s) addSpecies(s);}
   /**
    *   @brief  Default  destructor for DFT
    *  
@@ -62,7 +62,7 @@ class DFT
    *  
    *   @param  s is the Species object
    */ 
-  void addSpecies(Species* s) {allSpecies_.push_back(s);}
+  void addSpecies(Species* s) {if(s == NULL) return; allSpecies_.push_back(s); s->setIndex(allSpecies_.size()-1);}
 
   /**
    *   @brief  Tells the DFT that there is another interaction
@@ -261,6 +261,15 @@ class DFT
    */  
   double get_f_mf() const { return F_mf_;}
 
+
+  /**
+  *   @brief  Calculates (d2F/dn_i dn_j)v_j
+  *  
+  *   @param  v: input vector
+  *   @param  d2F: vector to be filled
+  */
+  void second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F);
+  
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {

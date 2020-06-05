@@ -65,7 +65,17 @@ class Interaction_Base
    *  
    *   @returns The mean-field contribution to the (total) free energy divided by kT.
    */    
-  double getInteractionEnergyAndForces();
+  virtual double getInteractionEnergyAndForces();
+
+
+  /**
+  *   @brief  Calculates (d2F/dn_i dn_j)v_j
+  *  
+  *   @param  v: input vector
+  *   @param  d2F: vector to be filled
+  */    
+  void add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F);
+
 
   /**
    *   @brief  An internal, debugging function. It should be suppressed at some point.
