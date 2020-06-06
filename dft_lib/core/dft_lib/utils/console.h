@@ -59,7 +59,8 @@ namespace console
    * @brief Wrapper of the std::cout + std::endl method
    * @param[in] string message to write in the terminal
    */
-  static void WriteLine(const std::string& msg)
+  template <class T>
+  static void WriteLine(const T& msg)
   {
     std::cout << msg << std::endl;
   }
