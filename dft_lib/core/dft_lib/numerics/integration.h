@@ -10,7 +10,8 @@ namespace dft_core
 {
 namespace numerics
 {
-
+namespace integration
+{
 //region Constants:
 
 // Convenient definitions for the default initialisation of standard parameters:
@@ -392,6 +393,6 @@ class FunctionIntegrator: public Integrator<FunctionIntegrator<params_type, retu
 };
 //endregion
 
-}}
+}}}
 
 #endif  // CLASSICALDFT_INTEGRATION_H
