@@ -196,6 +196,12 @@ class DFT_FFT
       real_2_four_ = fftw_plan_dft_r2c_3d(Nx, Ny, Nz, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
     };
 
+  DFT_FFT(const DFT_FFT &Other) : RealSpace_(Other.RealSpace_), FourierSpace_(Other.FourierSpace_), four_2_real_(NULL), real_2_four_(NULL), Nx_(Other.Nx_), Ny_(Other.Ny_), Nz_(Other.Nz_)
+    {
+      four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
+      real_2_four_ = fftw_plan_dft_r2c_3d(Nx_, Ny_, Nz_, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
+    };  
+
  DFT_FFT() : four_2_real_(NULL), real_2_four_(NULL){};
   
   ~DFT_FFT()

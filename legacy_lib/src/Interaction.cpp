@@ -66,7 +66,7 @@ double Interaction_Base::getInteractionEnergyAndForces()
   v.zeros();
   double E = 0;
     
-  if(s1_->getSequenceNumber() == s2_->getSequenceNumber())
+  if(s1_ == s2_) //->getSequenceNumber() == s2_->getSequenceNumber())
     {
       v.Four().Schur(density1.getDK(),w_att_.Four(),false);
       v.do_fourier_2_real();
@@ -82,13 +82,75 @@ double Interaction_Base::getInteractionEnergyAndForces()
     const Density &density2 = s2_->getDensity();
 
     v.Four().Schur(density2.getDK(),w_att_.Four());
-    v.Four().MultBy(0.5*dV*dV/Ntot);
+    v.Four().MultBy(0.5*dV/Ntot);
     v.do_fourier_2_real(); 
     s1_->addToForce(v.Real());
 
+    throw std::runtime_error("Must check");
+    
     E = 0.5*density1.getInteractionEnergy(v.Real());	
   }
   return E;
+}
+
+// This is just a convolution: w(I-J)v(J)dVdV - the same as the forces
+// Note that the vector w_att(I) = w(I)dV so we need w(I-J)v(J)dVdV = w_att(I-J)*v(J)dV
+void Interaction_Base::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F)
+{
+  if(!initialized_)
+    initialize();
+  
+  const Density &density1 = s1_->getDensity();
+    
+  long Ntot = density1.Ntot();
+  int  Nx   = density1.Nx();
+  int  Ny   = density1.Ny();
+  int  Nz   = density1.Nz();
+  double dV = density1.dV();
+  
+  int n1 = s1_->getIndex();
+  int n2 = s2_->getIndex();
+
+  DFT_FFT result(Nx,Ny,Nz);
+    
+  // put in second dV, take out FFT normalization factor
+  double fac = (s1_ == s2_ ? 1.0 : 0.5)*dV/Ntot;
+
+  // convolution
+  result.Four().Schur(v[n1].Four(),w_att_.Four(),false);
+  result.do_fourier_2_real();
+  result.Real().MultBy(fac); 
+  d2F[n1].IncrementBy(result.cReal());
+
+  if(s1_ != s2_)
+    {
+      result.Four().Schur(v[n2].Four(),w_att_.Four(),false);
+      result.do_fourier_2_real();
+      result.Real().MultBy(fac);
+      d2F[n2].IncrementBy(result.cReal());
+    }
+  return;    
+}
+
+
+// This is just a convolution: w(I-J). It is only given here for testing add_second_derivative
+double Interaction_Base::second_derivative_brute_force(int I[3], int J[3], vector<DFT_FFT> &v)
+{
+  const Density &density1 = s1_->getDensity();
+    
+  int  Nx   = density1.Nx();
+  int  Ny   = density1.Ny();
+  int  Nz   = density1.Nz();
+  double dV = density1.dV();
+  
+  int Kx = I[0]-J[0];
+  int Ky = I[1]-J[1];
+  int Kz = I[2]-J[2];
+  
+  density1.putIntoBox(Kx,Ky,Kz);
+  long pos = density1.pos(Kx,Ky,Kz);
+
+  return (s1_ == s2_ ? 1 : 0.5)*dV*w_att_.cReal().get(pos);
 }
 
 void Interaction_Base::generateWeights()

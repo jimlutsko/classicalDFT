@@ -7,7 +7,7 @@
 
 #ifndef __LUTSKO__SUMMATION__
 #define __LUTSKO__SUMMATION__
-#include <quadmath.h>
+//#include <quadmath.h>
 
 /**
   *  @brief Implementation of the improved Kahan–Babuška algorithm of Neumaier (Zeitschrift für Angewandte Mathematik und Mechanik (in German). 54 (1): 39–51).
@@ -36,7 +36,6 @@ class Summation
 
   operator double() const { return sum(); }
 
-
   Summation& operator += (const Summation & other)
     {
       sum_ += other.sum_;
@@ -52,8 +51,8 @@ class Summation
     }
   
  protected:
-  double  sum_;
-  double c_;
+  double sum_ = 0.0;
+  double c_   = 0.0;
 };
 
 

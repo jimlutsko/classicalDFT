@@ -362,13 +362,12 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
       } catch( Eta_Too_Large_Exception &e) {
 	throw e;
       }
-    }
-  //< Mean field contribution to F and dF
-  // Need the following only if the fmt object is not called
-  if(!fmt_)
+    } else {   // Need the following only if the fmt object is not called
     for(auto &species : allSpecies_)
       species->doFFT();
-  
+  }
+
+  //< Mean field contribution to F and dF
   F_mf_ = 0;
   for(auto &interaction: DFT::Interactions_)    
     F_mf_ += interaction->getInteractionEnergyAndForces();
@@ -382,6 +381,47 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 
   return F.sum();  
 }
+
+  /**
+   *   @brief  Computes (d2F/dn_i dn_j) v_j: Currently implemented only for a SINGLE SPECIES
+   *
+   *  
+   *   @return nothing
+   */  
+void DFT::second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID)
+{
+  double dV = allSpecies_[0]->getDensity().dV();
+    
+  // ideal gas contribution: v_i/n_i
+  if(noFID == false)
+    for(int s=0;s<allSpecies_.size();s++)
+      for(unsigned i=0;i<v[s].cReal().size();i++)
+	d2F[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().getDensity(i));
+  
+  // Hard-sphere
+  if(fmt_)
+    {    
+      try{
+	fmt_->add_second_derivative(v,d2F, allSpecies_);
+      } catch( Eta_Too_Large_Exception &e) {
+	throw e;
+      }
+    }
+  
+  if(!fmt_)
+    for(auto &species : allSpecies_)
+      species->doFFT();  
+  
+  // Mean field
+  for(auto &interaction: DFT::Interactions_)    
+    interaction->add_second_derivative(v,d2F);  
+  
+}
+
+
+
+
+
 
 namespace dft_util {
 /**

@@ -1,10 +1,13 @@
 #ifndef __classicalDFT_INTERATION_SURFACTANT__
 #define  __classicalDFT_INTERATION_SURFACTANT__
 
+#include "Potential1.h"
+#include "Interaction.h"
+
 class Interaction_Surfactant : public Interaction_Interpolation_QF
 {
  public:
- Interaction_Surfactant(FMT_Species *water, Species *surfactant, Potential *v, double kT)
+ Interaction_Surfactant(FMT_Species *water, Species *surfactant, Potential1 *v, double kT)
    :   Interaction_Interpolation_QF(water,surfactant,v,kT) {}
 
   // Over-ride bulk contributions since these are zero in the absence of gradients
@@ -22,7 +25,7 @@ class Interaction_Surfactant : public Interaction_Interpolation_QF
     // Species 1 is the **water** and species 2 is the surfactant.
 
     FMT_Species &water = *((FMT_Species*) s1_);
-    Species &surfactant = *((_Species*) s2_);
+    Species &surfactant = *((FMT_Species*) s2_);
   
     const Density& surf_density = surfactant.getDensity();
 
@@ -51,7 +54,7 @@ class Interaction_Surfactant : public Interaction_Interpolation_QF
     // Lets do this the dumb way first:
     DFT_FFT dF(Nx, Ny, Nz);      
 
-    dF.Four().Schur(surfactant_potential_.Four(),v2_water.Four(),false); //true);
+    dF.Four().Schur(w_att_.Four(),v2_water.Four(),false); //true);
     dF.Four().MultBy(1.0/dF.Real().size());  // FFTW's convention
     dF.do_fourier_2_real();
     dF.Real().MultBy(dV*dV); // this is d F/d rho_i and so the factors of dV survive
@@ -62,7 +65,7 @@ class Interaction_Surfactant : public Interaction_Interpolation_QF
     // Contribution to the free energy is this dotted with the surfactant density
 
     double F = surf_density.getInteractionEnergy(dF.Real());
-
+    
     ////////////////////////////////////////////////////////////////////////
     // Now we need the derivative wrt the water density
 
@@ -70,7 +73,7 @@ class Interaction_Surfactant : public Interaction_Interpolation_QF
       { 
 	dF.zeros();
 
-	dF.Four().Schur(surf_density.getDK(), surfactant_potential_.Four(),false);
+	dF.Four().Schur(surf_density.getDK(), w_att_.Four(),false);
 	dF.Four().MultBy(1.0/dF.Real().size());  // FFTW's convention
 	dF.do_fourier_2_real();  
 
