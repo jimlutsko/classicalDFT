@@ -39,6 +39,7 @@ In this section we will list the main features implemented in **classicalDFT**, 
 1. [Console](dft_lib/examples/console/README.md): A namespace with some convenient functionality when interacting with the console/terminal output
 2. [Grace](dft_lib/examples/graphs/README.md): A wrapper class which allows us to produce live graphs by interacting with xmgrace
 3. [ConfigParser](dft_lib/examples/config_parser/README.md): A wrapper class of the `boost::property_tree::ptree` class which allows for parsing configuration files in the following formats: `INI`, `JSON`, `XML` and `INFO`  
+4. [Integrator](dft_lib/examples/numerics/README.md): A wrapper class of some integration methods of the `GSL` libraries 
 
 ## Platforms
 
