@@ -99,7 +99,6 @@ void Interaction_Base::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec>
 {
   if(!initialized_)
     initialize();
-
   
   const Density &density1 = s1_->getDensity();
     
@@ -109,9 +108,6 @@ void Interaction_Base::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec>
   int  Nz   = density1.Nz();
   double dV = density1.dV();
   
-  cout << "w_att(0)*dV = " << w_att_.cReal().get(0)*dV << endl;
-  cout << "w_att(22)*dV = " << w_att_.cReal().get(22)*dV << endl;
-
   int n1 = s1_->getIndex();
   int n2 = s2_->getIndex();
 
@@ -136,6 +132,26 @@ void Interaction_Base::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec>
   return;    
 }
 
+
+// This is just a convolution: w(I-J). It is only given here for testing add_second_derivative
+double Interaction_Base::second_derivative_brute_force(int I[3], int J[3], vector<DFT_FFT> &v)
+{
+  const Density &density1 = s1_->getDensity();
+    
+  int  Nx   = density1.Nx();
+  int  Ny   = density1.Ny();
+  int  Nz   = density1.Nz();
+  double dV = density1.dV();
+  
+  int Kx = I[0]-J[0];
+  int Ky = I[1]-J[1];
+  int Kz = I[2]-J[2];
+  
+  density1.putIntoBox(Kx,Ky,Kz);
+  long pos = density1.pos(Kx,Ky,Kz);
+
+  return (s1_ == s2_ ? 1 : 0.5)*dV*w_att_.cReal().get(pos);
+}
 
 void Interaction_Base::generateWeights()
 {    

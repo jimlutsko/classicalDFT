@@ -388,15 +388,15 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
    *  
    *   @return nothing
    */  
-void DFT::second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F)
+void DFT::second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID)
 {
   double dV = allSpecies_[0]->getDensity().dV();
-
-  
+    
   // ideal gas contribution: v_i/n_i
-  for(int s=0;s<allSpecies_.size();s++)
-    for(unsigned i=0;i<v[s].cReal().size();i++)
-      d2F[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().getDensity(i));
+  if(noFID == false)
+    for(int s=0;s<allSpecies_.size();s++)
+      for(unsigned i=0;i<v[s].cReal().size();i++)
+	d2F[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().getDensity(i));
   
   // Hard-sphere
   if(fmt_)

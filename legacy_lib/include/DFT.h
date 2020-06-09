@@ -267,8 +267,9 @@ class DFT
   *  
   *   @param  v: input vector
   *   @param  d2F: vector to be filled
+  *   @param noFID: flag saying to exclude ideal-gas contribution (if noFIDS = true).
   */
-  void second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F);
+  void second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID = false);
   
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)

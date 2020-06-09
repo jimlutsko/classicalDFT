@@ -467,49 +467,9 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
 
   for(auto &f: d2F)
     f.MultBy(dV);
-
-	  
-
-  
-  int J = 10;
-
-  // check : d2Phid
-  
-  for(int I=0;I<10;I++)
-    {
-      double f = 0;
-      /*    
-      for(int ix = 0;ix<Nx;ix++)
-	for(int iy = 0;iy<Ny;iy++)
-	  for(int iz = 0;iz<Nz;iz++)
-	    {
-	      long K = density1.get_PBC_Pos(ix,iy,iz);
-	      long KI = density1.get_PBC_Pos(ix,iy,iz-I);
-	      long KJ = density1.get_PBC_Pos(ix,iy,iz-J);
-
-	      FundamentalMeasures fm = getWeightedDensities(K, allSpecies);
-	      vector<vector<double>> d2Phi(Nfmt,vector<double>(Nfmt,0.0));
-	      D2Phi(fm, d2Phi);	      	      
-	      
-	      for(int a=0;a<Nfmt;a++)
-		for(int b=0;b<Nfmt;b++)
-		  f += d2Phi[a][b]*s->getExtendedWeight(KI,a)*s->getExtendedWeight(KJ,b);
-
-	      for(int a=0;a<Nfmt;a++)
-		f1 += Lambda[a].cReal().get(K)*s->getExtendedWeight(KI,a);
-
-	      
-	    }
-      */
-      int II[] = {0,0,I};
-      int JJ[] = {0,0,J};
-      
-      f = d2Phi_dn_dn(II, 0, JJ, 0, allSpecies);
-      cout << "d2Fhs_dn[" << I << "]_dn[" << J << "] = " << f << " : " << d2F[0].get(I)  << endl;
-    }
-
 }
 
+// Brute-force evaluation of second derivatives
 double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies)
 {
   double f = 0;
@@ -531,7 +491,6 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
   int Nz    = density1.Nz();
   double dV = density1.dV();
 
-  
   for(int ix = 0;ix<Nx;ix++)
     for(int iy = 0;iy<Ny;iy++)
       for(int iz = 0;iz<Nz;iz++)
