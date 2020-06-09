@@ -301,6 +301,43 @@ public:
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeight");
   }
 
+  // FOr testing only: brute-force evaluation of weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
+  double getBruteForceWeightedDensity(int K[3], int a)
+  {
+    double d = 0.0;
+
+    int Nx = density_.Nx();
+    int Ny = density_.Ny();
+    int Nz = density_.Nz();    
+
+    for(int ix = 0;ix<Nx;ix++)
+      for(int iy = 0;iy<Ny;iy++)
+	for(int iz = 0;iz<Nz;iz++)
+	  {
+	    long KI = density_.get_PBC_Pos(K[0]-ix,K[1]-iy,K[2]-iz);
+	    d += getExtendedWeight(KI,a)*density_.getDensity(ix,iy,iz);
+	  }
+    return d;
+  }
+  // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
+  double getExtendedWeightedDensity(long K, int a)
+  {
+    if(a == 0) return d_[EI()].getDensity(K);
+
+    if(a == 1) return d_[SI()].getDensity(K)/(hsd_*hsd_);
+    if(a == 2) return d_[SI()].getDensity(K)/hsd_;
+    if(a == 3) return d_[SI()].getDensity(K);
+
+    if(a == 4) return d_[VI(0)].getDensity(K)/hsd_;
+    if(a == 5) return d_[VI(1)].getDensity(K)/hsd_;
+    if(a == 6) return d_[VI(2)].getDensity(K)/hsd_;
+
+    if(a == 7) return d_[VI(0)].getDensity(K);
+    if(a == 8) return d_[VI(1)].getDensity(K);
+    if(a == 9) return d_[VI(2)].getDensity(K);
+
+    throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeightedDensity");
+  }
 
     
   FMT_Weighted_Density& getEta() { return d_[0];}

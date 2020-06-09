@@ -965,6 +965,19 @@ class Rosenfeld: public RSLT
    return (1.0/(36*M_PI))*s2*(-6)*v2_k;
  }
 
+  virtual double dPhi3_dV2_dS2(int k, const FundamentalMeasures &fm) const
+  {
+    double v2_k  = fm.v2[k];
+
+    return -v2_k/(6*M_PI);
+  }
+
+  virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const
+  {
+    double s2    = fm.s2;
+    return (i == j ? -s2/(6*M_PI) : 0.0);
+  }  
+  
  virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const 
  { 
    return 0;

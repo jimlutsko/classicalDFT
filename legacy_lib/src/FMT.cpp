@@ -472,8 +472,6 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
 // Brute-force evaluation of second derivatives
 double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies)
 {
-  double f = 0;
-
   FMT_Species *s1 = dynamic_cast<FMT_Species*>(allSpecies[si]);
   if(!s1) return 0; // Not an FMT_Species
 
@@ -491,6 +489,8 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
   int Nz    = density1.Nz();
   double dV = density1.dV();
 
+  double f = 0;
+  
   for(int ix = 0;ix<Nx;ix++)
     for(int iy = 0;iy<Ny;iy++)
       for(int iz = 0;iz<Nz;iz++)

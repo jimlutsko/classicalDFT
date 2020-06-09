@@ -133,7 +133,7 @@ public:
   void MultBy(double val)  { data_ *= val;}
   
   void Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false) { if(bUseConj) data_ = v1.data_%conj(v2.data_); else data_ = v1.data_%v2.data_;}
-  void incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2) { data_ += v1.data_%v2.data_;}
+  void incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false) { if(bUseConj) data_ += v1.data_%conj(v2.data_); else data_ += v1.data_%v2.data_;}
  
   void resize(long N) {data_.resize(N);}
   void zeros(long N)  {data_.zeros(N);}

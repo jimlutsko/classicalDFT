@@ -36,18 +36,16 @@ class FMT_Weighted_Density
     weight_.Four().MultBy(1.0/weight_.Real().size());
   }
 
-  // Tricky point: here, we have to use the conjugates because the original expression has the form
-  // e[i] = sum_{j} w(i+j) rho(j)
   void convolute(const DFT_Vec_Complex& density) 
   {
-    weighted_density_.Four().Schur(density,weight_.Four(),true);
+    weighted_density_.Four().Schur(density,weight_.Four(),false); //true);
     weighted_density_.do_fourier_2_real();
   }
 
   void add_to_dPhi(DFT_Vec_Complex& dPhi)
   {
     dPhi_.do_real_2_fourier();
-    dPhi.incrementSchur(dPhi_.Four(), weight_.Four());
+    dPhi.incrementSchur(dPhi_.Four(), weight_.Four(),true);
   }
     
   void   setWeight(long pos, double x) {weight_.Real().set(pos,x);} 
@@ -60,7 +58,9 @@ class FMT_Weighted_Density
   const DFT_Vec_Complex &wk()   const {return weight_.cFour();}
   const DFT_Vec         &Real() const {return weighted_density_.cReal();}
   const DFT_Vec_Complex &Four() const {return weighted_density_.cFour();}
- 
+  const double getDensity(long k) const { return weighted_density_.cReal().get(k);}
+
+  
   void setWk(long pos, double x, double y) {weight_.Four().set(pos, complex<double>(x,y));} 
 
   void dump(ofstream &of){weight_.cReal().save(of);}
