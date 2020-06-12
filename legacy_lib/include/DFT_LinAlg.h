@@ -59,15 +59,32 @@ class DFT_Vec
 
   void Schur(const DFT_Vec &v1, const DFT_Vec &v2);
 
-  friend ostream &operator<<(ostream &of, const DFT_Vec &v);
-  friend istream &operator>>(istream  &in, DFT_Vec &v );
 
-  template<class Archive> void save(Archive & ar, const unsigned int version) const; 
+  // There may be value in having library-specific implementations  of these functions
+  // but for now, I do not see it. 
+  friend ostream &operator<<(ostream &of, const DFT_Vec &v)
+    {
+      unsigned N = v.size();;
+      of.write((char*) &N, sizeof(unsigned));
+      of.write((const char *)(const_cast<DFT_Vec&>(v).memptr()), N*sizeof(double));
+      return of;
+    }
+  friend istream &operator>>(istream  &in, DFT_Vec &v )
+    {
+      unsigned N = 0;
+      in.read((char*) &N, sizeof(unsigned));
+      v.resize(N);
+      in.read((char *) (v.memptr()), N*sizeof(double));
+      return in;
+    }    
+
+
+  template<class Archive> void save(Archive & ar, const unsigned int version) const;
   template<class Archive>  void load(Archive & ar, const unsigned int version);
   BOOST_SERIALIZATION_SPLIT_MEMBER()  
 
-  // These are legacy functions that should be removed at some point. 
-  void save(ofstream &of) const;
+    // These are legacy functions that should be removed at some point. 
+    void save(ofstream &of) const;
   void load(ifstream &in);
   
  protected:
@@ -82,7 +99,7 @@ class DFT_Vec
   */  
 class DFT_Vec_Complex
 {
-public:
+ public:
   DFT_Vec_Complex(unsigned N);
   DFT_Vec_Complex(const DFT_Vec_Complex& c);
   DFT_Vec_Complex();
@@ -108,13 +125,26 @@ public:
   unsigned size() const;
 
 
-  friend ostream &operator<<(ostream &of, const DFT_Vec_Complex &v);
-  friend istream &operator>>(istream  &in, DFT_Vec_Complex &v );
+  friend ostream& operator<<(ostream &of, const DFT_Vec_Complex &v)
+    {    
+      unsigned N = v.size();;
+      of.write((char *) &N, sizeof(unsigned));
+      of.write((char *)(const_cast<DFT_Vec_Complex&>(v).memptr()), N*sizeof(complex<double>));
+      return of;
+    }
+  friend istream& operator>>(istream  &in, DFT_Vec_Complex &v )
+    {
+      unsigned N = 0;
+      in.read((char *) &N, sizeof(unsigned));
+      v.resize(N);
+      in.read((char *)(v.memptr()), N*sizeof(complex<double>));
+      return in;
+    }
   template<class Archive> void save(Archive & ar, const unsigned int version) const;
   template<class Archive>  void load(Archive & ar, const unsigned int version);
   BOOST_SERIALIZATION_SPLIT_MEMBER()  
   
-protected:
+    protected:
   void* data_;
 };
 

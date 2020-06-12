@@ -69,24 +69,6 @@ void DFT_Vec::IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale) {DATA += 
 
 void DFT_Vec::Schur(const DFT_Vec &v1, const DFT_Vec &v2) { DATA = v1_DATA%v2_DATA;}
 
-// Armadillo doesn't provide real streaming so we have to construct it.
-ostream &operator<<(ostream &of, const DFT_Vec &v)
-{
-  unsigned N = v_DATA.size();;
-  of.write((char*) &N, sizeof(unsigned));
-  of.write((char *)(v_DATA.memptr()), N*sizeof(double));
-  return of;
-}
-istream &operator>>(istream  &in, DFT_Vec &v )
-{
-  unsigned N = 0;
-  in.read((char*) &N, sizeof(unsigned));
-  v.resize(N);
-  in.read((char *) (v_DATA.memptr()), N*sizeof(double));
-  return in;
-}    
-
-
 template<class Archive> void DFT_Vec::save(Archive & ar, const unsigned int version) const
 {
   unsigned N = DATA.size();
@@ -104,6 +86,7 @@ template<class Archive>  void DFT_Vec::load(Archive & ar, const unsigned int ver
   ar & buf_wrap;
 }
   
+
 // These are legacy functions that should be removed at some point. 
 void DFT_Vec::save(ofstream &of) const {DATA.save(of);}
 void DFT_Vec::load(ifstream &in) {DATA.load(in);}
@@ -152,25 +135,9 @@ complex<double> *DFT_Vec_Complex::memptr() { return cDATA.memptr();}
 unsigned DFT_Vec_Complex::size() const { return cDATA.size();}
 
 
-ostream& operator<<(ostream &of, const DFT_Vec_Complex &v)
-{    
-  unsigned N = v_cDATA.size();;
-  of.write((char *) &N, sizeof(unsigned));
-  of.write((char *)(v_cDATA.memptr()), N*sizeof(complex<double>));
-  return of;
-}
-istream& operator>>(istream  &in, DFT_Vec_Complex &v )
-{
-  unsigned N = 0;
-  in.read((char *) &N, sizeof(unsigned));
-  v.resize(N);
-  in.read((char *)(v_cDATA.memptr()), N*sizeof(complex<double>));
-  return in;
-}
-
 template<class Archive> void DFT_Vec_Complex::save(Archive & ar, const unsigned int version) const
 {
-  unsigned N = cDATA.size();
+  unsigned N = size();
   boost::serialization::binary_object buf_wrap(cDATA.memptr(), N*sizeof(complex<double>));
   ar & N;
   ar & buf_wrap;
@@ -180,7 +147,7 @@ template<class Archive>  void DFT_Vec_Complex::load(Archive & ar, const unsigned
 {
   unsigned N  = 0;
   ar & N;
-  cDATA.resize(N);    
+  resize(N);    
   boost::serialization::binary_object buf_wrap(cDATA.memptr(), N*sizeof(complex<double>));
   ar & buf_wrap;
 }
