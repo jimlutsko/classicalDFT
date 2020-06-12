@@ -1,9 +1,275 @@
 #ifndef __DFT_LINALG_LUTSKO__
 #define __DFT_LINALG_LUTSKO__
 
-//#include "DFT_LinAlg_EIGEN_L.h"
-//#include "DFT_LinAlg_EIGEN.h"
-#include "DFT_LinAlg_ARMA.h"
-//#include "DFT_LinAlg_ATLAS.h"
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/binary_object.hpp>
+
+#include "FMT_FFTW.h"
+
+/**
+  *  @brief UTILITY: A wrapper for linear algebra packages. The idea is to be able to easily change libraries without changing any other code. Probably overkill and could be eliminated.
+  */  
+class DFT_Vec
+{
+ public:
+  DFT_Vec(unsigned N);
+  DFT_Vec(const DFT_Vec& c);
+  DFT_Vec();
+  ~DFT_Vec();
+  
+  void   set(unsigned pos, double val);
+  double get(unsigned pos) const;
+
+  void set(const DFT_Vec& x);
+  void set(const DFT_Vec& v1, const DFT_Vec& v2, double scale);
+  void set(const double *x, unsigned n);
+  
+  void setFromAlias(const DFT_Vec &x);
+  void setAliasFromValues(const DFT_Vec &x);
+  void alias_Jacobian(const DFT_Vec &x);
+
+  void resize(long N);
+  void zeros(long N);
+  void zeros();
+
+  double inf_norm() const;
+  double euclidean_norm() const;
+  void normalise();
+  
+  double min() const;
+  double max() const;
+
+  double *memptr();
+
+  unsigned size() const;
+  
+  double dotWith(const DFT_Vec &v) const;
+
+  double accu() const;
+
+  void MultBy(double val);
+  void IncrementBy(const DFT_Vec& v);
+  void DecrementBy(const DFT_Vec& v);
+  void ShiftBy(double shift);
+
+  void IncrementBy(unsigned pos, double val);
+    
+  void IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale);
+
+  void Schur(const DFT_Vec &v1, const DFT_Vec &v2);
+
+
+  // There may be value in having library-specific implementations  of these functions
+  // but for now, I do not see it. 
+  friend ostream &operator<<(ostream &of, const DFT_Vec &v)
+    {
+      unsigned N = v.size();;
+      of.write((char*) &N, sizeof(unsigned));
+      of.write((const char *)(const_cast<DFT_Vec&>(v).memptr()), N*sizeof(double));
+      return of;
+    }
+  friend istream &operator>>(istream  &in, DFT_Vec &v )
+    {
+      unsigned N = 0;
+      in.read((char*) &N, sizeof(unsigned));
+      v.resize(N);
+      in.read((char *) (v.memptr()), N*sizeof(double));
+      return in;
+    }    
+
+
+  template<class Archive> void save(Archive & ar, const unsigned int version) const;
+  template<class Archive>  void load(Archive & ar, const unsigned int version);
+  BOOST_SERIALIZATION_SPLIT_MEMBER()  
+
+    // These are legacy functions that should be removed at some point. 
+    void save(ofstream &of) const;
+  void load(ifstream &in);
+  
+ protected:
+  void *data_;
+};
+
+
+
+
+/**
+  *  @brief UTILITY: A wrapper for linear algebra packages. This one handles complex values.
+  */  
+class DFT_Vec_Complex
+{
+ public:
+  DFT_Vec_Complex(unsigned N);
+  DFT_Vec_Complex(const DFT_Vec_Complex& c);
+  DFT_Vec_Complex();
+  ~DFT_Vec_Complex();
+  
+  void   set(const DFT_Vec_Complex& c);
+  void   set(unsigned pos, complex<double> val);
+  complex<double> get(unsigned pos) const;
+
+  void MultBy(double val);
+  
+  void Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false);
+  void incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false);
+ 
+  void resize(long N);
+  void zeros(long N);
+  void zeros();
+
+  complex<double> max() const;
+  
+  complex<double> *memptr();
+ 
+  unsigned size() const;
+
+
+  friend ostream& operator<<(ostream &of, const DFT_Vec_Complex &v)
+    {    
+      unsigned N = v.size();;
+      of.write((char *) &N, sizeof(unsigned));
+      of.write((char *)(const_cast<DFT_Vec_Complex&>(v).memptr()), N*sizeof(complex<double>));
+      return of;
+    }
+  friend istream& operator>>(istream  &in, DFT_Vec_Complex &v )
+    {
+      unsigned N = 0;
+      in.read((char *) &N, sizeof(unsigned));
+      v.resize(N);
+      in.read((char *)(v.memptr()), N*sizeof(complex<double>));
+      return in;
+    }
+  template<class Archive> void save(Archive & ar, const unsigned int version) const;
+  template<class Archive>  void load(Archive & ar, const unsigned int version);
+  BOOST_SERIALIZATION_SPLIT_MEMBER()  
+  
+    protected:
+  void* data_;
+};
+
+/**
+  *  @brief UTILITY: This class encapsulates a basic FFT. It is basically an interface to fftw library while holding both a real and a complex vector.
+  */  
+class DFT_FFT
+{
+ public:
+  DFT_FFT(unsigned Nx, unsigned Ny, unsigned Nz) : RealSpace_(Nx*Ny*Nz), FourierSpace_(Nx*Ny*((Nz/2)+1)), four_2_real_(NULL), real_2_four_(NULL), Nx_(Nx), Ny_(Ny), Nz_(Nz)
+    {
+      four_2_real_ = fftw_plan_dft_c2r_3d(Nx, Ny, Nz, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
+      real_2_four_ = fftw_plan_dft_r2c_3d(Nx, Ny, Nz, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
+    };
+
+  DFT_FFT(const DFT_FFT &Other) : RealSpace_(Other.RealSpace_), FourierSpace_(Other.FourierSpace_), four_2_real_(NULL), real_2_four_(NULL), Nx_(Other.Nx_), Ny_(Other.Ny_), Nz_(Other.Nz_)
+    {
+      four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
+      real_2_four_ = fftw_plan_dft_r2c_3d(Nx_, Ny_, Nz_, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
+    };  
+
+ DFT_FFT() : four_2_real_(NULL), real_2_four_(NULL){};
+  
+  ~DFT_FFT()
+    {
+      if(four_2_real_) fftw_destroy_plan(four_2_real_);
+      if(real_2_four_) fftw_destroy_plan(real_2_four_);
+    }
+
+  void zeros() {RealSpace_.zeros(); FourierSpace_.zeros();}
+  
+  void initialize(unsigned Nx, unsigned Ny, unsigned Nz)
+  {
+    RealSpace_.zeros(Nx*Ny*Nz);
+    FourierSpace_.zeros(Nx*Ny*((Nz/2)+1));
+    four_2_real_ = fftw_plan_dft_c2r_3d(Nx, Ny, Nz, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
+    real_2_four_ = fftw_plan_dft_r2c_3d(Nx, Ny, Nz, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
+    Nx_ = Nx;
+    Ny_ = Ny;
+    Nz_ = Nz;
+  };
+  
+  DFT_Vec &Real() { return RealSpace_;}
+  DFT_Vec_Complex &Four() { return FourierSpace_;}
+
+  const DFT_Vec &cReal() const { return RealSpace_;}
+  const DFT_Vec_Complex &cFour() const { return FourierSpace_;}
+
+  void do_real_2_fourier() {fftw_execute(real_2_four_);}
+  void do_fourier_2_real() {fftw_execute(four_2_real_);}
+
+  void MultBy(double val) { RealSpace_.MultBy(val);  FourierSpace_.MultBy(val);}
+
+  friend ostream &operator<<(ostream &of, const DFT_FFT &v)
+  {    
+    of << v.RealSpace_ << v.FourierSpace_ << v.Nx_ << " " << v.Ny_ << " " << v.Nz_; 
+    return of;
+  }  
+  friend istream &operator>>(istream  &in, DFT_FFT &v )
+  {
+    in >> v.RealSpace_  >> v.FourierSpace_ >> v.Nx_ >> v.Ny_ >> v.Nz_;    
+
+    // This is really unpleasant in terms of wasted memory:
+    // fftw messes up the data so we have to restore it after making the plans
+    // copy the data:
+    DFT_Vec r(v.RealSpace_);
+    DFT_Vec_Complex f(v.FourierSpace_);
+    
+    v.four_2_real_ = fftw_plan_dft_c2r_3d(v.Nx_, v.Ny_, v.Nz_, reinterpret_cast<fftw_complex*>(v.FourierSpace_.memptr()), v.RealSpace_.memptr(), FMT_FFTW);
+    v.real_2_four_ = fftw_plan_dft_r2c_3d(v.Nx_, v.Ny_, v.Nz_, v.RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(v.FourierSpace_.memptr()),  FMT_FFTW);
+
+    // restore data:
+    // I could just exchange the memptr's but i hate to count on library internals
+    
+    v.RealSpace_.set(r);
+    v.FourierSpace_.set(f);
+
+    return in;
+  }
+
+  friend class boost::serialization::access;  
+  template<class Archive> void save(Archive & ar, const unsigned int version) const
+  {
+    ar & RealSpace_;
+    ar & FourierSpace_;
+    ar & Nx_;
+    ar & Ny_;
+    ar & Nz_;
+  }
+  template<class Archive>  void load(Archive & ar, const unsigned int version)
+  {
+    ar & RealSpace_;
+    ar & FourierSpace_;
+    ar & Nx_;
+    ar & Ny_;
+    ar & Nz_;    
+
+    
+    // I do not know how to stream the fftw plans, so I reconstruct them.
+    // BUT, this is really unpleasant in terms of wasted memory:
+    // fftw messes up the data so we have to restore it after making the plans
+    // copy the data:
+    DFT_Vec r(RealSpace_);
+    DFT_Vec_Complex f(FourierSpace_);
+    
+    four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
+    real_2_four_ = fftw_plan_dft_r2c_3d(Nx_, Ny_, Nz_, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
+
+    // restore data:
+    // I could just exchange the memptr's but i hate to count on library internals
+    
+    RealSpace_.set(r);
+    FourierSpace_.set(f);
+    
+  }
+  BOOST_SERIALIZATION_SPLIT_MEMBER()  
+  
+ protected:
+  DFT_Vec RealSpace_;
+  DFT_Vec_Complex FourierSpace_;
+  fftw_plan four_2_real_;   ///< fftw3 "plan" to perform fft on density
+  fftw_plan real_2_four_;   ///< fftw3 "plan" to perform fft on density
+  unsigned Nx_; ///< spatial dimension: only needed for reading and writing plans.
+  unsigned Ny_; ///< spatial dimension: only needed for reading and writing plans.
+  unsigned Nz_; ///< spatial dimension: only needed for reading and writing plans.
+};
 
 #endif // __DFT_LINALG_LUTSKO__
