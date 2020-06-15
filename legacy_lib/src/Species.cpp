@@ -19,10 +19,6 @@ using namespace std;
 
 int Species::SequenceNumber_ = 0;
 
-//BOOST_CLASS_EXPORT_GUID(FMT_Species, "FMT_Species")
-//BOOST_CLASS_EXPORT_GUID(FMT_Species_Analytic, "FMT_Species_Analytic")
-//BOOST_CLASS_EXPORT_GUID(FMT_Species_Numeric, "FMT_Species_Numeric")
-
 
 FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Species(density,mu,seq), hsd_(hsd), d_(11)
 {
@@ -33,24 +29,6 @@ FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Spec
   for(FMT_Weighted_Density &d: d_)
     d.initialize(Nx, Ny, Nz);
 }
-
-/*
-
-void FMT_Species::reset(string& pointsFile)
-{
-  long Nx = density_.Nx();
-  long Ny = density_.Ny();
-  long Nz = density_.Nz();
-
-  for(FMT_Weighted_Density &d: d_)
-    d.initialize(Nx, Ny, Nz);
-
-  generateWeights(pointsFile);
-
-  for(FMT_Weighted_Density &d: d_)
-    d.transformWeights();  
-}
-*/
 
 FMT_Species_Numeric::FMT_Species_Numeric(Density& density, double hsd, string &pointsFile, double mu, int seq):
   FMT_Species(density,hsd,mu,seq)
@@ -105,20 +83,6 @@ FMT_Species_Numeric::FMT_Species_Numeric(Density& density, double hsd, string &p
     } else {
     generateWeights(pointsFile);
   }
-  /*
-  cout << "Sample: " << endl;
-  int counter = 0;
-  for(long i=0;i<d_[EI()].Real().size() && counter < 20; i++)
-    {
-      double s = d_[SI()].getWeight(i);
-      if(fabs(s) > 1e-10)
-	{
-	  cout << i << " " << d_[EI()].getWeight(i) << " " << d_[SI()].getWeight(i) << " " << d_[VI(0)].getWeight(i) << " " << d_[VI(1)].getWeight(i) << " " << d_[VI(2)].getWeight(i) << endl;
-	  counter++;
-	}
-    }
-  exit(0);
-  */
   for(FMT_Weighted_Density &d: d_)
     d.transformWeights();
 }
@@ -528,7 +492,9 @@ double J_eta(double R, double Sx, double Sy, double Sz, int wx, int wy, int wz)
 	  if(ib == 1) sgn *= -1;
 	  if(ic == 1) sgn *= -1;
 			  
-	  if(R*R < a*a+b*b+c*c) continue;
+	  // if(R*R < a*a+b*b+c*c) continue;
+	  // test up to machine precision
+	  if((R*R - (a*a+b*b+c*c)) < std::nextafter(0.d,1.d)) continue;
 
 	  double j0 = 0.0;
 	  
@@ -619,7 +585,9 @@ double J_Vz(double R, double Sx, double Sy, double Sz, int wx, int wy, int wz)
 	  if(ib == 1) sgn *= -1;
 	  if(ic == 1) sgn *= -1;
 			  
-	  if(R*R < a*a+b*b+c*c) continue;
+	  // if(R*R < a*a+b*b+c*c) continue;
+	  // test up to machine precision
+	  if((R*R - (a*a+b*b+c*c)) < std::nextafter(0.d,1.d)) continue;	  
 
 	  double j0 = 0.0;
 	  
@@ -698,7 +666,9 @@ double J_s(double R, double Sx, double Sy, double Sz, int wx, int wy, int wz)
 	  if(ib == 1) sgn *= -1;
 	  if(ic == 1) sgn *= -1;
 			  
-	  if(R*R < a*a+b*b+c*c) continue;
+	  // if(R*R < a*a+b*b+c*c) continue;
+	  // test up to machine precision
+	  if((R*R - (a*a+b*b+c*c)) < std::nextafter(0.d,1.d)) continue;
 
 	  double j0 = 0.0;
 	  
@@ -769,7 +739,7 @@ void FMT_Species_Analytic::generateWeights()
 	  // else, all hsd boundary is less than the nearest corner and all weights are zero.
 
 	  double R = hsr/dx;
-	  
+
 	  if(R*R > R2_max) {w_eta = dV;}
 	  else if(R*R > R2_min)
 	    for(int ix:v)
@@ -792,7 +762,7 @@ void FMT_Species_Analytic::generateWeights()
 		  d_[EI()].addToWeight(pos,w_eta);
 		  d_[SI()].addToWeight(pos,w_s);
 		  for(int iv = 0;iv < 3;iv++)
-		    d_[VI(iv)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*w_v[iv]);
+		    d_[VI(iv)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*w_v[iv]);		  
 		}
 	}
   cout << endl;
