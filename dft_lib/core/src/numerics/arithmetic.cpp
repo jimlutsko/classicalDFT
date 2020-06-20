@@ -12,7 +12,7 @@ namespace arithmetic
 {
 namespace summation {
 
-std::tuple<double, double> KahanBabuskaSum(std::vector<double>& x_series, const double& sum_ini, const double& error_ini)
+std::tuple<double, double> KahanBabuskaSum(const std::vector<double>& x_series, const double& sum_ini, const double& error_ini)
 {
   // The method is given in here:
   // wikipedia: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#The_algorithm
@@ -29,7 +29,23 @@ std::tuple<double, double> KahanBabuskaSum(std::vector<double>& x_series, const 
   }
 
   // When catching the result we need to use std::tie(x, y) [https://en.cppreference.com/w/cpp/utility/tuple]
-  return std::tuple<double, double>{ sum, error};
+  return std::tuple<double, double>{ sum, error };
+}
+
+std::tuple<double, double> KahanBabuskaNeumaierSum(const std::vector<double>& x_series, const double& sum_ini, const double& error_ini)
+{
+  double sum = sum_ini;
+  double error = error_ini;
+
+  for (const auto& x : x_series)
+  {
+    auto x_corrected = x - error;
+    auto t = sum + x_corrected;
+    error = (t - sum) - x_corrected;
+    sum = t;
+  }
+
+  return std::tuple<double, double>{ sum, error };
 }
 
 
