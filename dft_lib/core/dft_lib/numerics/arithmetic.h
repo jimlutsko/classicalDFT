@@ -14,7 +14,7 @@ namespace summation {
 
 // region types:
 
-enum class Type { Kahan = 0, KahanBabuska, KahanBabuskaNeumaier, KahanBabuskaKlein };
+enum class Type { KahanBabuska=0, KahanBabuskaNeumaier, KahanBabuskaKlein };
 
 // endregion
 
@@ -36,7 +36,7 @@ enum class Type { Kahan = 0, KahanBabuska, KahanBabuskaNeumaier, KahanBabuskaKle
  */
 template <
     typename x_type=double,
-    // This metafunction makes this function only available for numerical types
+    // This meta-function makes this function only available for numerical types
     typename = typename std::enable_if<std::is_arithmetic<x_type>::value, x_type>::type
 >
 x_type StandardVectorSum(const std::vector<x_type>& x_input)
@@ -75,13 +75,41 @@ std::tuple<double, double> KahanBabuskaSum(const std::vector<double>& x_series, 
  *  There you can find multiple and useful references which provide details about the formal
  *  derivation, accuracy, convergence theorems etc.
  *
- * @param x_series
- * @param sum_ini
- * @param error_ini
- * @return
+ * @param x_series the std::vector<double> we want to sum
+ * @param sum_ini an initial value for the summation algorithm (default = 0.0)
+ *  This is useful when the summation is carried out in several steps, so that we can
+ *  continue the summation from where it was left.
+ * @param error_ini an initial value for the compensation (default = 0.0).
+ *  This is useful when the summation is carried out in several steps, so that we can
+ *  continue the summation from where it was left.
+ *
+ * @return tuple of double values which contains:
+ *  1) the sum value, and
+ *  2) the status of the compensation in case we need to continue the sum later
  */
 std::tuple<double, double> KahanBabuskaNeumaierSum(const std::vector<double>& x_series, const double& sum_ini = 0.0, const double& error_ini = 0.0);
-std::tuple<double, double> KahanBabuskaKleinSum(const std::vector<double>& x_series, const double& sum_ini = 0.0, const double& error_ini = 0.0);
+
+/**
+ * @brief Standard implementation of the Kahan-Babuška-Klein summation algorithm (https://link.springer.com/article/10.1007/s00607-005-0139-x)
+ *
+ * @detailed To deep dive into the numerical details of the K-B-K summation algorithm we
+ *  recommend to read the wiki link: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements.
+ *  There you can find multiple and useful references which provide details about the formal
+ *  derivation, accuracy, convergence theorems etc.
+ *
+ * @param x_series the std::vector<double> we want to sum
+ * @param sum_ini an initial value for the summation algorithm (default = 0.0)
+ *  This is useful when the summation is carried out in several steps, so that we can
+ *  continue the summation from where it was left.
+ * @param error_ini an initial value for the compensation (default = 0.0).
+ *  This is useful when the summation is carried out in several steps, so that we can
+ *  continue the summation from where it was left.
+ *
+ * @return tuple of double values which contains:
+ *  1) the sum value, and
+ *  2) the status of the compensation in case we need to continue the sum later
+ */
+std::tuple<double, std::vector<double>> KahanBabuskaKleinSum(const std::vector<double>& x_series, const double& sum_ini = 0.0, const std::vector<double>& error_ini = {0, 0});
 
 class CompensatedSum
 {
