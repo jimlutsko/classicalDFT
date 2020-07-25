@@ -3,6 +3,7 @@
 
 #include <numeric>
 #include <vector>
+#include <tuple>
 
 namespace dft_core
 {
@@ -113,12 +114,14 @@ std::tuple<double, std::vector<double>> KahanBabuskaKleinSum(const std::vector<d
 
 class CompensatedSum
 {
+ private:
   // region Constants:
   // endregion
 
   // region Attributes:
   // endregion
 
+ public:
   // region Cttors:
   // endregion
 
