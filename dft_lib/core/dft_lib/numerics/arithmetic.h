@@ -14,7 +14,8 @@ namespace numerics
 {
 namespace arithmetic
 {
-namespace summation {
+namespace summation
+{
 
 // region types:
 

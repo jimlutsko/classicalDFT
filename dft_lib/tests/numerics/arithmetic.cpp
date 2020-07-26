@@ -77,4 +77,52 @@ TEST(numerics, kahan_babuska_klein_accuracy_ok)
   std::tie(actual, err) = arithmetic::summation::KahanBabuskaKleinSum(x_input);
   EXPECT_LE(std::abs(err[0])+std::abs(err[1]), 2*DBL_EPSILON*expected);
 }
+
+TEST(numerics, compensated_summation_default_works_ok)
+{
+  auto x_input = std::vector<double>{1.0, 2.0, 4.0, 3.0};
+
+  x_type expected = 10;
+  auto actual = arithmetic::summation::CompensatedSum();
+
+  actual += x_input;
+  EXPECT_DOUBLE_EQ(expected, actual.Sum());
+  EXPECT_LE(std::abs(actual.error().front()), 2*DBL_EPSILON*expected);
+}
+
+TEST(numerics, compensated_summation_kb_works_ok)
+{
+  auto x_input = std::vector<double>{1.0, 2.0, 4.0, 3.0};
+
+  x_type expected = 10;
+  auto actual = arithmetic::summation::CompensatedSum(arithmetic::summation::Type::KahanBabuska);
+
+  actual += x_input;
+  EXPECT_DOUBLE_EQ(expected, actual.Sum());
+  EXPECT_LE(std::abs(actual.error().front()), 2*DBL_EPSILON*expected);
+}
+
+TEST(numerics, compensated_summation_kbn_works_ok)
+{
+  auto x_input = std::vector<double>{1.0, 2.0, 4.0, 3.0};
+
+  x_type expected = 10;
+  auto actual = arithmetic::summation::CompensatedSum(arithmetic::summation::Type::KahanBabuskaNeumaier);
+
+  actual += x_input;
+  EXPECT_DOUBLE_EQ(expected, actual.Sum());
+  EXPECT_LE(std::abs(actual.error().front()), 2*DBL_EPSILON*expected);
+}
+
+TEST(numerics, compensated_summation_kbk_works_ok)
+{
+  auto x_input = std::vector<double>{1.0, 2.0, 4.0, 3.0};
+
+  x_type expected = 10;
+  auto actual = arithmetic::summation::CompensatedSum(arithmetic::summation::Type::KahanBabuskaKlein);
+
+  actual += x_input;
+  EXPECT_DOUBLE_EQ(expected, actual.Sum());
+  EXPECT_LE(std::abs(actual.error()[0])+std::abs(actual.error()[1]), 2*DBL_EPSILON*expected);
+}
 //endregion
