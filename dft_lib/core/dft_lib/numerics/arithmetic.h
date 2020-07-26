@@ -4,6 +4,7 @@
 #include <numeric>
 #include <vector>
 #include <tuple>
+#include <functional>
 
 #include "dft_lib/utils/console.h"
 
