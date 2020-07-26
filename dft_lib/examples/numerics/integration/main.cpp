@@ -19,15 +19,15 @@ double NegativeExpFunction(double x, const std::vector<double>& param) { return 
 
 int main()
 {
-  using namespace dft_core;
+  using namespace dft_core::numerics::integration;
 
   auto problem = example::TestProblem(1.0);
-  auto integrator = numerics::Integrator<example::TestProblem>(problem, &example::TestProblem::NegativeExp);
+  auto integrator = Integrator<example::TestProblem>(problem, &example::TestProblem::NegativeExp);
 
   console::WriteLine(console::format::Blink("Testing passing object->method:"));
   console::WriteLine("integrator.f(2*M_PI) = " + std::to_string(integrator.function(M_PI_2)));
   console::WriteLine("Integrator<LocalProblem>::integrand_function(2*M_PI, &integrator) = "
-                     + std::to_string(numerics::Integrator<example::TestProblem>::integrand_function(M_PI_2, &integrator)));
+                     + std::to_string(Integrator<example::TestProblem>::integrand_function(M_PI_2, &integrator)));
 
   auto result = integrator.DefiniteIntegral(0, -log(0.5));
   console::NewLine();
@@ -47,14 +47,14 @@ int main()
   console::WriteLine("int[0, +inf] exp(-x) dx = " + std::to_string(integrator.numerical_result()));
   console::WriteLine("numerical_error =  " + std::to_string(integrator.numerical_error()));
 
-  auto integrator_neg = numerics::Integrator<example::TestProblem>(problem, &example::TestProblem::PositiveExp);
+  auto integrator_neg = Integrator<example::TestProblem>(problem, &example::TestProblem::PositiveExp);
   auto result_semi_neg = integrator_neg.LowerSemiInfiniteIntegral(0);
   console::NewLine();
   console::WriteLine(console::format::Blink("Testing integration methods: QAGIL"));
   console::WriteLine("int[-inf, 0] exp(x) dx = " + std::to_string(integrator.numerical_result()));
   console::WriteLine("numerical_error =  " + std::to_string(integrator.numerical_error()));
 
-  auto integrator_gauss = numerics::Integrator<example::TestProblem>(problem, &example::TestProblem::NormalDist);
+  auto integrator_gauss = Integrator<example::TestProblem>(problem, &example::TestProblem::NormalDist);
   auto result_gauss = integrator_gauss.FullInfiniteIntegral();
   console::NewLine();
   console::WriteLine(console::format::Blink("Testing integration methods: QAGI"));
@@ -62,7 +62,7 @@ int main()
   console::WriteLine("numerical_error =  " + std::to_string(integrator.numerical_error()));
 
   auto parameters = std::vector<double>{ 0.5, 2 };
-  auto func_integrator = numerics::FunctionIntegrator<std::vector<double>>(&example::NegativeExpFunction, parameters);
+  auto func_integrator = FunctionIntegrator<std::vector<double>>(&example::NegativeExpFunction, parameters);
 
   result = func_integrator.DefiniteIntegral(0, -log(0.5));
   console::NewLine();
