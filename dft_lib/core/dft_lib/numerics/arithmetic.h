@@ -5,6 +5,8 @@
 #include <vector>
 #include <tuple>
 
+#include "dft_lib/utils/console.h"
+
 namespace dft_core
 {
 namespace numerics
@@ -19,7 +21,16 @@ enum class Type { KahanBabuska=0, KahanBabuskaNeumaier, KahanBabuskaKlein };
 
 // endregion
 
-// region free functions
+// region alias:
+using x_type = double;
+using error_type = std::vector<x_type>;
+using return_type = std::tuple<x_type, error_type>;
+
+template<class return_type = return_type, class input_type = x_type, class sum_type = x_type, class err_type = error_type>
+using summation_method = std::function<return_type(input_type, x_type, err_type)>;
+// endregion
+
+// region free functions:
 
 /**
  * @brief Returns the standard sum of a `std::vector<T>`'s components
@@ -66,7 +77,9 @@ x_type StandardVectorSum(const std::vector<x_type>& x_input)
  *  1) the sum value, and
  *  2) the status of the compensation in case we need to continue the sum later
  */
-std::tuple<double, double> KahanBabuskaSum(const std::vector<double>& x_series, const double& sum_ini = 0.0, const double& error_ini = 0.0);
+return_type KahanBabuskaSum(const std::vector<x_type>& x_series, const x_type& sum_ini = 0.0, const error_type & error_ini = {0.0});
+return_type KahanBabuskaAdd(x_type x, x_type sum, error_type error);
+
 
 /**
  * @brief Standard implementation of the Kahan-Babuška-Neumaier summation algorithm (https://www.mat.univie.ac.at/~neum/scan/01.pdf)
@@ -88,7 +101,8 @@ std::tuple<double, double> KahanBabuskaSum(const std::vector<double>& x_series, 
  *  1) the sum value, and
  *  2) the status of the compensation in case we need to continue the sum later
  */
-std::tuple<double, double> KahanBabuskaNeumaierSum(const std::vector<double>& x_series, const double& sum_ini = 0.0, const double& error_ini = 0.0);
+return_type KahanBabuskaNeumaierSum(const std::vector<x_type>& x_series, const x_type& sum_ini = 0.0, const error_type & error_ini = {0.0});
+return_type KahanBabuskaNeumaierAdd(x_type x, x_type sum, error_type error);
 
 /**
  * @brief Standard implementation of the Kahan-Babuška-Klein summation algorithm (https://link.springer.com/article/10.1007/s00607-005-0139-x)
@@ -110,22 +124,89 @@ std::tuple<double, double> KahanBabuskaNeumaierSum(const std::vector<double>& x_
  *  1) the sum value, and
  *  2) the status of the compensation in case we need to continue the sum later
  */
-std::tuple<double, std::vector<double>> KahanBabuskaKleinSum(const std::vector<double>& x_series, const double& sum_ini = 0.0, const std::vector<double>& error_ini = {0, 0});
+return_type KahanBabuskaKleinSum(const std::vector<x_type>& x_series, const x_type& sum_ini = 0.0, const error_type & error_ini = {0.0, 0.0});
+return_type KahanBabuskaKleinAdd(x_type x, x_type sum, error_type error);
 
-class CompensatedSum
-{
+// endregion
+
+class CompensatedSum {
  private:
   // region Constants:
   // endregion
 
   // region Attributes:
+  /**
+   * @brief The cumulative-sum value
+   */
+  x_type sum_ = 0.0;
+
+  /**
+   * @brief The state of the correction components needed
+   */
+  error_type error_;
+
+  /**
+   * @brief The type of compensated sum to be used, from the enum class `summation::Type`.
+   *    By default set to `Type::KahanBabuskaNeumaier`
+   */
+  summation::Type type_ = summation::Type::KahanBabuskaNeumaier;
   // endregion
+
+  /**
+   * @brief The underlying free method to be used (either Kahan-Babuška, Kahan-Babuška-Neumaier,
+   * or Kahan-Babuška-Klein). By default = Kahan-Babuška-Neumaier
+   */
+  summation_method<return_type, x_type, x_type, error_type> method_;
+
+  /**
+   * @brief A helper function which basically calls the underlying `method_` to carry out the sum
+   * @param value The value to be added to the sum
+   */
+  void add(x_type value);
 
  public:
   // region Cttors:
+  /**
+   * @brief A wrapper for the different Kahan-Babuška summation algorithms
+   * @param type Specifies the specific variation of the Kahan-Babuška algorithm to be used.
+   *    By default the type of compensated summation is set to `KahanBabuskaNeumaier`
+   */
+  explicit CompensatedSum(summation::Type type = summation::Type::KahanBabuskaNeumaier);
+  // endregion
+
+  // region Inspectors:
+  /// Gets the error_ vector
+  const error_type& error() const;
+  /// Gets the sum type_
+  const summation::Type& type() const;
   // endregion
 
   // region Methods:
+  /// Gets the value of the sum given the current error-vector state
+  x_type Sum() const;
+  // endregion
+
+  // region Overloads:
+  explicit operator double() const;
+
+  CompensatedSum& operator+=(x_type x);
+  CompensatedSum& operator-=(x_type x);
+
+  CompensatedSum& operator+=(const std::vector<x_type>& x);
+  CompensatedSum& operator-=(const std::vector<x_type>& x);
+
+  CompensatedSum& operator+=(const CompensatedSum& other);
+  CompensatedSum& operator-=(const CompensatedSum& other);
+
+  CompensatedSum& operator+(x_type x);
+  CompensatedSum& operator-(x_type x);
+
+  CompensatedSum& operator+(const CompensatedSum& other);
+  CompensatedSum& operator-(const CompensatedSum& other);
+
+  CompensatedSum& operator=(x_type x);
+
+  friend std::ostream& operator<<(std::ostream &output, const CompensatedSum&obj);
   // endregion
 };
 
