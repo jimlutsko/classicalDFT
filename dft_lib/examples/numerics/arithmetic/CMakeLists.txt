@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(examples_numerics LANGUAGES CXX)
+project(examples_arithmetic LANGUAGES CXX)
 
 file(GLOB_RECURSE ALL_SOURCES LIST_DIRECTORIES false *.h *.cpp)
 set(ENV{DISPLAY} ":0")

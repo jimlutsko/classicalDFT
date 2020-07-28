@@ -50,7 +50,8 @@ namespace console
    * @brief Wrapper of the std::cout method
    * @param[in] string message to write in the terminal
    */
-  static void Write(const std::string& msg)
+  template <class T>
+  static void Write(const T& msg)
   {
     std::cout << msg;
   }
@@ -59,9 +60,22 @@ namespace console
    * @brief Wrapper of the std::cout + std::endl method
    * @param[in] string message to write in the terminal
    */
-  static void WriteLine(const std::string& msg)
+  template <class T>
+  static void WriteLine(const T& msg)
   {
     std::cout << msg << std::endl;
+  }
+
+  /**
+  * @brief Wrapper of the std::cout + std::endl method
+  * @param[in] A initializer list of messages to write in the terminal
+  */
+  template <class T>
+  static void WriteLine(const std::initializer_list<T>& msg)
+  {
+    for (const auto& m : msg) {
+      std::cout << m << std::endl;
+    }
   }
 
   /**

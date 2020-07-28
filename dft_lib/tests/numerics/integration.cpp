@@ -4,13 +4,13 @@
 
 //region Default parameters:
 
-using namespace dft_core;
+using namespace dft_core::numerics;
 
 TEST(numerics, default_relative_error_test)
 {
   EXPECT_DOUBLE_EQ(
       1e-5,
-      numerics::DEFAULT_RELATIVE_ERROR_TOLERANCE
+      integration::DEFAULT_RELATIVE_ERROR_TOLERANCE
   );
 }
 
@@ -18,7 +18,7 @@ TEST(numerics, default_absolute_error_test)
 {
   EXPECT_DOUBLE_EQ(
       1e-5,
-      numerics::DEFAULT_ABSOLUTE_ERROR_TOLERANCE
+      integration::DEFAULT_ABSOLUTE_ERROR_TOLERANCE
   );
 }
 
@@ -27,7 +27,7 @@ TEST(numerics, default_initial_error_value_test)
 {
   EXPECT_DOUBLE_EQ(
       123456.789,
-      numerics::DEFAULT_INITIAL_ERROR_VALUE
+      integration::DEFAULT_INITIAL_ERROR_VALUE
   );
 }
 
@@ -35,7 +35,7 @@ TEST(numerics, default_initial_result_value_test)
 {
   EXPECT_DOUBLE_EQ(
       123456.789,
-      numerics::DEFAULE_INITIAL_RESULT_VALUE
+      integration::DEFAULE_INITIAL_RESULT_VALUE
   );
 }
 
@@ -44,7 +44,7 @@ TEST(numerics, default_gsl_working_space_size_test)
 {
   EXPECT_EQ(
       1000,
-      numerics::DEFAULT_GSL_WORKING_SPACE_SIZE
+      integration::DEFAULT_GSL_WORKING_SPACE_SIZE
   );
 }
 
@@ -67,37 +67,37 @@ class TestProblemClass
 TEST(integrator, cttor_works_ok_test)
 {
   auto problem = TestProblemClass(1.0);
-  auto integrator = numerics::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
+  auto integrator = integration::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
 
   EXPECT_DOUBLE_EQ(
       integrator.absolute_error_tolerance(),
-      numerics::DEFAULT_ABSOLUTE_ERROR_TOLERANCE
+      integration::DEFAULT_ABSOLUTE_ERROR_TOLERANCE
   );
 
   EXPECT_DOUBLE_EQ(
       integrator.relative_error_tolerance(),
-      numerics::DEFAULT_RELATIVE_ERROR_TOLERANCE
+      integration::DEFAULT_RELATIVE_ERROR_TOLERANCE
   );
 
   EXPECT_DOUBLE_EQ(
       integrator.numerical_error(),
-      numerics::DEFAULT_INITIAL_ERROR_VALUE
+      integration::DEFAULT_INITIAL_ERROR_VALUE
   );
 
   EXPECT_DOUBLE_EQ(
       integrator.numerical_result(),
-      numerics::DEFAULE_INITIAL_RESULT_VALUE
+      integration::DEFAULE_INITIAL_RESULT_VALUE
   );
 
   EXPECT_EQ(
       integrator.gsl_working_space_size(),
-      numerics::DEFAULT_GSL_WORKING_SPACE_SIZE
+      integration::DEFAULT_GSL_WORKING_SPACE_SIZE
   );
 }
 
 TEST(integrator, setters_works_ok_test) {
   auto problem = TestProblemClass(1.0);
-  auto integrator = numerics::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
+  auto integrator = integration::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
 
   auto expected_val = 1e-7;
   integrator.SetAbsoluteError(expected_val);
@@ -123,7 +123,7 @@ TEST(integrator, setters_works_ok_test) {
 TEST(integrator, definite_integral_works_ok_test)
 {
   auto problem = TestProblemClass(1.0);
-  auto integrator = numerics::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
+  auto integrator = integration::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
 
   auto expected_result = 0.5;
   auto actual_result = integrator.DefiniteIntegral(0, -log(0.5));
@@ -145,7 +145,7 @@ TEST(integrator, definite_integral_works_ok_test)
 TEST(integrator, definite_integral_fast_works_ok_test)
 {
   auto problem = TestProblemClass(1.0);
-  auto integrator = numerics::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
+  auto integrator = integration::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
 
   auto expected_result = 0.5;
   auto actual_result = integrator.DefiniteIntegralFast(0, -log(0.5));
@@ -167,7 +167,7 @@ TEST(integrator, definite_integral_fast_works_ok_test)
 TEST(integrator, upper_semi_infinite_integral_works_ok_test)
 {
   auto problem = TestProblemClass(1.0);
-  auto integrator = numerics::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
+  auto integrator = integration::Integrator<TestProblemClass>(problem, &TestProblemClass::NegativeExp);
 
   double expected_result = 1.0;
   auto actual_result = integrator.UpperSemiInfiniteIntegral(0);
@@ -191,7 +191,7 @@ TEST(integrator, upper_semi_infinite_integral_works_ok_test)
 TEST(integrator, lower_semi_infinite_integral_works_ok_test)
 {
   auto problem = TestProblemClass(1.0);
-  auto integrator = numerics::Integrator<TestProblemClass>(problem, &TestProblemClass::PositiveExp);
+  auto integrator = integration::Integrator<TestProblemClass>(problem, &TestProblemClass::PositiveExp);
 
   double expected_result = 1.0;
   auto actual_result = integrator.LowerSemiInfiniteIntegral(0);
@@ -215,7 +215,7 @@ TEST(integrator, lower_semi_infinite_integral_works_ok_test)
 TEST(integrator, infinite_integral_works_ok_test)
 {
   auto problem = TestProblemClass(1.0);
-  auto integrator = numerics::Integrator<TestProblemClass>(problem, &TestProblemClass::NormalDist);
+  auto integrator = integration::Integrator<TestProblemClass>(problem, &TestProblemClass::NormalDist);
 
   double expected_result = 1.0;
   auto actual_result = integrator.FullInfiniteIntegral();
@@ -238,7 +238,7 @@ TEST(integrator, infinite_integral_works_ok_test)
 
 TEST(integrator, class_method_passing_works_ok_test) {
   auto problem = TestProblemClass(1.0);
-  auto integrator = numerics::Integrator<TestProblemClass>(problem, &TestProblemClass::NormalDist);
+  auto integrator = integration::Integrator<TestProblemClass>(problem, &TestProblemClass::NormalDist);
 
   double expected_value = problem.NormalDist(2*M_PI);
   EXPECT_DOUBLE_EQ(
@@ -246,7 +246,7 @@ TEST(integrator, class_method_passing_works_ok_test) {
       expected_value
   );
   EXPECT_DOUBLE_EQ(
-      numerics::Integrator<TestProblemClass>::integrand_function(2*M_PI, &integrator),
+      integration::Integrator<TestProblemClass>::integrand_function(2*M_PI, &integrator),
       expected_value
   );
 }

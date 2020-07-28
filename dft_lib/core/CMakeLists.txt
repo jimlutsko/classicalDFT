@@ -14,6 +14,7 @@ set(ALL_SOURCES
         ${dft_lib_src_path}/utils/config_parser.cpp
         # Numeric:
         ${dft_lib_src_path}/numerics/integration.cpp
+        ${dft_lib_src_path}/numerics/arithmetic.cpp
         )
 
 # Set up the dependencies and naming of the library
