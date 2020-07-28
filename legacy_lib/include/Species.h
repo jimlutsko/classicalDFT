@@ -477,6 +477,47 @@ protected:
   void generateWeights();
 };
 
+/**
+   *  @brief An FMT Species Class with analytic weight generation 
+   *
+   *    Same as FMT_Species except that the weights are generated from analytic formulas. Tensors are not yet implemented.
+   */
+
+class FMT_Species_Analytic_2 : public FMT_Species
+{
+public:
+  /**
+   *   @brief  Default  constructor for FMT_Species 
+   *  
+   *   @param  hsd is the hard-sphere diameter
+   *   @param  lattice describes the mesh
+   *   @return nothing 
+   */    
+  FMT_Species_Analytic_2(Density& density, double hsd, double mu = 0, int seq = -1);
+
+  FMT_Species_Analytic_2(const FMT_Species &) = delete;
+  
+  ~FMT_Species_Analytic_2(){}
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
+  {
+    boost::serialization::void_cast_register<FMT_Species_Analytic_2, FMT_Species>(static_cast<FMT_Species_Analytic *>(NULL),static_cast<FMT_Species *>(NULL));
+  }      
+  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic_2 * t, const unsigned int file_version);
+  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic_2 * t, const unsigned int file_version);
+
+
+  
+protected:
+  /**
+   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
+   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
+   *
+   */        
+  void generateWeights();
+};
+
 
 
 template<class Archive>
@@ -577,6 +618,46 @@ inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_
   int seq_num = 0;
   double hsd = 1; // place holder
   ::new(t)FMT_Species_Analytic(*d,hsd, mu, seq_num);
+  
+  ar >> t->mu_;
+  ar >> t->seq_num_;  
+  ar >> t->dF_;
+  ar >> t->fixedMass_;
+  ar >> t->SequenceNumber_;
+  ar >> t->index_;
+  
+  ar >> t->hsd_;
+  ar >> t->d_;  
+}
+
+template<class Archive>
+inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic_2 * t, const unsigned int file_version)
+{
+  //  ar << static_cast<const FMT_Species*>(t);
+  ar << & t->density_;
+  ar << t->mu_;
+  ar << t->seq_num_;
+  ar << t->dF_;
+  ar << t->fixedMass_;
+  ar << t->SequenceNumber_;
+  ar << t->index_;
+  
+  ar << t->hsd_;
+  ar << t->d_;  
+}
+
+template<class Archive>
+inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic_2 * t, const unsigned int file_version)
+{
+    // retrieve data from archive required to construct new instance
+  Density *d;
+  ar >> d;
+
+    // invoke inplace constructor to initialize instance of my_class
+  double mu = 0;
+  int seq_num = 0;
+  double hsd = 1; // place holder
+  ::new(t)FMT_Species_Analytic_2(*d,hsd, mu, seq_num);
   
   ar >> t->mu_;
   ar >> t->seq_num_;  

@@ -81,7 +81,7 @@ double DFT::XLiq_From_Mu(double mu, double high_density) const
   vector<double> x(1);
 
   // Find the liquid that has the correct chemical potential,
-  // Start at teh high density and go dozn until the chemical potential is bracketed.
+  // Start at the high density and go dozn until the chemical potential is bracketed.
   double ax = high_density;
   double bx = ax;
   double fa = 0.0;
@@ -220,7 +220,7 @@ double DFT::XLiq_from_P(double P) const
 
   double d = allSpecies_[0]->getHSD();
   double fac = 6/(M_PI*d*d*d);
-  double ae = Interactions_[0]->getVDWParameter()*fac;
+  double ae = (Interactions_.size() == 0 ? 0.0 : Interactions_[0]->getVDWParameter()*fac);
   
   P *= M_PI*d*d*d/6;
 
