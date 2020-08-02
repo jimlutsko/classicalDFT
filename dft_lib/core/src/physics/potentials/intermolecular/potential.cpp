@@ -14,7 +14,7 @@ Potential::Potential(double sigma, double epsilon, double r_cutoff)
       epsilon_(epsilon),
       r_cutoff_(r_cutoff),
       bh_perturbation_(false),
-      eps_shift_(DEFAULT_ZERO),
+      epsilon_shift_(DEFAULT_ZERO),
       r_min_(DEFAULT_ZERO),
       v_min_(DEFAULT_ZERO),
       r_attractive_min_(DEFAULT_ZERO),
@@ -23,7 +23,7 @@ Potential::Potential(double sigma, double epsilon, double r_cutoff)
 
 double Potential::sigma() const { return sigma_; }
 double Potential::epsilon() const { return epsilon_; }
-double Potential::eps_shift() const { return eps_shift_; }
+double Potential::epsilon_shift() const { return epsilon_shift_; }
 double Potential::r_cutoff() const { return r_cutoff_; }
 double Potential::r_min() const { return r_min_; }
 double Potential::v_min() const { return v_min_; }

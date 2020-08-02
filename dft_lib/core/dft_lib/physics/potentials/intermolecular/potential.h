@@ -42,7 +42,7 @@ class Potential
   /// The potential energy scale
   double epsilon_ = DEFAULT_ENERGY_SCALE;
   /// The amount of energy the potential will be shifted
-  double eps_shift_ = DEFAULT_ZERO;
+  double epsilon_shift_ = DEFAULT_ZERO;
   /// The cut-off distance, as of which the potential will be truncated
   double r_cutoff_ = -DEFAULT_LENGTH_SCALE;
   /// The position where the potential reaches its mimimum
@@ -71,7 +71,7 @@ class Potential
   // region Inspectors:
   double sigma() const;
   double epsilon() const;
-  double eps_shift() const;
+  double epsilon_shift() const;
   double r_cutoff() const;
   double r_min() const;
   double v_min() const;
