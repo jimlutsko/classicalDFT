@@ -341,6 +341,8 @@ public:
 
     
   FMT_Weighted_Density& getEta() { return d_[0];}
+
+  double getWeight(int index, long pos) { return d_[index].getWeight(pos);}
   
   // Used in DFT_Surfactant ...
   const DFT_Vec &getV_Real(int J) const { return d_[VI(J)].Real();}
@@ -502,12 +504,12 @@ public:
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
   {
-    boost::serialization::void_cast_register<FMT_Species_Analytic_2, FMT_Species>(static_cast<FMT_Species_Analytic *>(NULL),static_cast<FMT_Species *>(NULL));
+    boost::serialization::void_cast_register<FMT_Species_Analytic_2, FMT_Species>(static_cast<FMT_Species_Analytic_2 *>(NULL),static_cast<FMT_Species *>(NULL));
   }      
   template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic_2 * t, const unsigned int file_version);
   template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic_2 * t, const unsigned int file_version);
 
-
+  void calculateWeight(double Sx, double Sy, double Sz, double &w_eta, double &w_s, double w_v[3], double w_T[3][3]);
   
 protected:
   /**

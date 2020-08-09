@@ -442,6 +442,343 @@ class FMT
   *
   *   White-bear FMT model with tensor densities and the CS equation of state
   */  
+class Stable : public FMT
+{
+ public:
+  Stable(double A = 1, double B = 0) : FMT(), A_(A), B_(B){};
+
+   virtual bool needsTensor() const { return true;}
+
+
+  virtual double f2_(double eta) const
+  {
+    return 1.0/(1.0-eta);
+  }
+
+  virtual double f2p_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return f*f;
+  }
+
+  virtual double f2pp_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }  
+
+  virtual double f3_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return f*f;
+  }
+
+  virtual double f3p_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }
+  virtual double f3pp_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 6*f*f*f*f;    
+  }  
+
+  virtual double Phi3(const FundamentalMeasures &fm) const
+  {
+    double s2     = fm.s2;
+    double vTv    = fm.vTv;
+    double v2_v2  = fm.v2_v2;
+    double T2     = fm.T2;
+    double T3     = fm.T3;
+    
+    return (A_/(24*M_PI))*(s2*s2*s2-3*s2*v2_v2+3*vTv-T3)
+      +(B_/(24*M_PI))*(s2*s2*s2-3*s2*T2+2*T3);
+  }
+
+ virtual double dPhi3_dS2(const FundamentalMeasures &fm) const 
+ {
+   double s2    = fm.s2;   
+   double v2_v2 = fm.v2_v2;
+   double T2    = fm.T2;
+     
+   return (A_/(24*M_PI))*(3*s2*s2-3*v2_v2) + (B_/(24*M_PI))*(3*s2*s2-3*T2);
+ }
+
+  virtual double dPhi3_dS2_dS2(const FundamentalMeasures &fm) const
+  {
+    double s2    = fm.s2;   
+   
+    return (A_/(24*M_PI))*(6*s2) + (B_/(24*M_PI))*(6*s2);
+  }
+  virtual double dPhi3_dV2_dS2(int i, const FundamentalMeasures &fm) const
+  {
+   return (A_/(24*M_PI))*(-6*fm.v2[i]);
+  }
+  virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const
+  {
+    return (A_/(24*M_PI))*(6*fm.T[i][j]-6*(i == j ? fm.s2 : 0.0));
+  }
+  
+  virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
+ {
+   double s2    = fm.s2;
+   double v2_v2 = fm.v2_v2;
+   double v2_k   = fm.v2[k];
+   double vT_k   = fm.vT[k];
+   
+   return (A_/(24*M_PI))*(-6*s2*v2_k+6*vT_k);
+ }
+
+ virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const 
+ {
+   double s2     = fm.s2;
+   double v2_j   = fm.v2[j];
+   double v2_k   = fm.v2[k];
+   double T_T_jk = fm.TT[j][k];
+   double T_jk   = fm.T[j][k];
+   
+    return (A_/(24*M_PI))*(3*v2_j*v2_k-3*T_T_jk)  + (B_/(24*M_PI))*(-6*s2*T_jk+6*T_T_jk);
+ }
+  //stable
+  // phi = -n0*log(1-n3) +(n1*n2/(1-n3))+(1/(24*M_PI))*(8/0.9)*n2*n2*n2/(1-n3)^2
+ virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
+ {
+   double n0 = 0.0;
+   double n1 = 0.0;
+   double n2 = 0.0;
+   double n3 = 0.0;
+   for(int i=0;i<x.size();i++)
+     {
+       double density = x[i];
+       double hsd = allSpecies[i]->getHSD();
+       n0 += density;
+       n1 += 0.5*hsd*density;
+       n2 += M_PI*hsd*hsd*density;
+       n3 += (M_PI/6)*hsd*hsd*hsd*density;
+     }
+
+   double dPhi_dn0 = -log(1.0-n3);
+   double dPhi_dn1 = n2/(1-n3);
+   double dPhi_dn2 = (n1/(1-n3))+(1.0/(27*M_PI))*3*n2*n2/((1-n3)*(1-n3));
+   double dPhi_dn3 = 0.0;
+
+   dPhi_dn3  = n0/(1-n3);
+   dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
+   dPhi_dn3 += 2*(1.0/(27*M_PI))*(A_+B_/4)*n2*n2*n2/((1-n3)*(1-n3)*(1-n3));
+
+
+   double density = x[species];
+   double hsd = allSpecies[species]->getHSD();
+
+   return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
+ }
+
+ virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
+ {
+   double n0 = 0.0;
+   double n1 = 0.0;
+   double n2 = 0.0;
+   double n3 = 0.0;
+   for(int i=0;i<x.size();i++)
+     {
+       double density = x[i];
+       double hsd = allSpecies[i]->getHSD();
+       n0 += density;
+       n1 += 0.5*hsd*density;
+       n2 += M_PI*hsd*hsd*density;
+       n3 += (M_PI/6)*hsd*hsd*hsd*density;
+     }
+
+   double F = 0;
+   F += -n0*log(1-n3);
+   F += n1*n2/(1-n3);
+   F += (1.0/(27*M_PI))*n2*n2*n2/((1-n3)*(1-n3));
+   return F;
+ }
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<FMT>(*this);
+    boost::serialization::void_cast_register<Stable, FMT>(static_cast<Stable *>(NULL),static_cast<FMT *>(NULL));    
+  }
+
+  
+ virtual string Name() const { return string("Stable");}
+
+protected:
+  double A_ = 1;
+  double B_ = 0;
+};
+
+/**
+  *  @brief  The original White Bear  FMT model 
+  *
+  *   White-bear FMT model with tensor densities and the CS equation of state
+  */  
+class Stable2 : public FMT
+{
+ public:
+  Stable2() : FMT(){};
+
+   virtual bool needsTensor() const { return true;}
+
+
+  virtual double f2_(double eta) const
+  {
+    return 1.0/(1.0-eta);
+  }
+
+  virtual double f2p_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return f*f;
+  }
+
+  virtual double f2pp_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }  
+
+  virtual double f3_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return f*f;
+  }
+
+  virtual double f3p_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }
+  virtual double f3pp_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 6*f*f*f*f;    
+  }  
+
+  virtual double Phi3(const FundamentalMeasures &fm) const
+  {
+    double s2     = fm.s2;
+    double vTv    = fm.vTv;
+    double v2_v2  = fm.v2_v2;
+    double T2     = fm.T2;
+    double T3     = fm.T3;
+    
+    return (1.0/(24*M_PI))*4*(s2*s2*s2-3*s2*T2+2*T3);
+  }
+
+ virtual double dPhi3_dS2(const FundamentalMeasures &fm) const 
+ {
+   double s2    = fm.s2;   
+   double T2    = fm.T2;
+   
+   return (1.0/(24*M_PI))*4*(3*s2*s2-3*T2);   
+ }
+
+  virtual double dPhi3_dS2_dS2(const FundamentalMeasures &fm) const
+  {
+    double s2    = fm.s2;   
+   
+    return (1.0/(24*M_PI))*4*(6*s2);
+  }
+  virtual double dPhi3_dV2_dS2(int i, const FundamentalMeasures &fm) const
+  {
+    return 0;
+  }
+  virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const
+  {
+    return 0;
+  }
+  
+  virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
+ {
+   return 0;
+ }
+
+ virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const 
+ {
+   double s2     = fm.s2;
+   double T_T_jk = fm.TT[j][k];
+   double T_jk   = fm.T[j][k];
+
+   return (1.0/(24*M_PI))*4*(-6*s2*T_jk+6*T_T_jk);
+   
+ }
+  //stable
+  // phi = -n0*log(1-n3) +(n1*n2/(1-n3))+(1/(24*M_PI))*(8/0.9)*n2*n2*n2/(1-n3)^2
+ virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
+ {
+   double n0 = 0.0;
+   double n1 = 0.0;
+   double n2 = 0.0;
+   double n3 = 0.0;
+   for(int i=0;i<x.size();i++)
+     {
+       double density = x[i];
+       double hsd = allSpecies[i]->getHSD();
+       n0 += density;
+       n1 += 0.5*hsd*density;
+       n2 += M_PI*hsd*hsd*density;
+       n3 += (M_PI/6)*hsd*hsd*hsd*density;
+     }
+
+   double dPhi_dn0 = -log(1.0-n3);
+   double dPhi_dn1 = n2/(1-n3);
+   double dPhi_dn2 = (n1/(1-n3))+(1.0/(27*M_PI))*3*n2*n2/((1-n3)*(1-n3));
+   double dPhi_dn3 = 0.0;
+   
+   dPhi_dn3  = n0/(1-n3);
+   dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
+   dPhi_dn3 += 2*(1.0/(27*M_PI))*n2*n2*n2/((1-n3)*(1-n3)*(1-n3));
+
+   double density = x[species];
+   double hsd = allSpecies[species]->getHSD();
+
+   return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
+ }
+
+ virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
+ {
+   double n0 = 0.0;
+   double n1 = 0.0;
+   double n2 = 0.0;
+   double n3 = 0.0;
+   for(int i=0;i<x.size();i++)
+     {
+       double density = x[i];
+       double hsd = allSpecies[i]->getHSD();
+       n0 += density;
+       n1 += 0.5*hsd*density;
+       n2 += M_PI*hsd*hsd*density;
+       n3 += (M_PI/6)*hsd*hsd*hsd*density;
+     }
+
+   double F = 0;
+   F += -n0*log(1-n3);
+   F += n1*n2/(1-n3);
+   F += (1.0/(27*M_PI))*n2*n2*n2/((1-n3)*(1-n3));
+   return F;
+ }
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<FMT>(*this);
+    boost::serialization::void_cast_register<Stable, FMT>(static_cast<Stable *>(NULL),static_cast<FMT *>(NULL));    
+  }
+
+  
+ virtual string Name() const { return string("Stable2");}
+};
+
+/**
+  *  @brief  The original White Bear  FMT model 
+  *
+  *   White-bear FMT model with tensor densities and the CS equation of state
+  */  
 class WhiteBearI : public FMT
 {
  public:
@@ -464,7 +801,7 @@ class WhiteBearI : public FMT
   virtual double f2pp_(double eta) const
   {
     double f = 1.0/(1.0-eta);
-    return -2*f*f*f;
+    return 2*f*f*f;
   }  
 
   virtual double f3_(double eta) const
