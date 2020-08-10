@@ -55,14 +55,14 @@ FundamentalMeasures FMT::getWeightedDensities(long i, vector<Species*> &allSpeci
 	    fm.T[j][k] += species->getT(j,k,i);
 	}
     }
-
+  /*
   // touch up the normalization of the tensor density to account for any numerical errors
   double ss = fm.T[0][0]+fm.T[1][1]+fm.T[2][2];
 
   fm.T[0][0] += (fm.s2-ss)/3;
   fm.T[1][1] += (fm.s2-ss)/3;
   fm.T[2][2] += (fm.s2-ss)/3;
-
+  */
   fm.calculate_derived_quantities();
   
   return fm;

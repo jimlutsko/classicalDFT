@@ -815,7 +815,7 @@ class WhiteBearI : public FMT
   {
     if(eta < 1e-12)
       return (8.0/3)+7.5*eta+14.4*eta*eta;
-    return (1.0/(eta*eta))*((2/((1-eta)*(1-eta)*(1-eta)))-(3/((1-eta)*(1-eta)))-(1.0/(1-eta)))-(2/(eta*eta*eta))*log(1-eta);
+    return ((-(1-3*eta)/((1-eta)*(1-eta)*(1-eta)))-(1.0/(1-eta))-(2.0/eta)*log(1-eta))/(eta*eta);
   }
   virtual double f3pp_(double eta) const { return 0.0;}  
 
@@ -842,7 +842,7 @@ class WhiteBearI : public FMT
   virtual double dPhi3_dV2_dS2(int i, const FundamentalMeasures &fm) const { return (1.0/(8*M_PI))*(-2*fm.v2[i]);}
   virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const
   {
-    return (1.0/(8*M_PI))*(fm.T[i][j]-(i == j ? fm.s2 : 0.0));
+    return (1.0/(8*M_PI))*2*(fm.T[i][j]-(i == j ? fm.s2 : 0.0));
   }
   
   virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
@@ -863,7 +863,7 @@ class WhiteBearI : public FMT
    double T_T_jk = fm.TT[j][k];
    double T_jk   = fm.T[j][k];
    
-   return (1.0/(8*M_PI))*(v2_j*v2_k-3*T_T_jk+2*s2*T_jk);
+   return (1.0/(8*M_PI))*(2*v2_j*v2_k-3*T_T_jk+2*s2*T_jk);
  }
 
  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
