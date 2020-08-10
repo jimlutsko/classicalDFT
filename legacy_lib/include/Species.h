@@ -298,6 +298,18 @@ public:
     if(a == 8) return d_[VI(1)].getWeight(K);
     if(a == 9) return d_[VI(2)].getWeight(K);
 
+    if(a == 10) return d_[TI(0,0)].getWeight(K);
+    if(a == 11) return d_[TI(0,1)].getWeight(K);
+    if(a == 12) return d_[TI(0,2)].getWeight(K);
+
+    if(a == 13) return d_[TI(1,0)].getWeight(K);
+    if(a == 14) return d_[TI(1,1)].getWeight(K);
+    if(a == 15) return d_[TI(1,2)].getWeight(K);
+
+    if(a == 16) return d_[TI(2,0)].getWeight(K);
+    if(a == 17) return d_[TI(2,1)].getWeight(K);
+    if(a == 18) return d_[TI(2,2)].getWeight(K);        
+
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeight");
   }
 
@@ -335,6 +347,18 @@ public:
     if(a == 7) return d_[VI(0)].getDensity(K);
     if(a == 8) return d_[VI(1)].getDensity(K);
     if(a == 9) return d_[VI(2)].getDensity(K);
+
+    if(a == 10) return d_[TI(0,0)].getDensity(K);
+    if(a == 11) return d_[TI(0,1)].getDensity(K);
+    if(a == 12) return d_[TI(0,2)].getDensity(K);
+
+    if(a == 13) return d_[TI(1,0)].getDensity(K);
+    if(a == 14) return d_[TI(1,1)].getDensity(K);
+    if(a == 15) return d_[TI(1,2)].getDensity(K);
+
+    if(a == 16) return d_[TI(2,0)].getDensity(K);
+    if(a == 17) return d_[TI(2,1)].getDensity(K);
+    if(a == 18) return d_[TI(2,2)].getDensity(K);    
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeightedDensity");
   }

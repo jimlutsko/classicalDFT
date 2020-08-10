@@ -152,6 +152,33 @@ class Density : public Lattice
     return;
   }
 
+    /**
+  *   @brief  <R^2>
+  *  
+  *   @return R2 (for computing Lindemann parameter of uniform solid)
+  */  
+  double getRsquared() const 
+  {
+    double r2 = 0;
+    double m = 0;
+    for(int i=0;i<Nx_;i++)
+      for(int j=0;j<Ny_;j++)
+	for(int k=0;k<Nz_;k++)
+	  {
+	    double x = getX(i);
+	    double y = getY(j);
+	    double z = getZ(k);
+
+	    double d = getDensity(i,j,k);
+	    if(x*x+y*y+z*z < (0.5*Nx_*dx_)*(0.5*Nx_*dx_))
+	      {
+		r2 += d*(x*x+y*y+z*z);
+		m += d;
+	      }
+	  }
+    return r2/m;
+  }
+
   /**
   *   @brief  set density at a given lattice position
   *  

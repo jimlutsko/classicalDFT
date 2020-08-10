@@ -863,7 +863,7 @@ class WhiteBearI : public FMT
    double T_T_jk = fm.TT[j][k];
    double T_jk   = fm.T[j][k];
    
-   return (1.0/(8*M_PI))*(2*v2_j*v2_k-3*T_T_jk+2*s2*T_jk);
+   return (1.0/(8*M_PI))*(v2_j*v2_k-3*T_T_jk+2*s2*T_jk);
  }
 
  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
