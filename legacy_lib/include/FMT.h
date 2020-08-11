@@ -567,7 +567,6 @@ class Stable : public FMT
    dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
    dPhi_dn3 += 2*(1.0/(27*M_PI))*(A_+B_/4)*n2*n2*n2/((1-n3)*(1-n3)*(1-n3));
 
-
    double density = x[species];
    double hsd = allSpecies[species]->getHSD();
 
@@ -593,7 +592,7 @@ class Stable : public FMT
    double F = 0;
    F += -n0*log(1-n3);
    F += n1*n2/(1-n3);
-   F += (1.0/(27*M_PI))*n2*n2*n2/((1-n3)*(1-n3));
+   F += (1.0/(27*M_PI))*(A_+B_/4)*n2*n2*n2/((1-n3)*(1-n3));
    return F;
  }
 
@@ -605,7 +604,7 @@ class Stable : public FMT
   }
 
   
- virtual string Name() const { return string("Stable");}
+  virtual string Name() const { return string("Stable with A = ") + to_string(A_) + string(" and B = ") + to_string(B_);}
 
 protected:
   double A_ = 1;
