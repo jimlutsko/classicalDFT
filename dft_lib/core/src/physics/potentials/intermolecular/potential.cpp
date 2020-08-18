@@ -1,5 +1,9 @@
 #include "dft_lib/physics/potentials/intermolecular/potential.h"
 
+#include <cmath>
+
+#include "dft_lib/numerics/integration.h"
+using namespace dft_core::numerics::integration;
 
 namespace dft_core
 {
@@ -33,7 +37,8 @@ bool Potential::bh_perturbation() const { return bh_perturbation_; }
 double Potential::kT() const { return kT_; }
 const PotentialName& Potential::id() const { return potential_id_; }
 
-std::string Potential::identifier() const {
+std::string Potential::identifier() const
+{
   std::string name;
   switch (this->id()) {
     case PotentialName::LennardJones:
@@ -49,9 +54,73 @@ std::string Potential::identifier() const {
       name = "LennardJones";
   }
 
-  return name + "_" + std::to_string(this->sigma()) + "_" + std::to_string(this->epsilon()) + "_" +
-         std::to_string(this->r_cutoff()) + "_" + std::to_string(this->r_attractive_min()) + "_" +
-         std::to_string(this->bh_perturbation());
+  return name + "_"
+         + std::to_string(this->sigma()) + "_"
+         + std::to_string(this->epsilon()) + "_"
+         + std::to_string(this->r_cutoff()) + "_"
+         + std::to_string(this->r_attractive_min()) + "_"
+         + std::to_string(this->bh_perturbation());
+}
+
+double Potential::v_potential(double r) const { return vr_(r) - epsilon_shift(); }
+
+double Potential::v_potential_r2(double r_squared) const
+{
+  return vr2_(r_squared) - epsilon_shift();
+}
+
+double Potential::w_repulsive(double r) const
+{
+  if (this->bh_perturbation_) {
+    return (r < r_zero() ? v_potential(r) : 0.0);
+  }
+
+  return  (r < r_min_ ? v_potential(r)-v_min() : 0.0);
+}
+
+void Potential::SetWCALimit(double r) { r_attractive_min_ = r; }
+
+void Potential::SetBHPerturbation()
+{
+  bh_perturbation_ = true;
+  r_attractive_min_ = r_zero();
+}
+
+double Potential::bh_diameter_kernel(double r) const { return (1.0-std::exp(-w_repulsive(r)/kT_)); }
+
+double Potential::w_attractive(double r) const { return this->w_attractive_r2(r*r); }
+
+double Potential::w_attractive_r2(double r_squared) const
+{
+  double ret = 0.0;
+
+  // zero outside of cutoff
+  if (r_squared < (r_cutoff() * r_cutoff())) {
+    if (bh_perturbation_) {
+      return (r_squared < r_zero() * r_zero() ? 0.0 : v_potential_r2(r_squared));
+    } else if (r_squared < (r_attractive_min() * r_attractive_min())) {
+      // Our "generalized" WCA
+      return 0.0;
+    } else if (r_squared < (r_min() * r_min())) {
+      // WCA continuation inside r_min
+      return v_min();
+    } else {
+      // Just the potential outsize of r_min
+      return v_potential_r2(r_squared);
+    }
+  }
+  return ret;
+}
+
+double Potential::vdw_kernel(double r) const { return r*r*w_attractive(r); }
+double Potential::FindHardSphereDiameter(double kT)
+{
+  kT_ = kT;
+  auto dHardCore = FindHardCoreDiameter();
+  auto rLimit = bh_perturbation_ ? r_zero() : r_min();
+  auto integrator = Integrator<Potential>(*this, &Potential::bh_diameter_kernel, 1e-4, 1e-6);
+  auto dHardSphere = dHardCore + integrator.DefiniteIntegral(dHardCore, rLimit);
+  return dHardSphere;
 }
 
 }}}}

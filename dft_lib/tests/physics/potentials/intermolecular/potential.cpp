@@ -18,7 +18,7 @@ class fake_potential: public intermolecular::Potential
  public:
   fake_potential(): intermolecular::Potential() {}
   fake_potential(double sigma, double epsilon, double r_cutoff): Potential(sigma, epsilon, r_cutoff) {}
-  double getHardCoreDiameter() const { return 0; }
+  double HardCoreDiameter() const { return 0; }
 };
 
 TEST(intermolecular_potential, potential_cttor_works_ok)
