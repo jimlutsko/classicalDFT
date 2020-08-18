@@ -75,7 +75,7 @@ double Potential::w_repulsive(double r) const
     return (r < r_zero() ? v_potential(r) : 0.0);
   }
 
-  return  (r < r_min_ ? v_potential(r)-v_min() : 0.0);
+  return (r < r_min_ ? v_potential(r)-v_min() : 0.0);
 }
 
 void Potential::SetWCALimit(double r) { r_attractive_min_ = r; }

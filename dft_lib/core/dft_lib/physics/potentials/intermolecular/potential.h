@@ -61,7 +61,7 @@ class Potential
   PotentialName potential_id_;
 
   /// The underlying potential evaluated at r
-  virtual double vr_(double r)   const = 0;
+  virtual double vr_(double r) const = 0;
   /// The underlying potential evaluated at r, computed from r^2
   virtual double vr2_(double r2) const = 0;
   /// Integral kernel for calculating Barker-Henderson hard-sphere diameter
