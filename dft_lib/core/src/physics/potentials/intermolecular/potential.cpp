@@ -113,6 +113,7 @@ double Potential::w_attractive_r2(double r_squared) const
 }
 
 double Potential::vdw_kernel(double r) const { return r*r*w_attractive(r); }
+
 double Potential::FindHardSphereDiameter(double kT)
 {
   kT_ = kT;
@@ -121,6 +122,19 @@ double Potential::FindHardSphereDiameter(double kT)
   auto integrator = Integrator<Potential>(*this, &Potential::bh_diameter_kernel, 1e-4, 1e-6);
   auto dHardSphere = dHardCore + integrator.DefiniteIntegral(dHardCore, rLimit);
   return dHardSphere;
+}
+
+double Potential::ComputeVanDerWaalsIntegral(double kT) {
+  kT_ = kT;
+  auto prefactor = (2*M_PI/kT);
+  auto integrator = Integrator<Potential>(*this, &Potential::vdw_kernel, 1e-6, 1e-8);
+
+  auto integral = bh_perturbation() ?
+      integrator.DefiniteIntegral(r_zero(), r_cutoff())
+      : (integrator.DefiniteIntegral(r_attractive_min(),r_min())
+        + integrator.DefiniteIntegral(r_min(),r_cutoff()));
+
+  return prefactor * integral;
 }
 
 }}}}

@@ -59,6 +59,9 @@ TEST(intermolecular_potential, potential_cttor_works_ok)
   EXPECT_DOUBLE_EQ(d_hs, DEFAULT_LENGTH_SCALE);
   d_hs = v_test.FindHardSphereDiameter(0.1);
   EXPECT_DOUBLE_EQ(d_hs, 0.719752609493357);
+
+  auto vdw = v_test.ComputeVanDerWaalsIntegral(0.5);
+  EXPECT_DOUBLE_EQ(vdw, 0);
 }
 
 //endregion
