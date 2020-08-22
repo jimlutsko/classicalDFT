@@ -127,8 +127,11 @@ class Potential
   /// Computes the position where the
   virtual double FindRMin() = 0;
 
+  /// Computes the hard-sphere diameter by numerical integration
   double FindHardSphereDiameter(double kT);
 
+  /// Compute the van der Waals pair-correlation-integral contribution to the free energy
+  double ComputeVanDerWaalsIntegral(double kT);
   //endregion
 };
 
