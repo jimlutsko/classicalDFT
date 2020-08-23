@@ -28,10 +28,11 @@ enum class PotentialName
 
 /**
  * @brief Potential-energy general model: Base for all the interaction potentials.
- * The potential class brings the ability to split the potential contribution into two parts:
- * - hard sphere and,
- * - attractive,
- * and, also comes with the functionality to compute the hard-sphere diameter.
+ *
+ * @details The potential class brings the ability to split the potential contribution into two parts:
+ *      - hard sphere and,
+ *      - attractive,
+ *      and, also comes with the functionality to compute the hard-sphere diameter.
  */
 class Potential
 {
@@ -60,6 +61,10 @@ class Potential
   double kT_ = DEFAULT_ENERGY_SCALE;
   /// The abbreviation of the intermolecular potential name
   PotentialName potential_id_;
+
+  //endregion
+
+  //region Methods:
 
   /// The underlying potential evaluated at r
   virtual double vr_(double r) const = 0;
@@ -106,8 +111,21 @@ class Potential
 
  public:
   //region Cttor:
-
+  /**
+   * @brief Default constructor of the class. It comes with the private parameters initialised
+   *    with the default energy or length scale: DEFAULT_ENERGY_SCALE and DEFAULT_LENGTH_SCALE,
+   *    respectively
+   */
   Potential() = default;
+  /**
+   * @brief Constructor used for the parameterization of a Potential object (sigma, epsilon, r_cutoff)
+   * @param sigma The typical length scale defining the problem at hand
+   * @param epsilon The typical energy scale defining the problem at hand
+   * @param r_cutoff The distance at which the potential energy is considered negligible, hence used
+   *        for truncation purposes. E.g., if `r_cutoff = 2.5` the potential will be set to zero
+   *        from `r=r_cutoff` onwards, which is equivalent to shift the potential by
+   *        `epsilon_shift = v(r_cutoff)`
+   */
   Potential(double sigma, double epsilon, double r_cutoff);
 
   //endregion
