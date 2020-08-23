@@ -70,6 +70,38 @@ class Potential
   /// Integral kernel for calculating van der Waals parameter
   virtual double vdw_kernel(double r) const;
 
+  friend class boost::serialization::access;
+  /**
+   * @brief Allows the serialization of an object for saving it
+   * @details For the saving of an object we need a serialization method which tells the program
+   *    how (and what) to save from the object at hand. This is precisely what we obtain with
+   *    the boost::serialization library. When the class `Archive` corresponds to an output archive,
+   *    the `&` operator is defined similar the iostream's operator `<<`.  Likewise, when the class
+   *    `Archive` is a type of input archive the `&` operator is defined similar to the
+   *    counterpart `>>`.
+   *
+   * @tparam Archive The input/output archive object class
+   * @param archive The archive-object reference
+   * @param version The serialization library stores a version number in the archive for each class
+   *    serialized. By default this version number is 0. When the archive is loaded, the version number
+   *    under which it was saved is read.
+   *    More info: https://www.boost.org/doc/libs/1_56_0/libs/serialization/doc/tutorial.html
+   */
+  template<class Archive>
+  void serialize(Archive& archive, const unsigned int version)
+  {
+    archive & sigma_;
+    archive & epsilon_;
+    archive & epsilon_shift_;
+    archive & r_cutoff_;
+    archive & r_min_;
+    archive & v_min_;
+    archive & r_attractive_min_;
+    archive & r_zero_;
+    archive & bh_perturbation_;
+    archive & kT_;
+  }
+
   //endregion
 
  public:
@@ -134,38 +166,6 @@ class Potential
   /// Compute the van der Waals pair-correlation-integral contribution to the free energy
   double ComputeVanDerWaalsIntegral(double kT);
   //endregion
-
-  friend class boost::serialization::access;
-  /**
-   * @brief Allows the serialization of an object for saving it
-   * @details For the saving of an object we need a serialization method which tells the program
-   *    how (and what) to save from the object at hand. This is precisely what we obtain with
-   *    the boost::serialization library. When the class `Archive` corresponds to an output archive,
-   *    the `&` operator is defined similar the iostream's operator `<<`.  Likewise, when the class
-   *    `Archive` is a type of input archive the `&` operator is defined similar to the
-   *    counterpart `>>`.
-   *
-   * @tparam Archive The input/output archive object class
-   * @param archive The archive-object reference
-   * @param version The serialization library stores a version number in the archive for each class
-   *    serialized. By default this version number is 0. When the archive is loaded, the version number
-   *    under which it was saved is read.
-   *    More info: https://www.boost.org/doc/libs/1_56_0/libs/serialization/doc/tutorial.html
-   */
-  template<class Archive>
-  void serialize(Archive& archive, const unsigned int version)
-  {
-    archive & sigma_;
-    archive & epsilon_;
-    archive & epsilon_shift_;
-    archive & r_cutoff_;
-    archive & r_min_;
-    archive & v_min_;
-    archive & r_attractive_min_;
-    archive & r_zero_;
-    archive & bh_perturbation_;
-    archive & kT_;
-  }
 };
 
 }}}}
