@@ -13,6 +13,8 @@ namespace potentials
 {
 namespace intermolecular {
 
+//region Potential (base class):
+
 Potential::Potential(double sigma, double epsilon, double r_cutoff)
     : sigma_(sigma),
       epsilon_(epsilon),
@@ -51,7 +53,7 @@ std::string Potential::identifier() const
       name = "WangRamirezDobnikarFrenkel";
       break;
     default:
-      name = "LennardJones";
+      name = "Unknown";
   }
 
   return name + "_"
@@ -136,5 +138,44 @@ double Potential::ComputeVanDerWaalsIntegral(double kT) {
 
   return prefactor * integral;
 }
+
+//endregion
+
+//region LennardJones (12-6):
+
+LennardJones::LennardJones(): Potential()
+{
+  potential_id_ = PotentialName::LennardJones;
+}
+
+LennardJones::LennardJones(double sigma, double epsilon, double r_cutoff)
+  : Potential(sigma, epsilon, r_cutoff)
+{
+  potential_id_ = PotentialName::LennardJones;
+  epsilon_shift_ = (r_cutoff_ < 0 ? 0.0 : this->vr_(r_cutoff_));
+  r_min_ = this->FindRMin();
+  v_min_ = this->v_potential(r_min_);
+  r_zero_ = std::pow(0.5 * std::sqrt(1 + epsilon_shift_) + 0.5, -1.0/6.0);
+}
+
+double LennardJones::vr_(double r) const
+{
+  auto y = sigma_ / r;
+  auto y6 = y * y * y * y * y * y;
+  return 4 * epsilon_ * (y6 * y6 - y6);
+}
+
+double LennardJones::vr2_(double r2) const
+{
+  auto y2 = sigma_ * sigma_ / r2;
+  auto y6 = y2 * y2 * y2;
+  return 4 * epsilon_ * (y6 * y6 - y6);
+}
+
+double LennardJones::FindRMin() const { return std::pow(2.0, 1.0/6.0) * sigma_; }
+
+double LennardJones::FindHardCoreDiameter() const { return 0; }
+
+//endregion
 
 }}}}

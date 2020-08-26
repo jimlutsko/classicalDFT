@@ -30,13 +30,25 @@ enum class PotentialName
  * @brief Potential-energy general model: Base for all the interaction potentials.
  *
  * @details The potential class brings the ability to split the potential contribution into two parts:
- *      - hard sphere and,
+ *      - hard sphere (purely repulsive) and,
  *      - attractive,
  *      and, also comes with the functionality to compute the hard-sphere diameter.
+ *
+ *      By default construction, the potential is written as the sum: w_repulsive(r) + w_attractive(r)
+ *      with w_repulsive(r) = 0, for r > r_minimum_ (where r_minimum_ is where the minimum of the
+ *      potential vr_(r) is located at); and w_attractive(r) = v(r_minimum_), for r < r_minimum_,
+ *      i.e. the minimum of the potential.
+ *
+ *      If r_attractive_min_ > 0, then w_attractive(r) is zero for r < r_attractive_min_,
+ *      i.e. the continuation inside the core is truncated.
+ *
+ *      If the bh_perturbation_ (Barker-Henderson model) flag is true, the potential is split at the
+ *      point it reaches zero and the attractive part is only non-zero for positions greater than
+ *      this point.
  */
 class Potential
 {
- private:
+ protected:
   //region Attributes:
 
   /// The potential length scale
@@ -172,11 +184,11 @@ class Potential
   /// Use the Barker-Henderson split of the potential
   void SetBHPerturbation();
 
-  /// Computes (and sets) the hard-core diameter of the original potential (e.g. zero for LJ)
+  /// Computes the hard-core diameter of the potential (e.g., zero for LJ). The hard-core diameter
+  /// determines the integration lower limit when computing the hard-sphere diameter.
   virtual double FindHardCoreDiameter() const = 0;
-
-  /// Computes the position where the
-  virtual double FindRMin() = 0;
+  /// Computes the position where the potential reaches its minimum
+  virtual double FindRMin() const = 0;
 
   /// Computes the hard-sphere diameter by numerical integration
   double FindHardSphereDiameter(double kT);
@@ -184,6 +196,51 @@ class Potential
   /// Compute the van der Waals pair-correlation-integral contribution to the free energy
   double ComputeVanDerWaalsIntegral(double kT);
   //endregion
+};
+
+/**
+ * @brief Lennard-Jones potential (also termed 12-6 potential)
+ * @details The `LennardJones` class embodies the Lennard-Jones potential of interaction.
+ *      This is a mathematically simple model that approximates the intermolecular potential energy
+ *      between a pair of neutral atoms or molecules as metals or cyclic alkanes.
+ *      More information about the LJ[12-6] potential can be found at: https://en.wikipedia.org/wiki/Lennard-Jones_potential
+ */
+class LennardJones final: public Potential
+{
+ protected:
+  //region Methods:
+
+  /// The underlying potential evaluated at r
+  double vr_(double r) const override;
+  /// The underlying potential evaluated at r, computed from r^2
+  double vr2_(double r2) const override;
+
+  //endregion
+
+ public:
+  //region Cttors:
+
+  /**
+   * @brief Default constructor of the class. It comes with the private parameters initialised
+   *    with the default energy or length scale: DEFAULT_ENERGY_SCALE and DEFAULT_LENGTH_SCALE,
+   *    respectively
+   */
+  LennardJones();
+  /**
+   * @brief Constructor used for the parameterization of a Potential object (sigma, epsilon, r_cutoff)
+   * @param sigma The typical length scale defining the problem at hand
+   * @param epsilon The typical energy scale defining the problem at hand
+   * @param r_cutoff The distance at which the potential energy is considered negligible, hence used
+   *        for truncation purposes. E.g., if `r_cutoff = 2.5` the potential will be set to zero
+   *        from `r=r_cutoff` onwards, which is equivalent to shift the potential by
+   *        `epsilon_shift = v(r_cutoff)`
+   */
+  LennardJones(double sigma, double epsilon, double r_cutoff);
+
+  //endregion
+
+  double FindHardCoreDiameter() const override;
+  double FindRMin() const override;
 };
 
 }}}}
