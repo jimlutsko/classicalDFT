@@ -14,7 +14,9 @@ namespace potentials
 
 const double DEFAULT_LENGTH_SCALE = 1.0;
 const double DEFAULT_ENERGY_SCALE = 1.0;
+const double DEFAULT_ALPHA_PARAMETER = 50.0;
 const double DEFAULT_ZERO = 0.0;
+const double MAX_POTENTIAL_VALUE = 1e50;
 
 namespace intermolecular
 {
@@ -221,6 +223,7 @@ class LennardJones final: public Potential
     archive & boost::serialization::base_object<Potential>(*this);
     boost::serialization::void_cast_register<LennardJones, Potential>(static_cast<LennardJones*>(nullptr),static_cast<Potential*>(nullptr));
   }
+
   //endregion
 
  public:
@@ -256,11 +259,73 @@ class LennardJones final: public Potential
 /**
  * @brief ten Wolde-Frenkel potential
  * @details The `tenWoldeFrenkel` class embodies the potential of interaction introduced in the
- *      work of ten Wolde and Frenkel
- *      More information about the LJ[12-6] potential can be found at: https://en.wikipedia.org/wiki/Lennard-Jones_potential
+ *          work of ten Wolde and Frenkel (https://science.sciencemag.org/content/277/5334/1975)
+ *          for the simulation of globular proteins with short-range attractive interactions.
  */
-class tenWoldeFrenkel: public Potential
+class tenWoldeFrenkel final: public Potential
 {
+ private:
+  //region Attributes:
+
+  /// The parameter alpha modulating the potential shape
+  double alpha_ = DEFAULT_ALPHA_PARAMETER;
+
+  //endregion
+
+ protected:
+  //region Methods:
+
+  /// The underlying potential evaluated at r
+  double vr_(double r) const override;
+  /// The underlying potential evaluated at r, computed from r^2
+  double vr2_(double r2) const override;
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive& archive, const unsigned int version)
+  {
+    archive & boost::serialization::base_object<Potential>(*this);
+    archive & alpha_;
+    boost::serialization::void_cast_register<tenWoldeFrenkel, Potential>(static_cast<tenWoldeFrenkel*>(nullptr),static_cast<Potential*>(nullptr));
+  }
+
+  //endregion
+
+ public:
+  //region Cttors:
+
+  /**
+   * @brief Default constructor of the class. It comes with the private parameters initialised
+   *    with the default energy or length scale: DEFAULT_ENERGY_SCALE and DEFAULT_LENGTH_SCALE,
+   *    respectively
+   */
+  tenWoldeFrenkel();
+  /**
+   * @brief Constructor used for the parameterization of a LennardJones object (sigma, epsilon, r_cutoff)
+   * @param sigma The typical length scale defining the problem at hand
+   * @param epsilon The typical energy scale defining the problem at hand
+   * @param r_cutoff The distance at which the potential energy is considered negligible, hence used
+   *        for truncation purposes. E.g., if `r_cutoff = 2.5` the potential will be set to zero
+   *        from `r=r_cutoff` onwards, which is equivalent to shift the potential by
+   *        `epsilon_shift = v(r_cutoff)`
+   * @param alpha The `alpha` parameter in the tWF potential (default = 50)
+   */
+  tenWoldeFrenkel(double sigma, double epsilon, double r_cutoff, double alpha = DEFAULT_ALPHA_PARAMETER);
+
+  //endregion
+
+  //region Inspectors:
+
+  /// Gets the value
+  double alpha() const;
+
+  //endregion
+
+  //region Methods:
+
+  double FindHardCoreDiameter() const override;
+  double FindRMin() const override;
+
+  //endregion
 };
 
 }}}}

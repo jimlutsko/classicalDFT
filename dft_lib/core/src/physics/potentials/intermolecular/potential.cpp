@@ -149,7 +149,7 @@ LennardJones::LennardJones(): Potential()
 }
 
 LennardJones::LennardJones(double sigma, double epsilon, double r_cutoff)
-  : Potential(sigma, epsilon, r_cutoff)
+    : Potential(sigma, epsilon, r_cutoff)
 {
   potential_id_ = PotentialName::LennardJones;
   epsilon_shift_ = (r_cutoff_ < 0 ? 0.0 : this->vr_(r_cutoff_));
@@ -175,6 +175,52 @@ double LennardJones::vr2_(double r2) const
 double LennardJones::FindRMin() const { return std::pow(2.0, 1.0/6.0) * sigma_; }
 
 double LennardJones::FindHardCoreDiameter() const { return 0; }
+
+//endregion
+
+//region tenWoldeFrenkel:
+
+tenWoldeFrenkel::tenWoldeFrenkel(): Potential()
+{
+  potential_id_ = PotentialName::tenWoldeFrenkel;
+  alpha_ = DEFAULT_ALPHA_PARAMETER;
+}
+
+tenWoldeFrenkel::tenWoldeFrenkel(double sigma, double epsilon, double r_cutoff, double alpha)
+    : Potential(sigma, epsilon, r_cutoff), alpha_(alpha)
+{
+  potential_id_ = PotentialName::tenWoldeFrenkel;
+}
+double tenWoldeFrenkel::alpha() const { return alpha_; }
+
+double tenWoldeFrenkel::vr_(double r) const
+{
+  if (r < sigma_) { return MAX_POTENTIAL_VALUE; }
+
+  double s = r / sigma_;
+  double y = 1.0/(s * s - 1);
+  double y3 = y * y * y;
+
+  return (4 * epsilon_ / (alpha_ * alpha_)) * (y3 * y3 - alpha_ * y3);
+}
+
+double tenWoldeFrenkel::vr2_(double r2) const
+{
+  if(r2 < sigma_*sigma_) return MAX_POTENTIAL_VALUE;
+
+  double s2 = r2 / (sigma_ * sigma_);
+  double y = 1.0 / (s2 - 1);
+  double y3 = y * y * y;
+
+  return (4 * epsilon_ / (alpha_ * alpha_)) * (y3 * y3 - alpha_ * y3);
+}
+
+double tenWoldeFrenkel::FindHardCoreDiameter() const { return sigma_; }
+
+double tenWoldeFrenkel::FindRMin() const
+{
+  return sigma_ * std::sqrt(1 + std::pow(2.0 /alpha_, 1.0/3.0));
+}
 
 //endregion
 
