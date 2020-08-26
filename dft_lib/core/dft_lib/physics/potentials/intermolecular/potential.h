@@ -215,6 +215,12 @@ class LennardJones final: public Potential
   /// The underlying potential evaluated at r, computed from r^2
   double vr2_(double r2) const override;
 
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive& archive, const unsigned int version)
+  {
+    archive & boost::serialization::base_object<Potential>(*this);
+    boost::serialization::void_cast_register<LennardJones, Potential>(static_cast<LennardJones*>(nullptr),static_cast<Potential*>(nullptr));
+  }
   //endregion
 
  public:
@@ -227,7 +233,7 @@ class LennardJones final: public Potential
    */
   LennardJones();
   /**
-   * @brief Constructor used for the parameterization of a Potential object (sigma, epsilon, r_cutoff)
+   * @brief Constructor used for the parameterization of a LennardJones object (sigma, epsilon, r_cutoff)
    * @param sigma The typical length scale defining the problem at hand
    * @param epsilon The typical energy scale defining the problem at hand
    * @param r_cutoff The distance at which the potential energy is considered negligible, hence used
@@ -239,8 +245,22 @@ class LennardJones final: public Potential
 
   //endregion
 
+  //region Methods:
+
   double FindHardCoreDiameter() const override;
   double FindRMin() const override;
+
+  //endregion
+};
+
+/**
+ * @brief ten Wolde-Frenkel potential
+ * @details The `tenWoldeFrenkel` class embodies the potential of interaction introduced in the
+ *      work of ten Wolde and Frenkel
+ *      More information about the LJ[12-6] potential can be found at: https://en.wikipedia.org/wiki/Lennard-Jones_potential
+ */
+class tenWoldeFrenkel: public Potential
+{
 };
 
 }}}}
