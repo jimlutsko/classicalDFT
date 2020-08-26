@@ -190,6 +190,10 @@ tenWoldeFrenkel::tenWoldeFrenkel(double sigma, double epsilon, double r_cutoff, 
     : Potential(sigma, epsilon, r_cutoff), alpha_(alpha)
 {
   potential_id_ = PotentialName::tenWoldeFrenkel;
+  epsilon_shift_ = (r_cutoff_ <= 0.0 ? 0.0 : this->vr_(r_cutoff_));
+  r_min_ = this->FindRMin();
+  v_min_  = this->v_potential(r_min_);
+  r_zero_ = std::sqrt(1 + std::pow(25 * sqrt(1+epsilon_shift_) + 25, -1.0/3.0));
 }
 double tenWoldeFrenkel::alpha() const { return alpha_; }
 
