@@ -14,28 +14,31 @@ int main(int argc, char **argv)
 
   //region Cttor
   auto g = dft_core::grace_plot::Grace();
-  const int N_POINTS = 100;
+  const int N_POINTS = 200;
   //endregion
 
   using namespace dft_core::physics::potentials::intermolecular;
   auto lj = LennardJones();
   auto twf = tenWoldeFrenkel();
 
-  auto x_vector = arma::linspace(0.75, 2.5, N_POINTS);
-  auto lj_vector = x_vector;
-  auto twf_vector = x_vector;
+  auto x = arma::linspace(0.75, 1.5, N_POINTS);
+  auto x_vector = conv_arma_to_vec(x);
+  auto lj_vector = lj.v_potential(x_vector);
+  auto twf_vector = twf.v_potential(x_vector);
 
-  for (auto k = 0; k < x_vector.size(); k++)
-  {
-    auto r = x_vector[k];
-    lj_vector[k] = lj.v_potential(r);
-    twf_vector[k] = twf.v_potential(r);
-  }
+  auto lj_ds = g.AddDataset(x_vector, lj_vector);
+  auto twf_ds = g.AddDataset(x_vector, twf_vector);
 
-  auto lj_ds = g.AddDataset(conv_arma_to_vec(x_vector), conv_arma_to_vec(lj_vector));
-  auto twf_ds = g.AddDataset(conv_arma_to_vec(x_vector), conv_arma_to_vec(twf_vector));
-  g.SetXLimits(x_vector.min(), x_vector.max());
+  g.SetXLimits(x.min(), x.max());
   g.SetYLimits(-2, 10);
+
+  auto lj_min = g.AddDataset(std::vector<double>{lj.r_min()}, std::vector<double>{lj.v_min()});
+  g.SetSymbol(dft_core::grace_plot::Symbol::SQUARE, lj_min);
+  g.SetSymbolFill(dft_core::grace_plot::Color::RED, lj_min);
+
+  auto twf_min = g.AddDataset(std::vector<double>{twf.r_min()}, std::vector<double>{twf.v_min()});
+  g.SetSymbol(dft_core::grace_plot::Symbol::DIAMOND, twf_min);
+  g.SetSymbolFill(dft_core::grace_plot::Color::BLUE, twf_min);
 
   g.RedrawAndWait();
 

@@ -2,6 +2,8 @@
 #define CLASSICALDFT_POTENTIAL_H
 
 #include <iostream>
+#include <vector>
+
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
 
@@ -173,9 +175,11 @@ class Potential
 
   /// The cut and shifted potential at point r
   double v_potential(double r) const;
+  std::vector<double> v_potential(const std::vector<double>& r) const;
 
   /// The cut and shifted potential at point r calculated from r^2
   double v_potential_r2(double r_squared) const;
+  std::vector<double> v_potential_r2(const std::vector<double>& r_squared) const;
 
   /// Identifier string with the name of the potential and some characteristic parameters
   std::string identifier() const;

@@ -66,9 +66,23 @@ std::string Potential::identifier() const
 
 double Potential::v_potential(double r) const { return vr_(r) - epsilon_shift(); }
 
+std::vector<double> Potential::v_potential(const std::vector<double>& r) const
+{
+  auto y = std::vector<double>();
+  for (double k : r) { y.push_back(this->v_potential(k)); }
+  return y;
+}
+
 double Potential::v_potential_r2(double r_squared) const
 {
   return vr2_(r_squared) - epsilon_shift();
+}
+
+std::vector<double> Potential::v_potential_r2(const std::vector<double>& r_squared) const
+{
+  auto y = std::vector<double>();
+  for (double k : r_squared) { y.push_back(this->v_potential_r2(k)); }
+  return y;
 }
 
 double Potential::w_repulsive(double r) const
@@ -146,6 +160,10 @@ double Potential::ComputeVanDerWaalsIntegral(double kT) {
 LennardJones::LennardJones(): Potential()
 {
   potential_id_ = PotentialName::LennardJones;
+  epsilon_shift_ = (r_cutoff_ < 0 ? 0.0 : this->vr_(r_cutoff_));
+  r_min_ = this->FindRMin();
+  v_min_ = this->v_potential(r_min_);
+  r_zero_ = std::pow(0.5 * std::sqrt(1 + epsilon_shift_) + 0.5, -1.0/6.0);
 }
 
 LennardJones::LennardJones(double sigma, double epsilon, double r_cutoff)
@@ -184,6 +202,10 @@ tenWoldeFrenkel::tenWoldeFrenkel(): Potential()
 {
   potential_id_ = PotentialName::tenWoldeFrenkel;
   alpha_ = DEFAULT_ALPHA_PARAMETER;
+  epsilon_shift_ = (r_cutoff_ <= 0.0 ? 0.0 : this->vr_(r_cutoff_));
+  r_min_ = this->FindRMin();
+  v_min_  = this->v_potential(r_min_);
+  r_zero_ = std::sqrt(1 + std::pow(25 * sqrt(1+epsilon_shift_) + 25, -1.0/3.0));
 }
 
 tenWoldeFrenkel::tenWoldeFrenkel(double sigma, double epsilon, double r_cutoff, double alpha)
