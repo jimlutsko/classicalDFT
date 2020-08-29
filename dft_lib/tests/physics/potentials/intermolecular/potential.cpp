@@ -23,7 +23,7 @@ class FakePotential : public intermolecular::Potential
   FakePotential(): intermolecular::Potential() {}
   FakePotential(double sigma, double epsilon, double r_cutoff): Potential(sigma, epsilon, r_cutoff) {}
   double FindHardCoreDiameter() const override { return 0; }
-  double FindRMin() override { return 0; }
+  double FindRMin() const override { return 0; }
 };
 
 TEST(intermolecular_potential, potential_cttor_works_ok)
@@ -37,7 +37,7 @@ TEST(intermolecular_potential, potential_cttor_works_ok)
   EXPECT_DOUBLE_EQ(v_test.v_min(), -DEFAULT_ENERGY_SCALE);
   EXPECT_DOUBLE_EQ(v_test.r_attractive_min(), -DEFAULT_ZERO);
   EXPECT_DOUBLE_EQ(v_test.r_zero(), DEFAULT_LENGTH_SCALE);
-  EXPECT_EQ(v_test.bh_perturbation(), false);
+  EXPECT_DOUBLE_EQ(v_test.bh_perturbation(), false);
   EXPECT_DOUBLE_EQ(v_test.kT(), DEFAULT_ENERGY_SCALE);
 
   EXPECT_DOUBLE_EQ(v_test.w_repulsive(0), DEFAULT_ENERGY_SCALE);
