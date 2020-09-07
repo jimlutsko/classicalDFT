@@ -212,7 +212,12 @@ void FMT::D2Phi(const FundamentalMeasures& fm, vector<vector<double>>& d2Phi) co
 
   d2Phi[9][9] = dPhi3_dV2_dV2(2,2,fm)*f3;  
 
+ if(needsTensor())
+   {
+     throw std::runtime_error("D2PHI not implemented for tensor theories");
+   }
 
+  
   for(int i=0;i<10;i++)
     for(int j=0;j<i;j++)
       d2Phi[i][j] = d2Phi[j][i];
@@ -238,31 +243,38 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
   
   for(Species* &generic_species : allSpecies)
     {
-      FMT_Species *species = (FMT_Species*) generic_species;
-      
-      double hsd = species->getHSD();
+      generic_species->processFMTInfo(dPhi, i, needsTensor());
+      /* obsolete version
+      FMT_Species *species = dynamic_cast<FMT_Species*>(generic_species);
 
-      double dPhi_dEta = dPhi.eta;
-      double dPhi_dS2 = (dPhi.s0/(hsd*hsd)) + (dPhi.s1/hsd) + dPhi.s2;
-      double dPhi_dV2[3] = {dPhi.v2[0] + dPhi.v1[0]/hsd,
-			    dPhi.v2[1] + dPhi.v1[1]/hsd,
-			    dPhi.v2[2] + dPhi.v1[2]/hsd};
+      if(species)
+	{      
+	  double hsd = species->getHSD();
 
-      species->Set_dPhi_Eta(i,dPhi_dEta);
-      species->Set_dPhi_S(i,dPhi_dS2);
+	  double dPhi_dEta = dPhi.eta;
+	  double dPhi_dS2 = (dPhi.s0/(hsd*hsd)) + (dPhi.s1/hsd) + dPhi.s2;
+	  double dPhi_dV2[3] = {dPhi.v2[0] + dPhi.v1[0]/hsd,
+				dPhi.v2[1] + dPhi.v1[1]/hsd,
+				dPhi.v2[2] + dPhi.v1[2]/hsd};
+
+	  species->Set_dPhi_Eta(i,dPhi_dEta);
+	  species->Set_dPhi_S(i,dPhi_dS2);
       
-      for(int j=0;j<3;j++)
-	{
-	  species->Set_dPhi_V(j,i,dPhi_dV2[j]);
-	  if(needsTensor())
-	    for(int k=j;k<3;k++)	   
-	      species->Set_dPhi_T(j,k,i,(j ==k ? 1 : 2)*dPhi.T[j][k]); // taking account that we only use half the entries
+	  for(int j=0;j<3;j++)
+	    {
+	      species->Set_dPhi_V(j,i,dPhi_dV2[j]);
+	      if(needsTensor())
+		for(int k=j;k<3;k++)	   
+		  species->Set_dPhi_T(j,k,i,(j ==k ? 1 : 2)*dPhi.T[j][k]); // taking account that we only use half the entries
+	    }
 	}
+      */
     }
-
   return phi;
 }
 
+
+#pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
 
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
@@ -270,15 +282,6 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   for(auto s: allSpecies)
     ((FMT_Species*)s)->convoluteDensities(needsTensor());
   
-  double F = doFreeEnergyLoop(allSpecies);
-  
-  return F;
-}
-
-#pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
-
-double FMT::doFreeEnergyLoop(vector<Species*> &allSpecies)
-{
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
 
   long Ntot = allSpecies.front()->getLattice().Ntot();  
@@ -290,7 +293,6 @@ double FMT::doFreeEnergyLoop(vector<Species*> &allSpecies)
   Summation F;
   int chunk = Ntot/20;
   long i;
-
 
     //    schedule(static,chunk)		\
   

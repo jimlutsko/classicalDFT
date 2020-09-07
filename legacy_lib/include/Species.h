@@ -8,6 +8,7 @@
 #include "FMT_Weighted_Density.h"
 #include "Potential1.h"
 #include "Density.h"
+#include "Fundamental_Measures.h"
 
 class Species
 {
@@ -69,8 +70,13 @@ class Species
   *  
   */  
   virtual double getHSD() const { return 0.0;}
-
-
+  
+  /**
+   *   @brief  Placeholder for FMT-specific processing: non-FMT classes do nothing
+   *  
+   */  
+  virtual void processFMTInfo(FundamentalMeasures &fm, long pos, bool needsTensor) {}
+ 
   /**
    *   @brief  Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
    *  
@@ -205,7 +211,7 @@ public:
    *   @param  pos is the mesh position
    *   @return none
    */        
-  void Set_dPhi_Eta(long pos,double val)  {d_[EI()].Set_dPhi(pos,val);}
+  //  void Set_dPhi_Eta(long pos,double val)  {d_[EI()].Set_dPhi(pos,val);}
 
   /**
    *   @brief  set value of dPhi_dS at pos
@@ -213,7 +219,7 @@ public:
    *   @param  pos is the mesh position
    *   @return none
    */        
-  void Set_dPhi_S(long pos,double val) {d_[SI()].Set_dPhi(pos,val);}
+  //  void Set_dPhi_S(long pos,double val) {d_[SI()].Set_dPhi(pos,val);}
 
   /**
    *   @brief  set value of dPhi_dV_j at pos
@@ -222,7 +228,7 @@ public:
    *   @param  pos is the mesh position
    *   @return none
    */        
-  void Set_dPhi_V(int j, long pos,double val) {d_[VI(j)].Set_dPhi(pos,val);}
+  //  void Set_dPhi_V(int j, long pos,double val) {d_[VI(j)].Set_dPhi(pos,val);}
 
   /**
    *   @brief  set value of dPhi_dT(j,k) at pos
@@ -232,7 +238,7 @@ public:
    *   @param  pos is the mesh position
    *   @return none
    */        
-  void Set_dPhi_T(int j, int k, long i,double val) {d_[TI(j,k)].Set_dPhi(i,val);}
+  //  void Set_dPhi_T(int j, int k, long i,double val) {d_[TI(j,k)].Set_dPhi(i,val);}
 
   /**
    *   @brief This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
@@ -269,7 +275,7 @@ public:
   
   /**
    *   @brief Loop over the weighted densities and ask each one to add its contribution to dPhi
-   *          In other words:   SUM_{a} d PHI/d n_{a}
+   *          In other words:   SUM_{a} SUM_j d PHI/d n_{a}(j) w_{a}(j-i)
    *  
    *   @return none
    */  
@@ -361,6 +367,36 @@ public:
     if(a == 18) return d_[TI(2,2)].getDensity(K);    
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeightedDensity");
+  }
+
+  /**
+   *   @brief  Take derivatives of free energy wrt fundamental measures and set dPhi_dEta, etc. The point is that 
+   *           these are, e.g., dPhi_dS2 = dPhi_dS0/(hsd*hsd) + dPhi_dS1/(hsd) + dPhi_dS2 and so differ for each species. 
+   *           An alternative would be to hold each measure individually (S0, S1, S2) but this would cost more in cpu and memory (I think).
+   *
+   *   @param fm: array of fundamental measures for the point pos
+   *   @param pos: spatial point (in 1D indexing)
+   *   @param needsTensor: true if we need to calculate tensor quantities too.
+   *  
+   */  
+  virtual void processFMTInfo(FundamentalMeasures &fm, long pos, bool needsTensor)
+  {
+    double dPhi_dEta = fm.eta;
+    double dPhi_dS2 = (fm.s0/(hsd_*hsd_)) + (fm.s1/hsd_) + fm.s2;
+    double dPhi_dV2[3] = {fm.v2[0] + fm.v1[0]/hsd_,
+			  fm.v2[1] + fm.v1[1]/hsd_,
+			  fm.v2[2] + fm.v1[2]/hsd_};
+
+    d_[EI()].Set_dPhi(pos,dPhi_dEta);
+    d_[SI()].Set_dPhi(pos,dPhi_dS2);    
+
+    for(int j=0;j<3;j++)
+      {
+	d_[VI(j)].Set_dPhi(pos,dPhi_dV2[j]);	
+	if(needsTensor)
+	  for(int k=j;k<3;k++)
+	    d_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*fm.T[j][k]); // taking account that we only use half the entries
+      }
   }
 
     
