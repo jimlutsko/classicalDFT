@@ -237,7 +237,8 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
   // (part of the chain-rule evaluation of dPhi/drho(j) = dPhi/deta(i) * deta(i)/drho(j) + ...)
   // Note that at the level of the fundamental measures, we only keep track of one of each class since the others are trivially related
   // by factors of hsd.
-  
+
+  // Here, we fill dPhi with dPhi/d n_{alpha}(i) so I re-use the FundamentalMeasures structure even though the meaining here is different.
   FundamentalMeasures dPhi;
   DPhi(fm,dPhi);
   

@@ -370,18 +370,18 @@ public:
    *           these are, e.g., dPhi_dS2 = dPhi_dS0/(hsd*hsd) + dPhi_dS1/(hsd) + dPhi_dS2 and so differ for each species. 
    *           An alternative would be to hold each measure individually (S0, S1, S2) but this would cost more in cpu and memory (I think).
    *
-   *   @param fm: array of fundamental measures for the point pos
+   *   @param DPHI: array holding dPhi/d n_{a}(pot) where n_{a}(pot) is fundamental measure a at position pos.
    *   @param pos: spatial point (in 1D indexing)
    *   @param needsTensor: true if we need to calculate tensor quantities too.
    *  
    */  
-  virtual void processFMTInfo(FundamentalMeasures &fm, long pos, bool needsTensor)
+  virtual void processFMTInfo(FundamentalMeasures &DPHI, long pos, bool needsTensor)
   {
-    double dPhi_dEta = fm.eta;
-    double dPhi_dS2 = (fm.s0/(hsd_*hsd_)) + (fm.s1/hsd_) + fm.s2;
-    double dPhi_dV2[3] = {fm.v2[0] + fm.v1[0]/hsd_,
-			  fm.v2[1] + fm.v1[1]/hsd_,
-			  fm.v2[2] + fm.v1[2]/hsd_};
+    double dPhi_dEta = DPHI.eta;
+    double dPhi_dS2 = (DPHI.s0/(hsd_*hsd_)) + (DPHI.s1/hsd_) + DPHI.s2;
+    double dPhi_dV2[3] = {DPHI.v2[0] + DPHI.v1[0]/hsd_,
+			  DPHI.v2[1] + DPHI.v1[1]/hsd_,
+			  DPHI.v2[2] + DPHI.v1[2]/hsd_};
 
     d_[EI()].Set_dPhi(pos,dPhi_dEta);
     d_[SI()].Set_dPhi(pos,dPhi_dS2);    
@@ -391,7 +391,7 @@ public:
 	d_[VI(j)].Set_dPhi(pos,dPhi_dV2[j]);	
 	if(needsTensor)
 	  for(int k=j;k<3;k++)
-	    d_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*fm.T[j][k]); // taking account that we only use half the entries
+	    d_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
       }
   }
 
@@ -497,7 +497,7 @@ public:
 /**
    *  @brief An FMT Species Class with analytic weight generation 
    *
-   *    Same as FMT_Species except that the weights are generated from analytic formulas. Tensors are not yet implemented.
+   *    Same as FMT_Species except that the weights are generated from analytic formulas. 
    */
 
 class FMT_Species_Analytic : public FMT_Species
@@ -538,7 +538,7 @@ protected:
 /**
    *  @brief An FMT Species Class with analytic weight generation 
    *
-   *    Same as FMT_Species except that the weights are generated from analytic formulas. Tensors are not yet implemented.
+   *    Same as FMT_Species except that the weights are generated from analytic formulas. 
    */
 
 class FMT_Species_Analytic_2 : public FMT_Species
@@ -574,6 +574,10 @@ protected:
    *
    */        
   void generateWeights();
+
+  // AO section
+  double Rp_ = -1;
+  double etap_ = 0.0;
 };
 
 
