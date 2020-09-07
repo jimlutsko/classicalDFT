@@ -130,8 +130,6 @@ protected:
 };
 
 
-
-
   /**
    *  @brief Species Class: hard sphere diameters, etc.
    *
@@ -158,8 +156,6 @@ public:
   
   ~FMT_Species(){}
 
-  //  void reset(string& pointsFile);
-  
   /**
    *   @brief  Accessor for hard sphere diameter
    *  
