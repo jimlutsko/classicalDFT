@@ -279,12 +279,11 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
-  // Compute the FFT of density
+  // Do FFT of density and compute the fundamental measures by convolution
   for(auto s: allSpecies)
     ((FMT_Species*)s)->convoluteDensities(needsTensor());
   
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
-
   long Ntot = allSpecies.front()->getLattice().Ntot();  
   
   // There is a problem throwing exceptions from an OMP loop - I think that only the affected thread stops and the others continue.
@@ -312,7 +311,7 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
     }
   // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
   if(hadCatch) 
-    throw   Eta_Too_Large_Exception();
+    throw Eta_Too_Large_Exception();
   return F;
 }
 
@@ -333,7 +332,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  // The  derivatives
+  // The  derivatives: for each species s  we need the deriv wrt the species' density at each lattice site: dF/d n_{s}(i) 
   double dV = allSpecies.front()->getLattice().dV();
 
   DFT_FFT dPhi_(allSpecies.front()->getLattice().Nx(),
@@ -342,15 +341,17 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
   
   for(auto &s: allSpecies)
     {
-      FMT_Species &species = *((FMT_Species*) s);
+      FMT_Species *species = dynamic_cast<FMT_Species*>(s);
+      if(species)
+	{      
+	  dPhi_.Four().zeros();
+	  species->Accumulate_dPhi(dPhi_.Four(), needsTensor());
+	  
+	  dPhi_.do_fourier_2_real();
 
-      dPhi_.Four().zeros();
-      species.Accumulate_dPhi(dPhi_.Four(), needsTensor());
-
-      dPhi_.do_fourier_2_real();
-
-      dPhi_.Real().MultBy(dV);
-      species.addToForce(dPhi_.cReal());
+	  dPhi_.Real().MultBy(dV);
+	  species->addToForce(dPhi_.cReal());
+	}
     }
   return F*dV;
 };
