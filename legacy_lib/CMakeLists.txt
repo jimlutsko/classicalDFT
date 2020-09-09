@@ -33,8 +33,7 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/FMT.cpp
   ${PROJECT_SOURCE_DIR}/src/Minimizer.cpp
   ${PROJECT_SOURCE_DIR}/src/Interaction.cpp
-  ${PROJECT_SOURCE_DIR}/src/Species.cpp
-  ${PROJECT_SOURCE_DIR}/src/Species_Analytic_2.cpp
+  ${PROJECT_SOURCE_DIR}/src/FMT_Species.cpp
   ${PROJECT_SOURCE_DIR}/src/GitSHA1.cpp
   ${PROJECT_SOURCE_DIR}/src/myColor.cpp
   ${PROJECT_SOURCE_DIR}/src/options.cpp

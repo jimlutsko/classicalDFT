@@ -147,7 +147,6 @@ public:
    *  
    *   @param  hsd is the hard-sphere diameter
    *   @param  lattice describes the mesh
-   *   @param  pointsFile contains the points for spherical integration: if it does not exist, the analytic weights are used
    *   @return nothing 
    */    
   FMT_Species(Density& density, double hsd, double mu = 0, int seq = -1);
@@ -201,40 +200,6 @@ public:
   
   const DFT_Vec_Complex& getWEK() const { return d_[EI()].wk();}
 
-  /**
-   *   @brief  set value of dPhi_dEta at pos
-   *  
-   *   @param  pos is the mesh position
-   *   @return none
-   */        
-  //  void Set_dPhi_Eta(long pos,double val)  {d_[EI()].Set_dPhi(pos,val);}
-
-  /**
-   *   @brief  set value of dPhi_dS at pos
-   *  
-   *   @param  pos is the mesh position
-   *   @return none
-   */        
-  //  void Set_dPhi_S(long pos,double val) {d_[SI()].Set_dPhi(pos,val);}
-
-  /**
-   *   @brief  set value of dPhi_dV_j at pos
-   *  
-   *   @param  j is index of V
-   *   @param  pos is the mesh position
-   *   @return none
-   */        
-  //  void Set_dPhi_V(int j, long pos,double val) {d_[VI(j)].Set_dPhi(pos,val);}
-
-  /**
-   *   @brief  set value of dPhi_dT(j,k) at pos
-   *  
-   *   @param  j is first index of T
-   *   @param  k is second index of T
-   *   @param  pos is the mesh position
-   *   @return none
-   */        
-  //  void Set_dPhi_T(int j, int k, long i,double val) {d_[TI(j,k)].Set_dPhi(i,val);}
 
   /**
    *   @brief This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
@@ -378,17 +343,17 @@ public:
   virtual void processFMTInfo(FundamentalMeasures &DPHI, long pos, bool needsTensor)
   {
     double dPhi_dEta = DPHI.eta;
-    double dPhi_dS2 = (DPHI.s0/(hsd_*hsd_)) + (DPHI.s1/hsd_) + DPHI.s2;
-    double dPhi_dV2[3] = {DPHI.v2[0] + DPHI.v1[0]/hsd_,
+    double dPhi_dS = (DPHI.s0/(hsd_*hsd_)) + (DPHI.s1/hsd_) + DPHI.s2;
+    double dPhi_dV[3] = {DPHI.v2[0] + DPHI.v1[0]/hsd_,
 			  DPHI.v2[1] + DPHI.v1[1]/hsd_,
 			  DPHI.v2[2] + DPHI.v1[2]/hsd_};
 
     d_[EI()].Set_dPhi(pos,dPhi_dEta);
-    d_[SI()].Set_dPhi(pos,dPhi_dS2);    
+    d_[SI()].Set_dPhi(pos,dPhi_dS);    
 
     for(int j=0;j<3;j++)
       {
-	d_[VI(j)].Set_dPhi(pos,dPhi_dV2[j]);	
+	d_[VI(j)].Set_dPhi(pos,dPhi_dV[j]);	
 	if(needsTensor)
 	  for(int k=j;k<3;k++)
 	    d_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
@@ -443,144 +408,56 @@ protected:
   }
 
 protected:
+  /**
+   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
+   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
+   *
+   */        
+  void generateWeights(double hsd, vector<FMT_Weighted_Density>  & fmt_weighted_densities);  
+
+protected:
   double hsd_ = 0.0; ///< hard sphere diameter 
   vector<FMT_Weighted_Density>  d_; ///< all weighted densities in real & fourier space
 };
 
-/**
-   *  @brief FMT Species Class with weights generated numerically
+  /**
+   *  @brief Class to implement AO model
    *
-   *       Same as FMT_Species with weights generated from tabulated integration points on a sphere
    */
 
-class FMT_Species_Numeric : public FMT_Species
+class FMT_AO_Species : public FMT_Species
 {
 public:
   /**
    *   @brief  Default  constructor for FMT_Species 
    *  
    *   @param  hsd is the hard-sphere diameter
-   *   @param  lattice describes the mesh
-   *   @param  pointsFile contains the points for spherical integration: if it does not exist, the analytic weights are used
    *   @return nothing 
    */    
-  FMT_Species_Numeric(Density& density, double hsd, string &pointsFile, double mu = 0, int seq = -1);
+  FMT_AO_Species(Density& density, double hsd, double Rp, double etap, double mu = 0, int seq = -1);
+  FMT_AO_Species(const FMT_Species &) = delete;
+  ~FMT_AO_Species(){}
 
-  FMT_Species_Numeric(const FMT_Species &) = delete;
+  virtual void processFMTInfo(FundamentalMeasures &DPHI, long pos, bool needsTensor);
   
-  ~FMT_Species_Numeric(){}
 
+  // TODO:
+  /*
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
   {
-        boost::serialization::void_cast_register<FMT_Species_Numeric, FMT_Species>(static_cast<FMT_Species_Numeric *>(NULL),static_cast<FMT_Species *>(NULL));
-  }     
-  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Numeric * t, const unsigned int file_version);
-  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Numeric * t, const unsigned int file_version);
-  
- protected:
-  /**
-   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). Their evaluation involves real-space integrations for which the 
-   *           integration points are given in the file pointsFile. Most of the work occurs via a call to initializeWeightedDensities@
-   *
-   *   @param  pointsFile is the file holding the integration points for integrating a spherical shell
-   */        
-  void generateWeights(string &pointsFile);
-
-
-
-};
-
-
-
-/**
-   *  @brief An FMT Species Class with analytic weight generation 
-   *
-   *    Same as FMT_Species except that the weights are generated from analytic formulas. 
-   */
-
-class FMT_Species_Analytic : public FMT_Species
-{
-public:
-  /**
-   *   @brief  Default  constructor for FMT_Species 
-   *  
-   *   @param  hsd is the hard-sphere diameter
-   *   @param  lattice describes the mesh
-   *   @return nothing 
-   */    
-  FMT_Species_Analytic(Density& density, double hsd, double mu = 0, int seq = -1);
-
-  FMT_Species_Analytic(const FMT_Species &) = delete;
-  
-  ~FMT_Species_Analytic(){}
-
-  friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
-  {
-    boost::serialization::void_cast_register<FMT_Species_Analytic, FMT_Species>(static_cast<FMT_Species_Analytic *>(NULL),static_cast<FMT_Species *>(NULL));
-  }      
-  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic * t, const unsigned int file_version);
-  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic * t, const unsigned int file_version);
-
-
+    boost::serialization::void_cast_register<FMT_Species, Species>(static_cast<FMT_AO_Species *>(NULL),static_cast<Species *>(NULL));
+  }    
+  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_AO_Species * t, const unsigned int file_version);
+  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_AO_Species * t, const unsigned int file_version);
+  */
   
 protected:
-  /**
-   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
-   *
-   */        
-  void generateWeights();
-};
-
-/**
-   *  @brief An FMT Species Class with analytic weight generation 
-   *
-   *    Same as FMT_Species except that the weights are generated from analytic formulas. 
-   */
-
-class FMT_Species_Analytic_2 : public FMT_Species
-{
-public:
-  /**
-   *   @brief  Default  constructor for FMT_Species 
-   *  
-   *   @param  hsd is the hard-sphere diameter
-   *   @param  lattice describes the mesh
-   *   @return nothing 
-   */    
-  FMT_Species_Analytic_2(Density& density, double hsd, double mu = 0, int seq = -1);
-
-  FMT_Species_Analytic_2(const FMT_Species &) = delete;
-  
-  ~FMT_Species_Analytic_2(){}
-
-  friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
-  {
-    boost::serialization::void_cast_register<FMT_Species_Analytic_2, FMT_Species>(static_cast<FMT_Species_Analytic_2 *>(NULL),static_cast<FMT_Species *>(NULL));
-  }      
-  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic_2 * t, const unsigned int file_version);
-  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic_2 * t, const unsigned int file_version);
-
-  void calculateWeight(double Sx, double Sy, double Sz, double &w_eta, double &w_s, double w_v[3], double w_T[3][3]);
-  
-protected:
-  /**
-   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
-   *
-   */        
-  void generateWeights();
-
-  // AO section
-  double Rp_ = -1;
+  double Rp_ = -1; 
   double etap_ = 0.0;
+  vector<FMT_Weighted_Density>  d_AO_; ///< all weighted densities in real & fourier space
+
 };
-
-
 
 template<class Archive>
 inline void boost::serialization::save_construct_data(Archive & ar, const Species * t, const unsigned int file_version)
@@ -648,127 +525,6 @@ inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species 
   ar >> t->fixedMass_;
   ar >> t->SequenceNumber_;
   ar >> t->index_;  
-  ar >> t->hsd_;
-  ar >> t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic * t, const unsigned int file_version)
-{
-  //  ar << static_cast<const FMT_Species*>(t);
-  ar << & t->density_;
-  ar << t->mu_;
-  ar << t->seq_num_;
-  ar << t->dF_;
-  ar << t->fixedMass_;
-  ar << t->SequenceNumber_;
-  ar << t->index_;
-  
-  ar << t->hsd_;
-  ar << t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *d;
-  ar >> d;
-
-    // invoke inplace constructor to initialize instance of my_class
-  double mu = 0;
-  int seq_num = 0;
-  double hsd = 1; // place holder
-  ::new(t)FMT_Species_Analytic(*d,hsd, mu, seq_num);
-  
-  ar >> t->mu_;
-  ar >> t->seq_num_;  
-  ar >> t->dF_;
-  ar >> t->fixedMass_;
-  ar >> t->SequenceNumber_;
-  ar >> t->index_;
-  
-  ar >> t->hsd_;
-  ar >> t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic_2 * t, const unsigned int file_version)
-{
-  //  ar << static_cast<const FMT_Species*>(t);
-  ar << & t->density_;
-  ar << t->mu_;
-  ar << t->seq_num_;
-  ar << t->dF_;
-  ar << t->fixedMass_;
-  ar << t->SequenceNumber_;
-  ar << t->index_;
-  
-  ar << t->hsd_;
-  ar << t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic_2 * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *d;
-  ar >> d;
-
-    // invoke inplace constructor to initialize instance of my_class
-  double mu = 0;
-  int seq_num = 0;
-  double hsd = 1; // place holder
-  ::new(t)FMT_Species_Analytic_2(*d,hsd, mu, seq_num);
-  
-  ar >> t->mu_;
-  ar >> t->seq_num_;  
-  ar >> t->dF_;
-  ar >> t->fixedMass_;
-  ar >> t->SequenceNumber_;
-  ar >> t->index_;
-  
-  ar >> t->hsd_;
-  ar >> t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Numeric * t, const unsigned int file_version)
-{
-  //  ar << static_cast<const FMT_Species*>(t);
-  ar << & t->density_;
-  ar << t->mu_;
-  ar << t->seq_num_;
-  ar << t->dF_;
-  ar << t->fixedMass_;
-  ar << t->SequenceNumber_;
-  ar << t->index_;
-  
-  ar << t->hsd_;
-  ar << t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Numeric * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *d;
-  ar >> d;
-
-  // invoke inplace constructor to initialize instance of my_class
-  double mu = 0;
-  double hsd = 1;
-  int seq_num = 0;
-  string noFile;
-  ::new(t)FMT_Species_Numeric(*d, hsd, noFile, 0, seq_num);
-
-  ar >> t->mu_;
-  ar >> t->seq_num_;    
-  ar >> t->dF_;
-  ar >> t->fixedMass_;
-  ar >> t->SequenceNumber_;
-  ar >> t->index_;
-  
   ar >> t->hsd_;
   ar >> t->d_;  
 }
