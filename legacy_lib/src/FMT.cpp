@@ -37,22 +37,24 @@ FundamentalMeasures FMT::getWeightedDensities(long i, vector<Species*> &allSpeci
   // Collect the contributions to the various weighted densities at lattice position
   for(Species* &generic_species : allSpecies)
     {
-      FMT_Species *species = (FMT_Species*) generic_species;
-      
-      double hsd = species->getHSD();
+      FMT_Species *species = dynamic_cast<FMT_Species*>(generic_species);
+      if(species)
+	{      
+	  double hsd = species->getHSD();
   
-      fm.eta += species->getEta(i); //Eta(dd).r(i);
+	  fm.eta += species->getEta(i); //Eta(dd).r(i);
 
-      fm.s0 += species->getS(i)/(hsd*hsd) ;
-      fm.s1 += species->getS(i)/hsd;
-      fm.s2 += species->getS(i);
+	  fm.s0 += species->getS(i)/(hsd*hsd) ;
+	  fm.s1 += species->getS(i)/hsd;
+	  fm.s2 += species->getS(i);
 
-      for(int j=0;j<3;j++)
-	{
-	  fm.v1[j] += species->getV(j,i)/hsd;
-	  fm.v2[j] += species->getV(j,i);
-	  for(int k=0;k<3;k++)
-	    fm.T[j][k] += species->getT(j,k,i);
+	  for(int j=0;j<3;j++)
+	    {
+	      fm.v1[j] += species->getV(j,i)/hsd;
+	      fm.v2[j] += species->getV(j,i);
+	      for(int k=0;k<3;k++)
+		fm.T[j][k] += species->getT(j,k,i);
+	    }
 	}
     }
   /*
@@ -92,7 +94,7 @@ double FMT::Phi(const FundamentalMeasures& fm) const
   return phi;
 }
 
-void FMT::DPhi(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const
+void FMT::calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const
 {
   // These are the eta-dependendent cofactors that lie at the heart of FMT
   double eta = fm.eta;
@@ -240,37 +242,11 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 
   // Here, we fill dPhi with dPhi/d n_{alpha}(i) so I re-use the FundamentalMeasures structure even though the meaining here is different.
   FundamentalMeasures dPhi;
-  DPhi(fm,dPhi);
+  calculate_dPhi_wrt_fundamental_measures(fm,dPhi);
   
   for(Species* &generic_species : allSpecies)
-    {
-      generic_species->processFMTInfo(dPhi, i, needsTensor());
-      /* obsolete version
-      FMT_Species *species = dynamic_cast<FMT_Species*>(generic_species);
+      generic_species->set_fundamental_measure_derivatives(dPhi, i, needsTensor());
 
-      if(species)
-	{      
-	  double hsd = species->getHSD();
-
-	  double dPhi_dEta = dPhi.eta;
-	  double dPhi_dS2 = (dPhi.s0/(hsd*hsd)) + (dPhi.s1/hsd) + dPhi.s2;
-	  double dPhi_dV2[3] = {dPhi.v2[0] + dPhi.v1[0]/hsd,
-				dPhi.v2[1] + dPhi.v1[1]/hsd,
-				dPhi.v2[2] + dPhi.v1[2]/hsd};
-
-	  species->Set_dPhi_Eta(i,dPhi_dEta);
-	  species->Set_dPhi_S(i,dPhi_dS2);
-      
-	  for(int j=0;j<3;j++)
-	    {
-	      species->Set_dPhi_V(j,i,dPhi_dV2[j]);
-	      if(needsTensor())
-		for(int k=j;k<3;k++)	   
-		  species->Set_dPhi_T(j,k,i,(j ==k ? 1 : 2)*dPhi.T[j][k]); // taking account that we only use half the entries
-	    }
-	}
-      */
-    }
   return phi;
 }
 
@@ -281,7 +257,11 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
   // Do FFT of density and compute the fundamental measures by convolution
   for(auto s: allSpecies)
-    ((FMT_Species*)s)->convoluteDensities(needsTensor());
+    {
+      FMT_Species *f = dynamic_cast<FMT_Species*>(s);
+      if(f)
+	f->convoluteDensities(needsTensor());
+    }
   
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
   long Ntot = allSpecies.front()->getLattice().Ntot();  

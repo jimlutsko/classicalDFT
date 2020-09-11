@@ -404,12 +404,12 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
 }
 
 
-// The job of this function is to take the information concerning dF/dn_{a}(pos) (stored in DPHI) and to construct the dPhi_dEta for partial measures that are stored in d_.
-// This is done via the call to FMT_Species::processFMTInfo. Then,
+// The job of this function is to take the information concerning dF/dn_{a}(pos) (stored in DPHI) and to construct the dPhi_dn for partial measures that are stored in d_.
+// This is done via the call to FMT_Species::set_fundamental_measure_derivatives. Then,
 // we will also construct PSI using the space d_AO_dPhi as working storage.
-void FMT_AO_Species::processFMTInfo(FundamentalMeasures &DPHI, long pos, bool needsTensor)
+void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
 {
-  FMT_Species::processFMTInfo(DPHI,pos,needsTensor);
+  FMT_Species::set_fundamental_measure_derivatives(DPHI,pos,needsTensor);
 
   double hsdp = 2*Rp_;
   
@@ -453,6 +453,6 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   double F = 0;
   for(long i=0;i<PSI_.cReal().size();i++)
     F += exp(-PSI_.cReal().get(i));
-
+  
   return F*dV;
 }

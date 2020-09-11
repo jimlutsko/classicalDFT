@@ -101,7 +101,7 @@ class FMT
   *   @param  fm are the fundamental measures
   *   @param  dPhi is the result
   */      
-  void DPhi(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const;
+  void calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const;
   void D2Phi(const FundamentalMeasures& fm, vector<vector<double>>& d2Phi) const;
   
   /**

@@ -5,7 +5,29 @@
 class FundamentalMeasures
 {
 public:
-  FundamentalMeasures(){}
+  FundamentalMeasures()
+    {
+      eta = s0 = s1 = s2 = 0.0;
+      v1[0] = v1[1] = v1[2] = 0.0;
+      v2[0] = v2[1] = v2[2] = 0.0;
+      T[0][0] = T[0][1] = T[0][2] = 0.0;
+      T[1][0] = T[1][1] = T[1][2] = 0.0;
+      T[2][0] = T[2][1] = T[2][2] = 0.0;
+      calculate_derived_quantities();      
+    }
+  FundamentalMeasures(double density, double hsd)
+    {
+      eta = M_PI*density*hsd*hsd*hsd/6;
+      s0  = M_PI*density;
+      s1 = s0*hsd;
+      s2 = s1*hsd;
+      v1[0] = v1[1] = v1[2] = 0.0;
+      v2[0] = v2[1] = v2[2] = 0.0;
+      T[0][0] = T[1][1] = T[2][2] = s2/3;
+      T[0][1] = T[0][2] = T[1][0] = T[1][2] = T[2][0] = T[2][1] = 0.0;
+      calculate_derived_quantities();
+    }
+
 
   FundamentalMeasures(const FundamentalMeasures& b)
   {

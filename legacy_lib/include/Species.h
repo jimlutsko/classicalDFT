@@ -78,7 +78,7 @@ class Species
    *   @brief  Placeholder for FMT-specific processing: non-FMT classes do nothing
    *  
    */  
-  virtual void processFMTInfo(FundamentalMeasures &fm, long pos, bool needsTensor) {}
+  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &fm, long pos, bool needsTensor) {}
  
   /**
    *   @brief  Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
@@ -343,7 +343,7 @@ public:
    *   @param needsTensor: true if we need to calculate tensor quantities too.
    *  
    */  
-  virtual void processFMTInfo(FundamentalMeasures &DPHI, long pos, bool needsTensor)
+  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
   {
     double dPhi_dEta = DPHI.eta;
     double dPhi_dS = (DPHI.s0/(hsd_*hsd_)) + (DPHI.s1/hsd_) + DPHI.s2;
@@ -441,7 +441,7 @@ public:
   FMT_AO_Species(const FMT_Species &) = delete;
   ~FMT_AO_Species(){}
 
-  virtual void processFMTInfo(FundamentalMeasures &DPHI, long pos, bool needsTensor);
+  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor);
   virtual double free_energy_post_process(bool needsTensor); // default does nothing.  
 
   // TODO:
