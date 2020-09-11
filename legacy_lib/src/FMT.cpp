@@ -309,6 +309,14 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 	hadCatch = true;
       }
     }
+
+  // For the AO species, there is additional work to do. This is where we get the chance.
+  // Ordinary hard-spheres do nothing here.
+  // Do FFT of density and compute the fundamental measures by convolution
+  for(auto s: allSpecies)
+    s->free_energy_post_process(needsTensor());  
+
+  
   // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
   if(hadCatch) 
     throw Eta_Too_Large_Exception();

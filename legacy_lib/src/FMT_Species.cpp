@@ -395,12 +395,18 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
   // get the polymer species weights
   generateWeights(2*Rp_, d_AO_);
   for(FMT_Weighted_Density &d: d_AO_)
-    d.transformWeights();  
+    d.transformWeights();
+
+  long Nx = density_.Nx();
+  long Ny = density_.Ny();
+  long Nz = density_.Nz();
+  PSI_.initialize(Nx,Ny,Nz);
 }
 
 
 // The job of this function is to take the information concerning dF/dn_{a}(pos) (stored in DPHI) and to construct the dPhi_dEta for partial measures that are stored in d_.
-// We will also construct PSI using the space d_AO_dPhi as working storage.
+// This is done via the call to FMT_Species::processFMTInfo. Then,
+// we will also construct PSI using the space d_AO_dPhi as working storage.
 void FMT_AO_Species::processFMTInfo(FundamentalMeasures &DPHI, long pos, bool needsTensor)
 {
   FMT_Species::processFMTInfo(DPHI,pos,needsTensor);
@@ -415,7 +421,7 @@ void FMT_AO_Species::processFMTInfo(FundamentalMeasures &DPHI, long pos, bool ne
 
   
   d_AO_[EI()].Set_dPhi(pos,dPhi_dEta);
-  d_AO_[SI()].Set_dPhiset(pos,dPhi_dS);
+  d_AO_[SI()].Set_dPhi(pos,dPhi_dS);
 
   for(int j=0;j<3;j++)
     {
@@ -427,3 +433,26 @@ void FMT_AO_Species::processFMTInfo(FundamentalMeasures &DPHI, long pos, bool ne
   
 }
 
+// This is where we finish the construction of Psi(r) and
+// evaluate the contribution to the free energy
+double FMT_AO_Species::free_energy_post_process(bool needsTensor)
+{
+  PSI_.Four().zeros();  
+  
+  // The call to add_to_dPhi s does the fft of dPhi/dn_{a} for each fm and adds to array PSI
+  int imax = (needsTensor ? d_.size() : 5);
+  
+  for(int i=0;i<imax;i++)      
+    d_[i].add_to_dPhi(PSI_.Four());
+
+  PSI_.do_fourier_2_real();
+
+  double dV = density_.dV();  
+  PSI_.Real().MultBy(dV);
+
+  double F = 0;
+  for(long i=0;i<PSI_.cReal().size();i++)
+    F += exp(-PSI_.cReal().get(i));
+
+  return F*dV;
+}

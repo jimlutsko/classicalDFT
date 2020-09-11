@@ -38,6 +38,9 @@ class Species
   void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}
   void setForce(const DFT_Vec &f) {dF_.set(f);}
   void multForce(double f) {dF_.MultBy(f);}  
+
+
+  virtual double free_energy_post_process(bool needsTensor) {return 0.0;} // default does nothing.
   
   double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}
   
@@ -439,7 +442,7 @@ public:
   ~FMT_AO_Species(){}
 
   virtual void processFMTInfo(FundamentalMeasures &DPHI, long pos, bool needsTensor);
-  
+  virtual double free_energy_post_process(bool needsTensor); // default does nothing.  
 
   // TODO:
   /*
@@ -456,7 +459,7 @@ protected:
   double Rp_ = -1; 
   double etap_ = 0.0;
   vector<FMT_Weighted_Density>  d_AO_; ///< all weighted densities in real & fourier space
-
+  DFT_FFT PSI_;
 };
 
 template<class Archive>
