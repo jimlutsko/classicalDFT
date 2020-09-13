@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 
+#include <armadillo>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
 
@@ -176,10 +177,12 @@ class Potential
   /// The cut and shifted potential at point r
   double v_potential(double r) const;
   std::vector<double> v_potential(const std::vector<double>& r) const;
+  arma::vec v_potential(const arma::vec& r) const;
 
   /// The cut and shifted potential at point r calculated from r^2
   double v_potential_r2(double r_squared) const;
   std::vector<double> v_potential_r2(const std::vector<double>& r_squared) const;
+  arma::vec v_potential_r2(const arma::vec& r) const;
 
   /// Identifier string with the name of the potential and some characteristic parameters
   std::string identifier() const;
@@ -222,7 +225,8 @@ class LennardJones final: public Potential
   double vr2_(double r2) const override;
 
   friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive& archive, const unsigned int version)
+  template<class Archive>
+  void serialize(Archive& archive, const unsigned int version)
   {
     archive & boost::serialization::base_object<Potential>(*this);
     boost::serialization::void_cast_register<LennardJones, Potential>(static_cast<LennardJones*>(nullptr),static_cast<Potential*>(nullptr));
@@ -285,7 +289,8 @@ class tenWoldeFrenkel final: public Potential
   double vr2_(double r2) const override;
 
   friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive& archive, const unsigned int version)
+  template<class Archive>
+  void serialize(Archive& archive, const unsigned int version)
   {
     archive & boost::serialization::base_object<Potential>(*this);
     archive & alpha_;
@@ -319,7 +324,7 @@ class tenWoldeFrenkel final: public Potential
 
   //region Inspectors:
 
-  /// Gets the value
+  /// Gets the value of the parameter `alpha`
   double alpha() const;
 
   //endregion

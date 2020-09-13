@@ -66,11 +66,26 @@ std::string Potential::identifier() const
 
 double Potential::v_potential(double r) const { return vr_(r) - epsilon_shift(); }
 
+/* TODO: Need to come up with a standard way of making a method vector and arma:vec compliant from
+ * a point-wise definition.
+ *
+template<class T, class return_type, class input_type = return_type>
+using class_method = std::function<return_type(const T&, input_type)>;
+static std::vector<double> make_function_vectorwise()
+{
+}
+*/
+
 std::vector<double> Potential::v_potential(const std::vector<double>& r) const
 {
   auto y = std::vector<double>();
   for (double k : r) { y.push_back(this->v_potential(k)); }
   return y;
+}
+
+arma::vec Potential::v_potential(const arma::vec& r) const
+{
+  return arma::vec(this->v_potential(arma::conv_to<std::vector<double>>::from(r)));
 }
 
 double Potential::v_potential_r2(double r_squared) const
@@ -83,6 +98,11 @@ std::vector<double> Potential::v_potential_r2(const std::vector<double>& r_squar
   auto y = std::vector<double>();
   for (double k : r_squared) { y.push_back(this->v_potential_r2(k)); }
   return y;
+}
+
+arma::vec Potential::v_potential_r2(const arma::vec& r_squared) const
+{
+  return arma::vec(this->v_potential_r2(arma::conv_to<std::vector<double>>::from(r_squared)));
 }
 
 double Potential::w_repulsive(double r) const
