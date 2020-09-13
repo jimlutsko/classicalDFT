@@ -206,8 +206,9 @@ TEST(grace_plot_command, set_symbol_fill_pattern_ok_test)
 
 TEST(grace_plot_command, set_symbol_line_type_ok_test)
 {
-  std::string expected = "G0.S1 LINE TYPE 1";
-  std::string actual = dft_core::grace_plot::command::SetLineTypeCommand(dft_core::grace_plot::LineType::LINE, 1, 0);
+  std::string expected = "G0.S1 LINE LINESTYLE 1";
+  std::string actual = dft_core::grace_plot::command::SetLineStyleCommand(
+      dft_core::grace_plot::LineStyle::LINE, 1, 0);
   ASSERT_STREQ(expected.c_str(), actual.c_str());
 }
 

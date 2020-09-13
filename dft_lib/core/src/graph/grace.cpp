@@ -149,11 +149,11 @@ namespace dft_core
             + " SYMBOL " + std::to_string(static_cast<int>(symbol_id));
         return cmd;
       }
-      std::string SetLineTypeCommand(const LineType& line_type, const int& dataset_id, const int& graph_id)
+      std::string SetLineStyleCommand(const LineStyle& line_type, const int& dataset_id, const int& graph_id)
       {
         std::string cmd = "G" + std::to_string(graph_id)
                           + ".S" + std::to_string(dataset_id)
-                          + " LINE TYPE " + std::to_string(static_cast<int>(line_type));
+                          + " LINE LINESTYLE " + std::to_string(static_cast<int>(line_type));
         return cmd;
       }
       std::string SetFormatCommand(const ExportFormat& format)
@@ -588,12 +588,12 @@ namespace dft_core
       SendCommand(command::SetSymbolSizeCommand(size, dataset_id, graph_id));
     }
 
-    void Grace::SetLineType(const LineType &line_type, const int &dataset_id, const int &graph_id) const
+    void Grace::SetLineType(const LineStyle&line_type, const int &dataset_id, const int &graph_id) const
     {
       CheckGraphIdInBounds(graph_id, this->number_of_graphs());
       CheckDatasetInBounds(dataset_id, this->last_dataset_id());
 
-      SendCommand(command::SetLineTypeCommand(line_type, dataset_id, graph_id));
+      SendCommand(command::SetLineStyleCommand(line_type, dataset_id, graph_id));
     }
 
     void Grace::PrintToFile(const std::string &file_path, const ExportFormat &format) const
