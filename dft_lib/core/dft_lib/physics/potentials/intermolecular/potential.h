@@ -92,6 +92,13 @@ class Potential
   /// Integral kernel for calculating van der Waals parameter
   virtual double vdw_kernel(double r) const;
 
+  /// The private version of v_potential to allow for vectorization overloads without issues
+  double _v_potential(double r) const;
+  /// The private version of w_attractive to allow for vectorization overloads without issues
+  double _w_attractive(double r) const;
+  /// The private version of w_repulsive to allow for vectorization overloads without issues
+  double _w_repulsive(double r) const;
+
   friend class boost::serialization::access;
   /**
    * @brief Allows the serialization of an object for saving it
@@ -167,9 +174,13 @@ class Potential
 
   /// The repulsive part of the potential
   double w_repulsive(double r) const;
+  std::vector<double> w_repulsive(const std::vector<double>& r) const;
+  arma::vec w_repulsive(const arma::vec& r) const;
 
   /// The attractive tail
   double w_attractive(double r) const;
+  std::vector<double> w_attractive(const std::vector<double>& r) const;
+  arma::vec w_attractive(const arma::vec& r) const;
 
   /// The attractive part calculated from r2
   double w_attractive_r2(double r_squared) const;

@@ -10,7 +10,7 @@ d_{\text{HS}} (T) = \int_{r_{\text{HC}}}^{r_1}\left(1-e^{-V(r)/k_BT}\right) dr
 $$
 Where, $T$ is the absolute temperature of the system (which typically is given through $\beta=(k_BT)^{-1}$); $r_{\text{HC}}$ is the hard-core diameter related to the interaction potential at hand.
 
-**TODO**: Add further explanation about the split of the potential and about each potential used in the classicalDFT library 
+TODO: Add further explanation about the split of the potential and about each potential used in the classicalDFT library 
 
 ### Examples
 

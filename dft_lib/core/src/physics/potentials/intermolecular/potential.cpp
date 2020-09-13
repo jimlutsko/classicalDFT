@@ -1,9 +1,11 @@
 #include "dft_lib/physics/potentials/intermolecular/potential.h"
+#include "dft_lib/utils/functions.h"
 
 #include <cmath>
 
 #include "dft_lib/numerics/integration.h"
 using namespace dft_core::numerics::integration;
+using namespace dft_core::utils;
 
 namespace dft_core
 {
@@ -13,7 +15,7 @@ namespace potentials
 {
 namespace intermolecular {
 
-//region Potential (base class):
+// region Potential (base class):
 
 Potential::Potential(double sigma, double epsilon, double r_cutoff)
     : sigma_(sigma),
@@ -39,8 +41,7 @@ bool Potential::bh_perturbation() const { return bh_perturbation_; }
 double Potential::kT() const { return kT_; }
 const PotentialName& Potential::id() const { return potential_id_; }
 
-std::string Potential::identifier() const
-{
+std::string Potential::identifier() const {
   std::string name;
   switch (this->id()) {
     case PotentialName::LennardJones:
@@ -56,75 +57,80 @@ std::string Potential::identifier() const
       name = "Unknown";
   }
 
-  return name + "_"
-         + std::to_string(this->sigma()) + "_"
-         + std::to_string(this->epsilon()) + "_"
-         + std::to_string(this->r_cutoff()) + "_"
-         + std::to_string(this->r_attractive_min()) + "_"
-         + std::to_string(this->bh_perturbation());
+  return name + "_" + std::to_string(this->sigma()) + "_" + std::to_string(this->epsilon()) + "_" +
+         std::to_string(this->r_cutoff()) + "_" + std::to_string(this->r_attractive_min()) + "_" +
+         std::to_string(this->bh_perturbation());
 }
 
-double Potential::v_potential(double r) const { return vr_(r) - epsilon_shift(); }
+double Potential::_v_potential(double r) const { return vr_(r) - epsilon_shift(); }
 
-/* TODO: Need to come up with a standard way of making a method vector and arma:vec compliant from
- * a point-wise definition.
- *
-template<class T, class return_type, class input_type = return_type>
-using class_method = std::function<return_type(const T&, input_type)>;
-static std::vector<double> make_function_vectorwise()
-{
-}
-*/
+double Potential::v_potential(double r) const { return _v_potential(r); }
 
-std::vector<double> Potential::v_potential(const std::vector<double>& r) const
-{
-  auto y = std::vector<double>();
-  for (double k : r) { y.push_back(this->v_potential(k)); }
-  return y;
+std::vector<double> Potential::v_potential(const std::vector<double>& r) const {
+  return functions::apply_vector_wise<Potential, double>(*this, &Potential::_v_potential, r);
 }
 
-arma::vec Potential::v_potential(const arma::vec& r) const
-{
+arma::vec Potential::v_potential(const arma::vec& r) const {
   return arma::vec(this->v_potential(arma::conv_to<std::vector<double>>::from(r)));
 }
 
-double Potential::v_potential_r2(double r_squared) const
-{
+double Potential::v_potential_r2(double r_squared) const {
   return vr2_(r_squared) - epsilon_shift();
 }
 
-std::vector<double> Potential::v_potential_r2(const std::vector<double>& r_squared) const
-{
+std::vector<double> Potential::v_potential_r2(const std::vector<double>& r_squared) const {
   auto y = std::vector<double>();
-  for (double k : r_squared) { y.push_back(this->v_potential_r2(k)); }
+  for (double k : r_squared) {
+    y.push_back(this->v_potential_r2(k));
+  }
   return y;
 }
 
-arma::vec Potential::v_potential_r2(const arma::vec& r_squared) const
-{
+arma::vec Potential::v_potential_r2(const arma::vec& r_squared) const {
   return arma::vec(this->v_potential_r2(arma::conv_to<std::vector<double>>::from(r_squared)));
 }
 
-double Potential::w_repulsive(double r) const
-{
+double Potential::_w_repulsive(double r) const {
   if (this->bh_perturbation_) {
     return (r < r_zero() ? v_potential(r) : 0.0);
   }
 
-  return (r < r_min_ ? v_potential(r)-v_min() : 0.0);
+  return (r < r_min_ ? v_potential(r) - v_min() : 0.0);
+}
+
+double Potential::w_repulsive(double r) const { return _w_repulsive(r); }
+
+std::vector<double> Potential::w_repulsive(const std::vector<double>& r) const {
+  return functions::apply_vector_wise<Potential, double>(*this, &Potential::_w_repulsive, r);
+}
+
+arma::vec Potential::w_repulsive(const arma::vec& r) const {
+  return arma::vec(this->w_repulsive(arma::conv_to<std::vector<double>>::from(r)));
 }
 
 void Potential::SetWCALimit(double r) { r_attractive_min_ = r; }
 
-void Potential::SetBHPerturbation()
-{
+void Potential::SetBHPerturbation() {
   bh_perturbation_ = true;
   r_attractive_min_ = r_zero();
 }
 
-double Potential::bh_diameter_kernel(double r) const { return (1.0-std::exp(-w_repulsive(r)/kT_)); }
+double Potential::bh_diameter_kernel(double r) const {
+  return (1.0 - std::exp(-w_repulsive(r) / kT_));
+}
 
-double Potential::w_attractive(double r) const { return this->w_attractive_r2(r*r); }
+double Potential::_w_attractive(double r) const { return this->w_attractive_r2(r * r); }
+
+double Potential::w_attractive(double r) const { return _w_attractive(r); }
+
+std::vector<double> Potential::w_attractive(const std::vector<double>& r) const
+{
+  return functions::apply_vector_wise<Potential, double>(*this, &Potential::_w_attractive, r);
+}
+
+arma::vec Potential::w_attractive(const arma::vec& r) const {
+  return arma::vec(this->w_attractive(arma::conv_to<std::vector<double>>::from(r)));
+}
 
 double Potential::w_attractive_r2(double r_squared) const
 {
@@ -166,9 +172,9 @@ double Potential::ComputeVanDerWaalsIntegral(double kT) {
   auto integrator = Integrator<Potential>(*this, &Potential::vdw_kernel, 1e-6, 1e-8);
 
   auto integral = bh_perturbation() ?
-      integrator.DefiniteIntegral(r_zero(), r_cutoff())
-      : (integrator.DefiniteIntegral(r_attractive_min(),r_min())
-        + integrator.DefiniteIntegral(r_min(),r_cutoff()));
+                  integrator.DefiniteIntegral(r_zero(), r_cutoff())
+                                    : (integrator.DefiniteIntegral(r_attractive_min(),r_min())
+                                       + integrator.DefiniteIntegral(r_min(),r_cutoff()));
 
   return prefactor * integral;
 }
@@ -222,10 +228,10 @@ tenWoldeFrenkel::tenWoldeFrenkel(): Potential()
 {
   potential_id_ = PotentialName::tenWoldeFrenkel;
   alpha_ = DEFAULT_ALPHA_PARAMETER;
-  epsilon_shift_ = (r_cutoff_ <= 0.0 ? 0.0 : this->vr_(r_cutoff_));
   r_min_ = this->FindRMin();
   v_min_  = this->v_potential(r_min_);
   r_zero_ = std::sqrt(1 + std::pow(25 * sqrt(1+epsilon_shift_) + 25, -1.0/3.0));
+  epsilon_shift_ = (r_cutoff_ <= 0.0 ? 0.0 : this->vr_(r_cutoff_));
 }
 
 tenWoldeFrenkel::tenWoldeFrenkel(double sigma, double epsilon, double r_cutoff, double alpha)
