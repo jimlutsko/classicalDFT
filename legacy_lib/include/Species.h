@@ -435,9 +435,11 @@ public:
    *   @brief  Default  constructor for FMT_Species 
    *  
    *   @param  hsd is the hard-sphere diameter
+   *   @param  Rp is the polymer radius
+   *   @param  lambda_p is the polymer-density related parameter.
    *   @return nothing 
    */    
-  FMT_AO_Species(Density& density, double hsd, double Rp, double etap, double mu = 0, int seq = -1);
+  FMT_AO_Species(Density& density, double hsd, double Rp, double lambda_p, double mu = 0, int seq = -1);
   FMT_AO_Species(const FMT_Species &) = delete;
   ~FMT_AO_Species(){}
 
@@ -457,7 +459,7 @@ public:
   
 protected:
   double Rp_ = -1; 
-  double etap_ = 0.0;
+  double lambda_p_ = 0.0;
   vector<FMT_Weighted_Density>  d_AO_; ///< all weighted densities in real & fourier space
   DFT_FFT PSI_;
 };

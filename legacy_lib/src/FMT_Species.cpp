@@ -389,8 +389,8 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density>  & fm
 
 ////////////////////////////
 // AO model
-FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double etap, double mu, int seq)
-  : FMT_Species(density,hsd,mu,seq)
+FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double lambda_p, double mu, int seq)
+  : Rp_(Rp), lambda_p_(lambda_p), FMT_Species(density,hsd,mu,seq)
 {
   // get the polymer species weights
   generateWeights(2*Rp_, d_AO_);
@@ -454,5 +454,5 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   for(long i=0;i<PSI_.cReal().size();i++)
     F += exp(-PSI_.cReal().get(i));
   
-  return F*dV;
+  return F*dV*lambda_p_;
 }
