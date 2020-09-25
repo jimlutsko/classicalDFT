@@ -19,6 +19,7 @@ const double DEFAULT_LENGTH_SCALE = 1.0;
 const double DEFAULT_ENERGY_SCALE = 1.0;
 const double DEFAULT_ALPHA_PARAMETER = 50.0;
 const double DEFAULT_ZERO = 0.0;
+const double DEFAULT_CUTOFF = -1000;
 const double MAX_POTENTIAL_VALUE = 1e50;
 
 namespace intermolecular
@@ -63,7 +64,7 @@ class Potential
   /// The amount of energy the potential will be shifted
   double epsilon_shift_ = DEFAULT_ZERO;
   /// The cut-off distance, as of which the potential will be truncated
-  double r_cutoff_ = -DEFAULT_LENGTH_SCALE;
+  double r_cutoff_ = DEFAULT_CUTOFF;
   /// The position where the potential reaches its minimum
   double r_min_ = DEFAULT_LENGTH_SCALE;
   /// The minimum of the potential energy
@@ -94,6 +95,8 @@ class Potential
 
   /// The private version of v_potential to allow for vectorization overloads without issues
   double _v_potential(double r) const;
+  /// The private version of v_potential_r2 to allow for vectorization overloads without issues
+  double _v_potential_r2(double r) const;
   /// The private version of w_attractive to allow for vectorization overloads without issues
   double _w_attractive(double r) const;
   /// The private version of w_repulsive to allow for vectorization overloads without issues

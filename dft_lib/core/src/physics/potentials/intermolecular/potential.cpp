@@ -7,12 +7,9 @@
 using namespace dft_core::numerics::integration;
 using namespace dft_core::utils;
 
-namespace dft_core
-{
-namespace physics
-{
-namespace potentials
-{
+namespace dft_core {
+namespace physics {
+namespace potentials {
 namespace intermolecular {
 
 // region Potential (base class):
@@ -41,7 +38,8 @@ bool Potential::bh_perturbation() const { return bh_perturbation_; }
 double Potential::kT() const { return kT_; }
 const PotentialName& Potential::id() const { return potential_id_; }
 
-std::string Potential::identifier() const {
+std::string Potential::identifier() const
+{
   std::string name;
   switch (this->id()) {
     case PotentialName::LennardJones:
@@ -57,9 +55,12 @@ std::string Potential::identifier() const {
       name = "Unknown";
   }
 
-  return name + "_" + std::to_string(this->sigma()) + "_" + std::to_string(this->epsilon()) + "_" +
-         std::to_string(this->r_cutoff()) + "_" + std::to_string(this->r_attractive_min()) + "_" +
-         std::to_string(this->bh_perturbation());
+  return name + "_"
+         + std::to_string(this->sigma()) + "_"
+         + std::to_string(this->epsilon()) + "_"
+         + std::to_string(this->r_cutoff()) + "_"
+         + std::to_string(this->r_attractive_min()) + "_"
+         + std::to_string(this->bh_perturbation());
 }
 
 double Potential::_v_potential(double r) const { return vr_(r) - epsilon_shift(); }
@@ -70,27 +71,27 @@ std::vector<double> Potential::v_potential(const std::vector<double>& r) const {
   return functions::apply_vector_wise<Potential, double>(*this, &Potential::_v_potential, r);
 }
 
-arma::vec Potential::v_potential(const arma::vec& r) const {
+arma::vec Potential::v_potential(const arma::vec& r) const
+{
   return arma::vec(this->v_potential(arma::conv_to<std::vector<double>>::from(r)));
 }
 
-double Potential::v_potential_r2(double r_squared) const {
-  return vr2_(r_squared) - epsilon_shift();
+double Potential::_v_potential_r2(double r_squared) const { return vr2_(r_squared) - epsilon_shift(); }
+
+double Potential::v_potential_r2(double r_squared) const { return _v_potential_r2(r_squared); }
+
+std::vector<double> Potential::v_potential_r2(const std::vector<double>& r_squared) const
+{
+  return functions::apply_vector_wise<Potential, double>(*this, &Potential::_v_potential_r2, r_squared);
 }
 
-std::vector<double> Potential::v_potential_r2(const std::vector<double>& r_squared) const {
-  auto y = std::vector<double>();
-  for (double k : r_squared) {
-    y.push_back(this->v_potential_r2(k));
-  }
-  return y;
-}
-
-arma::vec Potential::v_potential_r2(const arma::vec& r_squared) const {
+arma::vec Potential::v_potential_r2(const arma::vec& r_squared) const
+{
   return arma::vec(this->v_potential_r2(arma::conv_to<std::vector<double>>::from(r_squared)));
 }
 
-double Potential::_w_repulsive(double r) const {
+double Potential::_w_repulsive(double r) const
+{
   if (this->bh_perturbation_) {
     return (r < r_zero() ? v_potential(r) : 0.0);
   }
@@ -100,22 +101,26 @@ double Potential::_w_repulsive(double r) const {
 
 double Potential::w_repulsive(double r) const { return _w_repulsive(r); }
 
-std::vector<double> Potential::w_repulsive(const std::vector<double>& r) const {
+std::vector<double> Potential::w_repulsive(const std::vector<double>& r) const
+{
   return functions::apply_vector_wise<Potential, double>(*this, &Potential::_w_repulsive, r);
 }
 
-arma::vec Potential::w_repulsive(const arma::vec& r) const {
+arma::vec Potential::w_repulsive(const arma::vec& r) const
+{
   return arma::vec(this->w_repulsive(arma::conv_to<std::vector<double>>::from(r)));
 }
 
 void Potential::SetWCALimit(double r) { r_attractive_min_ = r; }
 
-void Potential::SetBHPerturbation() {
+void Potential::SetBHPerturbation()
+{
   bh_perturbation_ = true;
   r_attractive_min_ = r_zero();
 }
 
-double Potential::bh_diameter_kernel(double r) const {
+double Potential::bh_diameter_kernel(double r) const
+{
   return (1.0 - std::exp(-w_repulsive(r) / kT_));
 }
 
@@ -128,7 +133,8 @@ std::vector<double> Potential::w_attractive(const std::vector<double>& r) const
   return functions::apply_vector_wise<Potential, double>(*this, &Potential::_w_attractive, r);
 }
 
-arma::vec Potential::w_attractive(const arma::vec& r) const {
+arma::vec Potential::w_attractive(const arma::vec& r) const
+{
   return arma::vec(this->w_attractive(arma::conv_to<std::vector<double>>::from(r)));
 }
 
@@ -166,15 +172,17 @@ double Potential::FindHardSphereDiameter(double kT)
   return dHardSphere;
 }
 
-double Potential::ComputeVanDerWaalsIntegral(double kT) {
+double Potential::ComputeVanDerWaalsIntegral(double kT)
+{
   kT_ = kT;
   auto prefactor = (2*M_PI/kT);
   auto integrator = Integrator<Potential>(*this, &Potential::vdw_kernel, 1e-6, 1e-8);
 
+  auto limit_superior = std::max(r_cutoff(), 0.0);
   auto integral = bh_perturbation() ?
-                  integrator.DefiniteIntegral(r_zero(), r_cutoff())
-                                    : (integrator.DefiniteIntegral(r_attractive_min(),r_min())
-                                       + integrator.DefiniteIntegral(r_min(),r_cutoff()));
+                  integrator.DefiniteIntegral(r_zero(), limit_superior)
+                                    : (integrator.DefiniteIntegral(r_attractive_min(), limit_superior)
+                                       + integrator.DefiniteIntegral(r_min(), limit_superior));
 
   return prefactor * integral;
 }

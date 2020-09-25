@@ -32,7 +32,7 @@ TEST(intermolecular_potential, potential_cttor_works_ok)
   EXPECT_DOUBLE_EQ(v_test.sigma(), DEFAULT_LENGTH_SCALE);
   EXPECT_DOUBLE_EQ(v_test.epsilon(), DEFAULT_ENERGY_SCALE);
   EXPECT_DOUBLE_EQ(v_test.epsilon_shift(), DEFAULT_ZERO);
-  EXPECT_DOUBLE_EQ(v_test.r_cutoff(), -DEFAULT_LENGTH_SCALE);
+  EXPECT_DOUBLE_EQ(v_test.r_cutoff(), DEFAULT_CUTOFF);
   EXPECT_DOUBLE_EQ(v_test.r_min(), DEFAULT_LENGTH_SCALE);
   EXPECT_DOUBLE_EQ(v_test.v_min(), -DEFAULT_ENERGY_SCALE);
   EXPECT_DOUBLE_EQ(v_test.r_attractive_min(), -DEFAULT_ZERO);

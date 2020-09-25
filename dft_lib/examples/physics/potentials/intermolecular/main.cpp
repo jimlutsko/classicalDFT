@@ -91,8 +91,6 @@ int main(int argc, char **argv)
   //endregion
 
   //region Pertubation theory:
-  console::WriteLine(twf.r_min());
-
   auto twf_att = twf.w_attractive(x_vector);
   auto twf_att_ds = g.AddDataset(conv_arma_to_vec(x_vector), conv_arma_to_vec(twf_att));
   g.SetColor(dft_core::grace_plot::Color::BLUE, twf_att_ds);
