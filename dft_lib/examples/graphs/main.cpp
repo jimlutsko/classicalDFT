@@ -93,13 +93,13 @@ int main(int argc, char **argv)
 
   //region Example of setting line type
   console::Info("Example: Setting the line type");
-  g.SetLineType(dft_core::grace_plot::LineType::NO_LINE, 0);
+  g.SetLineType(dft_core::grace_plot::LineStyle::NO_LINE, 0);
   g.RedrawAndWait(false, false);
-  g.SetLineType(dft_core::grace_plot::LineType::LINE, 0);
+  g.SetLineType(dft_core::grace_plot::LineStyle::LINE, 0);
   g.RedrawAndWait(false, false);
-  g.SetLineType(dft_core::grace_plot::LineType::DOTTEDLINE, 0);
+  g.SetLineType(dft_core::grace_plot::LineStyle::DOTTEDLINE, 0);
   g.RedrawAndWait(false, false);
-  g.SetLineType(dft_core::grace_plot::LineType::DASHEDLINE_EN, 0);
+  g.SetLineType(dft_core::grace_plot::LineStyle::DASHEDLINE_EN, 0);
   g.RedrawAndWait(false, false);
   //endregion
 

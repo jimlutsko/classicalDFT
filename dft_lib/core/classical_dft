@@ -16,3 +16,7 @@
 #include "dft_lib/numerics/integration.h"
 #include "dft_lib/numerics/arithmetic.h"
 //endregion
+
+//region Physics
+#include "dft_lib/physics/potentials/intermolecular/potential.h"
+//endregion

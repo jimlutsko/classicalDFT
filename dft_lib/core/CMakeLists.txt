@@ -15,6 +15,8 @@ set(ALL_SOURCES
         # Numeric:
         ${dft_lib_src_path}/numerics/integration.cpp
         ${dft_lib_src_path}/numerics/arithmetic.cpp
+        # Physics:
+        ${dft_lib_src_path}/physics/potentials/intermolecular/potential.cpp
         )
 
 # Set up the dependencies and naming of the library

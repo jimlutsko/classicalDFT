@@ -3,7 +3,9 @@
 DFT_LIB="dft_lib"
 ROOT_FOLDER="$(pwd)/$DFT_LIB"
 DFT_TEST="gtests"
-BUILD_DIR="build/release"
+BUILD_DIR="cmake-build"
+DEBUG_BUILD_DIR="cmake-build/debug"
+RELEASE_BUILD_DIR="cmake-build/release"
 OPTION_FLAG=""
 
 go_to_root_dir(){
@@ -28,13 +30,13 @@ prepare_folders(){
   echo "======================================"
   cd "$ROOT_FOLDER" || exit
 
-  mkdir -p build
+  mkdir -p $BUILD_DIR
 
-  cd build
+  cd $BUILD_DIR
   prepare_subfolder "release" "Release"
   go_to_root_dir
 
-  cd build
+  cd $BUILD_DIR
   prepare_subfolder "debug" "Debug"
   go_to_root_dir
 }
@@ -64,24 +66,24 @@ switch_case_menu(){
 
   case "$mode" in
         clean)
-          local build_dir=$BUILD_DIR
+          local build_dir=$DEBUG_BUILD_DIR
           local option_flag="--clean-first"
           default_build_lib $build_dir $option_flag
           ;;
         debug)
-          local build_dir="build/debug"
+          local build_dir=$DEBUG_BUILD_DIR
           local option_flag=$OPTION_FLAG
           default_build_lib $build_dir $option_flag
           ;;
 	      lib)
-          local build_dir="build/release"
+          local build_dir=$RELEASE_BUILD_DIR
           local option_flag=$OPTION_FLAG
 
           echo "[Step 1/1] Building Library..."
           default_build_lib $build_dir $option_flag
           ;;
         test)
-          local build_dir="build/release"
+          local build_dir=$DEBUG_BUILD_DIR
           local option_flag=$OPTION_FLAG
 
           echo "[Step 1/2] Making Library..."

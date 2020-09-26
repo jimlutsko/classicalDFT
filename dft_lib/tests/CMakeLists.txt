@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(classical_dft_tests LANGUAGES CXX)
 
-file(GLOB_RECURSE TEST_SOURCES LIST_DIRECTORIES false *.h *.cpp)
+file(GLOB_RECURSE TEST_SOURCES LIST_DIRECTORIES false *.h *.cpp ./**.cpp)
 set(ALL_SOURCES ${TEST_SOURCES})
 set(ENV{DISPLAY} ":0")
 

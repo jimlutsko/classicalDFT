@@ -65,8 +65,7 @@ namespace dft_core
     /**
     * @brief The possible line patterns
     */
-    enum class LineType
-    {
+    enum class LineStyle {
       NO_LINE=0,
       LINE=1,
       DOTTEDLINE,
@@ -292,7 +291,7 @@ namespace dft_core
        * @param graph_id the integer number identifying the graph the point will be represented on
        * @return std::string
        */
-      std::string SetLineTypeCommand(const LineType& line_type, const int& dataset_id, const int& graph_id);
+      std::string SetLineStyleCommand(const LineStyle& line_type, const int& dataset_id, const int& graph_id);
 
       /**
        * @brief Returns the "HARDCOPY DEVICE {FORMAT}" command as string
@@ -631,13 +630,13 @@ namespace dft_core
       /**
        * @brief Sets the symbol fill in a given `dataset_id` of a given `graph_id`
        *
-       * @param line_type one of the possible values of enum::LineType
+       * @param line_type one of the possible values of enum::LineStyle
        * @param dataset_id the integer identifier of the dataset to be deleted
        * @param graph_id the integer number identifying the graph where the dataset lives (default=0)
        * @throws GraceException in case the dataset_id given is out of bounds
        * @throws GraceException in case the graph_id given is out of bounds
        */
-      void SetLineType(const LineType& line_type, const int& dataset_id, const int& graph_id = 0) const;
+      void SetLineType(const LineStyle& line_type, const int& dataset_id, const int& graph_id = 0) const;
 
       /**
        * @brief Saves the graph with the `format` specified at the given `file_path`
