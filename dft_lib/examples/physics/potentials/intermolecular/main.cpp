@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 
   //region Lennard-Jones:
   //region Potential:
-  auto lj_vector = lj.v_potential(x_vector);
+  auto lj_vector = lj.v_potential(x_vector); // equivalent to lj(x_vector);
   auto lj_ds = g.AddDataset(conv_arma_to_vec(x_vector), conv_arma_to_vec(lj_vector));
   //endregion
 
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 
   //region ten Wolde-Frenkel:
   //region Potential:
-  auto twf_vector = twf.v_potential(x_vector);
+  auto twf_vector = twf(x_vector);
   auto twf_ds = g.AddDataset(conv_arma_to_vec(x_vector), conv_arma_to_vec(twf_vector));
   g.SetColor(dft_core::grace_plot::Color::BLUE,twf_ds);
   //endregion

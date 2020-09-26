@@ -3,6 +3,8 @@
 
 #include "dft_lib/physics/potentials/intermolecular/potential.h"
 
+#include <boost/range/combine.hpp>
+
 using namespace dft_core::physics::potentials;
 using namespace dft_core::physics::potentials::intermolecular;
 
@@ -64,4 +66,122 @@ TEST(intermolecular_potential, potential_cttor_works_ok)
   EXPECT_DOUBLE_EQ(vdw, 0);
 }
 
+TEST(intermolecular_potential, potential_brackets_works)
+{
+  auto lj = LennardJones();
+  auto d_expected = lj.v_potential(1);
+  auto d_actual = lj(1);
+  EXPECT_DOUBLE_EQ(d_expected, d_actual);
+
+  auto x = std::vector<double>{ 1, 2 };
+  auto vec_expected = lj.v_potential(x);
+  auto vec_actual = lj(x);
+
+  for (auto tup : boost::combine(vec_expected, vec_actual))
+  {
+    double x, y; boost::tie(x,y) = tup;
+    EXPECT_DOUBLE_EQ(x, y);
+  }
+
+  auto r = arma::linspace(1, 5, 10);
+  auto arma_expected = lj.v_potential(r);
+  auto arma_actual = lj(r);
+
+  for (auto tup : boost::combine(arma_expected, arma_actual))
+  {
+    double x, y; boost::tie(x,y) = tup;
+    EXPECT_DOUBLE_EQ(x, y);
+  }
+}
+
+TEST(intermolecular_potential, potential_attractive_part_ok)
+{
+  auto twf = tenWoldeFrenkel();
+  auto v_actual = twf.w_attractive(0);
+  EXPECT_DOUBLE_EQ(twf.v_min(), v_actual);
+
+  v_actual = twf.w_attractive(twf.r_min());
+  EXPECT_DOUBLE_EQ(twf.v_min(), v_actual);
+
+  v_actual = twf.w_attractive(2 * twf.r_min());
+  EXPECT_DOUBLE_EQ(twf(2 * twf.r_min()), v_actual);
+}
+
+TEST(intermolecular_potential, potential_attractive_part_bh_ok)
+{
+  auto twf = tenWoldeFrenkel();
+  twf.SetBHPerturbation();
+
+  auto v_actual = twf.w_attractive(0.0);
+  EXPECT_DOUBLE_EQ(0.0, v_actual);
+
+  v_actual = twf.w_attractive(0.999 * twf.r_zero());
+  EXPECT_DOUBLE_EQ(0.0, v_actual);
+
+  v_actual = twf.w_attractive(1.001 * twf.r_zero());
+  EXPECT_DOUBLE_EQ(twf(1.001 * twf.r_zero()), v_actual);
+
+  v_actual = twf.w_attractive(twf.r_min());
+  EXPECT_DOUBLE_EQ(twf.v_min(), v_actual);
+
+  v_actual = twf.w_attractive(2 * twf.r_min());
+  EXPECT_DOUBLE_EQ(twf(2 * twf.r_min()), v_actual);
+}
+
+TEST(intermolecular_potential, potential_repulsive_part_ok)
+{
+  auto lj = LennardJones();
+  auto r = 0.9 * lj.r_min();
+
+  auto actual = lj.w_repulsive(r);
+  auto expected = lj(r) - lj.v_min();
+  EXPECT_DOUBLE_EQ(expected, actual);
+
+  r = 1.1 * lj.r_min();
+  actual = lj.w_repulsive(r);
+  expected = 0.0;
+  EXPECT_DOUBLE_EQ(expected, actual);
+
+  lj.SetBHPerturbation();
+
+  r = 0.999 * lj.r_zero();
+  actual = lj.w_repulsive(r);
+  expected = lj(r);
+  EXPECT_DOUBLE_EQ(expected, actual);
+
+  r = 1.001 * lj.r_zero();
+  actual = lj.w_repulsive(r);
+  expected = 0.0;
+  EXPECT_DOUBLE_EQ(expected, actual);
+}
+
+TEST(intermolecular_potential, WCA_split_works_ok)
+{
+  auto lj = LennardJones();
+  auto x = arma::linspace(0.5, 5, 100);
+  auto expected = lj(x);
+  arma::vec actual = lj.w_attractive(x) + lj.w_repulsive(x);
+
+  for (auto tup : boost::combine(expected, actual))
+  {
+    double x, y; boost::tie(x,y) = tup;
+    EXPECT_NEAR(x, y, 1e-6);
+  }
+}
+
+TEST(intermolecular_potential, WCA_split_works_with_BH_ok)
+{
+  auto lj = LennardJones();
+  lj.SetBHPerturbation();
+
+  auto x = arma::linspace(0.5, 5, 100);
+  auto expected = lj(x);
+  arma::vec actual = lj.w_attractive(x) + lj.w_repulsive(x);
+
+  for (auto tup : boost::combine(expected, actual))
+  {
+    double x, y; boost::tie(x,y) = tup;
+    EXPECT_NEAR(x, y, 1e-6);
+  }
+}
 //endregion
