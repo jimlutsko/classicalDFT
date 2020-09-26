@@ -290,4 +290,57 @@ double tenWoldeFrenkel::FindRMin() const
 
 //endregion
 
+//region WangRamirezDobnikarFrenkel:
+
+double WangRamirezDobnikarFrenkel::vr_(double r) const
+{
+  double y = sigma_ / r;
+  double z = r_cutoff_ / r;
+  return (r < r_cutoff_) ? epsilon_ * (y * y - 1) * (z * z - 1) * (z * z - 1) : 0.0;
+}
+double WangRamirezDobnikarFrenkel::vr2_(double r2) const
+{
+  double y = sigma_ * sigma_ / r2;
+  double z = r_cutoff_ * r_cutoff_ / r2;
+  return (r2 < r_cutoff_ * r_cutoff_) ? epsilon_ * (y - 1) * (z - 1) * (z - 1) : 0.0;
+}
+
+WangRamirezDobnikarFrenkel::WangRamirezDobnikarFrenkel(): Potential()
+{
+  potential_id_ = PotentialName::WangRamirezDobnikarFrenkel;
+
+  // The cutoff is built in:
+  r_cutoff_ = 3;
+  epsilon_ *= 2 * std::pow(r_cutoff_ / sigma_, 2)
+              * std::pow(2 * ((r_cutoff_ / sigma_) * (r_cutoff_ / sigma_)-1)/3.0, -3.0);
+  epsilon_shift_ = 0.0;
+
+  r_min_ = this->FindRMin();
+  v_min_ = this->v_potential(r_min_);
+  r_zero_ = 1.0;
+}
+
+WangRamirezDobnikarFrenkel::WangRamirezDobnikarFrenkel(double sigma, double epsilon, double r_cutoff)
+    : Potential(sigma, epsilon, r_cutoff)
+{
+  potential_id_ = PotentialName::WangRamirezDobnikarFrenkel;
+
+  // The cutoff is built in:
+  epsilon_ *= 2 * std::pow(r_cutoff / sigma, 2)
+                * std::pow(2 * ((r_cutoff / sigma) * (r_cutoff / sigma)-1)/3.0, -3.0);
+  epsilon_shift_ = 0.0;
+
+  r_min_  = this->FindRMin();
+  v_min_ = this->v_potential(r_min_);
+  r_zero_ = 1.0;
+}
+
+double WangRamirezDobnikarFrenkel::FindHardCoreDiameter() const { return 0; }
+
+double WangRamirezDobnikarFrenkel::FindRMin() const
+{
+  return r_cutoff_ * std::pow((1.0 + 2.0*(r_cutoff_/sigma_) * (r_cutoff_/sigma_))/3.0, -0.5);
+}
+
+//endregion
 }}}}

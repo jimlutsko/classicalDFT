@@ -336,7 +336,7 @@ class tenWoldeFrenkel final: public Potential
    */
   tenWoldeFrenkel();
   /**
-   * @brief Constructor used for the parameterization of a LennardJones object (sigma, epsilon, r_cutoff)
+   * @brief Constructor used for the parameterization of a tenWoldeFrenkel object (sigma, epsilon, r_cutoff)
    * @param sigma The typical length scale defining the problem at hand
    * @param epsilon The typical energy scale defining the problem at hand
    * @param r_cutoff The distance at which the potential energy is considered negligible, hence used
@@ -364,6 +364,65 @@ class tenWoldeFrenkel final: public Potential
   //endregion
 };
 
+
+/**
+ *  @brief WRDF (also WHDF) potential
+ *  @details The `WangRamirezDobnikarFrenkel` class embodies a class of potentials of interaction
+ *           introduced in https://arxiv.org/pdf/1910.05746.pdf. There the authors construct
+ *           a class of potentials that are inspired by the LJ's structure, but finite ranged.
+ *           These potentials vanish quadratically at the cut-off distance, and are designed to be
+ *           computationally cheap.
+ */
+class WangRamirezDobnikarFrenkel final: public Potential
+{
+ protected:
+  //region Methods:
+
+  /// The underlying potential evaluated at r
+  double vr_(double r) const override;
+  /// The underlying potential evaluated at r, computed from r^2
+  double vr2_(double r2) const override;
+
+  friend class boost::serialization::access;
+  template<class Archive>
+  void serialize(Archive& archive, const unsigned int version)
+  {
+    archive & boost::serialization::base_object<Potential>(*this);
+    boost::serialization::void_cast_register<WangRamirezDobnikarFrenkel, Potential>(static_cast<WangRamirezDobnikarFrenkel*>(nullptr),static_cast<Potential*>(nullptr));
+  }
+
+  //endregion
+
+ public:
+  //region Cttors:
+
+  /**
+   * @brief Default constructor of the class. It comes with the private parameters initialised
+   *    with the default energy or length scale: DEFAULT_ENERGY_SCALE and DEFAULT_LENGTH_SCALE,
+   *    respectively
+   */
+  WangRamirezDobnikarFrenkel();
+
+  /**
+   * @brief Constructor used for the parameterization of a WangRamirezDobnikarFrenkel object (sigma, epsilon, r_cutoff)
+   * @param sigma The typical length scale defining the problem at hand
+   * @param epsilon The typical energy scale defining the problem at hand
+   * @param r_cutoff The distance at which the potential energy is considered negligible, hence used
+   *        for truncation purposes. E.g., if `r_cutoff = 2.5` the potential will be set to zero
+   *        from `r=r_cutoff` onwards, which is equivalent to shift the potential by
+   *        `epsilon_shift = v(r_cutoff)`
+   */
+  WangRamirezDobnikarFrenkel(double sigma, double epsilon, double r_cutoff);
+
+  //endregion
+
+  //region Methods:
+
+  double FindHardCoreDiameter() const override;
+  double FindRMin() const override;
+
+  //endregion
+};
 }}}}
 
 #endif  // CLASSICALDFT_POTENTIAL_H
