@@ -36,12 +36,24 @@ If you notice any problems on your platform, please notify [classicaldft@classic
 
 In this section we will list the main features implemented in **classicalDFT**, e.g. the different DFT energy models, differentiation methods, etc. The library is currently being refactored with the aim of achieving a better harmonisation between the different modules implemented. For this reason, we'll be listing here only the modules which are ready in the new refactored version (though you can always check the original version in [here](legacy_lib/)):
 
-1. [Console](dft_lib/examples/console/README.md): A namespace with some convenient functionality when interacting with the console/terminal output
-2. [Grace](dft_lib/examples/graphs/README.md): A wrapper class which allows us to produce live graphs by interacting with xmgrace
-3. [ConfigParser](dft_lib/examples/config_parser/README.md): A wrapper class of the `boost::property_tree::ptree` class which allows for parsing configuration files in the following formats: `INI`, `JSON`, `XML` and `INFO`  
-4. [Integrator](dft_lib/examples/numerics/integration/README.md): A wrapper class of some integration methods of the `GSL` libraries
-5. [CompensatedSum](dft_lib/examples/numerics/arithmetic/README.md): A set of free functions and a wrapper class to carry out compensated summations 
+* [Utils](dft_lib/core/dft_lib/utils):  
 
+    - [Console](dft_lib/examples/console/README.md): A namespace with some convenient functionality when interacting with the console/terminal output
+    - [ConfigParser](dft_lib/examples/config_parser/README.md): A wrapper class of the `boost::property_tree::ptree` class which allows for parsing configuration files in the following formats: `INI`, `JSON`, `XML` and `INFO`
+      
+* [Graph](dft_lib/core/dft_lib/graph):
+
+    - [Grace](dft_lib/examples/graphs/README.md): A wrapper class which allows us to produce live graphs by interacting with xmgrace
+
+* [Numerics](dft_lib/core/dft_lib/graph):
+
+    - [Integrator](dft_lib/examples/numerics/integration/README.md): A wrapper class of some integration methods of the `GSL` libraries
+    - [CompensatedSum](dft_lib/examples/numerics/arithmetic/README.md): A set of free functions and a wrapper class to carry out compensated summations
+    
+* [Physics](dft_lib/core/dft_lib/physics):
+    
+    - [Potential](dft_lib/examples/physics/potentials/intermolecular/README.md): This module/class contains the fundamental ingredients to model an inter-particle potential. Besides, it offers three different models, namely: Lennard-Jones, ten Wolde-Frenkel and Wang-Ramirez-Dobnikar-Frenkel potentials
+    
 ## Platforms
 
 **classicalDFT** has been [used](dft_lib/docs/setup-env.md) on a variety of platforms:

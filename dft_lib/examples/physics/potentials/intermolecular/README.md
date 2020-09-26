@@ -4,13 +4,31 @@
 
 One of the few and key elements required when doing research on statistical physics is to have a good estimate (or at least a justifiable model) for the intermolecular potential energy between a pair of constituent particles, e.g. atoms or molecules. The choice of the *intermolecular potential* model describing the intermolecular forces is not something we should come up with hastily, since this **fundamental quantity** governs the thermodynamics of the system at hand. I.e., the same simulation with the same boundary and initial conditions will very likely result in quite different outcomes if we choose to model our system with a [Lennard-Jones](https://en.wikipedia.org/wiki/Lennard-Jones_potential) (LJ) or a [ten Wolde-Frenkel](https://science.sciencemag.org/content/277/5334/1975) (tWF) potential. For this reason, a myriad of potentials have been developed ever since the introduction of the widely-known **LJ(6-12) potential** in 1924 by [John Lennard-Jones](https://en.wikipedia.org/wiki/John_Lennard-Jones). However, most of them share common elements which can be encapsulated in a `base class` to be reutilised for the implementation of every particular one of them. 
 
-The `classicalDFT` library comes with an implementation of such an abstract class which can be found in the namespace `dft_core::physics::potentials::intermolecular`, class `Potential`. Besides this abstract class, `classicalDFT` offers the implementation of the two intermolecular potentials mentioned above, namely LJ(6-12) and the tWF potential, `LennardJones` and `tenWoldeFrenkel` classes under the same namespace. However, the implementations offered here not only come with the basic functionality, but also are enriched with some convenient methods and properties which are required for thermodynamic perturbation theory (TPT) analysis. Particularly, any potential which derives from the abstract class `Potential` will automatically know how to split the potential contribution into two parts (as suggested by [Weeks-Chandler-Andersen TPT](http://www.sklogwiki.org/SklogWiki/index.php/Weeks-Chandler-Andersen_perturbation_theory)): a) hard-sphere (purely repulsive) contribution; and the attractive part. Moreover, the potential-like object also comes with the functionality to compute the hard-sphere, by using the approximation:
+The `classicalDFT` library comes with an implementation of such an abstract class which can be found in the namespace `dft_core::physics::potentials::intermolecular`, class `Potential`. Besides this abstract class, `classicalDFT` offers the implementation of the two intermolecular potentials mentioned above, namely LJ(6-12) and the tWF potential, `LennardJones` and `tenWoldeFrenkel` classes under the same namespace. However, the implementations offered here not only come with the basic functionality, but also are enriched with some convenient methods and properties which are required for thermodynamic perturbation theory (TPT) analysis. Particularly, any potential which derives from the abstract class `Potential` will automatically know how to split the potential contribution into two parts (as suggested by [Weeks-Chandler-Andersen TPT](http://www.sklogwiki.org/SklogWiki/index.php/Weeks-Chandler-Andersen_perturbation_theory)): a) hard-sphere (purely repulsive) contribution; and b) the attractive part. E.g., for the particular case of the LJ(6-12) potential:
 $$
-d_{\text{HS}} (T) = \int_{r_{\text{HC}}}^{r_1}\left(1-e^{-V(r)/k_BT}\right) dr
+V_{\text{LJ}}(\mathbf{r}; \varepsilon, \sigma) = 4\varepsilon\left[\left(\frac{\sigma}{|\mathbf{r}|}\right)^{12}-\left(\frac{\sigma}{|\mathbf{r}|}\right)^{6}\right]\doteq\Phi_{\text{LJ}}(\mathbf{r}; \varepsilon, \sigma)
+$$
+The WCA-PT assumes the following decomposition of the inter-particle potential:
+$$
+V_{\text{LJ}}(\mathbf{r};\varepsilon,\sigma)=\Phi_{\text{repulsive}}(\mathbf{r}; \varepsilon, \sigma) + \Phi_{\text{attractive}}(\mathbf{r}; \varepsilon, \sigma)
+$$
+where:
+$$
+\Phi_{\text{repulsive}}(\mathbf{r};\varepsilon, \sigma) = \Theta(r_*-|\mathbf{r}|)\times(\Phi_{\text{LJ}}
+(\mathbf{r}; \varepsilon, \sigma) - \Phi_{\text{LJ}}(r_*))
+$$
+where $r_*$ is the distance at which the potential reaches its minimum: $\nabla\Phi|_{r_*}=0$, and
+$$
+\Phi_{\text{attractive}}(\mathbf{r};\varepsilon, \sigma) = \Theta(r_*-|\mathbf{r}|)\times\Phi_{\text{LJ}}(r_*)
++ \Theta(|\mathbf{r}|-r_*)\times\Phi_{\text{LJ}}(\mathbf{r};\varepsilon,\sigma)
+$$
+The `Potential` class comes with a generalisation of this decomposition which allows for a different position where to split the interaction, and the underlying potential $\Phi$ was renamed as `v_potential`. Using the built-in method `Potential::SetBHPerturbation()` the split occurs at the position where the potential is zero, i.e.  $V(r_*) = 0$.
+
+The potential-like object also comes with the functionality to compute the hard-sphere, by using the approximation:
+$$
+d_{\text{HS}} (T) = \int_{r_{\text{HC}}}^{r_*}\left(1-e^{-V(r)/k_BT}\right) dr
 $$
 Where, $T$ is the absolute temperature of the system (which typically is given through $\beta=(k_BT)^{-1}$); $r_{\text{HC}}$ is the hard-core diameter related to the interaction potential at hand.
-
-TODO: Add further explanation about the split of the potential and about each potential used in the classicalDFT library 
 
 ### Examples
 
@@ -201,6 +219,6 @@ int main(int argc, char **argv)
 
 After compilation and running we will get the following results:
 
-<img src="figures/potentials.png" alt="lj-and-twf-potentials" style="zoom:50%;" />
+<img src="figures/potentials.png" alt="potentials" style="zoom:50%;" />
 
 The figure's quality might seem poor because it has been taken from a screenshot. For a better resolution and quality, you can always use one of the export methods provided by `grace` (as is shown at the bottom of the above code block).
