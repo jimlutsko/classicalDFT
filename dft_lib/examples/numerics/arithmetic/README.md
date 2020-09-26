@@ -92,7 +92,8 @@ Kahan-Babuska sum [1]:10.5
 Kahan-Babuska err [1] = -8.88178e-16
 Kahan-Babuska-Neumaier sum [1]: 10.5
 Kahan-Babuska-Neumaier err [1]: 1.11022e-15
-Kahan-Babuska-Klein sum [1]: 10.5Kahan-Babuska-Klein err [1/a]: 1.11022e-15
+Kahan-Babuska-Klein sum [1]: 10.5
+Kahan-Babuska-Klein err [1/a]: 1.11022e-15
 Kahan-Babuska-Klein err [1/b]: 0
 
 Test 2: Continuation of previous sum
