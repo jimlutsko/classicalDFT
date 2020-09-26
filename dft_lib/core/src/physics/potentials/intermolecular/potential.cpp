@@ -187,6 +187,12 @@ double Potential::ComputeVanDerWaalsIntegral(double kT)
   return prefactor * integral;
 }
 
+double Potential::operator()(double r) const { return v_potential(r); }
+
+std::vector<double> Potential::operator()(const std::vector<double>& r) const { return v_potential(r); }
+
+arma::vec Potential::operator()(const arma::vec& r) const { return v_potential(r); }
+
 //endregion
 
 //region LennardJones (12-6):

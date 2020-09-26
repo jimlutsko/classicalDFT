@@ -219,6 +219,19 @@ class Potential
   /// Compute the van der Waals pair-correlation-integral contribution to the free energy
   double ComputeVanDerWaalsIntegral(double kT);
   //endregion
+
+  //region Overloads:
+  /**
+   * Enables the use of brackets to get the interaction potential associated with the
+   * `Potential` object, hence potential(x) := potential.v_potential(x).
+   * @param r Distance from the center of the particle
+   * @return The interparticle potential evaluated at `r`
+   */
+  double operator ()(double r) const;
+  std::vector<double> operator ()(const std::vector<double>& r) const;
+  arma::vec operator ()(const arma::vec& r) const;
+
+  //endregion
 };
 
 /**
