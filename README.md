@@ -14,8 +14,8 @@ In the future, a mailing list will be advertised here for questions, discussions
 
 The standard rules for installing a `C++` library from an external repository apply in this case too. However, such standard steps which might be obvious for experienced developers could become overwhelming for developers or researchers who just have some basic understanding of software development with `CMake` and `C++`. Considering the broad audience this project might be subject to, we recommend the following documentation links for the different users:
 
-* Beginners: [classicalDFT Primer](README.md)
-* Experienced programmers: [How to install classicalDFT](documentation/installation/README.md)
+* Beginners: [classicalDFT Primer](documentation/installation/beginners/README.md)
+* Experienced programmers: [How to install classicalDFT](documentation/installation/experienced/README.md)
 
 ## Requirements
 
@@ -56,7 +56,7 @@ In this section we will list the main features implemented in **classicalDFT**, 
     
 ## Platforms
 
-**classicalDFT** has been [used](dft_lib/docs/setup-env.md) on a variety of platforms:
+**classicalDFT** has been [used](documentation/setup/README.md) on a variety of platforms:
 
 - Linux
 - Mac OSX

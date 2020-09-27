@@ -18,7 +18,7 @@ set(USE_MGL true)
 ################### End of customizations
 
 ## Set up the compilation
-set(EXECUTABLE_OUTPUT_PATH ../..)
+set(EXECUTABLE_OUTPUT_PATH ../../..)
 set(CMAKE_CXX_EXTENSIONS ON)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 
