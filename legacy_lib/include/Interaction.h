@@ -571,10 +571,9 @@ class Interaction_Interpolation_QF : public Interaction_Interpolation
    */      
  Interaction_Interpolation_QF(Species *s1, Species *s2, Potential1 *v, double kT) :
   Interaction_Interpolation(s1,s2,v,kT)
-    { vv_.push_back(1.0);  vv_.push_back(1.0); vv_.push_back(1.0);
+    { vv_.push_back(1.0/3);  vv_.push_back(1.0/3); vv_.push_back(1.0/3);
       pt_.push_back(-0.5); pt_.push_back(0.0); pt_.push_back(0.5);
-      for(auto &x: vv_) x /= 3;      
-    }
+    }  
   Interaction_Interpolation_QF() : 
     Interaction_Interpolation(){}
   

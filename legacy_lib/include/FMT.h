@@ -291,14 +291,14 @@ class FMT
 };
 
 /**
-  *  @brief  The original White Bear  FMT model 
+  *  @brief  "Explicitly Stable" FMT
   *
-  *   White-bear FMT model with tensor densities and the CS equation of state
+  *   Note that the bulk eos for the fluid is neither PY nor CS.
   */  
-class Stable : public FMT
+class esFMT : public FMT
 {
  public:
-  Stable(double A = 1, double B = 0) : FMT(), A_(A), B_(B){};
+  esFMT(double A = 1, double B = 0) : FMT(), A_(A), B_(B){};
 
    virtual bool needsTensor() const { return true;}
 
@@ -453,11 +453,11 @@ class Stable : public FMT
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
     ar & boost::serialization::base_object<FMT>(*this);
-    boost::serialization::void_cast_register<Stable, FMT>(static_cast<Stable *>(NULL),static_cast<FMT *>(NULL));    
+    boost::serialization::void_cast_register<esFMT, FMT>(static_cast<esFMT *>(NULL),static_cast<FMT *>(NULL));    
   }
 
   
-  virtual string Name() const { return string("Stable with A = ") + to_string(A_) + string(" and B = ") + to_string(B_);}
+  virtual string Name() const { return string("esFMT with A = ") + to_string(A_) + string(" and B = ") + to_string(B_);}
 
 protected:
   double A_ = 1;
@@ -469,10 +469,11 @@ protected:
   *
   *   White-bear FMT model with tensor densities and the CS equation of state
   */  
-class Stable2 : public FMT
+/*
+class esFMT2 : public FMT
 {
  public:
-  Stable2() : FMT(){};
+  esFMT2() : FMT(){};
 
    virtual bool needsTensor() const { return true;}
 
@@ -619,12 +620,13 @@ class Stable2 : public FMT
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
     ar & boost::serialization::base_object<FMT>(*this);
-    boost::serialization::void_cast_register<Stable, FMT>(static_cast<Stable *>(NULL),static_cast<FMT *>(NULL));    
+    boost::serialization::void_cast_register<esFMT, FMT>(static_cast<esFMT *>(NULL),static_cast<FMT *>(NULL));    
   }
 
   
- virtual string Name() const { return string("Stable2");}
+ virtual string Name() const { return string("esFMT2");}
 };
+*/
 
 /**
   *  @brief  The original White Bear  FMT model 
