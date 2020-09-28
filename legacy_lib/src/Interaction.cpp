@@ -265,7 +265,7 @@ void Interaction_Base::generateWeights()
 	    double w = w2[p];
 	    // and get the point it contributes to
 	    long pos = s1_->getDensity().get_PBC_Pos(ix,iy,iz);
-	    w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
+	    w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));	    
 	    a_vdw_ += w;
 	  }
     }
