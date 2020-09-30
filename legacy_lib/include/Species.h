@@ -136,8 +136,8 @@ protected:
   /**
    *  @brief Species Class: hard sphere diameters, etc.
    *
-   *    This class holds an 11-dimentional array called d_ . This in turn holds the weighted densities as
-   *             d_ = {eta(N),s(N),V1(N),...,VD(N), T11(N), T12(N), ... T1D(N), T22(N), ..., TDD(N)}
+   *    This class holds an 11-dimentional array called fmt_weighted_densities . This in turn holds the weighted densities as
+   *             fmt_weighted_densities = {eta(N),s(N),V1(N),...,VD(N), T11(N), T12(N), ... T1D(N), T22(N), ..., TDD(N)}
    *             where for D=3 there are 1+1+3+(3+2+1) = 11 entries.
    *             Note that each of these, e.g. eta(N), is an N-dimensional vector holding the value of the weighted density at each point.
    */
@@ -172,7 +172,7 @@ public:
    *   @param  pos is the mesh position
    *   @return value of Eta at pos
    */    
-  double getEta(long pos) const { return d_[EI()].real(pos);}
+  double getEta(long pos) const { return fmt_weighted_densities[EI()].real(pos);}
 
   /**
    *   @brief  get value of S at pos
@@ -180,7 +180,7 @@ public:
    *   @param  pos is the mesh position
    *   @return value of S at pos
    */      
-  double getS(long pos) const { return d_[SI()].real(pos);}
+  double getS(long pos) const { return fmt_weighted_densities[SI()].real(pos);}
 
   /**
    *   @brief  get value of component j of V at pos
@@ -189,7 +189,7 @@ public:
    *   @param  pos is the mesh position
    *   @return value of V(j) at pos
    */      
-  double getV(int j, long pos)      const { return d_[VI(j)].real(pos);}
+  double getV(int j, long pos)      const { return fmt_weighted_densities[VI(j)].real(pos);}
 
   /**
    *   @brief  get value of component j,k of T at pos
@@ -199,9 +199,9 @@ public:
    *   @param  pos is the mesh position
    *   @return value of T(j,k) at pos
    */      
-  double getT(int j,int k,long pos) const { return d_[TI(j,k)].real(pos);}
+  double getT(int j,int k,long pos) const { return fmt_weighted_densities[TI(j,k)].real(pos);}
   
-  const DFT_Vec_Complex& getWEK() const { return d_[EI()].wk();}
+  const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
 
 
   /**
@@ -216,10 +216,10 @@ public:
     density_.doFFT();
     const DFT_Vec_Complex &rho_k = density_.getDK();
 
-    int imax = (needsTensor ? d_.size() : 5);
+    int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
 
     for(int i=0;i<imax;i++)
-      d_[i].convolute(rho_k);      
+      fmt_weighted_densities[i].convolute(rho_k);      
   }
 
   void convolute_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
@@ -233,7 +233,7 @@ public:
 
   void convolute_weight_with(int pos, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
   {
-    result.Four().Schur(v.cFour(), d_[pos].wk(),bConjugate);
+    result.Four().Schur(v.cFour(), fmt_weighted_densities[pos].wk(),bConjugate);
     result.do_fourier_2_real();
   }  
   
@@ -245,40 +245,40 @@ public:
    */  
   void Accumulate_dPhi(DFT_Vec_Complex& dPhi, bool needsTensor)
   {
-    int imax = (needsTensor ? d_.size() : 5);
+    int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
 
     for(int i=0;i<imax;i++)      
-      d_[i].add_to_dPhi(dPhi);
+      fmt_weighted_densities[i].add_to_dPhi(dPhi);
   }
 
   // These return the real weight at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getExtendedWeight(long K, int a)
   {
-    if(a == 0) return d_[EI()].getWeight(K);
+    if(a == 0) return fmt_weighted_densities[EI()].getWeight(K);
 
-    if(a == 1) return d_[SI()].getWeight(K)/(hsd_*hsd_);
-    if(a == 2) return d_[SI()].getWeight(K)/hsd_;
-    if(a == 3) return d_[SI()].getWeight(K);
+    if(a == 1) return fmt_weighted_densities[SI()].getWeight(K)/(hsd_*hsd_);
+    if(a == 2) return fmt_weighted_densities[SI()].getWeight(K)/hsd_;
+    if(a == 3) return fmt_weighted_densities[SI()].getWeight(K);
 
-    if(a == 4) return d_[VI(0)].getWeight(K)/hsd_;
-    if(a == 5) return d_[VI(1)].getWeight(K)/hsd_;
-    if(a == 6) return d_[VI(2)].getWeight(K)/hsd_;
+    if(a == 4) return fmt_weighted_densities[VI(0)].getWeight(K)/hsd_;
+    if(a == 5) return fmt_weighted_densities[VI(1)].getWeight(K)/hsd_;
+    if(a == 6) return fmt_weighted_densities[VI(2)].getWeight(K)/hsd_;
 
-    if(a == 7) return d_[VI(0)].getWeight(K);
-    if(a == 8) return d_[VI(1)].getWeight(K);
-    if(a == 9) return d_[VI(2)].getWeight(K);
+    if(a == 7) return fmt_weighted_densities[VI(0)].getWeight(K);
+    if(a == 8) return fmt_weighted_densities[VI(1)].getWeight(K);
+    if(a == 9) return fmt_weighted_densities[VI(2)].getWeight(K);
 
-    if(a == 10) return d_[TI(0,0)].getWeight(K);
-    if(a == 11) return d_[TI(0,1)].getWeight(K);
-    if(a == 12) return d_[TI(0,2)].getWeight(K);
+    if(a == 10) return fmt_weighted_densities[TI(0,0)].getWeight(K);
+    if(a == 11) return fmt_weighted_densities[TI(0,1)].getWeight(K);
+    if(a == 12) return fmt_weighted_densities[TI(0,2)].getWeight(K);
 
-    if(a == 13) return d_[TI(1,0)].getWeight(K);
-    if(a == 14) return d_[TI(1,1)].getWeight(K);
-    if(a == 15) return d_[TI(1,2)].getWeight(K);
+    if(a == 13) return fmt_weighted_densities[TI(1,0)].getWeight(K);
+    if(a == 14) return fmt_weighted_densities[TI(1,1)].getWeight(K);
+    if(a == 15) return fmt_weighted_densities[TI(1,2)].getWeight(K);
 
-    if(a == 16) return d_[TI(2,0)].getWeight(K);
-    if(a == 17) return d_[TI(2,1)].getWeight(K);
-    if(a == 18) return d_[TI(2,2)].getWeight(K);        
+    if(a == 16) return fmt_weighted_densities[TI(2,0)].getWeight(K);
+    if(a == 17) return fmt_weighted_densities[TI(2,1)].getWeight(K);
+    if(a == 18) return fmt_weighted_densities[TI(2,2)].getWeight(K);        
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeight");
   }
@@ -304,31 +304,31 @@ public:
   // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getExtendedWeightedDensity(long K, int a)
   {
-    if(a == 0) return d_[EI()].getDensity(K);
+    if(a == 0) return fmt_weighted_densities[EI()].getDensity(K);
 
-    if(a == 1) return d_[SI()].getDensity(K)/(hsd_*hsd_);
-    if(a == 2) return d_[SI()].getDensity(K)/hsd_;
-    if(a == 3) return d_[SI()].getDensity(K);
+    if(a == 1) return fmt_weighted_densities[SI()].getDensity(K)/(hsd_*hsd_);
+    if(a == 2) return fmt_weighted_densities[SI()].getDensity(K)/hsd_;
+    if(a == 3) return fmt_weighted_densities[SI()].getDensity(K);
 
-    if(a == 4) return d_[VI(0)].getDensity(K)/hsd_;
-    if(a == 5) return d_[VI(1)].getDensity(K)/hsd_;
-    if(a == 6) return d_[VI(2)].getDensity(K)/hsd_;
+    if(a == 4) return fmt_weighted_densities[VI(0)].getDensity(K)/hsd_;
+    if(a == 5) return fmt_weighted_densities[VI(1)].getDensity(K)/hsd_;
+    if(a == 6) return fmt_weighted_densities[VI(2)].getDensity(K)/hsd_;
 
-    if(a == 7) return d_[VI(0)].getDensity(K);
-    if(a == 8) return d_[VI(1)].getDensity(K);
-    if(a == 9) return d_[VI(2)].getDensity(K);
+    if(a == 7) return fmt_weighted_densities[VI(0)].getDensity(K);
+    if(a == 8) return fmt_weighted_densities[VI(1)].getDensity(K);
+    if(a == 9) return fmt_weighted_densities[VI(2)].getDensity(K);
 
-    if(a == 10) return d_[TI(0,0)].getDensity(K);
-    if(a == 11) return d_[TI(0,1)].getDensity(K);
-    if(a == 12) return d_[TI(0,2)].getDensity(K);
+    if(a == 10) return fmt_weighted_densities[TI(0,0)].getDensity(K);
+    if(a == 11) return fmt_weighted_densities[TI(0,1)].getDensity(K);
+    if(a == 12) return fmt_weighted_densities[TI(0,2)].getDensity(K);
 
-    if(a == 13) return d_[TI(1,0)].getDensity(K);
-    if(a == 14) return d_[TI(1,1)].getDensity(K);
-    if(a == 15) return d_[TI(1,2)].getDensity(K);
+    if(a == 13) return fmt_weighted_densities[TI(1,0)].getDensity(K);
+    if(a == 14) return fmt_weighted_densities[TI(1,1)].getDensity(K);
+    if(a == 15) return fmt_weighted_densities[TI(1,2)].getDensity(K);
 
-    if(a == 16) return d_[TI(2,0)].getDensity(K);
-    if(a == 17) return d_[TI(2,1)].getDensity(K);
-    if(a == 18) return d_[TI(2,2)].getDensity(K);    
+    if(a == 16) return fmt_weighted_densities[TI(2,0)].getDensity(K);
+    if(a == 17) return fmt_weighted_densities[TI(2,1)].getDensity(K);
+    if(a == 18) return fmt_weighted_densities[TI(2,2)].getDensity(K);    
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeightedDensity");
   }
@@ -351,26 +351,26 @@ public:
 			  DPHI.v2[1] + DPHI.v1[1]/hsd_,
 			  DPHI.v2[2] + DPHI.v1[2]/hsd_};
 
-    d_[EI()].Set_dPhi(pos,dPhi_dEta);
-    d_[SI()].Set_dPhi(pos,dPhi_dS);    
+    fmt_weighted_densities[EI()].Set_dPhi(pos,dPhi_dEta);
+    fmt_weighted_densities[SI()].Set_dPhi(pos,dPhi_dS);    
 
     for(int j=0;j<3;j++)
       {
-	d_[VI(j)].Set_dPhi(pos,dPhi_dV[j]);	
+	fmt_weighted_densities[VI(j)].Set_dPhi(pos,dPhi_dV[j]);	
 	if(needsTensor)
 	  for(int k=j;k<3;k++)
-	    d_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
+	    fmt_weighted_densities[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
       }
   }
 
     
-  FMT_Weighted_Density& getEta() { return d_[0];}
+  FMT_Weighted_Density& getEta() { return fmt_weighted_densities[0];}
 
-  double getWeight(int index, long pos) { return d_[index].getWeight(pos);}
+  double getWeight(int index, long pos) { return fmt_weighted_densities[index].getWeight(pos);}
   
   // Used in DFT_Surfactant ...
-  const DFT_Vec &getV_Real(int J) const { return d_[VI(J)].Real();}
-  const DFT_Vec_Complex& getVweight_Four(int J) const { return d_[VI(J)].wk();}  
+  const DFT_Vec &getV_Real(int J) const { return fmt_weighted_densities[VI(J)].Real();}
+  const DFT_Vec_Complex& getVweight_Four(int J) const { return fmt_weighted_densities[VI(J)].wk();}  
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
@@ -383,23 +383,23 @@ public:
   
 protected:
   /**
-   *   @brief  Get the index of the "eta" partial weighted density in the array of weighted densities, d_
+   *   @brief  Get the index of the "eta" partial weighted density in the array of weighted densities, fmt_weighted_densities
    *   @returns  the index.
    */        
   int EI() const {return 0;}
 
   /**
-   *   @brief  Get the index of the scalar partial weighted density in the array of weighted densities, d_
+   *   @brief  Get the index of the scalar partial weighted density in the array of weighted densities, fmt_weighted_densities
    *   @returns  the index.
    */          
   int SI() const {return 1;}
   /**
-   *   @brief  Get the index of the vector partial weighted density in the array of weighted densities, d_
+   *   @brief  Get the index of the vector partial weighted density in the array of weighted densities, fmt_weighted_densities
    *   @returns  the index.
    */          
   int VI(int j) const {return 2+j;}
   /**
-   *   @brief  Get the index of the tensor partial weighted density in the array of weighted densities, d_
+   *   @brief  Get the index of the tensor partial weighted density in the array of weighted densities, fmt_weighted_densities
    *   @returns  the index.
    */          
   int TI(int j, int k) const
@@ -416,11 +416,11 @@ protected:
    *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
    *
    */        
-  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density>  & fmt_weighted_densities);  
+  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
 
 protected:
   double hsd_ = 0.0; ///< hard sphere diameter 
-  vector<FMT_Weighted_Density>  d_; ///< all weighted densities in real & fourier space
+  vector<FMT_Weighted_Density>  fmt_weighted_densities; ///< all weighted densities in real & fourier space
 };
 
   /**
@@ -460,7 +460,7 @@ public:
 protected:
   double Rp_ = -1; 
   double lambda_p_ = 0.0;
-  vector<FMT_Weighted_Density>  d_AO_; ///< all weighted densities in real & fourier space
+  vector<FMT_Weighted_Density>  fmt_weighted_densitiesAO_; ///< all weighted densities in real & fourier space
   DFT_FFT PSI_;
 };
 
@@ -482,8 +482,7 @@ public:
    *   @param  lattice describes the mesh
    *   @return nothing 
    */    
-  FMT_Species_EOS(Density& density, double hsd, double mu = 0, int seq = -1) :
-    FMT_Species(density,hsd,mu,seq){}
+  FMT_Species_EOS(Density& density, double hsd, double mu = 0, int seq = -1);
 
   FMT_Species_EOS(const FMT_Species &) = delete;
   
@@ -504,9 +503,8 @@ public:
   //  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version);
   
 protected:
-  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density>  & fmt_weighted_densities)
-  { FMT_Species::generateWeights(hsd,fmt_weighted_densities);}
-
+  //  virtual void generate_additional_Weight();
+  vector<FMT_Weighted_Density> eos_weighted_density_; ///< all weighted densities in real & fourier space
 };
 
 
@@ -558,7 +556,7 @@ inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Sp
   ar << t->SequenceNumber_;
   ar << t->index_;  
   ar << t->hsd_;
-  ar << t->d_;
+  ar << t->fmt_weighted_densities;
 }
 
 template<class Archive>
@@ -580,7 +578,7 @@ inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species 
   ar >> t->SequenceNumber_;
   ar >> t->index_;  
   ar >> t->hsd_;
-  ar >> t->d_;  
+  ar >> t->fmt_weighted_densities;  
 }
 
 #endif // __LUTSKO__SPECIES__

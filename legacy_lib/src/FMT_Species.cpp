@@ -20,18 +20,18 @@ using namespace std;
 int Species::SequenceNumber_ = 0;
 
 
-FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Species(density,mu,seq), hsd_(hsd), d_(11)
+FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Species(density,mu,seq), hsd_(hsd), fmt_weighted_densities(11)
 {
   long Nx = density_.Nx();
   long Ny = density_.Ny();
   long Nz = density_.Nz();
 
-  for(FMT_Weighted_Density &d: d_)
+  for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.initialize(Nx, Ny, Nz);
 
-  generateWeights(hsd_, d_);
+  generateWeights(hsd, fmt_weighted_densities);
 
-  for(FMT_Weighted_Density &d: d_)
+  for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.transformWeights();  
 }
 
@@ -235,7 +235,7 @@ double G_txy(double R, double X, double Vy, double Vz, double Tx, double Ty, dou
   return g;
 }
 
-void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density>  & fmt_weighted_densities)
+void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights)
 {
   cout << "Generating weights" << endl;
   
@@ -267,6 +267,8 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density>  & fm
   cout << myColor::RESET << endl;
 
   long counter = 0;
+
+  int numWeights = fmt_weights.size();
   
   for(int Sx = 0; Sx <= Sx_max; Sx++)
     for(int Sy = 0; Sy <= Sy_max; Sy++)
@@ -338,19 +340,22 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density>  & fm
 				if((R*R - (Vx*Vx+Vy*Vy+Vz*Vz)) < std::nextafter(0.d,1.d)) continue;
 
 				w_eta += dV*sgn*(G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				w_s   += dS*sgn*(G_s(R,Vx,Vy,Vz,Tx,Ty,Tz)   - G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				if(numWeights > 1)
+				  {
+				    w_s   += dS*sgn*(G_s(R,Vx,Vy,Vz,Tx,Ty,Tz)   - G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
 
-				w_v[0] += px*(dS/R)*sgn*(G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				w_v[1] += py*(dS/R)*sgn*(G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				w_v[2] += pz*(dS/R)*sgn*(G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
+				    w_v[0] += px*(dS/R)*sgn*(G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_v[1] += py*(dS/R)*sgn*(G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_v[2] += pz*(dS/R)*sgn*(G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
 
-				w_T[0][0] += (dS/(R*R))*sgn*(G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				w_T[1][1] += (dS/(R*R))*sgn*(G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				w_T[2][2] += (dS/(R*R))*sgn*(G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
+				    w_T[0][0] += (dS/(R*R))*sgn*(G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[1][1] += (dS/(R*R))*sgn*(G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_T[2][2] += (dS/(R*R))*sgn*(G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
 
-				w_T[0][1] += px*py*(dS/(R*R))*sgn*(G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				w_T[0][2] += px*pz*(dS/(R*R))*sgn*(G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
-				w_T[1][2] += py*pz*(dS/(R*R))*sgn*(G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx) - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));			    			    			    
+				    w_T[0][1] += px*py*(dS/(R*R))*sgn*(G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[0][2] += px*pz*(dS/(R*R))*sgn*(G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
+				    w_T[1][2] += py*pz*(dS/(R*R))*sgn*(G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx) - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
+				  }
 			      }
 		      }
 		  }
@@ -362,18 +367,21 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density>  & fm
 	      for(int iz = 0; iz < (Sz == 0 ? 1 : 2); iz++)
 		{		  
 		  long pos = density_.get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
-		  fmt_weighted_densities[EI()].addToWeight(pos,w_eta);
-		  if(isnan(fmt_weighted_densities[EI()].getWeight(pos)))
+		  fmt_weights[EI()].addToWeight(pos,w_eta);
+		  if(isnan(fmt_weights[EI()].getWeight(pos)))
 		    {
 		      cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
-		      throw std::runtime_error("FOund NAN");
+		      throw std::runtime_error("Found NAN");
 		    }
-		  fmt_weighted_densities[SI()].addToWeight(pos,w_s);
-		  for(int iv = 0;iv < 3;iv++)
+		  if(numWeights > 1)
 		    {
-		      fmt_weighted_densities[VI(iv)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*w_v[iv]);
-		      for(int it=iv;it<3;it++)
-			fmt_weighted_densities[TI(iv,it)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*(it == 0 ? (1-2*ix) : (it == 1 ? (1-2*iy) : (1-2*iz)))*w_T[iv][it]);
+		      fmt_weights[SI()].addToWeight(pos,w_s);
+		      for(int iv = 0;iv < 3;iv++)
+			{
+			  fmt_weights[VI(iv)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*w_v[iv]);
+			  for(int it=iv;it<3;it++)
+			    fmt_weights[TI(iv,it)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*(it == 0 ? (1-2*ix) : (it == 1 ? (1-2*iy) : (1-2*iz)))*w_T[iv][it]);
+			}
 		    }
 		}		  
 	}
@@ -386,6 +394,151 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density>  & fm
 }
 
 
+FMT_Species_EOS::FMT_Species_EOS(Density& density, double hsd, double mu, int seq)
+  : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1)
+										    
+{
+  long Nx = density_.Nx();
+  long Ny = density_.Ny();
+  long Nz = density_.Nz();
+
+  eos_weighted_density_[0].initialize(Nx, Ny, Nz);
+  generateWeights(2*hsd, eos_weighted_density_);
+  eos_weighted_density_[0].transformWeights();  
+}
+/*
+// This is an exact copy of FMT_Species::generateWeights. It is necessary because we want to do
+// the same but with a different hsd. Obviously, these could (and probably SHOULD) be combined
+// with some additional logic to only do the work required. For now, this is a quick solution
+// with the only drawback being that essentially the same code must be maintained in two different
+// places (e.g. if any errors are found). Since the code is fairly compact, I do not see this as a major problem.
+
+void FMT_Species_EOS::generate_additional_Weight()
+{
+  cout << "Generating additional eos weight" << endl;
+  
+  double dx = density_.getDX();
+  double dy = density_.getDY();
+  double dz = density_.getDZ();
+
+  double dV = dx*dy*dz;
+  double dS = dx*dy;
+
+  double hsr = hsd_; // twide the hard-sphere radius
+  
+  // This saves having to a code a useless special case
+  if(2*hsd_ < dx)
+    throw std::runtime_error("2*hsd is less than the lattice spacing ... aborting");
+  
+  int Sx_max = 2+int(hsr/dx);
+  int Sy_max = 2+int(hsr/dy);
+  int Sz_max = 2+int(hsr/dz);
+
+  long pmax = (Sx_max+1)*(Sy_max+1)*(Sz_max+1);
+  
+  int I[2] = {-1,1};
+
+  cout << endl;
+  cout << myColor::GREEN;
+  cout << "///////////////////////////////////////////////////////////" << endl;
+  cout << "/////  Generating eos weight using analytic formulae" << endl;
+  cout << myColor::RESET << endl;
+
+  long counter = 0;
+  
+  for(int Sx = 0; Sx <= Sx_max; Sx++)
+    for(int Sy = 0; Sy <= Sy_max; Sy++)
+      for(int Sz = 0; Sz <= Sz_max; Sz++)
+	{
+	  counter++;
+	  if(counter%1000 == 0) {if(counter > 0) cout << '\r'; cout << "\t" << int(double(counter)*100.0/pmax) << "% finished: " << counter << " out of " << pmax; cout.flush();}
+
+	  double R2_min = (Sx-(Sx == 0 ? 0 : 1))*(Sx-(Sx == 0 ? 0 : 1))+(Sy-(Sy == 0 ? 0 : 1))*(Sy-(Sy == 0 ? 0 : 1))+(Sz-(Sz == 0 ? 0 : 1))*(Sz-(Sz == 0 ? 0 : 1));
+	  double R2_max = (Sx+1)*(Sx+1)+(Sy+1)*(Sy+1)+(Sz+1)*(Sz+1);
+	  
+	  double w_eta = 0.0;
+
+	  // The weight for point Sx,Sy,Sz has contributions from all adjoining cells
+	  // The furthest corner is Sx+1,Sy+1,Sz+1 and if this less than hsr*hsr, the volume weights are 1, and the surface weights are zero
+	  // else, the nearest corner is Sx-1,Sy-1,Sz-1 (unless Sx, Sy or Sz = 0) and if this is less than hsr*hsr, then the boundary is between these limits and we must compute
+	  // else, all hsd boundary is less than the nearest corner and all weights are zero.
+
+	  double R = hsr/dx;
+
+	  //Note: Special cases of I-sums, e.g. when one or more components of S are zero, are handled in the called functions.
+	  
+	  if(R*R > R2_max) {w_eta = dV;}
+	  else if(R*R > R2_min)
+	    for(int ax:I)
+	      {
+		int ix = ax;
+		double Tx = Sx+ix;
+		int px = (Tx < 0 ? -1 : 1);
+		if(Tx < 0) Tx = ix = 1;		   
+		for(int ay:I)
+		  {
+		    int iy = ay;
+		    double Ty = Sy+iy;
+		    int py = (Ty < 0 ? -1 : 1);
+		    if(Ty < 0) {Ty = 1; iy = 1;}	       		    
+		    for(int az:I)
+		      {
+			int iz = az;
+			double Tz = Sz+iz;
+			int pz = (Tz < 0 ? -1 : 1);
+			if(Tz < 0) Tz = iz = 1;
+  
+			int vx[2] = {0,ix};
+			int vy[2] = {0,iy};
+			int vz[2] = {0,iz};
+
+			double j = 0.0;
+
+			for(int jx = 0; jx < 2; jx++)
+			  for(int jy = 0; jy < 2; jy++)
+			    for(int jz = 0; jz < 2; jz++)
+			      {
+				double Vx = Tx - vx[jx];
+				double Vy = Ty - vy[jy];
+				double Vz = Tz - vz[jz];
+			    
+				int sgn = 1;
+				if(jx == 1) sgn *= -1;
+				if(jy == 1) sgn *= -1;
+				if(jz == 1) sgn *= -1;
+			    
+				// test up to machine precision
+				if((R*R - (Vx*Vx+Vy*Vy+Vz*Vz)) < std::nextafter(0.d,1.d)) continue;
+
+				w_eta += dV*sgn*(G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+			      }
+		      }
+		  }
+	      }	
+	  
+	  // Add in for all octants of the sphere: take account of parity of vector and tensor quantities
+	  for(int ix = 0; ix < (Sx == 0 ? 1 : 2); ix++)
+	    for(int iy = 0; iy < (Sy == 0 ? 1 : 2); iy++)
+	      for(int iz = 0; iz < (Sz == 0 ? 1 : 2); iz++)
+		{		  
+		  long pos = density_.get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
+		  eos_weighted_density_.addToWeight(pos,w_eta);
+		  if(isnan(eos_weighted_density_.getWeight(pos)))
+		    {
+		      cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
+		      throw std::runtime_error("Found NAN");
+		    }
+		}		  
+	}
+
+  cout << endl;
+  cout << myColor::GREEN;
+  cout << "/////  Finished.  " << endl;
+  cout << "///////////////////////////////////////////////////////////" << endl;
+  cout << myColor::RESET << endl;
+}
+*/
+
 
 ////////////////////////////
 // AO model
@@ -393,8 +546,8 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
   : Rp_(Rp), lambda_p_(lambda_p), FMT_Species(density,hsd,mu,seq)
 {
   // get the polymer species weights
-  generateWeights(2*Rp_, d_AO_);
-  for(FMT_Weighted_Density &d: d_AO_)
+  generateWeights(2*Rp_, fmt_weighted_densitiesAO_);
+  for(FMT_Weighted_Density &d: fmt_weighted_densitiesAO_)
     d.transformWeights();
 
   long Nx = density_.Nx();
@@ -404,9 +557,9 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
 }
 
 
-// The job of this function is to take the information concerning dF/dn_{a}(pos) (stored in DPHI) and to construct the dPhi_dn for partial measures that are stored in d_.
+// The job of this function is to take the information concerning dF/dn_{a}(pos) (stored in DPHI) and to construct the dPhi_dn for partial measures that are stored in fmt_weighted_densities.
 // This is done via the call to FMT_Species::set_fundamental_measure_derivatives. Then,
-// we will also construct PSI using the space d_AO_dPhi as working storage.
+// we will also construct PSI using the space fmt_weighted_densitiesAO_dPhi as working storage.
 void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
 {
   FMT_Species::set_fundamental_measure_derivatives(DPHI,pos,needsTensor);
@@ -420,15 +573,15 @@ void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DP
 			  DPHI.v2[2] + DPHI.v1[2]/hsdp};
 
   
-  d_AO_[EI()].Set_dPhi(pos,dPhi_dEta);
-  d_AO_[SI()].Set_dPhi(pos,dPhi_dS);
+  fmt_weighted_densitiesAO_[EI()].Set_dPhi(pos,dPhi_dEta);
+  fmt_weighted_densitiesAO_[SI()].Set_dPhi(pos,dPhi_dS);
 
   for(int j=0;j<3;j++)
     {
-      d_AO_[VI(j)].Set_dPhi(pos,dPhi_dV[j]);	
+      fmt_weighted_densitiesAO_[VI(j)].Set_dPhi(pos,dPhi_dV[j]);	
       if(needsTensor)
 	for(int k=j;k<3;k++)
-	  d_AO_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
+	  fmt_weighted_densitiesAO_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
     }  
   
 }
@@ -440,10 +593,10 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   PSI_.Four().zeros();  
   
   // The call to add_to_dPhi s does the fft of dPhi/dn_{a} for each fm and adds to array PSI
-  int imax = (needsTensor ? d_.size() : 5);
+  int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
   
   for(int i=0;i<imax;i++)      
-    d_[i].add_to_dPhi(PSI_.Four());
+    fmt_weighted_densities[i].add_to_dPhi(PSI_.Four());
 
   PSI_.do_fourier_2_real();
 
