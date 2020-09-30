@@ -210,7 +210,7 @@ public:
    *  
    *   @return none
    */        
-  void convoluteDensities(bool needsTensor)
+  virtual void convoluteDensities(bool needsTensor)
   {
     // reference to Fourier-space array of density
     density_.doFFT();
@@ -416,7 +416,7 @@ protected:
    *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
    *
    */        
-  void generateWeights(double hsd, vector<FMT_Weighted_Density>  & fmt_weighted_densities);  
+  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density>  & fmt_weighted_densities);  
 
 protected:
   double hsd_ = 0.0; ///< hard sphere diameter 
@@ -463,6 +463,55 @@ protected:
   vector<FMT_Weighted_Density>  d_AO_; ///< all weighted densities in real & fourier space
   DFT_FFT PSI_;
 };
+
+
+
+
+  /**
+   *  @brief Extend FMT_Species to include EOS correction
+   *
+   */
+
+class FMT_Species_EOS : public FMT_Species
+{
+public:
+  /**
+   *   @brief  Default  constructor for FMT_Species 
+   *  
+   *   @param  hsd is the hard-sphere diameter
+   *   @param  lattice describes the mesh
+   *   @return nothing 
+   */    
+  FMT_Species_EOS(Density& density, double hsd, double mu = 0, int seq = -1) :
+    FMT_Species(density,hsd,mu,seq){}
+
+  FMT_Species_EOS(const FMT_Species &) = delete;
+  
+  ~FMT_Species_EOS(){}
+
+  virtual void convoluteDensities(bool needsTensor)
+  {
+    FMT_Species::convoluteDensities(needsTensor);
+  }
+
+  // TODO
+  //  friend class boost::serialization::access;
+  //  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
+  //  {
+  //    boost::serialization::void_cast_register<FMT_Species, Species>(static_cast<FMT_Species *>(NULL),static_cast<Species *>(NULL));
+  //  }    
+  //  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species * t, const unsigned int file_version);
+  //  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version);
+  
+protected:
+  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density>  & fmt_weighted_densities)
+  { FMT_Species::generateWeights(hsd,fmt_weighted_densities);}
+
+};
+
+
+
+
 
 template<class Archive>
 inline void boost::serialization::save_construct_data(Archive & ar, const Species * t, const unsigned int file_version)
