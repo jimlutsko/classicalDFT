@@ -491,8 +491,13 @@ public:
   virtual void convoluteDensities(bool needsTensor)
   {
     FMT_Species::convoluteDensities(needsTensor);
+
+    const DFT_Vec_Complex &rho_k = density_.getDK();    
+    eos_weighted_density_[0].convolute(rho_k);          
   }
 
+  double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
+  
   // TODO
   //  friend class boost::serialization::access;
   //  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)

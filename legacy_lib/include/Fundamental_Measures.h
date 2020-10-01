@@ -4,7 +4,7 @@
 
 class FundamentalMeasures
 {
-public:
+ public:
   FundamentalMeasures()
     {
       eta = s0 = s1 = s2 = 0.0;
@@ -30,28 +30,28 @@ public:
 
 
   FundamentalMeasures(const FundamentalMeasures& b)
-  {
-    eta = b.eta;
-    s0 = b.s0;
-    s1 = b.s1;
-    s2 = b.s2;
-    for(int i=0;i<3;i++)
-      {
-	v1[i] = b.v1[i];
-	v2[i] = b.v2[i];
-	vT[i] = b.vT[i];       
-	for(int j=0;j<3;j++)
-	  {
-	    T[i][j] = b.T[i][j];
-	    TT[i][j] = b.TT[i][j];
-	  }
-      }
-    v1_v2 = b.v1_v2;
-    v2_v2 = b.v2_v2;
-    vTv = b.vTv;
-    T2 = b.T2;
-    T3 = b.T3;
-  }
+    {
+      eta = b.eta;
+      s0 = b.s0;
+      s1 = b.s1;
+      s2 = b.s2;
+      for(int i=0;i<3;i++)
+	{
+	  v1[i] = b.v1[i];
+	  v2[i] = b.v2[i];
+	  vT[i] = b.vT[i];       
+	  for(int j=0;j<3;j++)
+	    {
+	      T[i][j] = b.T[i][j];
+	      TT[i][j] = b.TT[i][j];
+	    }
+	}
+      v1_v2 = b.v1_v2;
+      v2_v2 = b.v2_v2;
+      vTv = b.vTv;
+      T2 = b.T2;
+      T3 = b.T3;
+    }
   
   FundamentalMeasures(double f[]){fill(f);}  
 
@@ -137,34 +137,37 @@ public:
     f[18] = T[2][2];  
   }
 
+  void fillHomogeneousWeights(double d)
+  {
+
+  }
 
 
+  // fundamental measures
+  double eta = 0.0;
+  double s0 = 0.0;
+  double s1 = 0.0;
+  double s2 = 0.0;
+  double v1[3] = {0.0,0.0,0.0};
+  double v2[3] = {0.0,0.0,0.0};
+  double T[3][3] = {{0.0,0.0,0.0},
+		    {0.0,0.0,0.0},
+		    {0.0,0.0,0.0}};
 
-    // fundamental measures
-    double eta = 0.0;
-    double s0 = 0.0;
-    double s1 = 0.0;
-    double s2 = 0.0;
-    double v1[3] = {0.0,0.0,0.0};
-    double v2[3] = {0.0,0.0,0.0};
-    double T[3][3] = {{0.0,0.0,0.0},
-		      {0.0,0.0,0.0},
-		      {0.0,0.0,0.0}};
+  // some useful derived quantities
+  double v1_v2 = 0.0; ///< v1 dot v2
+  double v2_v2 = 0.0; ///< v2 dot v2
+  double vTv   = 0.0; ///< v dot T dot v
+  double T2    = 0.0; ///< Tr(T^2)
+  double T3    = 0.0; ///< Tr(T^3)
 
-    // some useful derived quantities
-    double v1_v2 = 0.0; ///< v1 dot v2
-    double v2_v2 = 0.0; ///< v2 dot v2
-    double vTv   = 0.0; ///< v dot T dot v
-    double T2    = 0.0; ///< Tr(T^2)
-    double T3    = 0.0; ///< Tr(T^3)
-
-    double vT[3] = {0.0,0.0,0.0};
+  double vT[3] = {0.0,0.0,0.0};
 
   
-    double TT[3][3] = {{0.0,0.0,0.0},
-		       {0.0,0.0,0.0},
-		       {0.0,0.0,0.0}};  
-  };
+  double TT[3][3] = {{0.0,0.0,0.0},
+		     {0.0,0.0,0.0},
+		     {0.0,0.0,0.0}};  
+};
   
 
 

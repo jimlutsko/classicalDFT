@@ -403,7 +403,7 @@ FMT_Species_EOS::FMT_Species_EOS(Density& density, double hsd, double mu, int se
   long Nz = density_.Nz();
 
   eos_weighted_density_[0].initialize(Nx, Ny, Nz);
-  generateWeights(2*hsd, eos_weighted_density_);
+  generateWeights(1.4*hsd, eos_weighted_density_);
   eos_weighted_density_[0].transformWeights();  
 }
 /*
