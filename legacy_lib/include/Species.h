@@ -482,7 +482,7 @@ public:
    *   @param  lattice describes the mesh
    *   @return nothing 
    */    
-  FMT_Species_EOS(Density& density, double hsd, double mu = 0, int seq = -1);
+  FMT_Species_EOS(double D_EOS, Density& density, double hsd, double mu = 0, int seq = -1);
 
   FMT_Species_EOS(const FMT_Species &) = delete;
   
@@ -510,6 +510,7 @@ public:
 protected:
   //  virtual void generate_additional_Weight();
   vector<FMT_Weighted_Density> eos_weighted_density_; ///< all weighted densities in real & fourier space
+  double D_EOS_;
 };
 
 
