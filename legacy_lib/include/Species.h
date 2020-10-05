@@ -242,7 +242,7 @@ public:
    *  
    *   @return none
    */        
-  void convoluteDensities(bool needsTensor)
+  virtual void convoluteDensities(bool needsTensor)
   {
     // reference to Fourier-space array of density
     density_.doFFT();
@@ -516,6 +516,13 @@ public:
   
   ~FMT_Species_Analytic(){}
 
+  virtual void convoluteDensities(bool needsTensor)
+  {
+    if(needsTensor)
+      throw std::runtime_error("FMT_Species_Analytic cannot calculate tensor measures and is obsolete: use FMT_Species_Analytic_2 instead");
+    FMT_Species::convoluteDensities(needsTensor);
+  }
+  
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
   {
