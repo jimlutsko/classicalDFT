@@ -183,7 +183,7 @@ void Interaction_Base::generateWeights()
   size_t steps_completed = 0;
   size_t total_steps = Nmax/chunk;
 
-  vector<double> w2(Nmax,0.0);
+  vector<double> w2(Nmax+1,0.0);
 
   cout << "Generating interpolated weights" << endl;
   
@@ -196,7 +196,7 @@ void Interaction_Base::generateWeights()
     long pold = -1;
     int Sx,Sy,Sz;
 #pragma omp for  
-    for(p=0;p<Nmax;p++)
+    for(p=0;p<=Nmax;p++)
       {
 	if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
 	  {
@@ -260,7 +260,7 @@ void Interaction_Base::generateWeights()
 	    if(nz > nx) swap(nx,nz);
 	    if(nz > ny) swap(ny,nz);
 	    long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
-
+	    
 	    if(p > Nmax) throw std::runtime_error("counter out of range in Interaction_Base::generateWeights");
 	    double w = w2[p];
 	    // and get the point it contributes to
