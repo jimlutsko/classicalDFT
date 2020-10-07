@@ -183,7 +183,7 @@ void Interaction_Base::generateWeights()
   size_t steps_completed = 0;
   size_t total_steps = Nmax/chunk;
 
-  vector<double> w2(Nmax,0.0);
+  vector<double> w2(Nmax+1,0.0);
 
   cout << "Generating interpolated weights" << endl;
   
@@ -196,7 +196,7 @@ void Interaction_Base::generateWeights()
     long pold = -1;
     int Sx,Sy,Sz;
 #pragma omp for  
-    for(p=0;p<Nmax;p++)
+    for(p=0;p<=Nmax;p++)
       {
 	if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
 	  {
@@ -260,12 +260,12 @@ void Interaction_Base::generateWeights()
 	    if(nz > nx) swap(nx,nz);
 	    if(nz > ny) swap(ny,nz);
 	    long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
-
+	    
 	    if(p > Nmax) throw std::runtime_error("counter out of range in Interaction_Base::generateWeights");
 	    double w = w2[p];
 	    // and get the point it contributes to
 	    long pos = s1_->getDensity().get_PBC_Pos(ix,iy,iz);
-	    w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));	    
+	    w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
 	    a_vdw_ += w;
 	  }
     }
@@ -363,7 +363,6 @@ double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, double 
 
 double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx)
 {
-
   double sum = 0.0;
   
   for(int i=0;i<vv_.size();i++)
@@ -373,7 +372,6 @@ double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double 
 	  double r2 = (Sx+pt_[i])*(Sx+pt_[i])*dx*dx+(Sy+pt_[j])*(Sy+pt_[j])*dx*dx+(Sz+pt_[k])*(Sz+pt_[k])*dx*dx;
 	  sum += vv_[i]*vv_[j]*vv_[k]*v_->Watt2(r2);
 	}
-
   return sum;
 }
 
