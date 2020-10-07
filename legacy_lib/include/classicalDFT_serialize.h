@@ -3,8 +3,6 @@
 
 
 BOOST_CLASS_EXPORT_GUID(FMT_Species, "FMT_Species")
-BOOST_CLASS_EXPORT_GUID(FMT_Species_Analytic, "FMT_Species_Analytic")
-BOOST_CLASS_EXPORT_GUID(FMT_Species_Numeric, "FMT_Species_Numeric")
 BOOST_CLASS_EXPORT_GUID(Periodic, "Periodic")
 BOOST_CLASS_EXPORT_GUID(WhiteBearI, "WhiteBearI")
 BOOST_CLASS_EXPORT_GUID(WhiteBearII, "WhiteBearII")
@@ -23,7 +21,7 @@ BOOST_CLASS_EXPORT_GUID(Interaction_Interpolation_LF, "Interaction_Interpolation
 BOOST_CLASS_EXPORT_GUID(Interaction_Interpolation_QE, "Interaction_Interpolation_QE")
 BOOST_CLASS_EXPORT_GUID(Interaction_Interpolation_QF, "Interaction_Interpolation_QF")
 
-BOOST_CLASS_EXPORT_GUID(Interaction_Surfactant, "Interaction_Surfactant")
+//BOOST_CLASS_EXPORT_GUID(Interaction_Surfactant, "Interaction_Surfactant")
 
 BOOST_CLASS_EXPORT_GUID(LJ, "LJ")
 BOOST_CLASS_EXPORT_GUID(tWF, "tWF")
