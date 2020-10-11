@@ -111,36 +111,39 @@ class FundamentalMeasures
     calculate_derived_quantities();  
   }
   
-  void copy_to(double f[])
+  //  void copy_to(double f[])
+  vector<double> get_as_vector()
   {
-    f[0] = eta;
-    f[1] = s0;
-    f[2] = s1;
-    f[3] = s2;
-    f[4] = v1[0];
-    f[5] = v1[1];
-    f[6] = v1[2];
-    f[7] = v2[0];
-    f[8] = v2[1];
-    f[9] = v2[2];
+    vector<double> f;
+    f.push_back(eta);
+    f.push_back(s0);
+    f.push_back(s1);
+    f.push_back(s2);
+    f.push_back(v1[0]);
+    f.push_back(v1[1]);
+    f.push_back(v1[2]);
+    f.push_back(v2[0]);
+    f.push_back(v2[1]);
+    f.push_back(v2[2]);
 
-    f[10] = T[0][0];
-    f[11] = T[0][1];
-    f[12] = T[0][2];
+    f.push_back(T[0][0]);
+    f.push_back(T[0][1]);
+    f.push_back(T[0][2]);
     
-    f[13] = T[1][0];
-    f[14] = T[1][1];
-    f[15] = T[1][2];
+    f.push_back(T[1][0]);
+    f.push_back(T[1][1]);
+    f.push_back(T[1][2]);
 
-    f[16] = T[2][0];
-    f[17] = T[2][1];
-    f[18] = T[2][2];  
+    f.push_back(T[2][0]);
+    f.push_back(T[2][1]);
+    f.push_back(T[2][2]);
+
+    return f;
   }
 
-  void fillHomogeneousWeights(double d)
-  {
-
-  }
+  //  void fillHomogeneousWeights(double d)
+  //  {
+  //  }
 
 
   // fundamental measures
