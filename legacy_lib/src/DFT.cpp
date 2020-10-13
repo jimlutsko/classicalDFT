@@ -168,23 +168,23 @@ void DFT::spinodal(double &xs1, double &xs2) const
   if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
   if(Interactions_.size() != 1) throw std::runtime_error("DFT::spinodal only implemented for a single attractive interaction");
 
-  //  double a[6] = { 1, 4 + ae, 4-4*ae , -4+6*ae, 1-4*ae, ae };
-  //  int nroots = SolveP5(x, a[4]/a[5], a[3]/a[5], a[2]/a[5], a[1]/a[5], a[0]/a[5]);
-
   xs1 = xs2 = -1;
   
   double d = allSpecies_[0]->getHSD();
   double fac = 6/(M_PI*d*d*d);
   double ae = Interactions_[0]->getVDWParameter()*fac;
 
-  vector<double> a;
-  a.push_back(1);
-  a.push_back( 4 + ae);
-  a.push_back( 4 - 4*ae);
-  a.push_back(-4 + 6*ae);
-  a.push_back( 1 - 4*ae);
-  a.push_back(       ae);
-    
+  vector<double> num;
+  vector<double> denom;
+  if(fmt_) fmt_->get_dPdx_coeffs(num,denom);
+
+  int sz = max(num.size(),denom.size()+1);
+  vector<double> a(sz,0.0);
+  for(int i=0;i<num.size();i++)
+    a[i] += num[i];
+  for(int i=0;i<denom.size();i++)
+    a[i+1] += ae*denom[i];  
+
   double roots[2*(a.size()-1)];
   gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(a.size());
   gsl_poly_complex_solve(a.data(), a.size(), w, roots);
@@ -224,36 +224,30 @@ double DFT::XLiq_from_P(double P) const
   P *= M_PI*d*d*d/6;
 
   double x = -1;
-  
-  /*  
-  double roots[5];
-  int nroots = SolveP5(roots, -3+2/ae,(3*ae-2*P-2)/ae, (-ae+6*P-2)/ae, (-6*P-2)/ae, 2*P/ae);
-  
-  for(int i=0;i<nroots;i++)
-    if(roots[i] > 0 && roots[i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
-      x = max(x, roots[i]);
-  */
+
+  vector<double> num;
+  vector<double> denom;
+  if(fmt_) fmt_->get_P_coeffs(num,denom);
+
+  int sz = max(num.size()+1,denom.size()+2);
+  vector<double> a(sz,0.0);
+
+  for(int i=0;i<num.size();i++)
+    a[i+1] += num[i];
+  for(int i=0;i<denom.size();i++)
+    {
+      a[i]   += -P*denom[i];
+      a[i+2] += 0.5*ae*denom[i];  
+    }
+
   /*
-  const int order = 6;
-  double a[] = { -P, 3*P+1, -3*P+1+0.5*ae, P+1-1.5*ae+2*be, -1+1.5*ae-6*be, -0.5*ae+6*be, -2*be};  
-  double roots[order*2];
-  gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(order+1);
-  gsl_poly_complex_solve(a, order+1, w, roots);
-  gsl_poly_complex_workspace_free (w);
-  int nroots = order;
-
-  for(int i=0;i<nroots;i++)
-    if(fabs(gsl_poly_eval(a,1+order,roots[2*i])) < 1e-12) // only check real roots
-  */
-
-  vector<double> a;
   a.push_back(-P);
   a.push_back(  3*P+1);
   a.push_back( -3*P+1+0.5*ae);
   a.push_back(  P+1-1.5*ae);
   a.push_back(  -1+1.5*ae);
   a.push_back(   -0.5*ae);
-    
+  */
   double roots[2*(a.size()-1)];
   gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(a.size());
   gsl_poly_complex_solve(a.data(), a.size(), w, roots);
