@@ -439,7 +439,7 @@ public:
    *   @param  lambda_p is the polymer-density related parameter.
    *   @return nothing 
    */    
-  FMT_AO_Species(Density& density, double hsd, double Rp, double lambda_p, double mu = 0, int seq = -1);
+  FMT_AO_Species(Density& density, double hsd, double Rp, double reservoir_density, double mu = 0, int seq = -1);
   FMT_AO_Species(const FMT_Species &) = delete;
   ~FMT_AO_Species(){}
 
@@ -459,7 +459,7 @@ public:
   
 protected:
   double Rp_ = -1; 
-  double lambda_p_ = 0.0;
+  double reservoir_density_ = 0.0;
   vector<FMT_Weighted_Density>  fmt_weighted_densitiesAO_; ///< all weighted densities in real & fourier space
   DFT_FFT PSI_;
 };
