@@ -543,16 +543,19 @@ void FMT_Species_EOS::generate_additional_Weight()
 ////////////////////////////
 // AO model
 FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double reservoir_density, double mu, int seq)
-  : Rp_(Rp), reservoir_density_(reservoir_density), FMT_Species(density,hsd,mu,seq)
+  : Rp_(Rp), reservoir_density_(reservoir_density), FMT_Species(density,hsd,mu,seq), fmt_weighted_densitiesAO_(11)
 {
   // get the polymer species weights
+  long Nx = density_.Nx();
+  long Ny = density_.Ny();
+  long Nz = density_.Nz();
+
+  for(FMT_Weighted_Density &d: fmt_weighted_densitiesAO_)
+    d.initialize(Nx, Ny, Nz);  
   generateWeights(2*Rp_, fmt_weighted_densitiesAO_);
   for(FMT_Weighted_Density &d: fmt_weighted_densitiesAO_)
     d.transformWeights();
 
-  long Nx = density_.Nx();
-  long Ny = density_.Ny();
-  long Nz = density_.Nz();
   PSI_.initialize(Nx,Ny,Nz);
 }
 
