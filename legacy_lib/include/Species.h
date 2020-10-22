@@ -38,9 +38,6 @@ class Species
   void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}
   void setForce(const DFT_Vec &f) {dF_.set(f);}
   void multForce(double f) {dF_.MultBy(f);}  
-
-
-  virtual double free_energy_post_process(bool needsTensor) {return 0.0;} // default does nothing.
   
   double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}
   
@@ -97,7 +94,7 @@ class Species
    *   @brief  Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
    *  
    */    
-  void endForceCalculation()
+  double endForceCalculation()
   {
     if(fixedMass_ > 0.0)
       {
@@ -110,6 +107,8 @@ class Species
 	for(long p=0;p<density_.Ntot();p++)
 	  dF_.set(p, dF_.get(p)-mu_*density_.dV());
       }
+
+    return 0;
   }
 
   friend class boost::serialization::access;
@@ -158,6 +157,9 @@ public:
   
   ~FMT_Species(){}
 
+  // Does nothing: needed for AO extension.
+  virtual double free_energy_post_process(bool needsTensor){ return 0.0;}
+  
   /**
    *   @brief  Accessor for hard sphere diameter
    *  
@@ -444,8 +446,8 @@ public:
   ~FMT_AO_Species(){}
 
   virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor);
-  virtual double free_energy_post_process(bool needsTensor); // default does nothing.  
-
+  virtual double free_energy_post_process(bool needsTensor);
+  
   // TODO:
   /*
   friend class boost::serialization::access;

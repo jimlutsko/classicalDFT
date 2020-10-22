@@ -591,7 +591,7 @@ void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DP
 
 // This is where we finish the construction of Psi(r) and
 // evaluate the contribution to the free energy
-double FMT_AO_Species::free_energy_post_process(bool needsTensor)
+double FMT_AO_Species::free_energy_post_process(bool needsTensor)  
 {
   PSI_.Four().zeros();  
   
@@ -604,11 +604,13 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   PSI_.do_fourier_2_real();
 
   double dV = density_.dV();  
-  PSI_.Real().MultBy(dV);
+  PSI_.Real().MultBy(dV*PSI_.Real().size());
 
   double F = 0;
   for(long i=0;i<PSI_.cReal().size();i++)
-    F += exp(-PSI_.cReal().get(i));
+    F -= exp(-PSI_.cReal().get(i)/dV);
+
+  cout << " FMT_SPECIES : " << -PSI_.cReal().get(0) << " " << -PSI_.cReal().get(1) << " " << -PSI_.cReal().get(2) << endl;
   
-  return F*dV*reservoir_density_;
+  return F*reservoir_density_;
 }

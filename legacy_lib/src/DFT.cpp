@@ -319,9 +319,10 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 
   double F = calculateFreeEnergyAndDerivatives_internal_(onlyFex);
 
+
   for(auto &s: allSpecies_)
     s->endForceCalculation();
-
+  
   return F;
 }
 

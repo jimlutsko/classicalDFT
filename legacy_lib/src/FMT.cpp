@@ -293,9 +293,16 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   // For the AO species, there is additional work to do. This is where we get the chance.
   // Ordinary hard-spheres do nothing here.
   // Do FFT of density and compute the fundamental measures by convolution
+  double FAO = 0;
   for(auto s: allSpecies)
-    s->free_energy_post_process(needsTensor());  
-
+    {
+      FMT_Species *f = dynamic_cast<FMT_Species*>(s);
+      if(f)
+	FAO += f->free_energy_post_process(needsTensor());  
+    }
+  cout << " F = " << F;
+  F += FAO;
+  cout << " FAO = " << FAO << " F = " << F << endl;
   
   // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
   if(hadCatch) 
