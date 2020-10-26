@@ -601,7 +601,7 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   for(int i=0;i<number_of_weights;i++)      
     fmt_weighted_densitiesAO_[i].add_to_dPhi(PSI_.Four());
 
-  double dV = density_.dV();  
+  double dV = density_.dV();
   
   PSI_.do_fourier_2_real();
   PSI_.Real().MultBy(PSI_.Real().size()*dV);
