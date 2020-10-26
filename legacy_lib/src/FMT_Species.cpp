@@ -601,18 +601,12 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   for(int i=0;i<number_of_weights;i++)      
     fmt_weighted_densitiesAO_[i].add_to_dPhi(PSI_.Four());
 
-  PSI_.do_fourier_2_real();
-
-  double dV = density_.dV();  
-  PSI_.Real().MultBy(dV*PSI_.Real().size());
-
-  cout << "PSI = " << PSI_.cReal().get(0) << " " << PSI_.cReal().get(100) << endl;
+  PSI_.do_fourier_2_PSI();
+  real_.Real().MultBy(PSI_.Real().size());
   
   double F = 0;
   for(long i=0;i<PSI_.cReal().size();i++)
-    F -= exp(-PSI_.cReal().get(i)/dV);
-
-  cout << " FMT_SPECIES : " << -PSI_.cReal().get(0) << " " << -PSI_.cReal().get(1) << " " << -PSI_.cReal().get(2) << endl;
+    F -= exp(-PSI_.cReal().get(i));
   
   return F*reservoir_density_;
 }
