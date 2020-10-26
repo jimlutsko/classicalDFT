@@ -570,7 +570,7 @@ void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DP
   double hsdp = 2*Rp_;
   
   double dPhi_dEta = DPHI.eta;
-  double dPhi_dS = (DPHI.s0/(hsdp*hsdp)) + DPHI.s1*((1/hsdp)+(1/hsd_)) + DPHI.s2;
+  double dPhi_dS = (DPHI.s0/(hsdp*hsdp)) + DPHI.s1*((1/hsdp)) + DPHI.s2;
   double dPhi_dV[3] = {DPHI.v2[0] + DPHI.v1[0]/hsdp,
 			  DPHI.v2[1] + DPHI.v1[1]/hsdp,
 			  DPHI.v2[2] + DPHI.v1[2]/hsdp};
@@ -596,16 +596,18 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   PSI_.Four().zeros();  
   
   // The call to add_to_dPhi s does the fft of dPhi/dn_{a} for each fm and adds to array PSI
-  int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
-  
-  for(int i=0;i<imax;i++)      
-    fmt_weighted_densities[i].add_to_dPhi(PSI_.Four());
+  int number_of_weights = (needsTensor ? fmt_weighted_densities.size() : 5);
+
+  for(int i=0;i<number_of_weights;i++)      
+    fmt_weighted_densitiesAO_[i].add_to_dPhi(PSI_.Four());
 
   PSI_.do_fourier_2_real();
 
   double dV = density_.dV();  
   PSI_.Real().MultBy(dV*PSI_.Real().size());
 
+  cout << "PSI = " << PSI_.cReal().get(0) << " " << PSI_.cReal().get(100) << endl;
+  
   double F = 0;
   for(long i=0;i<PSI_.cReal().size();i++)
     F -= exp(-PSI_.cReal().get(i)/dV);
