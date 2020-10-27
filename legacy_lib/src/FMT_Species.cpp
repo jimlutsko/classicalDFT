@@ -606,8 +606,53 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   PSI_.do_fourier_2_real();
   PSI_.Real().MultBy(PSI_.Real().size()*dV);
 
+  // Here, we compute the contribution to the free energy and begin to reuse PSI in preparation for computing the forces
   double F = 0;
   for(long i=0;i<PSI_.cReal().size();i++)
-    F -= exp(-PSI_.cReal().get(i));
-  return F*reservoir_density_;
+    {
+      double val = exp(-PSI_.cReal().get(i));
+      PSI_.Real().set(i,val);
+      F += val;
+    }
+  F *= -reservoir_density_;
+
+  // Upsilon requires convoluting the (now exponentiated) PSI with the various weights
+
+  PSI_.do_real_2_fourier(); // do FFT
+
+  for(auto &x: fmt_weighted_densitiesAO_)
+    x.convoluteWith(PSI_); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
+
+  // The weights now hold Upsilon for each measure. We now need Upsilon-bar
+  // PSI will be used to hold intermediate results
+  
+  int num_fmt_measures = fmt_weighted_densitiesAO_.size();
+  for(int a=0;a<num_fmt_measures;a++)
+    {  
+      for(long pos=0; pos<PSI_.cReal().size();pos++)
+	{
+	  double v[20];
+	  for(int l=0;l<19;l++)
+	    v[l] = getExtendedWeightedDensity(pos, l);
+
+	  FundamentalMeasures fm(v);
+	  double d2PHI[20][20];
+	  fmt_.D2Phi(fm,d2PHI);
+	  
+	  double sum = d2PHI[a][0]*upsilon[0];
+	  sum += (d2PHI[a][1]*(1.0/(hsdp*hsdp))+d2PHI[a][2]*(1.0/(hsdp))+d2PHI[a][3])*upsilon[1];
+	  int tcount = 0; // counter for tensor entries
+	  for(int k=0; k<3; k++)
+	    {
+	      sum += (d2PHI[a][4+k]*(1.0/(hsdp))+d2PHI[a][7+k])*upsilon[2+k];
+	      for(int l=k; l<3; l++, tcount++)	      
+		sum += d2PHI[a][10+tcount]*upsilon[tcount];
+	    }
+	  PSI_.Real().set(pos,-reservoir_density*sum);
+	}
+      PSI_.do_real_2_fourier();
+      fmt_weighted_densitiesAO_[a].convoluteWith(PSI_); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)      
+      addToForce(fmt_weighted_densitiesAO_[a].cReal());
+    }
+  return F;
 }
