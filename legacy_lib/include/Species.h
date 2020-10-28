@@ -158,7 +158,7 @@ public:
   ~FMT_Species(){}
 
   // Does nothing: needed for AO extension.
-  virtual double free_energy_post_process(bool needsTensor){ return 0.0;}
+  //  virtual double free_energy_post_process(bool needsTensor){ return 0.0;}
   
   /**
    *   @brief  Accessor for hard sphere diameter
@@ -221,7 +221,7 @@ public:
     int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
 
     for(int i=0;i<imax;i++)
-      fmt_weighted_densities[i].convolute(rho_k);      
+      fmt_weighted_densities[i].convoluteWith(rho_k);      
   }
 
   void convolute_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
@@ -252,7 +252,7 @@ public:
     for(int i=0;i<imax;i++)      
       fmt_weighted_densities[i].add_to_dPhi(dPhi);
   }
-
+  
   // These return the real weight at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getExtendedWeight(long K, int a)
   {
@@ -284,7 +284,7 @@ public:
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeight");
   }
-
+  
   // FOr testing only: brute-force evaluation of weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getBruteForceWeightedDensity(int K[3], int a)
   {
@@ -303,6 +303,7 @@ public:
 	  }
     return d;
   }
+  /*
   // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getExtendedWeightedDensity(long K, int a)
   {
@@ -334,7 +335,39 @@ public:
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeightedDensity");
   }
+  */
 
+  // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
+  void getExtendedWeightedDensity(long K, FundamentalMeasures &fm)
+  {
+    fm.eta = fmt_weighted_densities[EI()].getDensity(K);
+
+    fm.s0 = fmt_weighted_densities[SI()].getDensity(K)/(hsd_*hsd_);
+    fm.s1 = fmt_weighted_densities[SI()].getDensity(K)/hsd_;
+    fm.s2 = fmt_weighted_densities[SI()].getDensity(K);
+
+    fm.v1[0] = fmt_weighted_densities[VI(0)].getDensity(K)/hsd_;
+    fm.v1[1] = fmt_weighted_densities[VI(1)].getDensity(K)/hsd_;
+    fm.v1[2] = fmt_weighted_densities[VI(2)].getDensity(K)/hsd_;
+
+    fm.v2[0] = fmt_weighted_densities[VI(0)].getDensity(K);
+    fm.v2[1] = fmt_weighted_densities[VI(1)].getDensity(K);
+    fm.v2[2] = fmt_weighted_densities[VI(2)].getDensity(K);
+
+    fm.T[0][1] = fmt_weighted_densities[TI(0,0)].getDensity(K);
+    fm.T[0][1] = fmt_weighted_densities[TI(0,1)].getDensity(K);
+    fm.T[0][2] = fmt_weighted_densities[TI(0,2)].getDensity(K);
+    
+    fm.T[1][0] = fmt_weighted_densities[TI(1,0)].getDensity(K);
+    fm.T[1][1] = fmt_weighted_densities[TI(1,1)].getDensity(K);
+    fm.T[1][2] = fmt_weighted_densities[TI(1,2)].getDensity(K);
+
+    fm.T[2][0] = fmt_weighted_densities[TI(2,0)].getDensity(K);
+    fm.T[2][1] = fmt_weighted_densities[TI(2,1)].getDensity(K);
+    fm.T[2][2] = fmt_weighted_densities[TI(2,2)].getDensity(K);    
+    
+  }
+  
   /**
    *   @brief  Take derivatives of free energy wrt fundamental measures and set dPhi_dEta, etc. The point is that 
    *           these are, e.g., dPhi_dS2 = dPhi_dS0/(hsd*hsd) + dPhi_dS1/(hsd) + dPhi_dS2 and so differ for each species. 
@@ -447,6 +480,28 @@ public:
 
   virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor);
   virtual double free_energy_post_process(bool needsTensor);
+
+  unsigned size() const { return fmt_weighted_densitiesAO_.size();}
+  void setPSI(long pos, double val) { PSI_.Real().set(pos,val);}
+  double getReservoirDensity() const {return reservoir_density_;}
+
+  void computeForceContribution(int measure)
+  {
+    PSI_.do_real_2_fourier();
+    fmt_weighted_densities[measure].convoluteWith(PSI_.Four(), PSI_); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
+    PSI_.Real().MultBy(density_.dV());
+    addToForce(PSI_.Real());
+  }
+
+  
+  // The fundmantal measures
+  double getEta(long pos) const { return fmt_weighted_densitiesAO_[EI()].getDensity(pos);}
+  double getS0(long pos)  const { return fmt_weighted_densitiesAO_[SI()].getDensity(pos)/(4*Rp_*Rp_);}
+  double getS1(long pos)  const { return fmt_weighted_densitiesAO_[SI()].getDensity(pos)/(2*Rp_);}
+  double getS2(long pos)  const { return fmt_weighted_densitiesAO_[SI()].getDensity(pos);}
+  double getV1(long pos, int direction) const { return fmt_weighted_densitiesAO_[VI(direction)].getDensity(pos)/(2*Rp_);}
+  double getV2(long pos, int direction) const { return fmt_weighted_densitiesAO_[VI(direction)].getDensity(pos);}
+  double getT(long pos, int d1, int d2) const { return fmt_weighted_densitiesAO_[TI(d1,d2)].getDensity(pos);}
   
   // TODO:
   /*
@@ -495,7 +550,7 @@ public:
     FMT_Species::convoluteDensities(needsTensor);
 
     const DFT_Vec_Complex &rho_k = density_.getDK();    
-    eos_weighted_density_[0].convolute(rho_k);          
+    eos_weighted_density_[0].convoluteWith(rho_k);          
   }
 
   double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}

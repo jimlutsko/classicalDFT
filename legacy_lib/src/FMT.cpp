@@ -274,13 +274,13 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   int chunk = Ntot/20;
   long i;
 
-    //    schedule(static,chunk)		\
+  //    schedule(static,chunk)		\
   
-  #pragma omp parallel for		\
-    shared( chunk, allSpecies )				\
-    private(i)					\
-    schedule(auto)			\
-    reduction(SummationPlus:F)
+#pragma omp parallel for			\
+  shared( chunk, allSpecies )			\
+  private(i)					\
+  schedule(auto)				\
+  reduction(SummationPlus:F)
   for(i=0;i<Ntot;i++)
     {
       try {
@@ -290,20 +290,50 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
       }
     }
 
-  // For the AO species, there is additional work to do. This is where we get the chance.
-  // Ordinary hard-spheres do nothing here.
+  // For the AO species, there is additional work to do for both the free energy and the forces. 
   // Do FFT of density and compute the fundamental measures by convolution
   double FAO = 0;
   for(auto s: allSpecies)
     {
-      FMT_Species *f = dynamic_cast<FMT_Species*>(s);
-      if(f)
-	FAO += f->free_energy_post_process(needsTensor());  
+      FMT_AO_Species *fao_species = dynamic_cast<FMT_AO_Species*>(s);
+      if(fao_species)
+	{
+	  FAO += fao_species->free_energy_post_process(needsTensor());
+
+	  // The weights now hold Upsilon for each measure. We now need Upsilon-bar
+	  // PSI will be used to hold intermediate results
+
+	  const int Nfmt = (needsTensor ? fao_species->size() : 5);  // number of fmt densities is <= this value. 	  
+	  for(int a=0;a<Nfmt;a++)
+	    {  
+	      for(long pos=0; pos<Ntot;pos++)
+		{
+		  FundamentalMeasures fm;
+		  fao_species->getExtendedWeightedDensity(pos, fm);
+
+		  vector< vector<double> > d2PHI(Nfmt,vector<double>(Nfmt,0.0));
+		  D2Phi(fm,d2PHI);
+	  
+		  double sum = d2PHI[a][0]*fao_species->getEta(pos);
+
+		  // all fucked up: which numbering scheme, which hsd?
+		  sum += d2PHI[a][1]*fao_species->getS0(pos);
+		  sum += d2PHI[a][2]*fao_species->getS1(pos);
+		  sum += d2PHI[a][3]*fao_species->getS2(pos);
+		  for(int k=0; k<3; k++)
+		    {
+		      sum += d2PHI[a][4+k]*fao_species->getV1(pos,k);
+		      sum += d2PHI[a][7+k]*fao_species->getV2(pos,k);
+		      //		      for(int l=k; l<3; l++)	      
+		      //			sum += d2PHI[a][10+tcount]*fao_species->getMeasure(tcount,pos);
+		    }
+		  fao_species->setPSI(pos,-sum*fao_species->getReservoirDensity());
+		}
+	      fao_species->computeForceContribution(a);
+	    }
+	  
+	}
     }
-  cout << " F = " << F;
-  F += FAO;
-  cout << " FAO = " << FAO << " F = " << F << endl;
-  
   // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
   if(hadCatch) 
     throw Eta_Too_Large_Exception();

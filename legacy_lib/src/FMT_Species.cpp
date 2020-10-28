@@ -561,8 +561,7 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
 
 
 // The job of this function is to take the information concerning dF/dn_{a}(pos) (stored in DPHI) and to construct the dPhi_dn for partial measures that are stored in fmt_weighted_densities.
-// This is done via the call to FMT_Species::set_fundamental_measure_derivatives. Then,
-// we will also construct PSI using the space fmt_weighted_densitiesAO_dPhi as working storage.
+// This is done via the call to FMT_Species::set_fundamental_measure_derivatives. 
 void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
 {
   FMT_Species::set_fundamental_measure_derivatives(DPHI,pos,needsTensor);
@@ -575,7 +574,6 @@ void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DP
 			  DPHI.v2[1] + DPHI.v1[1]/hsdp,
 			  DPHI.v2[2] + DPHI.v1[2]/hsdp};
 
-  
   fmt_weighted_densitiesAO_[EI()].Set_dPhi(pos,dPhi_dEta);
   fmt_weighted_densitiesAO_[SI()].Set_dPhi(pos,dPhi_dS);
 
@@ -585,14 +583,13 @@ void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DP
       if(needsTensor)
 	for(int k=j;k<3;k++)
 	  fmt_weighted_densitiesAO_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
-    }  
-  
+    }
 }
 
 // This is where we finish the construction of Psi(r) and
 // evaluate the contribution to the free energy
 double FMT_AO_Species::free_energy_post_process(bool needsTensor)  
-{
+{  
   PSI_.Four().zeros();  
   
   // The call to add_to_dPhi s does the fft of dPhi/dn_{a} for each fm and adds to array PSI
@@ -616,43 +613,13 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
     }
   F *= -reservoir_density_;
 
+  // This is to prepare for the force calculation which comes later. Strictly speaking, it is not a part of the free energy calculation. 
   // Upsilon requires convoluting the (now exponentiated) PSI with the various weights
-
+  
   PSI_.do_real_2_fourier(); // do FFT
 
   for(auto &x: fmt_weighted_densitiesAO_)
-    x.convoluteWith(PSI_); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
+    x.convoluteWith(PSI_.cFour()); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
 
-  // The weights now hold Upsilon for each measure. We now need Upsilon-bar
-  // PSI will be used to hold intermediate results
-  
-  int num_fmt_measures = fmt_weighted_densitiesAO_.size();
-  for(int a=0;a<num_fmt_measures;a++)
-    {  
-      for(long pos=0; pos<PSI_.cReal().size();pos++)
-	{
-	  double v[20];
-	  for(int l=0;l<19;l++)
-	    v[l] = getExtendedWeightedDensity(pos, l);
-
-	  FundamentalMeasures fm(v);
-	  double d2PHI[20][20];
-	  fmt_.D2Phi(fm,d2PHI);
-	  
-	  double sum = d2PHI[a][0]*upsilon[0];
-	  sum += (d2PHI[a][1]*(1.0/(hsdp*hsdp))+d2PHI[a][2]*(1.0/(hsdp))+d2PHI[a][3])*upsilon[1];
-	  int tcount = 0; // counter for tensor entries
-	  for(int k=0; k<3; k++)
-	    {
-	      sum += (d2PHI[a][4+k]*(1.0/(hsdp))+d2PHI[a][7+k])*upsilon[2+k];
-	      for(int l=k; l<3; l++, tcount++)	      
-		sum += d2PHI[a][10+tcount]*upsilon[tcount];
-	    }
-	  PSI_.Real().set(pos,-reservoir_density*sum);
-	}
-      PSI_.do_real_2_fourier();
-      fmt_weighted_densitiesAO_[a].convoluteWith(PSI_); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)      
-      addToForce(fmt_weighted_densitiesAO_[a].cReal());
-    }
   return F;
 }
