@@ -15,8 +15,10 @@ class FundamentalMeasures
       T[2][0] = T[2][1] = T[2][2] = 0.0;
       calculate_derived_quantities();      
     }
-  FundamentalMeasures(double density, double hsd)
-    {
+  FundamentalMeasures(double density, double hsd) {fillUniform(density,hsd);}
+
+  void fillUniform(double density, double hsd = 1)
+  {
       eta = M_PI*density*hsd*hsd*hsd/6;
       s0  = M_PI*density;
       s1 = s0*hsd;

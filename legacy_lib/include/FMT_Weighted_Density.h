@@ -64,8 +64,9 @@ class FMT_Weighted_Density
   const DFT_Vec_Complex &wk()   const {return weight_.cFour();}
   const DFT_Vec         &Real() const {return weighted_density_.cReal();}
   const DFT_Vec_Complex &Four() const {return weighted_density_.cFour();}
-  const double getDensity(long k) const { return weighted_density_.cReal().get(k);}
-
+  const double getDensity(long pos) const { return weighted_density_.cReal().get(pos);}
+  void setDensity(long pos, double val) {weighted_density_.Real().set(pos,val);}  
+  void density_do_real_2_fourier() {weighted_density_.do_real_2_fourier();}
   
   void setWk(long pos, double x, double y) {weight_.Four().set(pos, complex<double>(x,y));} 
 
