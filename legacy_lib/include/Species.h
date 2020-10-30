@@ -250,7 +250,7 @@ public:
     int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
 
     for(int i=0;i<imax;i++)      
-      fmt_weighted_densities[i].add_to_dPhi(dPhi);
+      fmt_weighted_densities[i].add_weight_schur_dPhi_to_arg(dPhi);
   }
   
   // These return the real weight at position K using the extended notation: eta, s0,s1,s2,v1,v2
@@ -339,33 +339,33 @@ public:
 
   // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   void getFundamentalMeasures(long K, FundamentalMeasures &fm) {getFundamentalMeasures_Helper(K,fm,fmt_weighted_densities, hsd_);}
-  void getFundamentalMeasures_Helper(long K, FundamentalMeasures &fm, const vector<FMT_Weighted_Density>  &fmt_weighted_densities, double hsd) 
+  void getFundamentalMeasures_Helper(long K, FundamentalMeasures &fm, const vector<FMT_Weighted_Density>  &weighted_densities, double hsd) 
   {
-    fm.eta = fmt_weighted_densities[EI()].getDensity(K);
+    fm.eta = weighted_densities[EI()].getDensity(K);
 
-    fm.s0 = fmt_weighted_densities[SI()].getDensity(K)/(hsd*hsd);
-    fm.s1 = fmt_weighted_densities[SI()].getDensity(K)/hsd;
-    fm.s2 = fmt_weighted_densities[SI()].getDensity(K);
+    fm.s0 = weighted_densities[SI()].getDensity(K)/(hsd*hsd);
+    fm.s1 = weighted_densities[SI()].getDensity(K)/hsd;
+    fm.s2 = weighted_densities[SI()].getDensity(K);
 
-    fm.v1[0] = fmt_weighted_densities[VI(0)].getDensity(K)/hsd;
-    fm.v1[1] = fmt_weighted_densities[VI(1)].getDensity(K)/hsd;
-    fm.v1[2] = fmt_weighted_densities[VI(2)].getDensity(K)/hsd;
+    fm.v1[0] = weighted_densities[VI(0)].getDensity(K)/hsd;
+    fm.v1[1] = weighted_densities[VI(1)].getDensity(K)/hsd;
+    fm.v1[2] = weighted_densities[VI(2)].getDensity(K)/hsd;
 
-    fm.v2[0] = fmt_weighted_densities[VI(0)].getDensity(K);
-    fm.v2[1] = fmt_weighted_densities[VI(1)].getDensity(K);
-    fm.v2[2] = fmt_weighted_densities[VI(2)].getDensity(K);
+    fm.v2[0] = weighted_densities[VI(0)].getDensity(K);
+    fm.v2[1] = weighted_densities[VI(1)].getDensity(K);
+    fm.v2[2] = weighted_densities[VI(2)].getDensity(K);
 
-    fm.T[0][1] = fmt_weighted_densities[TI(0,0)].getDensity(K);
-    fm.T[0][1] = fmt_weighted_densities[TI(0,1)].getDensity(K);
-    fm.T[0][2] = fmt_weighted_densities[TI(0,2)].getDensity(K);
+    fm.T[0][1] = weighted_densities[TI(0,0)].getDensity(K);
+    fm.T[0][1] = weighted_densities[TI(0,1)].getDensity(K);
+    fm.T[0][2] = weighted_densities[TI(0,2)].getDensity(K);
     
-    fm.T[1][0] = fmt_weighted_densities[TI(1,0)].getDensity(K);
-    fm.T[1][1] = fmt_weighted_densities[TI(1,1)].getDensity(K);
-    fm.T[1][2] = fmt_weighted_densities[TI(1,2)].getDensity(K);
+    fm.T[1][0] = weighted_densities[TI(1,0)].getDensity(K);
+    fm.T[1][1] = weighted_densities[TI(1,1)].getDensity(K);
+    fm.T[1][2] = weighted_densities[TI(1,2)].getDensity(K);
 
-    fm.T[2][0] = fmt_weighted_densities[TI(2,0)].getDensity(K);
-    fm.T[2][1] = fmt_weighted_densities[TI(2,1)].getDensity(K);
-    fm.T[2][2] = fmt_weighted_densities[TI(2,2)].getDensity(K);        
+    fm.T[2][0] = weighted_densities[TI(2,0)].getDensity(K);
+    fm.T[2][1] = weighted_densities[TI(2,1)].getDensity(K);
+    fm.T[2][2] = weighted_densities[TI(2,2)].getDensity(K);        
   }
   
   /**
@@ -511,16 +511,13 @@ public:
     fmt_weighted_densities[TI(2,2)].setDensity(K,T[2][2]);        
   }
   
-
-  
-  // The problem here is that the parameter "measure" is in the extended notation, so this must be translated.
   void computeAOForceContribution()
   {
     for(int a=0;a<size();a++)
       {
 	fmt_weighted_densitiesAO_[a].density_do_real_2_fourier();
 	fmt_weighted_densities[a].convoluteWith(fmt_weighted_densitiesAO_[a].Four(), PSI_); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
-	PSI_.Real().MultBy(density_.dV());
+	PSI_.Real().MultBy(reservoir_density_*density_.dV()); // because all forces are multiplied by dV
 	addToForce(PSI_.Real());
       }
   }

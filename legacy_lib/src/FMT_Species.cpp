@@ -596,12 +596,9 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   int number_of_weights = (needsTensor ? fmt_weighted_densities.size() : 5);
 
   for(int i=0;i<number_of_weights;i++)      
-    fmt_weighted_densitiesAO_[i].add_to_dPhi(PSI_.Four());
-
-  double dV = density_.dV();
+    fmt_weighted_densitiesAO_[i].add_weight_schur_dPhi_to_arg(PSI_.Four());
   
   PSI_.do_fourier_2_real();
-  PSI_.Real().MultBy(PSI_.Real().size()*dV);
 
   // Here, we compute the contribution to the free energy and begin to reuse PSI in preparation for computing the forces
   double F = 0;
@@ -620,6 +617,6 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
 
   for(auto &x: fmt_weighted_densitiesAO_)
     x.convoluteWith(PSI_.cFour()); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
-
+  
   return F;
 }

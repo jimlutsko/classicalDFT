@@ -48,11 +48,13 @@ class FMT_Weighted_Density
     Result.do_fourier_2_real();
   }  
 
-  void add_to_dPhi(DFT_Vec_Complex& dPhi)
+  
+  void add_weight_schur_dPhi_to_arg(DFT_Vec_Complex& arg)
   {
     dPhi_.do_real_2_fourier();
-    dPhi.incrementSchur(dPhi_.Four(), weight_.Four(),true);
+    arg.incrementSchur(dPhi_.Four(), weight_.Four(),true);
   }
+
     
   void   setWeight(long pos, double x) {weight_.Real().set(pos,x);} 
   double getWeight(long pos) const {return weight_.cReal().get(pos);}

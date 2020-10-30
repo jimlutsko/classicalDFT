@@ -93,7 +93,7 @@ class FMT
   *   @param  fm is a FundamentalMeasures structure
   *   @return phi
   */    
-  double Phi(const FundamentalMeasures &fm) const;
+  double calculate_Phi(const FundamentalMeasures &fm) const;
 
   /**
   *   @brief  Calculate dphi/dn_a for all fundamental measures, n_a
@@ -102,8 +102,8 @@ class FMT
   *   @param  dPhi is the result
   */      
   void calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const;
-  //  void D2Phi(const FundamentalMeasures& fm, vector<vector<double>>& d2Phi) const;
-  void D2Phi(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const;  
+  //  void calculate_d2Phi_dot_V(const FundamentalMeasures& fm, vector<vector<double>>& d2Phi) const;
+  void calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const;  
   
   /**
   *   @brief  Calculates the fundamental measures at lattice point i
@@ -537,20 +537,25 @@ class WhiteBearI : public FMT
     return 2*f*f*f;
   }  
 
-  virtual double f3_(double eta) const
+  virtual double f3_(double x) const
   {
-    if(eta < 1e-12)
-      return 1.5+(8.0/3)*eta+3.75*eta*eta+4.8*eta*eta*eta;
-    return (1.0/(eta*(1-eta)*(1-eta))) +  (log(1-eta)/(eta*eta));
+    if(x < 1e-12)
+      return 1.5+(8.0/3)*x+3.75*x*x+4.8*x*x*x;
+    return (1.0/(x*(1-x)*(1-x))) +  (log(1-x)/(x*x));
   }
 
-  virtual double f3p_(double eta) const
+  virtual double f3p_(double x) const
   {
-    if(eta < 1e-12)
-      return (8.0/3)+7.5*eta+14.4*eta*eta;
-    return ((-(1-3*eta)/((1-eta)*(1-eta)*(1-eta)))-(1.0/(1-eta))-(2.0/eta)*log(1-eta))/(eta*eta);
+    if(x < 1e-12)
+      return (8.0/3)+7.5*x+14.4*x*x;
+    return ((-2+5*x-x*x)/(x*x*(1-x)*(1-x)*(1-x)))-(2/(x*x*x))*log(1-x);
   }
-  virtual double f3pp_(double eta) const { return 0.0;}  
+  virtual double f3pp_(double x) const
+  {
+    if(x < 1e-12)
+      return 7.5+28.8*x;
+    return ((6-21*x+26*x*x-5*x*x*x)/(x*x*x*(1-x)*(1-x)*(1-x)*(1-x)))+(6*log(1-x))/(x*x*x*x);
+  }
 
   virtual double Phi3(const FundamentalMeasures &fm) const
   {
@@ -1172,6 +1177,13 @@ class WhiteBearII : public WhiteBearI
     return (2*(3*x-1)/(3*x*(1-x)*(1-x)))-(2.0/(3.0*x*x))*log(1-x);
   }
 
+  virtual double f2pp_(double x) const 
+  {
+    if(x < 1e-12)
+      return (20.0/9)+7*x;
+    return (2*(7*x*x-5*x+2)/(3*x*x*(1-x)*(1-x)*(1-x)))+(4.0/(3.0*x*x*x))*log(1-x);
+  }
+
   virtual double f3_(double x) const
   {
     if(x < 1e-12)
@@ -1185,7 +1197,12 @@ class WhiteBearII : public WhiteBearI
       return (7.0/3)+7.5*x+12.6*x*x;
     return ((2-5*x+6*x*x-x*x*x)/(x*x*(1-x)*(1-x)*(1-x)))+(2.0/(x*x*x))*log(1-x);
   }
-  virtual double f3pp_(double eta) const { return 0.0;}
+  virtual double f3pp_(double x) const
+  {
+    if(x < 1e-12)
+      return 7.5+25.2*x;
+    return (-(6-21*x+26*x*x-19*x*x*x+2*x*x*x*x)/(x*x*x*(1-x)*(1-x)*(1-x)*(1-x)))-(6.0/(x*x*x*x))*log(1-x);    
+  }
   
   virtual string Name() const { return string("WhiteBear II");}
 

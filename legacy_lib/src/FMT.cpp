@@ -71,7 +71,7 @@ FundamentalMeasures FMT::getWeightedDensities(long i, vector<Species*> &allSpeci
 }
 
 
-double FMT::Phi(const FundamentalMeasures& fm) const
+double FMT::calculate_Phi(const FundamentalMeasures& fm) const
 {
   // These are the eta-dependendent cofactors that lie at the heart of FMT
   double eta = fm.eta;
@@ -136,8 +136,8 @@ void FMT::calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm,
 }
 
 
-//This computes sum_b (d2Phi(n)/dn_{a} dn_{b}) v_{b} for some array v.
-void FMT::D2Phi(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const
+//This computes sum_b (d2Phi(n)/dn_{a} dn_{b}) v_{b} for some array v and where n_{a} are the fundamental measures.
+void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const
 {
   // These are the eta-dependendent cofactors that lie at the heart of FMT
   double eta = n.eta;
@@ -334,7 +334,7 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 {
   FundamentalMeasures fm = getWeightedDensities(i, allSpecies);
 
-  double phi = Phi(fm);
+  double phi = calculate_Phi(fm);
 
   if(etaMax_ > 1.0)
     if(fm.eta > 0.5 && 1-fm.eta < 0.0)
@@ -465,8 +465,8 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	      
 	      // This calculates SUM_b (d2Phi(n)/dn_a dn_b) upsilon_b
 	      FundamentalMeasures result;		  
-	      D2Phi(n, upsilon, result);
-
+	      calculate_d2Phi_dot_V(n, upsilon, result);
+	      
 	      double hsd1 = 1.0/(fao_species->getHSD());
 	      double eta = result.eta;
 	      double s   = result.s0*hsd1*hsd1+result.s1*hsd1+result.s2;
@@ -480,6 +480,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	}
     }
 
+  
   return F*dV;
 };
 
@@ -552,7 +553,7 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
     {
       FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
       vector<vector<double>> d2Phi(Nfmt,vector<double>(Nfmt,0.0));
-      D2Phi(fm, d2Phi);
+      calculate_d2Phi_dot_V(fm, d2Phi);
 
       for(int a=0;a<Nfmt;a++)
 	for(int b=0;b<Nfmt;b++)	    
@@ -640,7 +641,7 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
 	  
 	  FundamentalMeasures fm = getWeightedDensities(K, allSpecies);
 	  vector<vector<double>> d2Phi(Nfmt,vector<double>(Nfmt,0.0));
-	  D2Phi(fm, d2Phi);	      	      
+	  calculate_d2Phi_dot_V(fm, d2Phi);	      	      
 	  
 	  for(int a=0;a<Nfmt;a++)
 	    for(int b=0;b<Nfmt;b++)
