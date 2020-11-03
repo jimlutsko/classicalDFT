@@ -612,7 +612,7 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
 
   // This is to prepare for the force calculation which comes later. Strictly speaking, it is not a part of the free energy calculation. 
   // Upsilon requires convoluting the (now exponentiated) PSI with the various weights
-  
+  // We do this here because the next step is carried out in FMT::calculateFreeEnergyAndDerivatives and so PSI_ is not accessible.
   PSI_.do_real_2_fourier(); // do FFT
 
   for(auto &x: fmt_weighted_densitiesAO_)
