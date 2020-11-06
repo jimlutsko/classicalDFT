@@ -604,6 +604,9 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   double F = 0;
   for(long i=0;i<PSI_.cReal().size();i++)
     {
+      //      if(i == 0) cout << "ARG = " << PSI_.cReal().get(i) << endl;
+
+
       double val = exp(-PSI_.cReal().get(i));
       PSI_.Real().set(i,val);
       F += val;
@@ -616,7 +619,11 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   PSI_.do_real_2_fourier(); // do FFT
 
   for(auto &x: fmt_weighted_densitiesAO_)
-    x.convoluteWith(PSI_.cFour()); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
+    {
+      x.convoluteWith(PSI_.cFour()); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
+      //      cout << "Upsilon: " << x.getDensity(0) << endl;
+    }
+
   
   return F;
 }

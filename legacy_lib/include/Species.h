@@ -355,7 +355,7 @@ public:
     fm.v2[1] = weighted_densities[VI(1)].getDensity(K);
     fm.v2[2] = weighted_densities[VI(2)].getDensity(K);
 
-    fm.T[0][1] = weighted_densities[TI(0,0)].getDensity(K);
+    fm.T[0][0] = weighted_densities[TI(0,0)].getDensity(K);
     fm.T[0][1] = weighted_densities[TI(0,1)].getDensity(K);
     fm.T[0][2] = weighted_densities[TI(0,2)].getDensity(K);
     
@@ -365,7 +365,10 @@ public:
 
     fm.T[2][0] = weighted_densities[TI(2,0)].getDensity(K);
     fm.T[2][1] = weighted_densities[TI(2,1)].getDensity(K);
-    fm.T[2][2] = weighted_densities[TI(2,2)].getDensity(K);        
+    fm.T[2][2] = weighted_densities[TI(2,2)].getDensity(K);
+
+    fm.calculate_derived_quantities();      
+    
   }
   
   /**
@@ -491,28 +494,29 @@ public:
   
   void setFundamentalMeasures_AO(long K, double eta, double s, const double v[3], const double T[3][3])
   {
-    fmt_weighted_densities[EI()].setDensity(K,eta);
-    fmt_weighted_densities[SI()].setDensity(K,s);
+    fmt_weighted_densitiesAO_[EI()].setDensity(K,eta);
+    fmt_weighted_densitiesAO_[SI()].setDensity(K,s);
 
-    fmt_weighted_densities[VI(0)].setDensity(K,v[0]);
-    fmt_weighted_densities[VI(1)].setDensity(K,v[1]);
-    fmt_weighted_densities[VI(2)].setDensity(K,v[2]);
+    fmt_weighted_densitiesAO_[VI(0)].setDensity(K,v[0]);
+    fmt_weighted_densitiesAO_[VI(1)].setDensity(K,v[1]);
+    fmt_weighted_densitiesAO_[VI(2)].setDensity(K,v[2]);
 
-    fmt_weighted_densities[TI(0,0)].setDensity(K,T[0][0]);
-    fmt_weighted_densities[TI(0,1)].setDensity(K,T[0][1]);
-    fmt_weighted_densities[TI(0,2)].setDensity(K,T[0][2]);
+    fmt_weighted_densitiesAO_[TI(0,0)].setDensity(K,T[0][0]);
+    fmt_weighted_densitiesAO_[TI(0,1)].setDensity(K,T[0][1]);
+    fmt_weighted_densitiesAO_[TI(0,2)].setDensity(K,T[0][2]);
 
-    fmt_weighted_densities[TI(1,0)].setDensity(K,T[1][0]);
-    fmt_weighted_densities[TI(1,1)].setDensity(K,T[1][1]);
-    fmt_weighted_densities[TI(1,2)].setDensity(K,T[1][2]);
+    fmt_weighted_densitiesAO_[TI(1,0)].setDensity(K,T[1][0]);
+    fmt_weighted_densitiesAO_[TI(1,1)].setDensity(K,T[1][1]);
+    fmt_weighted_densitiesAO_[TI(1,2)].setDensity(K,T[1][2]);
 
-    fmt_weighted_densities[TI(2,0)].setDensity(K,T[2][0]);
-    fmt_weighted_densities[TI(2,1)].setDensity(K,T[2][1]);
-    fmt_weighted_densities[TI(2,2)].setDensity(K,T[2][2]);        
+    fmt_weighted_densitiesAO_[TI(2,0)].setDensity(K,T[2][0]);
+    fmt_weighted_densitiesAO_[TI(2,1)].setDensity(K,T[2][1]);
+    fmt_weighted_densitiesAO_[TI(2,2)].setDensity(K,T[2][2]);        
   }
   
   void computeAOForceContribution()
   {
+    cout << endl;
     for(int a=0;a<size();a++)
       {
 	fmt_weighted_densitiesAO_[a].density_do_real_2_fourier();
