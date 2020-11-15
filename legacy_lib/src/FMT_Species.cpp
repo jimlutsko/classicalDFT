@@ -604,26 +604,22 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   double F = 0;
   for(long i=0;i<PSI_.cReal().size();i++)
     {
-      //      if(i == 0) cout << "ARG = " << PSI_.cReal().get(i) << endl;
-
-
       double val = exp(-PSI_.cReal().get(i));
       PSI_.Real().set(i,val);
       F += val;
     }
   F *= -reservoir_density_;
 
+  // This is the "standard" shift of the free energy. The Ntot eventually gets multiplied by dV to become V. 
+  F += reservoir_density_*density_.Ntot();
+  
   // This is to prepare for the force calculation which comes later. Strictly speaking, it is not a part of the free energy calculation. 
   // Upsilon requires convoluting the (now exponentiated) PSI with the various weights
   // We do this here because the next step is carried out in FMT::calculateFreeEnergyAndDerivatives and so PSI_ is not accessible.
   PSI_.do_real_2_fourier(); // do FFT
 
   for(auto &x: fmt_weighted_densitiesAO_)
-    {
       x.convoluteWith(PSI_.cFour()); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
-      //      cout << "Upsilon: " << x.getDensity(0) << endl;
-    }
-
   
   return F;
 }

@@ -516,7 +516,6 @@ public:
   
   void computeAOForceContribution()
   {
-    cout << endl;
     for(int a=0;a<size();a++)
       {
 	fmt_weighted_densitiesAO_[a].density_do_real_2_fourier();
@@ -526,16 +525,6 @@ public:
       }
   }
 
-  
-  // The fundmantal measures
-  double getEta(long pos) const { return fmt_weighted_densitiesAO_[EI()].getDensity(pos);}
-  double getS0(long pos)  const { return fmt_weighted_densitiesAO_[SI()].getDensity(pos)/(4*Rp_*Rp_);}
-  double getS1(long pos)  const { return fmt_weighted_densitiesAO_[SI()].getDensity(pos)/(2*Rp_);}
-  double getS2(long pos)  const { return fmt_weighted_densitiesAO_[SI()].getDensity(pos);}
-  double getV1(long pos, int direction) const { return fmt_weighted_densitiesAO_[VI(direction)].getDensity(pos)/(2*Rp_);}
-  double getV2(long pos, int direction) const { return fmt_weighted_densitiesAO_[VI(direction)].getDensity(pos);}
-  double getT(long pos, int d1, int d2) const { return fmt_weighted_densitiesAO_[TI(d1,d2)].getDensity(pos);}
-  
   // TODO:
   /*
   friend class boost::serialization::access;

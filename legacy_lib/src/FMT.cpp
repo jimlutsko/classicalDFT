@@ -468,25 +468,6 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	      // This calculates SUM_b (d2Phi(n)/dn_a dn_b) upsilon_b
 	      FundamentalMeasures result;		  
 	      calculate_d2Phi_dot_V(n, upsilon, result);
-	      /*
-	      if(pos == 0)
-		{
-		  cout << endl;
-		  cout << "Upsilon_bar_eta = " << result.eta << endl;		  
-		  cout << "Upsilon_bar_s0  = " << result.s0 << endl;
-		  cout << "Upsilon_bar_s1  = " << result.s1 << endl;
-		  cout << "Upsilon_bar_s2 = " << result.s2 << endl;
-		  cout << "Upsilon_bar_v10 = " << result.v1[0] << endl;
-		  cout << "Upsilon_bar_v11 = " << result.v1[1] << endl;
-		  cout << "Upsilon_bar_v12 = " << result.v1[2] << endl;
-		  cout << "Upsilon_bar_v20 = " << result.v2[0] << endl;
-		  cout << "Upsilon_bar_v21 = " << result.v2[1] << endl;
-		  cout << "Upsilon_bar_v22 = " << result.v2[2] << endl;
-		  cout << "Upsilon_bar_T00 = " << result.T[0][0] << endl;
-		  cout << "Upsilon_bar_T01 = " << result.T[0][1] << endl;
-		  cout << endl;
-		}
-	      */
 	      double hsd1 = 1.0/(fao_species->getHSD());
 	      double eta = result.eta;
 	      double s   = result.s0*hsd1*hsd1+result.s1*hsd1+result.s2;
