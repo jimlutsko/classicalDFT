@@ -57,6 +57,22 @@ class FundamentalMeasures
   
   FundamentalMeasures(double f[]){fill(f);}  
 
+  void add(const FundamentalMeasures& b)
+    {
+      eta += b.eta;
+      s0 += b.s0;
+      s1 += b.s1;
+      s2 += b.s2;
+      for(int i=0;i<3;i++)
+	{
+	  v1[i] += b.v1[i];
+	  v2[i] += b.v2[i];
+	  for(int j=0;j<3;j++)
+	    T[i][j] += b.T[i][j];
+	}
+      calculate_derived_quantities();
+    }
+  
   void calculate_derived_quantities()
   {
     vT[0] = T[0][0]*v2[0] +T[0][1]*v2[1] +T[0][2]*v2[2];

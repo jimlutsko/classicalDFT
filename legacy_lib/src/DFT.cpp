@@ -31,7 +31,7 @@ double DFT::Mu(const vector<double> &x, int species) const
 
   if(fmt_)
     mu += fmt_->BulkMuex(x, allSpecies_, species);
-
+  
   for(auto &interaction: Interactions_)
     mu += interaction->Mu(x,species);
   
@@ -42,9 +42,7 @@ double DFT::Omega(const vector<double> &x) const
 {
   double omega = Fhelmholtz(x);
   for(int i=0;i<allSpecies_.size();i++)
-    {
-      omega -= x[i]*Mu(x,i);
-    }
+    omega -= x[i]*Mu(x,i);
 
   return omega;
 }
@@ -60,9 +58,10 @@ double DFT::Fhelmholtz(const vector<double> &x) const
 
   double Fhs = 0.0;
   if(fmt_)
-    Fhs += fmt_->BulkFex(x, allSpecies_);
-
-  F += Fhs;
+    {
+      Fhs += fmt_->BulkFex(x, allSpecies_);
+      F += Fhs;
+    }
 
   double Fmf = 0.0;
   for(auto &interaction: Interactions_)
@@ -80,7 +79,7 @@ double DFT::XLiq_From_Mu(double mu, double high_density) const
   vector<double> x(1);
 
   // Find the liquid that has the correct chemical potential,
-  // Start at the high density and go dozn until the chemical potential is bracketed.
+  // Start at the high density and go down until the chemical potential is bracketed.
   double ax = high_density;
   double bx = ax;
   double fa = 0.0;

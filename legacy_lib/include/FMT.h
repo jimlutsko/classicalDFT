@@ -42,8 +42,120 @@ class FMT
   */  
   ~FMT(){}
 
-  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const = 0;
-  virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const = 0;
+  /**
+  *   @brief  This function calculates total FMT contribution to the chemical potential of the requested species.
+  *           It allows for the complications of extended models (like AO model). 
+
+  *   @param  density is an array of densities (one for each species).
+  *   @param  allSpecies is the array of species (and obviously matching the density array).
+  *   @param  species is the species for which the chemical potential is returned. 
+  *   @return Total FMT contribution to excess beta times Helmholtz free energy per unit volume. 
+  */   
+  double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
+  {
+    FundamentalMeasures fm(0.0,1.0);
+
+    for(int s=0; s<allSpecies.size(); s++)
+      {
+	FMT_Species *sfmt = dynamic_cast<FMT_Species*>(allSpecies[s]);
+	if(sfmt)
+	  {
+	    FundamentalMeasures fm1(x[s],sfmt->getHSD());
+	    fm.add(fm1);
+	  }
+      }
+    FundamentalMeasures dPhi;
+    calculate_dPhi_wrt_fundamental_measures(fm, dPhi);
+    vector<double> dPhi_v = dPhi.get_as_vector();
+    
+    FundamentalMeasures weights(1.0, allSpecies[species]->getHSD()); // a non-fmt species gives zero hsd so OK.
+    vector<double> weights_v = weights.get_as_vector();
+
+    double mu = 0.0;
+    for(int i=0;i<dPhi_v.size();i++) mu += dPhi_v[i]*weights_v[i];
+
+    // I now assume there is only one species as I do not (now, yet) have the generalization
+    // of these expressions to the case of multiple species.
+    FMT_AO_Species *sao = dynamic_cast<FMT_AO_Species*>(allSpecies[0]);
+    if(sao)
+      {
+	double hsdp = sao->getHSDP();
+	double rhop = sao->getReservoirDensity();
+	FundamentalMeasures n(x[0],sao->getHSD());
+	FundamentalMeasures dPhi;  
+	calculate_dPhi_wrt_fundamental_measures(n,dPhi);
+	vector<double> v_dPhi = dPhi.get_as_vector();
+	
+	FundamentalMeasures wp(1.0,hsdp);  
+	vector<double> v_wp   = wp.get_as_vector();
+
+	FundamentalMeasures w(1.0,sao->getHSD());  
+
+	FundamentalMeasures d2Phi_V;	    
+	calculate_d2Phi_dot_V(n,w,d2Phi_V);
+	vector<double> result = d2Phi_V.get_as_vector();
+	
+	double arg  = 0;
+	double pref = 0;
+	for(int i=0;i<v_dPhi.size();i++)
+	  {
+	    arg  += v_dPhi[i]*v_wp[i];
+	    pref += result[i]*v_wp[i];
+	  }
+	    
+	mu += rhop*pref*exp(-arg);
+      }    
+
+    return mu;
+  }
+
+  /**
+  *   @brief  This function calculates total FMT contribution to the helmholtz free energy.
+  *           It allows for the complications of extended models (like AO model). 
+
+  *   @param  density is an array of densities (one for each species).
+  *   @param  allSpecies is the array of species (and obviously matching the density array).
+  *   @return Total FMT contribution to excess beta times Helmholtz free energy per unit volume. 
+  */      
+  double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
+  {
+    FundamentalMeasures fm(0.0,1.0);
+
+    for(int s=0; s<allSpecies.size(); s++)
+      {
+	FMT_Species *sfmt = dynamic_cast<FMT_Species*>(allSpecies[s]);
+	if(sfmt)
+	  {
+	    FundamentalMeasures fm1(x[s],sfmt->getHSD());
+	    fm.add(fm1);
+	  }
+      }
+    double f = calculate_Phi(fm);
+
+    // I now assume there is only one species as I do not (now, yet) have the generalization
+    // of these expressions to the case of multiple species.
+    FMT_AO_Species *sao = dynamic_cast<FMT_AO_Species*>(allSpecies[0]);
+    if(sao)
+      {
+	double hsdp = sao->getHSDP();
+	double rhop = sao->getReservoirDensity();
+	FundamentalMeasures n(x[0],sao->getHSD());
+	FundamentalMeasures dPhi;  
+	calculate_dPhi_wrt_fundamental_measures(n,dPhi);
+	vector<double> v_dPhi = dPhi.get_as_vector();
+	
+	FundamentalMeasures wp(1.0,hsdp);  
+	vector<double> v_wp   = wp.get_as_vector();
+	
+	double arg = 0;
+	for(int i=0;i<v_dPhi.size();i++) arg += v_dPhi[i]*v_wp[i];
+	f -= rhop*exp(-arg);
+
+	// This is the "standard" shift of the free energy density. 
+	f += rhop;	
+      }
+    return f;
+  }
   
   /**
   *   @brief  EtaMax is the maximum value of eta for which the f1,f2_,f3_ functions are calculated "honestly". For larger values of eta, 
@@ -262,7 +374,7 @@ class FMT
 
 
  virtual bool needsTensor() const { return true;}
- 
+  
  protected:
 
 /**
@@ -272,7 +384,7 @@ class FMT
   *   @param  density is the Density object
   *   @return The total free energy
   */  
- double calculateFreeEnergy(vector<Species*> &allSpecies);
+  double calculateFreeEnergy(vector<Species*> &allSpecies);
 
  /**
   *   @brief  name of model implemented by this class
@@ -435,61 +547,6 @@ class esFMT : public FMT
     return val/(8*M_PI);
   }        
   
-  //stable
-  // phi = -n0*log(1-n3) +(n1*n2/(1-n3))+(1/(24*M_PI))*(8/0.9)*n2*n2*n2/(1-n3)^2
- virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
- {
-   double n0 = 0.0;
-   double n1 = 0.0;
-   double n2 = 0.0;
-   double n3 = 0.0;
-   for(int i=0;i<x.size();i++)
-     {
-       double density = x[i];
-       double hsd = allSpecies[i]->getHSD();
-       n0 += density;
-       n1 += 0.5*hsd*density;
-       n2 += M_PI*hsd*hsd*density;
-       n3 += (M_PI/6)*hsd*hsd*hsd*density;
-     }
-
-   double dPhi_dn0 = -log(1.0-n3);
-   double dPhi_dn1 = n2/(1-n3);
-   double dPhi_dn2 = (n1/(1-n3))+(1.0/(27*M_PI))*3*n2*n2/((1-n3)*(1-n3));
-   double dPhi_dn3 = 0.0;
-
-   dPhi_dn3  = n0/(1-n3);
-   dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
-   dPhi_dn3 += 2*(1.0/(27*M_PI))*(A_+B_/4)*n2*n2*n2/((1-n3)*(1-n3)*(1-n3));
-
-   double density = x[species];
-   double hsd = allSpecies[species]->getHSD();
-
-   return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
- }
-
- virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
- {
-   double n0 = 0.0;
-   double n1 = 0.0;
-   double n2 = 0.0;
-   double n3 = 0.0;
-   for(int i=0;i<x.size();i++)
-     {
-       double density = x[i];
-       double hsd = allSpecies[i]->getHSD();
-       n0 += density;
-       n1 += 0.5*hsd*density;
-       n2 += M_PI*hsd*hsd*density;
-       n3 += (M_PI/6)*hsd*hsd*hsd*density;
-     }
-
-   double F = 0;
-   F += -n0*log(1-n3);
-   F += n1*n2/(1-n3);
-   F += (1.0/(27*M_PI))*(A_+B_/4)*n2*n2*n2/((1-n3)*(1-n3));
-   return F;
- }
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -637,64 +694,6 @@ class WhiteBearI : public FMT
     return val/(8*M_PI);    
   }
   
-
-  
-
- virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
- {
-   double n0 = 0.0;
-   double n1 = 0.0;
-   double n2 = 0.0;
-   double n3 = 0.0;
-   for(int i=0;i<x.size();i++)
-     {
-       double density = x[i];
-       double hsd = allSpecies[i]->getHSD();
-       n0 += density;
-       n1 += 0.5*hsd*density;
-       n2 += M_PI*hsd*hsd*density;
-       n3 += (M_PI/6)*hsd*hsd*hsd*density;
-     }
-
-   double dPhi_dn0 = -log(1.0-n3);
-   double dPhi_dn1 = n2/(1-n3);
-   double dPhi_dn2 = (1.0/(12*M_PI))*(n2*n2/(n3*n3))*log(1-n3)+(n1/(1-n3))+n2*n2/(12*M_PI*n3*(1-n3)*(1-n3));
-   double dPhi_dn3 = 0.0;
-
-   dPhi_dn3  = -(1.0/(18*M_PI))*(n2*n2*n2/(n3*n3*n3))*log(1-n3);
-   dPhi_dn3 += -((1/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*(1.0/(1-n3));
-   dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
-   dPhi_dn3 +=  (1.0/(36*M_PI))*((n2*n2*n2*(3*n3-1)/(n3*n3*(1-n3)*(1-n3)*(1-n3))));   
-
-
-   double density = x[species];
-   double hsd = allSpecies[species]->getHSD();
-
-   return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
- }
-
- virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
- {
-   double n0 = 0.0;
-   double n1 = 0.0;
-   double n2 = 0.0;
-   double n3 = 0.0;
-   for(int i=0;i<x.size();i++)
-     {
-       double density = x[i];
-       double hsd = allSpecies[i]->getHSD();
-       n0 += density;
-       n1 += 0.5*hsd*density;
-       n2 += M_PI*hsd*hsd*density;
-       n3 += (M_PI/6)*hsd*hsd*hsd*density;
-     }
-
-   double F = ((1.0/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*log(1-n3);
-   F += n1*n2/(1-n3);
-   F += (1.0/(36*M_PI))*n2*n2*n2/(n3*(1-n3)*(1-n3));
-   return F;
- }
-
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
@@ -759,65 +758,6 @@ class RSLT : public FMT
     double f = 1.0/(1.0-eta);
     return 2*f*f*f;
   }
-
-  
-  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
-  {
-    double n0 = 0.0;
-    double n1 = 0.0;
-    double n2 = 0.0;
-    double n3 = 0.0;
-    for(int i=0;i<x.size();i++)
-      {
-	double density = x[i];
-	double hsd = allSpecies[i]->getHSD();
-	n0 += density;
-	n1 += 0.5*hsd*density;
-	n2 += M_PI*hsd*hsd*density;
-	n3 += (M_PI/6)*hsd*hsd*hsd*density;
-      }
-
-    double dPhi_dn0 = -log(1.0-n3);
-    double dPhi_dn1 = n2/(1-n3);
-    double dPhi_dn2 = (1.0/(12*M_PI))*(n2*n2/(n3*n3))*log(1-n3)+(n1/(1-n3))+n2*n2/(12*M_PI*n3*(1-n3)*(1-n3));
-    double dPhi_dn3 = 0.0;
-
-    dPhi_dn3  = -(1.0/(18*M_PI))*(n2*n2*n2/(n3*n3*n3))*log(1-n3);
-    dPhi_dn3 += -((1/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*(1.0/(1-n3));
-    dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
-    dPhi_dn3 +=  (1.0/(36*M_PI))*((n2*n2*n2*(3*n3-1)/(n3*n3*(1-n3)*(1-n3)*(1-n3))));   
-
-    double density = x[species];
-    double hsd = allSpecies[species]->getHSD();
-
-    return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
-  }
-
-  virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
-  {
-    double n0 = 0.0;
-    double n1 = 0.0;
-    double n2 = 0.0;
-    double n3 = 0.0;
-    for(int i=0;i<x.size();i++)
-      {
-	double density = x[i];
-	double hsd = allSpecies[i]->getHSD();
-	n0 += density;
-	n1 += 0.5*hsd*density;
-	n2 += M_PI*hsd*hsd*density;
-	n3 += (M_PI/6)*hsd*hsd*hsd*density;
-      }
-
-    double F = ((1.0/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*log(1-n3);
-    F += n1*n2/(1-n3);
-    F += (1.0/(36*M_PI))*n2*n2*n2/(n3*(1-n3)*(1-n3));
-
-    return F;
-  }
-  
-
-
 
   virtual double f3_(double eta) const
   {
@@ -1014,72 +954,92 @@ class RSLT2: public RSLT
   */  
 
 
-class Rosenfeld: public RSLT
+class Rosenfeld: public FMT
 {
  public:
-  Rosenfeld() : RSLT(){};
-  /*  
+  Rosenfeld() : FMT(){};
+
+  virtual bool needsTensor() const { return false;}
+
+  virtual double f2_(double eta) const
+  {
+    return 1.0/(1.0-eta);
+  }
+
+  virtual double f2p_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return f*f;
+  }
+
+  virtual double f2pp_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }  
+
   virtual double f3_(double eta) const
   {
-    return 1.5/((1-eta)*(1-eta));
+    double f = 1.0/(1.0-eta);
+    return f*f;
   }
 
   virtual double f3p_(double eta) const
   {
-    return 1.5/((1-eta)*(1-eta)*(1-eta));
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
   }
-  */
+  virtual double f3pp_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 6*f*f*f*f;    
+  }  
 
-  virtual void get_d2Phi(vector< vector<double> > &d2Phi, double eta, double s0, double s1, double s2, double v1[3], double v2[3])
-  { throw std::runtime_error("get_d2Phi not implemented in clas Rosenfeld");}  
-
- virtual bool needsTensor() const { return false;}  
-  
   virtual double Phi3(const FundamentalMeasures &fm) const
   {
     double s2     = fm.s2;
     double v2_v2  = fm.v2_v2;
-    return (1.0/(36*M_PI))*(s2*s2*s2-3*s2*v2_v2);
+
+    return (1.0/(24*M_PI))*(s2*s2*s2-3*s2*v2_v2);
   }
 
  virtual double dPhi3_dS2(const FundamentalMeasures &fm) const 
  {
-   double s2    = fm.s2;
+   double s2    = fm.s2;   
    double v2_v2 = fm.v2_v2;
-   
-   return (1.0/(36*M_PI))*(3*s2*s2-3*v2_v2);
+     
+   return (1.0/(24*M_PI))*(3*s2*s2-3*v2_v2);
  }
 
- virtual double dPhi3_dS2_dS2(const FundamentalMeasures &fm) const 
- {
-   double s2    = fm.s2;
-   double v2_v2 = fm.v2_v2;
-   
-   return (1.0/(6*M_PI))*s2;
- }  
-
- virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
- {
-   double s2  = fm.s2;
-   double v2_k = fm.v2[k];
-   
-   return (1.0/(36*M_PI))*s2*(-6)*v2_k;
- }
-
-  virtual double dPhi3_dV2_dS2(int k, const FundamentalMeasures &fm) const
+  virtual double dPhi3_dS2_dS2(const FundamentalMeasures &fm) const
   {
-    double v2_k  = fm.v2[k];
-
-    return -v2_k/(6*M_PI);
+    double s2    = fm.s2;   
+   
+    return (1.0/(24*M_PI))*(6*s2);
   }
-
+  virtual double dPhi3_dV2_dS2(int i, const FundamentalMeasures &fm) const
+  {
+    return (1.0/(24*M_PI))*(-6*fm.v2[i]);
+  }
   virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const
   {
-    double s2    = fm.s2;
-    return (i == j ? -s2/(6*M_PI) : 0.0);
-  }  
+    return 0.0;
+  }
   
- virtual string Name() const { return string("Rosenfeld");}
+  virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
+  {
+    double s2    = fm.s2;
+    double v2_v2 = fm.v2_v2;
+    double v2_k   = fm.v2[k];
+   
+    return (1.0/(24*M_PI))*(-6*s2*v2_k);
+  }
+
+  virtual void get_d2Phi(vector< vector<double> > &d2Phi, double eta, double s0, double s1, double s2, double v1[3], double v2[3])
+  { throw std::runtime_error("get_d2Phi not implemented in clas Rosenfeld");}  
+
+
+  virtual string Name() const { return string("Rosenfeld");}
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -1104,64 +1064,6 @@ class WhiteBearII : public WhiteBearI
   WhiteBearII() : WhiteBearI(){};
 
  virtual bool needsTensor() const { return true;}
-  
-  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
-  {
-    double n0 = 0.0;
-    double n1 = 0.0;
-    double n2 = 0.0;
-    double n3 = 0.0;
-    for(int i=0;i<x.size();i++)
-      {
-	double density = x[i];
-	double hsd = allSpecies[i]->getHSD();
-	n0 += density;
-	n1 += 0.5*hsd*density;
-	n2 += M_PI*hsd*hsd*density;
-	n3 += (M_PI/6)*hsd*hsd*hsd*density;
-      }
-
-
-    double dPhi_dn0 = -log(1.0-n3);
-    double dPhi_dn1 = (2.0/3.0)*(n2/n3)*log(1-n3)+((5.0-n3)/3)*n2/(1-n3);
-    double dPhi_dn2 = ((2.0/3.0)*(n1/n3)-(1.0/(12*M_PI))*(n2*n2/(n3*n3)))*log(1-n3)+((5.0-n3)/3)*(n1/(1-n3))+n2*n2*(-n3*n3+3*n3-1)/(12*M_PI*n3*(1-n3)*(1-n3));
-    double dPhi_dn3 = 0.0;
-
-    dPhi_dn3  = (-(2.0/3.0)*(n1*n2/(n3*n3))+(1.0/(18*M_PI))*(n2*n2*n2/(n3*n3*n3)))*log(1-n3);
-    dPhi_dn3 += -((2.0/3.0)*(n1*n2/n3)+(n1*n2/3)-(1/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*(1.0/(1-n3));
-    dPhi_dn3 += ((5.0-n3)/3)*(n1*n2/((1-n3)*(1-n3)));
-    dPhi_dn3 +=  (1.0/(36*M_PI))*n2*n2*n2*(1-3*n3+5*n3*n3-n3*n3*n3)/(n3*n3*(1-n3)*(1-n3)*(1-n3));   
-
-    double density = x[species];
-    double hsd = allSpecies[species]->getHSD();
-
-    return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd;
-      
-  }
-
- virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
- {
-   double n0 = 0.0;
-   double n1 = 0.0;
-   double n2 = 0.0;
-   double n3 = 0.0;
-   for(int i=0;i<x.size();i++)
-     {
-       double density = x[i];
-       double hsd = allSpecies[i]->getHSD();
-       n0 += density;
-       n1 += 0.5*hsd*density;
-       n2 += M_PI*hsd*hsd*density;
-       n3 += (M_PI/6)*hsd*hsd*hsd*density;
-     }
-
-   double F = ((2.0/3.0)*(n1*n2/n3)-(1.0/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*log(1-n3);
-   F += ((5-n3)/3)*n1*n2/(1-n3);
-   F += (1.0/(36*M_PI))*n2*n2*n2*(-1+3*n3-n3*n3)/(n3*(1-n3)*(1-n3));
-		  
-   return F;
- }  
-
   
   virtual double f2_(double x) const
   {
