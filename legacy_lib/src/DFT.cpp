@@ -13,10 +13,6 @@ using namespace std;
 #include <gsl/gsl_poly.h>
 #include <gsl/gsl_sf_gamma.h>
 
-#include "poly34.h"
-
-#include "Poly.h"
-
 #ifdef USE_OMP
 #include <omp.h>
 #endif

@@ -86,11 +86,9 @@ class FMT
 	calculate_dPhi_wrt_fundamental_measures(n,dPhi);
 	vector<double> v_dPhi = dPhi.get_as_vector();
 	
-	FundamentalMeasures wp(1.0,hsdp);  
-	vector<double> v_wp   = wp.get_as_vector();
+	vector<double> v_wp = (FundamentalMeasures(1.0,hsdp)).get_as_vector();
 
 	FundamentalMeasures w(1.0,sao->getHSD());  
-
 	FundamentalMeasures d2Phi_V;	    
 	calculate_d2Phi_dot_V(n,w,d2Phi_V);
 	vector<double> result = d2Phi_V.get_as_vector();
@@ -143,9 +141,8 @@ class FMT
 	FundamentalMeasures dPhi;  
 	calculate_dPhi_wrt_fundamental_measures(n,dPhi);
 	vector<double> v_dPhi = dPhi.get_as_vector();
-	
-	FundamentalMeasures wp(1.0,hsdp);  
-	vector<double> v_wp   = wp.get_as_vector();
+       
+	vector<double> v_wp = (FundamentalMeasures(1.0,hsdp)).get_as_vector();
 	
 	double arg = 0;
 	for(int i=0;i<v_dPhi.size();i++) arg += v_dPhi[i]*v_wp[i];

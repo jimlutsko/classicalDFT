@@ -156,7 +156,7 @@ class DFT
   virtual double Mu(const vector<double> &x, int species) const;
 
   /**
-   *   @Brief  Compute grand potenial/kT/V for a uniform system with the given density
+   *   @Brief  Compute grand potenial/kT/V for a uniform system with the given density: note that this is minus the pressure
    *  
    *   @param  x is the array of densities
    *   @return Omega/(kT * V)
@@ -187,6 +187,16 @@ class DFT
    */     
   virtual double XLiq_From_Mu(double mu, double high_density) const;
 
+  /**
+   *   @brief  Brute-force search for liq-vap spinodal for one-component system
+   */     
+  void   findSpinodal(double xmax, double dx, double &xs1, double &xs2, double tol) const;
+  double find_density_from_mu(double mu, double xmin, double xmax, double tol) const;
+  /**
+   *   @brief  Brute-force search for liq-vap coexistence for one-component system
+   */       
+  void findCoex(double xmax, double dx, double &x1, double &x2, double tol) const;  
+  
   /**
    *   @brief  Only implemented for single species and one interaction
    */     
