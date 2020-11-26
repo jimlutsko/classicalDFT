@@ -65,6 +65,7 @@ class Species
       }
     return Fx;
   }
+
   /**
   *   @brief  Get the hard sphere diameter. This is a place-holder for the child objects that actually have a hsd.
   *  
@@ -158,7 +159,6 @@ public:
   ~FMT_Species(){}
 
   // Does nothing: needed for AO extension.
-  //  virtual double free_energy_post_process(bool needsTensor){ return 0.0;}
   
   /**
    *   @brief  Accessor for hard sphere diameter
@@ -392,9 +392,10 @@ public:
     fmt_weighted_densities[EI()].Set_dPhi(pos,dPhi_dEta);
     fmt_weighted_densities[SI()].Set_dPhi(pos,dPhi_dS);    
 
+    // Note the parity factor in the vector term which is needed when we calculate forces
     for(int j=0;j<3;j++)
       {
-	fmt_weighted_densities[VI(j)].Set_dPhi(pos,dPhi_dV[j]);	
+	fmt_weighted_densities[VI(j)].Set_dPhi(pos, -dPhi_dV[j]);	
 	if(needsTensor)
 	  for(int k=j;k<3;k++)
 	    fmt_weighted_densities[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
@@ -519,8 +520,12 @@ public:
     for(int a=0;a<size();a++)
       {
 	fmt_weighted_densitiesAO_[a].density_do_real_2_fourier();
-	fmt_weighted_densities[a].convoluteWith(fmt_weighted_densitiesAO_[a].Four(), PSI_); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
+
+	// This does the Schur product of the fmtr weighted density and the AO weighted density (which is actually Upsilon-bar), putting the result into PSI and transforming PSI back to real space
+	fmt_weighted_densities[a].convoluteWith(fmt_weighted_densitiesAO_[a].Four(), PSI_); 
+
 	PSI_.Real().MultBy(reservoir_density_*density_.dV()); // because all forces are multiplied by dV
+	
 	addToForce(PSI_.Real());
       }
   }

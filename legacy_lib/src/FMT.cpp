@@ -167,7 +167,6 @@ void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalM
   result.eta += ( -(1/M_PI)*s0*f1pp 
   		  +(1/(2*M_PI))*(s1*s2-v1_v2)*f2pp
   		  + Phi3(n)*f3pp ) * v.eta;
-
   //eta-s0
   result.eta += -(1/M_PI)*f1p * v.s0;
   result.s0  += -(1/M_PI)*f1p * v.eta;    
@@ -190,13 +189,13 @@ void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalM
   result.v1[2] += -(1/(2*M_PI))*n.v2[2]*f2p * v.eta;
 
   //eta-v2
-  result.eta += -(1/(2*M_PI))*n.v1[0]*f2p + dPhi3_dV2(0,n)*f3p * v.v2[0];
-  result.eta += -(1/(2*M_PI))*n.v1[1]*f2p + dPhi3_dV2(1,n)*f3p * v.v2[1];
-  result.eta += -(1/(2*M_PI))*n.v1[2]*f2p + dPhi3_dV2(2,n)*f3p * v.v2[2];
+  result.eta += (-(1/(2*M_PI))*n.v1[0]*f2p + dPhi3_dV2(0,n)*f3p) * v.v2[0];
+  result.eta += (-(1/(2*M_PI))*n.v1[1]*f2p + dPhi3_dV2(1,n)*f3p) * v.v2[1];
+  result.eta += (-(1/(2*M_PI))*n.v1[2]*f2p + dPhi3_dV2(2,n)*f3p) * v.v2[2];
 
-  result.v2[0] += -(1/(2*M_PI))*n.v1[0]*f2p + dPhi3_dV2(0,n)*f3p * v.eta;
-  result.v2[1] += -(1/(2*M_PI))*n.v1[1]*f2p + dPhi3_dV2(1,n)*f3p * v.eta;
-  result.v2[2] += -(1/(2*M_PI))*n.v1[2]*f2p + dPhi3_dV2(2,n)*f3p * v.eta;
+  result.v2[0] += (-(1/(2*M_PI))*n.v1[0]*f2p + dPhi3_dV2(0,n)*f3p) * v.eta;
+  result.v2[1] += (-(1/(2*M_PI))*n.v1[1]*f2p + dPhi3_dV2(1,n)*f3p) * v.eta;
+  result.v2[2] += (-(1/(2*M_PI))*n.v1[2]*f2p + dPhi3_dV2(2,n)*f3p) * v.eta;
 
   // s0-s0, s0-s1, s1-s1 are all zero
 
@@ -409,7 +408,8 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
   if(hadCatch) 
     throw Eta_Too_Large_Exception();
-  return F.sum() + FAO;
+  return F.sum()+ FAO; //HERE
+  //return FAO;
 }
 
 // Calculate dF[i] = dPhi/drho(i)
@@ -447,7 +447,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	  dPhi_.do_fourier_2_real();
 
 	  dPhi_.Real().MultBy(dV);
-	  species->addToForce(dPhi_.cReal());
+	  species->addToForce(dPhi_.cReal()); //HERE
 	}
 
   // Add in AO part, if there is any
@@ -466,6 +466,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	      fao_species->getFundamentalMeasures_AO(pos, upsilon);		  
 	      
 	      // This calculates SUM_b (d2Phi(n)/dn_a dn_b) upsilon_b
+	      // The vector gets a minus sign because there is a parity factor.
 	      FundamentalMeasures result;		  
 	      calculate_d2Phi_dot_V(n, upsilon, result);
 	      double hsd1 = 1.0/(fao_species->getHSD());
@@ -473,10 +474,9 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	      double s   = result.s0*hsd1*hsd1+result.s1*hsd1+result.s2;
 	      double v[3];
 	      for(int direction=0;direction<3;direction++)
-		v[direction] = result.v1[direction]*hsd1 + result.v2[direction];
-	      fao_species->setFundamentalMeasures_AO(pos,eta,s,v,result.T);	      
+		v[direction] = -result.v1[direction]*hsd1 - result.v2[direction];
+	      fao_species->setFundamentalMeasures_AO(pos,eta,s,v,result.T);
 	    }
-	  
 	  fao_species->computeAOForceContribution();
 	}
     }

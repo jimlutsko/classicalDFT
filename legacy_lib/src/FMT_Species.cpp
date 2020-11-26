@@ -32,7 +32,13 @@ FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Spec
   generateWeights(hsd, fmt_weighted_densities);
 
   for(FMT_Weighted_Density &d: fmt_weighted_densities)
-    d.transformWeights();  
+    d.transformWeights();
+
+  //  if(hsd > 0.99)
+  //    for(int i=2;i<fmt_weighted_densities.size();i++)
+  //      fmt_weighted_densities[i].zero();
+
+  
 }
 
 
@@ -573,13 +579,14 @@ void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DP
   double dPhi_dV[3] = {DPHI.v2[0] + DPHI.v1[0]/hsdp,
 			  DPHI.v2[1] + DPHI.v1[1]/hsdp,
 			  DPHI.v2[2] + DPHI.v1[2]/hsdp};
-
+  
   fmt_weighted_densitiesAO_[EI()].Set_dPhi(pos,dPhi_dEta);
   fmt_weighted_densitiesAO_[SI()].Set_dPhi(pos,dPhi_dS);
 
+  //note parity factor for the vector
   for(int j=0;j<3;j++)
     {
-      fmt_weighted_densitiesAO_[VI(j)].Set_dPhi(pos,dPhi_dV[j]);	
+      fmt_weighted_densitiesAO_[VI(j)].Set_dPhi(pos, -dPhi_dV[j]);	
       if(needsTensor)
 	for(int k=j;k<3;k++)
 	  fmt_weighted_densitiesAO_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
@@ -595,9 +602,9 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   // The call to add_to_dPhi s does the fft of dPhi/dn_{a} for each fm and adds to array PSI
   int number_of_weights = (needsTensor ? fmt_weighted_densities.size() : 5);
 
-  for(int i=0;i<number_of_weights;i++)      
-    fmt_weighted_densitiesAO_[i].add_weight_schur_dPhi_to_arg(PSI_.Four());
-  
+  for(int i=0;i<number_of_weights;i++)
+    fmt_weighted_densitiesAO_[i].add_weight_schur_dPhi_to_arg(PSI_.Four()); 
+
   PSI_.do_fourier_2_real();
 
   // Here, we compute the contribution to the free energy and begin to reuse PSI in preparation for computing the forces

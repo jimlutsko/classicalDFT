@@ -207,7 +207,8 @@ double fireMinimizer2::step()
   }
 
   // integration step
-  // Changed handling of backtracking 21/10/2019  
+  // Changed handling of backtracking 21/10/2019
+  double rem = fmax_;
   try {
     SemiImplicitEuler(begin_relax, end_relax);
     vv_ = vv_*0.9 + 0.1*(fabs(F_ - fold)/dt_); // a measure of the rate at which the energy is changing
@@ -224,7 +225,14 @@ double fireMinimizer2::step()
     dt_ /= 2;
     dt_max_ *= f_back_;
     steps_since_backtrack_ = 0;
+    fmax_ = 1000; //rem;
   }
+  catch(...) {
+    reportMessage("Unknown exception ...");
+  }
+    
+
+
 
   // write a snapshot
   static int ic = 0;
@@ -282,14 +290,17 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
 
   fnorm = 0.0;
   cnorm = 0;
-  fmax_ = 0;
+  double new_fmax = 0;
+  
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       DFT_Vec &df = dft_->getDF(Jspecies);
       double f = df.euclidean_norm();
-      fmax_ = max(fmax_, df.inf_norm()/dft_->getDensity(Jspecies).dV());
+      new_fmax = max(new_fmax, df.inf_norm()/dft_->getDensity(Jspecies).dV());
       fnorm += f*f;
-      cnorm += df.size();            
+      cnorm += df.size();
+      cout << "Jspecies = " << Jspecies << " fmax_ = " << fmax_ << " df.inf_norm = " << df.inf_norm() << " fnorm = " << fnorm << " cnorm = " << cnorm << endl;
     }
-    rms_force_ = sqrt(fnorm/cnorm);
+  rms_force_ = sqrt(fnorm/cnorm);
+  fmax_ = new_fmax;
 }

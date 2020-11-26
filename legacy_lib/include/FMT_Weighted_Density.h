@@ -18,7 +18,9 @@ class FMT_Weighted_Density
   //  FMT_Weighted_Density(const FMT_Weighted_Density &) = delete;
   
   ~FMT_Weighted_Density(){}
-    
+
+  void zero() { weighted_density_.zeros(); weight_.zeros(); dPhi_.zeros();}
+  
   void initialize(long Nx, long Ny, long Nz)
   {
     weighted_density_.initialize(Nx,Ny,Nz);
@@ -37,14 +39,10 @@ class FMT_Weighted_Density
   }
 
   void convoluteWith(const DFT_Vec_Complex& density) { convoluteWith(density,weighted_density_);}
-//  {
-//    weighted_density_.Four().Schur(density,weight_.Four(),false); //true);
-//    weighted_density_.do_fourier_2_real();
-//  }
 
-  void convoluteWith(const DFT_Vec_Complex& density, DFT_FFT &Result) 
+  void convoluteWith(const DFT_Vec_Complex& density, DFT_FFT &Result)
   {
-    Result.Four().Schur(density,weight_.Four(),false); //true);
+    Result.Four().Schur(density,weight_.Four()); 
     Result.do_fourier_2_real();
   }  
 
@@ -52,7 +50,7 @@ class FMT_Weighted_Density
   void add_weight_schur_dPhi_to_arg(DFT_Vec_Complex& arg)
   {
     dPhi_.do_real_2_fourier();
-    arg.incrementSchur(dPhi_.Four(), weight_.Four(),true);
+    arg.incrementSchur(dPhi_.Four(), weight_.Four()); 
   }
 
     

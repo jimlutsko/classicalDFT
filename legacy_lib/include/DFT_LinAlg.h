@@ -113,7 +113,7 @@ class DFT_Vec_Complex
   
   void Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false);
   void incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj=false);
- 
+
   void resize(long N);
   void zeros(long N);
   void zeros();

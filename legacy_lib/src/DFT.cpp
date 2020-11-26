@@ -125,7 +125,8 @@ double DFT::XVap_From_Mu(double mu, double maxDensity) const
   double xs2 = -1;
   double x2  = -1;
   try {
-    spinodal(xs1,xs2);
+    //    spinodal(xs1,xs2);
+    findSpinodal(maxDensity, 0.01, xs1, xs2, 1e-8);
     cout << "Spinodal: " << x1 << " " << x2 << endl;
     x2 = min(xs1,xs2);
   } catch(...) {
@@ -343,7 +344,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	  {
 	    double d0 = density.getDensity(pos);
 	    F += (d0*log(d0)-d0)*dV;
-	    species->addToForce(pos,log(d0)*dV);
+	    species->addToForce(pos,log(d0)*dV); //HERE
 	  }
       }
   F_id_ = F;

@@ -118,11 +118,13 @@ void DFT_Vec_Complex::Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2
  if(bUseConj) cDATA = v1_cDATA%conj(v2_cDATA);
  else cDATA = v1_cDATA%v2_cDATA;
 }
+
 void DFT_Vec_Complex::incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2, bool bUseConj)
 {
  if(bUseConj) cDATA += v1_cDATA%conj(v2_cDATA);
  else cDATA += v1_cDATA%v2_cDATA;
 }
+
 
 void DFT_Vec_Complex::resize(long N) {cDATA.resize(N);}
 void DFT_Vec_Complex::zeros(long N)  {cDATA.zeros(N);}

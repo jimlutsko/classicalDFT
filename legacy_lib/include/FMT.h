@@ -483,7 +483,7 @@ class esFMT : public FMT
   }
   virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const
   {
-    return (A_/(24*M_PI))*(6*fm.T[i][j]-6*(i == j ? fm.s2 : 0.0));
+    return (A_/(24*M_PI))*(3*fm.T[i][j]+3*fm.T[j][i]-6*(i == j ? fm.s2 : 0.0));
   }
   
   virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
@@ -492,8 +492,9 @@ class esFMT : public FMT
     double v2_v2 = fm.v2_v2;
     double v2_k   = fm.v2[k];
     double vT_k   = fm.vT[k];
+    double Tv_k   = fm.Tv[k];
    
-    return (A_/(24*M_PI))*(-6*s2*v2_k+6*vT_k);
+    return (A_/(24*M_PI))*(-6*s2*v2_k+3*vT_k+3*Tv_k);
   }
 
   virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const 
@@ -501,8 +502,8 @@ class esFMT : public FMT
    double s2     = fm.s2;
    double v2_j   = fm.v2[j];
    double v2_k   = fm.v2[k];
-   double T_T_jk = fm.TT[j][k];
-   double T_jk   = fm.T[j][k];
+   double T_T_jk = fm.TT[k][j];
+   double T_jk   = fm.T[k][j];
    
    return (A_/(8*M_PI))*(v2_j*v2_k-T_T_jk)  + (B_/(4*M_PI))*(-s2*T_jk+T_T_jk);
   }
@@ -511,8 +512,8 @@ class esFMT : public FMT
     double s2     = fm.s2;
     double v2_j   = fm.v2[j];
     double v2_k   = fm.v2[k];
-    double T_T_jk = fm.TT[j][k];
-    double T_jk   = fm.T[j][k];
+    double T_T_jk = fm.TT[k][j];
+    double T_jk   = fm.T[k][j];
     
     return (B_/(4*M_PI))*(-T_jk);
   }    
@@ -526,21 +527,18 @@ class esFMT : public FMT
 
     double val = 0;
     if(i == j) val += A_*v2_k;
-    if(i == k) val += A_*v2_k;
+    if(i == k) val += A_*v2_j;
     
     return val/(8*M_PI);
   }        
   virtual double dPhi3_dT_dT(int j, int k,int l, int m, const FundamentalMeasures &fm) const
   {
     double s2     = fm.s2;
-    double T_jl   = fm.T[j][l];
-    double T_mk   = fm.T[m][k];    
 
     double val = 0;
-    if(l == j) val += -A_*T_mk + 2*B_*T_mk;
-    if(m == k) val += -A_*T_jl + 2*B_*T_jl;
-    if(l == j && m == k) val += -2*B_*s2;
-    
+    if(l == k) val += -A_*fm.T[m][j] + 2*B_*fm.T[m][j];
+    if(m == j) val += -A_*fm.T[k][l] + 2*B_*fm.T[k][l];
+    if(l == k && m == j) val += -2*B_*s2;
     return val/(8*M_PI);
   }        
   
@@ -634,7 +632,7 @@ class WhiteBearI : public FMT
   virtual double dPhi3_dV2_dS2(int i, const FundamentalMeasures &fm) const { return (1.0/(8*M_PI))*(-2*fm.v2[i]);}
   virtual double dPhi3_dV2_dV2(int i, int j, const FundamentalMeasures &fm) const
   {
-    return (1.0/(8*M_PI))*2*(fm.T[i][j]-(i == j ? fm.s2 : 0.0));
+    return (1.0/(8*M_PI))*(fm.T[i][j] + fm.T[j][i] - 2*(i == j ? fm.s2 : 0.0));
   }
   
   virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
@@ -643,8 +641,9 @@ class WhiteBearI : public FMT
    double v2_v2 = fm.v2_v2;
    double v2_k   = fm.v2[k];
    double vT_k   = fm.vT[k];
+   double Tv_k   = fm.Tv[k];
    
-   return (1.0/(8*M_PI))*(2*vT_k-2*s2*v2_k);
+   return (1.0/(8*M_PI))*(vT_k+Tv_k-2*s2*v2_k);
  }
 
  virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const 
@@ -652,14 +651,14 @@ class WhiteBearI : public FMT
    double s2     = fm.s2;
    double v2_j   = fm.v2[j];
    double v2_k   = fm.v2[k];
-   double T_T_jk = fm.TT[j][k];
-   double T_jk   = fm.T[j][k];
+   double T_T_jk = fm.TT[k][j];
+   double T_jk   = fm.T[k][j];
    
    return (1.0/(8*M_PI))*(v2_j*v2_k-3*T_T_jk+2*s2*T_jk);
  }
   virtual double dPhi3_dS2_dT(int j,int k, const FundamentalMeasures &fm) const
   {
-    double T_jk   = fm.T[j][k];
+    double T_jk   = fm.T[k][j];
     
     return (1.0/(4*M_PI))*T_jk;    
   }    
@@ -668,25 +667,21 @@ class WhiteBearI : public FMT
     double s2     = fm.s2;
     double v2_j   = fm.v2[j];
     double v2_k   = fm.v2[k];
-    double T_T_jk = fm.TT[j][k];
-    double T_jk   = fm.T[j][k];
 
     double val = 0;
     if(i == j) val += v2_k;
-    if(i == k) val += v2_k;
+    if(i == k) val += v2_j;
     
     return val/(8*M_PI);
   }        
   virtual double dPhi3_dT_dT(int j, int k,int l, int m, const FundamentalMeasures &fm) const
   {
     double s2     = fm.s2;
-    double T_jl   = fm.T[j][l];
-    double T_mk   = fm.T[m][k];    
 
     double val = 0;
-    if(l == j) val += -3*T_mk;
-    if(m == k) val += -3*T_jl;
-    if(l == j && m == k) val += 2*s2;
+    if(l == k) val += -3*fm.T[m][j];
+    if(m == j) val += -3*fm.T[k][l];    
+    if(l == k && m == j) val += 2*s2;
     
     return val/(8*M_PI);    
   }
