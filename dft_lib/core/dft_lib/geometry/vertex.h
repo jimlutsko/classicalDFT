@@ -2,6 +2,7 @@
 #define CLASSICALDFT_POINT_H
 
 #include <vector>
+#include <iostream>
 
 namespace dft_core {
 namespace geometry {
@@ -64,6 +65,8 @@ class Vertex {
 
   // region Overloads:
   const x_type& operator[](int idx) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const Vertex& vertex);
   // endregion
 };
 

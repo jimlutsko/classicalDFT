@@ -20,3 +20,9 @@
 //region Physics
 #include "dft_lib/physics/potentials/intermolecular/potential.h"
 //endregion
+
+//region Geometry
+#include "dft_lib/geometry/vertex.h"
+#include "dft_lib/geometry/element.h"
+#include "dft_lib/geometry/mesh.h"
+//endregion
