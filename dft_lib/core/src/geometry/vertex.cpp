@@ -10,4 +10,6 @@ Vertex::Vertex(const std::initializer_list<x_type>& x): dimension_(x.size()), co
 int Vertex::dimension() const { return dimension_; }
 const std::vector<x_type>& Vertex::coordinates() const { return coordinates_; }
 
+const x_type& Vertex::operator[](int idx) const { return coordinates_.at(idx); }
+
 }}

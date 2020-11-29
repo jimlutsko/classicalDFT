@@ -76,4 +76,12 @@ TEST(geometry_vertex, point_initializer_list_cttor_test)
   }
 }
 
+TEST(geometry_vertex, vertex_indexer_works_ok)
+{
+  dft_core::geometry::Vertex p = {0.0, 1.0, 2.0};
+  ASSERT_DOUBLE_EQ(0.0, p[0]);
+  ASSERT_DOUBLE_EQ(1.0, p[1]);
+  ASSERT_DOUBLE_EQ(2.0, p[2]);
+}
+
 // endregion

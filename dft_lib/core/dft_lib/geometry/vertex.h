@@ -61,6 +61,10 @@ class Vertex {
    */
   const std::vector<x_type>& coordinates() const;
   // endregion
+
+  // region Overloads:
+  const x_type& operator[](int idx) const;
+  // endregion
 };
 
 }}
