@@ -337,9 +337,8 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 
   double phi = calculate_Phi(fm);
 
-  if(etaMax_ > 1.0)
-    if(fm.eta > 0.5 && 1-fm.eta < 0.0)
-      throw Eta_Too_Large_Exception();
+  if(fm.eta > 0.5 && 1-fm.eta < 0.0)
+    throw Eta_Too_Large_Exception();
   
   // Also add in the contributions to the derivative of phi (at lattice site i) wrt the various weighted densities
   // (part of the chain-rule evaluation of dPhi/drho(j) = dPhi/deta(i) * deta(i)/drho(j) + ...)
