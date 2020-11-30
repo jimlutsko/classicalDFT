@@ -602,14 +602,25 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   // The call to add_to_dPhi s does the fft of dPhi/dn_{a} for each fm and adds to array PSI
   int number_of_weights = (needsTensor ? fmt_weighted_densities.size() : 5);
 
-  for(int i=0;i<number_of_weights;i++)
-    fmt_weighted_densitiesAO_[i].add_weight_schur_dPhi_to_arg(PSI_.Four()); 
+  int i1;  
+#pragma omp parallel for   private(i1) schedule(static)	 
+  for(i1=0;i1<number_of_weights;i1++)
+    fmt_weighted_densitiesAO_[i1].add_weight_schur_dPhi_to_arg(PSI_.Four()); 
 
   PSI_.do_fourier_2_real();
 
   // Here, we compute the contribution to the free energy and begin to reuse PSI in preparation for computing the forces
   double F = 0;
-  for(long i=0;i<PSI_.cReal().size();i++)
+
+  long Ntot = PSI_.cReal().size();
+  long i;
+  
+#pragma omp parallel for \
+  shared( PSI_ )  \
+  private(i)		 \
+  schedule(static)	 \
+  reduction(+:F)
+  for(long i=0;i<Ntot;i++)
     {
       double val = exp(-PSI_.cReal().get(i));
       PSI_.Real().set(i,val);
@@ -626,7 +637,7 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   PSI_.do_real_2_fourier(); // do FFT
 
   for(auto &x: fmt_weighted_densitiesAO_)
-      x.convoluteWith(PSI_.cFour()); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
+    x.convoluteWith(PSI_.cFour()); // point-wise multiplication of FFT's and call to fourier_2_real (norm factor was included in definition of weights)
   
   return F;
 }

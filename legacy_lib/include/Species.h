@@ -158,8 +158,6 @@ public:
   
   ~FMT_Species(){}
 
-  // Does nothing: needed for AO extension.
-  
   /**
    *   @brief  Accessor for hard sphere diameter
    *  
@@ -517,6 +515,7 @@ public:
   
   void computeAOForceContribution()
   {
+    
     for(int a=0;a<size();a++)
       {
 	fmt_weighted_densitiesAO_[a].density_do_real_2_fourier();
@@ -528,6 +527,7 @@ public:
 	
 	addToForce(PSI_.Real());
       }
+    
   }
 
   // TODO:

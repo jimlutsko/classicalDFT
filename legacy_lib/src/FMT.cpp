@@ -376,15 +376,11 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   bool hadCatch = false;
 
   Summation F;
-  int chunk = Ntot/20;
   long i;
-
-  //    schedule(static,chunk)		\
-  
-#pragma omp parallel for			\
-  shared( chunk, allSpecies )			\
-  private(i)					\
-  schedule(auto)				\
+#pragma omp parallel for \
+  shared(allSpecies )	 \
+  private(i)		 \
+  schedule(static)	 \
   reduction(SummationPlus:F)
   for(i=0;i<Ntot;i++)
     {
@@ -395,6 +391,10 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
       }
     }
 
+  // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
+  if(hadCatch) 
+    throw Eta_Too_Large_Exception();
+  
   // For the AO species, there is additional work to do for both the free energy and the forces. 
   // Do FFT of density and compute the fundamental measures by convolution
   double FAO = 0;
@@ -404,11 +404,7 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
       if(fao_species)
 	  FAO += fao_species->free_energy_post_process(needsTensor());
     }
-  // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
-  if(hadCatch) 
-    throw Eta_Too_Large_Exception();
-  return F.sum()+ FAO; //HERE
-  //return FAO;
+  return F.sum()+ FAO;
 }
 
 // Calculate dF[i] = dPhi/drho(i)
@@ -456,7 +452,9 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	  // The weights now hold Upsilon for each measure. We now need Upsilon-bar
 	  // PSI will be used to hold intermediate results
 
-	  for(long pos=0; pos<fao_species->getLattice().Ntot();pos++)
+	  long pos;
+#pragma omp parallel for  private(pos)  schedule(static)				
+	  for(pos=0; pos<fao_species->getLattice().Ntot();pos++)
 	    {
 	      FundamentalMeasures n;
 	      fao_species->getFundamentalMeasures(pos, n);

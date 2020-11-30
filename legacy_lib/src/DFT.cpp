@@ -338,7 +338,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 #pragma omp parallel for				\
   shared(species, dV)				\
   private(pos)						\
-  schedule(auto)				\
+  schedule(static)				\
   reduction(SummationPlus:F)
 	for(pos=0;pos<Ntot;pos++)
 	  {
