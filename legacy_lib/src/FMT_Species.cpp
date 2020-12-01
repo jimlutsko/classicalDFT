@@ -603,7 +603,7 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   int number_of_weights = (needsTensor ? fmt_weighted_densities.size() : 5);
 
   int i1;  
-#pragma omp parallel for   private(i1) schedule(static)	 
+  //#pragma omp parallel for   private(i1) schedule(static)	 
   for(i1=0;i1<number_of_weights;i1++)
     fmt_weighted_densitiesAO_[i1].add_weight_schur_dPhi_to_arg(PSI_.Four()); 
 
