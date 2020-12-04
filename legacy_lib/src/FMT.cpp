@@ -57,14 +57,6 @@ FundamentalMeasures FMT::getWeightedDensities(long i, vector<Species*> &allSpeci
 	    }
 	}
     }
-  /*
-  // touch up the normalization of the tensor density to account for any numerical errors
-  double ss = fm.T[0][0]+fm.T[1][1]+fm.T[2][2];
-
-  fm.T[0][0] += (fm.s2-ss)/3;
-  fm.T[1][1] += (fm.s2-ss)/3;
-  fm.T[2][2] += (fm.s2-ss)/3;
-  */
   fm.calculate_derived_quantities();
   
   return fm;
@@ -239,97 +231,6 @@ void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalM
     }
 }
 
-/*
-void FMT::D2Phi(const FundamentalMeasures& fm, vector<vector<double>>& d2Phi) const
-{
-  // These are the eta-dependendent cofactors that lie at the heart of FMT
-  double eta = fm.eta;
-  
-  double f1 = f1_(eta);
-  double f2 = f2_(eta);
-  double f3 = f3_(eta);
-
-  double f1p = f1p_(eta);
-  double f2p = f2p_(eta);
-  double f3p = f3p_(eta);
-
-  double f1pp = f1pp_(eta);
-  double f2pp = f2pp_(eta);
-  double f3pp = f3pp_(eta);  
-  
-// Now, construct the derivatives
-  double s0 = fm.s0;
-  double s1 = fm.s1;
-  double s2 = fm.s2;
-  double v1_v2 = fm.v1_v2;
-  
-  //eta-eta
-  d2Phi[0][0] -= (1/M_PI)*s0*f1pp; 
-  d2Phi[0][0] += (1/(2*M_PI))*(s1*s2-v1_v2)*f2pp;
-  d2Phi[0][0] += Phi3(fm)*f3pp;
-
-  //eta-s0
-  d2Phi[0][1] -= (1/M_PI)*f1p;
-
-  //eta-s1
-  d2Phi[0][2] += (1/(2*M_PI))*(s2)*f2p;
-
-  //eta-s2
-  d2Phi[0][3] += (1/(2*M_PI))*(s1)*f2p;
-  d2Phi[0][3] += dPhi3_dS2(fm)*f3p;
-
-  //eta-v1
-  d2Phi[0][4] += -(1/(2*M_PI))*fm.v2[0]*f2p;
-  d2Phi[0][5] += -(1/(2*M_PI))*fm.v2[1]*f2p;
-  d2Phi[0][6] += -(1/(2*M_PI))*fm.v2[2]*f2p;
-
-  //eta-v2
-  d2Phi[0][7] += -(1/(2*M_PI))*fm.v1[0]*f2p + dPhi3_dV2(0,fm)*f3p;
-  d2Phi[0][8] += -(1/(2*M_PI))*fm.v1[1]*f2p + dPhi3_dV2(1,fm)*f3p;
-  d2Phi[0][9] += -(1/(2*M_PI))*fm.v1[2]*f2p + dPhi3_dV2(2,fm)*f3p;
-
-  // s0-s0, s0-s1, s1-s1
-  d2Phi[1][1] = 0.0;
-  d2Phi[1][2] = 0.0;
-  d2Phi[2][2] = 0.0;
-
-  // s1-s2
-  d2Phi[2][3] = (1/(2*M_PI))*f2;
-
-  //s2-s2
-  d2Phi[3][3] = dPhi3_dS2_dS2(fm)*f3;
-
-  // s2-v2
-  d2Phi[3][7] += dPhi3_dV2_dS2(0, fm)*f3;
-  d2Phi[3][8] += dPhi3_dV2_dS2(1, fm)*f3; 	  
-  d2Phi[3][9] += dPhi3_dV2_dS2(2, fm)*f3;
-
-  // v1-v2
-  d2Phi[4][7] = -(1/(2*M_PI))*f2;
-  d2Phi[5][8] = -(1/(2*M_PI))*f2;
-  d2Phi[6][9] = -(1/(2*M_PI))*f2;
-
-  // v2-v2
-  d2Phi[7][7] = dPhi3_dV2_dV2(0,0,fm)*f3;
-  d2Phi[7][8] = dPhi3_dV2_dV2(0,1,fm)*f3;
-  d2Phi[7][9] = dPhi3_dV2_dV2(0,2,fm)*f3;
-
-  d2Phi[8][8] = dPhi3_dV2_dV2(1,1,fm)*f3;
-  d2Phi[8][9] = dPhi3_dV2_dV2(1,2,fm)*f3;
-
-  d2Phi[9][9] = dPhi3_dV2_dV2(2,2,fm)*f3;  
-
- if(needsTensor())
-   {
-     throw std::runtime_error("D2PHI not implemented for tensor theories");
-   }
-
-  
-  for(int i=0;i<10;i++)
-    for(int j=0;j<i;j++)
-      d2Phi[i][j] = d2Phi[j][i];
-}
-*/
 
 double FMT::dPHI(long i, vector<Species*> &allSpecies)
 {
@@ -364,8 +265,8 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   for(auto s: allSpecies)
     {
       FMT_Species *f = dynamic_cast<FMT_Species*>(s);
-      if(f)
-	f->convoluteDensities(needsTensor());
+      if(f) f->calculateFundamentalMeasures(needsTensor());
+	//	f->convoluteDensities(needsTensor());
     }
   
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 

@@ -210,7 +210,8 @@ public:
    *  
    *   @return none
    */        
-  virtual void convoluteDensities(bool needsTensor)
+  //  virtual void convoluteDensities(bool needsTensor)
+  virtual void calculateFundamentalMeasures(bool needsTensor)
   {
     // reference to Fourier-space array of density
     density_.doFFT();
@@ -572,9 +573,9 @@ public:
   
   ~FMT_Species_EOS(){}
 
-  virtual void convoluteDensities(bool needsTensor)
+  virtual void calculateFundamentalMeasures(bool needsTensor)
   {
-    FMT_Species::convoluteDensities(needsTensor);
+    FMT_Species::calculateFundamentalMeasures(needsTensor);
 
     const DFT_Vec_Complex &rho_k = density_.getDK();    
     eos_weighted_density_[0].convoluteWith(rho_k);          
