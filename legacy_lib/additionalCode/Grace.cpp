@@ -351,7 +351,7 @@ void Grace::setSymbolFill(int set, int color, int G)
   sendCommand(s.str());
 
   std::stringstream s1;
-  s1 << "g" << G << ".s" << set << " symbol color " << color;
+  s1 << "g" << G << ".s" << set << " symbol fill color " << color;
   sendCommand(s1.str());
 }
 
