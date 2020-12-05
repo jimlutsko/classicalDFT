@@ -64,8 +64,19 @@ class Vertex {
   // endregion
 
   // region Overloads:
-  const x_type& operator[](int idx) const;
+  /**
+   * Gets the k-th coordinate of the Vertex
+   * @param k Coordinate we want to get access to
+   * @return Value of the k-th coordinate
+   */
+  const x_type& operator[](int k) const;
 
+  /**
+   * Overload of the operator `<<` to use with sdt::cout
+   * @param os
+   * @param vertex
+   * @return
+   */
   friend std::ostream& operator<<(std::ostream& os, const Vertex& vertex);
   // endregion
 };

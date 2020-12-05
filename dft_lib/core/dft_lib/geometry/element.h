@@ -11,19 +11,21 @@ namespace dft_core {
 namespace geometry {
 
 const std::vector<Vertex> DEFAULT_VERTICES_RAW = std::vector<Vertex>{};
+
 typedef std::reference_wrapper<Vertex> vertex_refwrap;
 typedef std::vector<Vertex> vertex_vec;
+typedef std::unordered_map<int, vertex_refwrap> vertex_map;
 
 class Element {
  private:
   vertex_vec vertices_raw_ = DEFAULT_VERTICES_RAW;
-  std::unordered_map<int, vertex_refwrap> vertices_ = {};
+  vertex_map vertices_ = {};
 
  public:
   // region Cttors:
 
   Element() = default;
-  //Element(const std::initializer_list<Vertex>& x);
+  Element(const std::initializer_list<Vertex>& vertices);
 
   explicit Element(const std::vector<Vertex>& vertices);
   explicit Element(std::vector<Vertex>&& vertices);

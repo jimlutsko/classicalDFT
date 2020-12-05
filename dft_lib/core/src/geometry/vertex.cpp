@@ -15,7 +15,8 @@ const std::vector<x_type>& Vertex::coordinates() const { return coordinates_; }
 // endregion
 
 // region Overloads:
-const x_type& Vertex::operator[](int idx) const { return coordinates_.at(idx); }
+const x_type& Vertex::operator[](int k) const { return coordinates_.at(k); }
+
 std::ostream& operator<<(std::ostream& os, const Vertex& vertex)
 {
   os << "(dimensions = " << vertex.dimension() << "): ";

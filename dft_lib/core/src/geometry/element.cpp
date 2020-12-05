@@ -10,20 +10,29 @@ namespace geometry {
 
 // region Cttors:
 
-Element::Element(const std::vector<Vertex>& vertices): vertices_raw_(vertices) {
-  for (auto k = 0; k < vertices_raw_.size(); ++k)
+static void initialize_vertex_map(vertex_vec & v_vec, vertex_map& vertex_map)
+{
+  for (auto k = 0; k < v_vec.size(); ++k)
   {
-    vertices_.insert({k, std::ref(vertices_raw_[k])});
+    vertex_map.insert({k, std::ref(v_vec[k])});
   }
+}
+
+Element::Element(const std::vector<Vertex>& vertices): vertices_raw_(vertices)
+{
+  initialize_vertex_map(vertices_raw_, vertices_);
 }
 
 Element::Element(std::vector<Vertex>&& vertices): vertices_raw_(std::move(vertices))
 {
-  for (auto k = 0; k < vertices_raw_.size(); ++k)
-  {
-    vertices_.insert({k, std::ref(vertices_raw_[k])});
-  }
+  initialize_vertex_map(vertices_raw_, vertices_);
 }
+
+Element::Element(const std::initializer_list<Vertex>& vertices): vertices_raw_(vertices)
+{
+  initialize_vertex_map(vertices_raw_, vertices_);
+}
+
 
 // endregion
 
