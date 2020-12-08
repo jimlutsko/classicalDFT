@@ -113,7 +113,7 @@ class DFT
    *   @param   species: the species
    *   @returns a read-only reference to the density object
    */     
-  const Density& getDensity(int species) const {return allSpecies_[species]->getDensity();}
+  Density& getDensity(int species) {return allSpecies_[species]->getDensity();}
 
   
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
@@ -131,7 +131,7 @@ class DFT
    *   @param  i is the species
    *   @param x is the amplitde
    */  
-  void set_density_from_amplitude(int i,DFT_Vec &x) {allSpecies_[i]->set_density_from_amplitude(x);}
+  void set_density_from_alias(int i,DFT_Vec &x) {allSpecies_[i]->set_density_from_alias(x);}
   void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
   void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
 

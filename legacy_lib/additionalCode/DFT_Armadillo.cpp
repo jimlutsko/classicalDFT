@@ -28,13 +28,13 @@ double DFT_Vec::get(unsigned pos) const { return DATA[pos];}
 void DFT_Vec::set(const DFT_Vec& v) { DATA = v_DATA;} 
 void DFT_Vec::set(const DFT_Vec& v1, const DFT_Vec& v2, double scale) { DATA = v1_DATA+v2_DATA*scale;}
   
-void DFT_Vec::setFromAlias(const DFT_Vec &v) { DATA = 1e-20+v_DATA%v_DATA;} 
-void DFT_Vec::setAliasFromValues(const DFT_Vec &x)
-{
-  for(long i=0;i<x.size();i++)
-    set(i, sqrt(std::max(0.0, x.get(i)-1e-20)));          
-}
-void DFT_Vec::alias_Jacobian(const DFT_Vec &v) { DATA %= 2*v_DATA;}
+//void DFT_Vec::setFromAlias(const DFT_Vec &v) { DATA = 1e-20+v_DATA%v_DATA;} 
+//void DFT_Vec::setAliasFromValues(const DFT_Vec &x)
+//{
+//  for(long i=0;i<x.size();i++)
+//    set(i, sqrt(std::max(0.0, x.get(i)-1e-20)));          
+//}
+//void DFT_Vec::alias_Jacobian(const DFT_Vec &v) { DATA %= 2*v_DATA;}
 
   
 void DFT_Vec::set(const double *x, unsigned n) { DATA.set_size(n); memcpy(DATA.memptr(),x,sizeof(double)*n);}

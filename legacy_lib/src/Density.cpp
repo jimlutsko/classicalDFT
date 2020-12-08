@@ -16,7 +16,15 @@ using namespace std;
 
 void Density::initialize_from_file(const char *filename)
 {
-  readDensity(filename);
+      ifstream in(filename,ios::binary);
+      if(! in.good())
+        {
+	  stringstream s;
+	  s << "Could not open input file " << filename << " ... aborting ... " << endl;
+	  throw std::runtime_error(s.str());
+	}
+  // everything OK so read it. 
+      Density_.Real().load(in);
 }
 
 // We are assuming that the lattice spacing is the same ...
@@ -63,7 +71,7 @@ void Density::initialize_from_smaller_density(const Density &density)
 
 	      double d  = density.getDensity(jx,jy,jz);
 	      
-	      set_Density_Elem(ix,iy,iz,d);
+	      set(ix,iy,iz,d);
 	    }
 }
 

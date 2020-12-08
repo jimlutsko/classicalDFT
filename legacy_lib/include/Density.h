@@ -48,52 +48,40 @@ class Density : public Lattice
       Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
       vWall_.zeros(Ntot_);
     }
-
-  /**
-  *   @brief  Do-nothing  constructor for Density : allows density to be constructed from string.
-  *  
-  *   @return nothing 
-  */  
-  Density()
-    : Lattice(), Density_(), vWall_(){}
-  
-
-  /**
-  *   @brief  Copy constructor
-  *  
-  *   @param  dd Density object to copy
-  *   @return nothing 
-  */    
+  Density() : Lattice(), Density_(), vWall_(){}
   Density(const Density &dd)
     : Lattice(dd), Density_(), vWall_()
-    {
-      Density_.initialize(Nx_,Ny_,Nz_);      
-      vWall_ = dd.vWall_;
-    }
-  
-  /**
-  *   @brief  Destructor for Density
-  *  
-  *   @return nothing 
-  */  
+  {
+    Density_.initialize(Nx_,Ny_,Nz_);      
+    vWall_ = dd.vWall_;
+  }
   ~Density(){}
 
-  /**
-  *   @brief Called to read initial density from file. This will fail if one attempts to read a density object of a different size. 
-  *  
-  *   @param  filename
-  *   @return  none
-  */  
-  void initialize_from_file(const char *filename);
+  
+  virtual void initialize_from_smaller_density(const Density &density);
+  virtual void initialize_from_file(const char *filename);
 
-    /**
-  *   @brief Called to create initial density from a smaller geometry.
-  *  
-  *   @param  filename
-  *   @return  none
-  */  
-  void initialize_from_smaller_density(const Density &density);
+  void set(int i, int j, int k, double val) { set(pos(i,j,k),val);}
+  void set(unsigned i, double val)  { Density_.Real().set(i,val);}
 
+
+  virtual void set_from_alias(const DFT_Vec &x)
+  {
+    for(long i=0;i<x.size();i++)
+      set(i,1e-20+x.get(i)*x.get(i));
+  }
+
+  virtual void set_alias(DFT_Vec &x) const
+  {
+    for(long i=0;i<x.size();i++)
+      x.set(i, sqrt(std::max(0.0, get(i)-1e-20)));          
+  }
+
+  virtual void alias_deriv(DFT_Vec &dF_dRho) const
+  {
+    dF_dRho.MultBy(2.0);
+  }  
+  
   /**
   *   @brief Decendents of the Density object can implement this method to do graphical displays
   *  
@@ -103,25 +91,19 @@ class Density : public Lattice
   */  
   virtual void doDisplay(string &title, string &file, int seq = 0) const {}
 
+
+
+
+
   /**
   *   @brief  Total number of particles
   *  
   *   @param  none
   *   @return  Number of particles
   */  
-  virtual double getNumberAtoms() const //{ return Density_.cReal().accu()*dV();}
-  {
-
-    double dV1 = dV();
-    Summation s;
-    for(long i=0;i<Ntot(); i++)
-      s.add(Density_.cReal().get(i));
-    return s*dV1;
-
-  }
-
-  double min() const { return Density_.cReal().min();}
-  double max() const { return Density_.cReal().max();}
+  virtual double getNumberAtoms() const { return Density_.cReal().accu()*dV();}
+  virtual double min() const { return Density_.cReal().min();}
+  virtual double max() const { return Density_.cReal().max();}
   
   
   /**
@@ -188,7 +170,7 @@ class Density : public Lattice
   *   @param  val: density of the given point
   *   @return none
   */  
-  void set_Density_Elem(int i, int j, int k, double val)   { set_Density_Elem(pos(i,j,k),val);}
+  //  void set_Density_Elem(int i, int j, int k, double val)   { set_Density_Elem(pos(i,j,k),val);}
 
   /**
   *   @brief  set density at a given lattice position
@@ -197,7 +179,7 @@ class Density : public Lattice
   *   @param  val: density of the given point
   *   @return none
   */    
-  void set_Density_Elem(unsigned i, double val)  { Density_.Real().set(i,val);}
+  //  void set_Density_Elem(unsigned i, double val)  { Density_.Real().set(i,val);}
 
   /**
   *   @brief  set density at all positions based on amplitude: d = SMALL_VALUE + amplitude*amplitude: used during minimization to assure a positive definite density.
@@ -205,7 +187,7 @@ class Density : public Lattice
   *   @param  x: amplitude
   *   @return none
   */  
-  void set_density_from_amplitude(const DFT_Vec &x) { Density_.Real().setFromAlias(x);}
+  //void set_density_from_amplitude(const DFT_Vec &x) { Density_.Real().setFromAlias(x);}
 
   /**
   *   @brief  set density by copying given vector
@@ -229,7 +211,8 @@ class Density : public Lattice
   *   @param  i: index of element to be returned
   *   @return Density_.Real[i]
   */  
-  virtual double getDensity(long i) const { return Density_.cReal().get(i);} 
+  virtual double getDensity(long i) const { return Density_.cReal().get(i);}
+  virtual double get(long pos) const { return Density_.cReal().get(pos);} 
 
   /**
   *   @brief  Get density at coordinates ix,iy,iz

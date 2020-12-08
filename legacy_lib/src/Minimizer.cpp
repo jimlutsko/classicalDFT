@@ -72,10 +72,11 @@ void Minimizer::initialize()
   calls_ = 0;
 
   for(int Jspecies=0;Jspecies<dft_->getNumberOfSpecies();Jspecies++)
-    {
-      const Density& density = dft_->getDensity(Jspecies);
-      x_[Jspecies].setAliasFromValues(density.getDensity());
-    }
+      dft_->getDensity(Jspecies).set_alias(x_[Jspecies]);    
+  //    {
+  //      const Density& density = dft_->getDensity(Jspecies);
+  //      x_[Jspecies].setAliasFromValues(density.getDensity());
+  //    }
 }
 
 
@@ -84,7 +85,8 @@ double Minimizer::getDF_DX()
   calls_++;
 
   for(int Jspecies=0;Jspecies<x_.size();Jspecies++)
-    dft_->set_density_from_amplitude(Jspecies,x_[Jspecies]);
+    dft_->getDensity(Jspecies).set_from_alias(x_[Jspecies]);        
+    //    dft_->set_density_from_alias(Jspecies,x_[Jspecies]);
 
   double F = 0;
   try {
@@ -94,7 +96,9 @@ double Minimizer::getDF_DX()
   }
 
   for(int Jspecies = 0; Jspecies<dft_->getNumberOfSpecies(); Jspecies++)
-    dft_->getDF(Jspecies).alias_Jacobian(x_[Jspecies]);
+    dft_->getDensity(Jspecies).alias_deriv(dft_->getDF(Jspecies));    
+    
+    //    dft_->getDF(Jspecies).alias_Jacobian(x_[Jspecies]);
 
   return F;
 }

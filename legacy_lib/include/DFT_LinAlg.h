@@ -25,9 +25,9 @@ class DFT_Vec
   void set(const DFT_Vec& v1, const DFT_Vec& v2, double scale);
   void set(const double *x, unsigned n);
   
-  void setFromAlias(const DFT_Vec &x);
-  void setAliasFromValues(const DFT_Vec &x);
-  void alias_Jacobian(const DFT_Vec &x);
+  //  void setFromAlias(const DFT_Vec &x);
+  //  void setAliasFromValues(const DFT_Vec &x);
+  //  void alias_Jacobian(const DFT_Vec &x);
 
   void resize(long N);
   void zeros(long N);

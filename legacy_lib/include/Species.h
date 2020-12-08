@@ -26,12 +26,12 @@ class Species
   void setChemPotential(double m) {mu_ = m;}
 
   const Lattice& getLattice() const { return density_;}
-  const Density& getDensity() const { return density_;}
+  Density& getDensity(){ return density_;}
 
   void doDisplay(string &title, string &file) const { density_.doDisplay(title,file, seq_num_);}
-  void set_density_from_amplitude(DFT_Vec &x) {density_.set_density_from_amplitude(x);}
+  void set_density_from_alias(DFT_Vec &x) {density_.set_from_alias(x);}
   void set_density(DFT_Vec &x) {density_.set(x);}
-  void set_density(long j, double x) {density_.set_Density_Elem(j,x);}
+  void set_density(long j, double x) {density_.set(j,x);}
 
   void zeroForce() {dF_.zeros();}
   void addToForce(long i, double v) {dF_.IncrementBy(i,v);}
