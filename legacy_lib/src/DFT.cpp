@@ -67,7 +67,7 @@ double DFT::Fhelmholtz(const vector<double> &x) const
 
   return F;  
 }  
-
+/*
 double DFT::XLiq_From_Mu(double mu, double high_density) const
 {
   if(allSpecies_.size() > 1) throw std::runtime_error("Xliq_From_Mu only implemented for single component systems");
@@ -236,14 +236,14 @@ double DFT::XLiq_from_P(double P) const
       a[i+2] += 0.5*ae*denom[i];  
     }
 
-  /*
+  /?
   a.push_back(-P);
   a.push_back(  3*P+1);
   a.push_back( -3*P+1+0.5*ae);
   a.push_back(  P+1-1.5*ae);
   a.push_back(  -1+1.5*ae);
   a.push_back(   -0.5*ae);
-  */
+  ?/
   double roots[2*(a.size()-1)];
   gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(a.size());
   gsl_poly_complex_solve(a.data(), a.size(), w, roots);
@@ -297,7 +297,7 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
   x1 = v1[0];
   x2 = v2[0];
 }
-
+*/
 
 
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)

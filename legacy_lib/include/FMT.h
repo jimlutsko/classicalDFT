@@ -23,6 +23,8 @@
   *             Note that each of these, e.g. eta(N), is an N-dimensional vector holding the value of the weighted density at each point.
   *             The two copies d0_ and d1_ are to allow for two species but this is not fully implemented yet. 
   */  
+
+
 class FMT
 {
 public:
@@ -320,24 +322,24 @@ class Rosenfeld: public FMT
     return f*f;
   }
 
-  virtual void get_P_coeffs(vector<double> &num, vector<double> &denom) const
+  virtual double f2pp_(double eta) const
   {
-    num.clear();
-    denom.clear();
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }  
 
-    double C = (8*A_+2*B_-6)/3;
-    
-    num.push_back(1);
-    num.push_back(1);
-    num.push_back(C);
-
-    denom.push_back( 1);
-    denom.push_back(-3);
-    denom.push_back( 3);
-    denom.push_back(-1);
+  virtual double f3_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return f*f;
   }
 
-  virtual void get_dPdx_coeffs(vector<double> &num, vector<double> &denom) const
+  virtual double f3p_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }
+  virtual double f3pp_(double eta) const
   {
     double f = 1.0/(1.0-eta);
     return 6*f*f*f*f;    
@@ -385,6 +387,7 @@ class Rosenfeld: public FMT
 
   virtual void get_d2Phi(vector< vector<double> > &d2Phi, double eta, double s0, double s1, double s2, double v1[3], double v2[3])
   { throw std::runtime_error("get_d2Phi not implemented in clas Rosenfeld");}  
+
 
   virtual string Name() const { return string("Rosenfeld");}
 
@@ -704,6 +707,7 @@ class WhiteBearI : public esFMT
 class WhiteBearII : public esFMT //WhiteBearI
 {
  public:
+
   // In the paper, it says that this should be esFMT(3/2, -3/2): here the 3/2 has been moved into f3. 
   WhiteBearII() : esFMT(1,-1){};
   
