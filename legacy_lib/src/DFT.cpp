@@ -13,10 +13,6 @@ using namespace std;
 #include <gsl/gsl_poly.h>
 #include <gsl/gsl_sf_gamma.h>
 
-#include "poly34.h"
-
-#include "Poly.h"
-
 #ifdef USE_OMP
 #include <omp.h>
 #endif
@@ -31,7 +27,7 @@ double DFT::Mu(const vector<double> &x, int species) const
 
   if(fmt_)
     mu += fmt_->BulkMuex(x, allSpecies_, species);
-
+  
   for(auto &interaction: Interactions_)
     mu += interaction->Mu(x,species);
   
@@ -42,9 +38,7 @@ double DFT::Omega(const vector<double> &x) const
 {
   double omega = Fhelmholtz(x);
   for(int i=0;i<allSpecies_.size();i++)
-    {
-      omega -= x[i]*Mu(x,i);
-    }
+    omega -= x[i]*Mu(x,i);
 
   return omega;
 }
@@ -60,9 +54,10 @@ double DFT::Fhelmholtz(const vector<double> &x) const
 
   double Fhs = 0.0;
   if(fmt_)
-    Fhs += fmt_->BulkFex(x, allSpecies_);
-
-  F += Fhs;
+    {
+      Fhs += fmt_->BulkFex(x, allSpecies_);
+      F += Fhs;
+    }
 
   double Fmf = 0.0;
   for(auto &interaction: Interactions_)
@@ -80,7 +75,7 @@ double DFT::XLiq_From_Mu(double mu, double high_density) const
   vector<double> x(1);
 
   // Find the liquid that has the correct chemical potential,
-  // Start at the high density and go dozn until the chemical potential is bracketed.
+  // Start at the high density and go down until the chemical potential is bracketed.
   double ax = high_density;
   double bx = ax;
   double fa = 0.0;
@@ -130,7 +125,8 @@ double DFT::XVap_From_Mu(double mu, double maxDensity) const
   double xs2 = -1;
   double x2  = -1;
   try {
-    spinodal(xs1,xs2);
+    //    spinodal(xs1,xs2);
+    findSpinodal(maxDensity, 0.01, xs1, xs2, 1e-8);
     cout << "Spinodal: " << x1 << " " << x2 << endl;
     x2 = min(xs1,xs2);
   } catch(...) {
@@ -313,9 +309,10 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 
   double F = calculateFreeEnergyAndDerivatives_internal_(onlyFex);
 
+
   for(auto &s: allSpecies_)
     s->endForceCalculation();
-
+  
   return F;
 }
 
@@ -335,13 +332,13 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 #pragma omp parallel for				\
   shared(species, dV)				\
   private(pos)						\
-  schedule(auto)				\
+  schedule(static)				\
   reduction(SummationPlus:F)
 	for(pos=0;pos<Ntot;pos++)
 	  {
 	    double d0 = density.getDensity(pos);
 	    F += (d0*log(d0)-d0)*dV;
-	    species->addToForce(pos,log(d0)*dV);
+	    species->addToForce(pos,log(d0)*dV); //HERE
 	  }
       }
   F_id_ = F;

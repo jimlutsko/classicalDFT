@@ -40,6 +40,13 @@ public:
    */  
   ~FMT(){}
 
+<<<<<<< HEAD
+  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const = 0;
+  virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const = 0;
+  virtual void get_dPdx_coeffs(vector<double> &num, vector<double> &denom) const = 0;
+  virtual void get_P_coeffs(vector<double> &num, vector<double> &denom) const = 0;
+=======
+>>>>>>> feature/AO-model
   /**
    *   @brief  This function calculates total FMT contribution to the chemical potential of the requested species.
    *           It allows for the complications of extended models (like AO model). 
@@ -299,6 +306,59 @@ class Rosenfeld: public FMT
     return log(1.0-eta);
   }
   
+<<<<<<< HEAD
+  virtual double dPhi3_dV2(int k, const FundamentalMeasures &fm) const 
+ {
+   double s2    = fm.s2;
+   double v2_v2 = fm.v2_v2;
+   double v2_k   = fm.v2[k];
+   double vT_k   = fm.vT[k];
+   
+   return (A_/(24*M_PI))*(-6*s2*v2_k+6*vT_k);
+ }
+
+ virtual double dPhi3_dT(int j,int k, const FundamentalMeasures &fm) const 
+ {
+   double s2     = fm.s2;
+   double v2_j   = fm.v2[j];
+   double v2_k   = fm.v2[k];
+   double T_T_jk = fm.TT[j][k];
+   double T_jk   = fm.T[j][k];
+   
+    return (A_/(24*M_PI))*(3*v2_j*v2_k-3*T_T_jk)  + (B_/(24*M_PI))*(-6*s2*T_jk+6*T_T_jk);
+ }
+  //stable
+  // phi = -n0*log(1-n3) +(n1*n2/(1-n3))+(1/(24*M_PI))*(8/0.9)*n2*n2*n2/(1-n3)^2
+  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
+  {
+    double n0 = 0.0;
+    double n1 = 0.0;
+    double n2 = 0.0;
+    double n3 = 0.0;
+    for(int i=0;i<x.size();i++)
+      {
+	double density = x[i];
+	double hsd = allSpecies[i]->getHSD();
+	n0 += density;
+	n1 += 0.5*hsd*density;
+	n2 += M_PI*hsd*hsd*density;
+	n3 += (M_PI/6)*hsd*hsd*hsd*density;
+      }
+
+    double dPhi_dn0 = -log(1.0-n3);
+    double dPhi_dn1 = n2/(1-n3);
+    double dPhi_dn2 = (n1/(1-n3))+(1.0/(27*M_PI))*3*n2*n2/((1-n3)*(1-n3));
+    double dPhi_dn3 = 0.0;
+
+    dPhi_dn3  = n0/(1-n3);
+    dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
+    dPhi_dn3 += 2*(1.0/(27*M_PI))*(A_+B_/4)*n2*n2*n2/((1-n3)*(1-n3)*(1-n3));
+
+    double density = x[species];
+    double hsd = allSpecies[species]->getHSD();
+
+    return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
+=======
  virtual double f1p_(double eta) const
  {
     return -1.0/(1.0-eta);
@@ -318,6 +378,7 @@ class Rosenfeld: public FMT
   {
     double f = 1.0/(1.0-eta);
     return f*f;
+>>>>>>> feature/AO-model
   }
 
   virtual void get_P_coeffs(vector<double> &num, vector<double> &denom) const
@@ -339,9 +400,112 @@ class Rosenfeld: public FMT
 
   virtual void get_dPdx_coeffs(vector<double> &num, vector<double> &denom) const
   {
+<<<<<<< HEAD
+    num.clear();
+    denom.clear();
+
+    double C = (8*A_+2*B_-6)/3;    
+    
+    num.push_back( 1);
+    num.push_back( 4);
+    num.push_back( 1+3*C);
+
+    denom.push_back( 1);
+    denom.push_back(-4);
+    denom.push_back( 6);
+    denom.push_back(-4);
+    denom.push_back( 1);
+    
+  }
+  
+  virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
+ {
+   double n0 = 0.0;
+   double n1 = 0.0;
+   double n2 = 0.0;
+   double n3 = 0.0;
+   for(int i=0;i<x.size();i++)
+     {
+       double density = x[i];
+       double hsd = allSpecies[i]->getHSD();
+       n0 += density;
+       n1 += 0.5*hsd*density;
+       n2 += M_PI*hsd*hsd*density;
+       n3 += (M_PI/6)*hsd*hsd*hsd*density;
+     }
+
+   double F = 0;
+   F += -n0*log(1-n3);
+   F += n1*n2/(1-n3);
+   F += (1.0/(27*M_PI))*(A_+B_/4)*n2*n2*n2/((1-n3)*(1-n3));
+   return F;
+ }
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<FMT>(*this);
+    boost::serialization::void_cast_register<Stable, FMT>(static_cast<Stable *>(NULL),static_cast<FMT *>(NULL));    
+  }
+
+  
+  virtual string Name() const { return string("Stable with A = ") + to_string(A_) + string(" and B = ") + to_string(B_);}
+
+protected:
+  double A_ = 1;
+  double B_ = 0;
+};
+
+
+/**
+  *  @brief  The original White Bear  FMT model 
+  *
+  *   White-bear FMT model with tensor densities and the CS equation of state
+  */  
+class WhiteBearI : public FMT
+{
+ public:
+  WhiteBearI() : FMT(){};
+
+   virtual bool needsTensor() const { return true;}
+
+
+  virtual double f2_(double eta) const
+  {
+    return 1.0/(1.0-eta);
+  }
+
+  virtual double f2p_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return f*f;
+  }
+
+  virtual double f2pp_(double eta) const
+  {
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }  
+
+  virtual double f3_(double eta) const
+  {
+    if(eta < 1e-12)
+      return 1.5+(8.0/3)*eta+3.75*eta*eta+4.8*eta*eta*eta;
+    return (1.0/(eta*(1-eta)*(1-eta))) +  (log(1-eta)/(eta*eta));
+  }
+
+  virtual double f3p_(double eta) const
+  {
+    if(eta < 1e-12)
+      return (8.0/3)+7.5*eta+14.4*eta*eta;
+    return ((-(1-3*eta)/((1-eta)*(1-eta)*(1-eta)))-(1.0/(1-eta))-(2.0/eta)*log(1-eta))/(eta*eta);
+  }
+  virtual double f3pp_(double eta) const { return 0.0;}  
+=======
     double f = 1.0/(1.0-eta);
     return 6*f*f*f*f;    
   }  
+>>>>>>> feature/AO-model
 
   virtual double Phi3(const FundamentalMeasures &fm) const
   {
@@ -386,6 +550,79 @@ class Rosenfeld: public FMT
   virtual void get_d2Phi(vector< vector<double> > &d2Phi, double eta, double s0, double s1, double s2, double v1[3], double v2[3])
   { throw std::runtime_error("get_d2Phi not implemented in clas Rosenfeld");}  
 
+<<<<<<< HEAD
+
+  virtual void get_P_coeffs(vector<double> &num, vector<double> &denom) const
+  {
+    num.clear();
+    denom.clear();
+
+    num.push_back(1);
+    num.push_back(1);
+    num.push_back(1);
+    num.push_back(-1);
+
+    denom.push_back( 1);
+    denom.push_back(-3);
+    denom.push_back( 3);
+    denom.push_back(-1);
+  }
+
+  virtual void get_dPdx_coeffs(vector<double> &num, vector<double> &denom) const
+  {
+    num.clear();
+    denom.clear();
+    
+    num.push_back( 1);
+    num.push_back( 4);
+    num.push_back( 4);
+    num.push_back(-4);
+    num.push_back( 1);
+
+    denom.push_back( 1);
+    denom.push_back(-4);
+    denom.push_back( 6);
+    denom.push_back(-4);
+    denom.push_back( 1);
+    
+  }
+
+  
+ virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
+ {
+   double n0 = 0.0;
+   double n1 = 0.0;
+   double n2 = 0.0;
+   double n3 = 0.0;
+   for(int i=0;i<x.size();i++)
+     {
+       double density = x[i];
+       double hsd = allSpecies[i]->getHSD();
+       n0 += density;
+       n1 += 0.5*hsd*density;
+       n2 += M_PI*hsd*hsd*density;
+       n3 += (M_PI/6)*hsd*hsd*hsd*density;
+     }
+
+   double dPhi_dn0 = -log(1.0-n3);
+   double dPhi_dn1 = n2/(1-n3);
+   double dPhi_dn2 = (1.0/(12*M_PI))*(n2*n2/(n3*n3))*log(1-n3)+(n1/(1-n3))+n2*n2/(12*M_PI*n3*(1-n3)*(1-n3));
+   double dPhi_dn3 = 0.0;
+
+   dPhi_dn3  = -(1.0/(18*M_PI))*(n2*n2*n2/(n3*n3*n3))*log(1-n3);
+   dPhi_dn3 += -((1/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*(1.0/(1-n3));
+   dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
+   dPhi_dn3 +=  (1.0/(36*M_PI))*((n2*n2*n2*(3*n3-1)/(n3*n3*(1-n3)*(1-n3)*(1-n3))));   
+
+
+   double density = x[species];
+   double hsd = allSpecies[species]->getHSD();
+
+   return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
+ }
+=======
+>>>>>>> feature/AO-model
+
   virtual string Name() const { return string("Rosenfeld");}
 
   friend class boost::serialization::access;
@@ -405,7 +642,148 @@ class Rosenfeld: public FMT
 class RSLT : public Rosenfeld
 {
  public:
+<<<<<<< HEAD
+  RSLT() : FMT(){};
+
+
+ virtual bool needsTensor() const { return false;}
+  
+  virtual double f2_(double eta) const
+  {
+    if(eta > etaMax_)
+      {
+	double a0 = 1.0/(1.0-etaMax_);
+	double a1 = a0*a0;
+	double a2 = 2*a1*a0;
+	return a0 + a1*(eta-etaMax_) + 0.5*a2*(eta-etaMax_)*(eta-etaMax_);
+      }
+    
+    return 1.0/(1.0-eta);
+  }
+
+  virtual double f2p_(double eta) const
+  {
+    if(eta > etaMax_)
+      {
+	double a0 = 1.0/(1.0-etaMax_);	
+	double a1 = a0*a0;
+	double a2 = 2*a1*a0;
+	return a1 + a2*(eta-etaMax_);
+      }
+    
+    double f = 1.0/(1.0-eta);
+    return f*f;
+  }
+
+  virtual double f2pp_(double eta) const
+  {
+    if(eta > etaMax_)
+      {
+	double a0 = 1.0/(1.0-etaMax_);	
+	double a1 = a0*a0;
+	double a2 = 2*a1*a0;
+	return a2;
+      }
+    
+    double f = 1.0/(1.0-eta);
+    return 2*f*f*f;
+  }
+
+  virtual void get_P_coeffs(vector<double> &num, vector<double> &denom) const
+  {
+    num.clear();
+    denom.clear();
+
+    num.push_back(1);
+    num.push_back(1);
+    num.push_back(1);
+    num.push_back(-1);
+
+    denom.push_back( 1);
+    denom.push_back(-3);
+    denom.push_back( 3);
+    denom.push_back(-1);
+  }
+
+  virtual void get_dPdx_coeffs(vector<double> &num, vector<double> &denom) const
+  {
+    num.clear();
+    denom.clear();
+    
+    num.push_back( 1);
+    num.push_back( 4);
+    num.push_back( 4);
+    num.push_back(-4);
+    num.push_back( 1);
+
+    denom.push_back( 1);
+    denom.push_back(-4);
+    denom.push_back( 6);
+    denom.push_back(-4);
+    denom.push_back( 1);
+    
+  }  
+  
+  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
+  {
+    double n0 = 0.0;
+    double n1 = 0.0;
+    double n2 = 0.0;
+    double n3 = 0.0;
+    for(int i=0;i<x.size();i++)
+      {
+	double density = x[i];
+	double hsd = allSpecies[i]->getHSD();
+	n0 += density;
+	n1 += 0.5*hsd*density;
+	n2 += M_PI*hsd*hsd*density;
+	n3 += (M_PI/6)*hsd*hsd*hsd*density;
+      }
+
+    double dPhi_dn0 = -log(1.0-n3);
+    double dPhi_dn1 = n2/(1-n3);
+    double dPhi_dn2 = (1.0/(12*M_PI))*(n2*n2/(n3*n3))*log(1-n3)+(n1/(1-n3))+n2*n2/(12*M_PI*n3*(1-n3)*(1-n3));
+    double dPhi_dn3 = 0.0;
+
+    dPhi_dn3  = -(1.0/(18*M_PI))*(n2*n2*n2/(n3*n3*n3))*log(1-n3);
+    dPhi_dn3 += -((1/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*(1.0/(1-n3));
+    dPhi_dn3 += (n1*n2/((1-n3)*(1-n3)));
+    dPhi_dn3 +=  (1.0/(36*M_PI))*((n2*n2*n2*(3*n3-1)/(n3*n3*(1-n3)*(1-n3)*(1-n3))));   
+
+    double density = x[species];
+    double hsd = allSpecies[species]->getHSD();
+
+    return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd; 
+  }
+
+  virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
+  {
+    double n0 = 0.0;
+    double n1 = 0.0;
+    double n2 = 0.0;
+    double n3 = 0.0;
+    for(int i=0;i<x.size();i++)
+      {
+	double density = x[i];
+	double hsd = allSpecies[i]->getHSD();
+	n0 += density;
+	n1 += 0.5*hsd*density;
+	n2 += M_PI*hsd*hsd*density;
+	n3 += (M_PI/6)*hsd*hsd*hsd*density;
+      }
+
+    double F = ((1.0/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*log(1-n3);
+    F += n1*n2/(1-n3);
+    F += (1.0/(36*M_PI))*n2*n2*n2/(n3*(1-n3)*(1-n3));
+
+    return F;
+  }
+  
+
+
+=======
   RSLT() : Rosenfeld(){};
+>>>>>>> feature/AO-model
 
   virtual double f3_(double eta) const
   {
@@ -512,6 +890,9 @@ class RSLT : public Rosenfeld
 
 
 /**
+<<<<<<< HEAD
+  *  @brief  Rosenfeld modified to give CS EOS.
+=======
   *  @brief  "Explicitly Stable" FMT
   *
   *   Note that the bulk eos for the fluid is neither PY nor CS.
@@ -634,6 +1015,7 @@ protected:
 
 /**
   *  @brief  The original White Bear  FMT model 
+>>>>>>> feature/AO-model
   *
   *   White-bear FMT model with tensor densities and the CS equation of state
   */  
@@ -704,6 +1086,70 @@ class WhiteBearI : public esFMT
 class WhiteBearII : public esFMT //WhiteBearI
 {
  public:
+<<<<<<< HEAD
+  WhiteBearII() : WhiteBearI(){};
+
+ virtual bool needsTensor() const { return true;}
+
+  virtual double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
+  {
+    double n0 = 0.0;
+    double n1 = 0.0;
+    double n2 = 0.0;
+    double n3 = 0.0;
+    for(int i=0;i<x.size();i++)
+      {
+	double density = x[i];
+	double hsd = allSpecies[i]->getHSD();
+	n0 += density;
+	n1 += 0.5*hsd*density;
+	n2 += M_PI*hsd*hsd*density;
+	n3 += (M_PI/6)*hsd*hsd*hsd*density;
+      }
+
+
+    double dPhi_dn0 = -log(1.0-n3);
+    double dPhi_dn1 = (2.0/3.0)*(n2/n3)*log(1-n3)+((5.0-n3)/3)*n2/(1-n3);
+    double dPhi_dn2 = ((2.0/3.0)*(n1/n3)-(1.0/(12*M_PI))*(n2*n2/(n3*n3)))*log(1-n3)+((5.0-n3)/3)*(n1/(1-n3))+n2*n2*(-n3*n3+3*n3-1)/(12*M_PI*n3*(1-n3)*(1-n3));
+    double dPhi_dn3 = 0.0;
+
+    dPhi_dn3  = (-(2.0/3.0)*(n1*n2/(n3*n3))+(1.0/(18*M_PI))*(n2*n2*n2/(n3*n3*n3)))*log(1-n3);
+    dPhi_dn3 += -((2.0/3.0)*(n1*n2/n3)+(n1*n2/3)-(1/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*(1.0/(1-n3));
+    dPhi_dn3 += ((5.0-n3)/3)*(n1*n2/((1-n3)*(1-n3)));
+    dPhi_dn3 +=  (1.0/(36*M_PI))*n2*n2*n2*(1-3*n3+5*n3*n3-n3*n3*n3)/(n3*n3*(1-n3)*(1-n3)*(1-n3));   
+
+    double density = x[species];
+    double hsd = allSpecies[species]->getHSD();
+
+    return dPhi_dn0+dPhi_dn1*0.5*hsd+dPhi_dn2*M_PI*hsd*hsd+dPhi_dn3*(M_PI/6)*hsd*hsd*hsd;
+      
+  }
+  
+ virtual double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
+ {
+   double n0 = 0.0;
+   double n1 = 0.0;
+   double n2 = 0.0;
+   double n3 = 0.0;
+   for(int i=0;i<x.size();i++)
+     {
+       double density = x[i];
+       double hsd = allSpecies[i]->getHSD();
+       n0 += density;
+       n1 += 0.5*hsd*density;
+       n2 += M_PI*hsd*hsd*density;
+       n3 += (M_PI/6)*hsd*hsd*hsd*density;
+     }
+
+   double F = ((2.0/3.0)*(n1*n2/n3)-(1.0/(36*M_PI))*(n2*n2*n2/(n3*n3))-n0)*log(1-n3);
+   F += ((5-n3)/3)*n1*n2/(1-n3);
+   F += (1.0/(36*M_PI))*n2*n2*n2*(-1+3*n3-n3*n3)/(n3*(1-n3)*(1-n3));
+		  
+   return F;
+ }  
+=======
+>>>>>>> feature/AO-model
+
   // In the paper, it says that this should be esFMT(3/2, -3/2): here the 3/2 has been moved into f3. 
   WhiteBearII() : esFMT(1,-1){};
   

@@ -37,39 +37,33 @@ FundamentalMeasures FMT::getWeightedDensities(long i, vector<Species*> &allSpeci
   // Collect the contributions to the various weighted densities at lattice position
   for(Species* &generic_species : allSpecies)
     {
-      FMT_Species *species = (FMT_Species*) generic_species;
-      
-      double hsd = species->getHSD();
+      FMT_Species *species = dynamic_cast<FMT_Species*>(generic_species);
+      if(species)
+	{      
+	  double hsd = species->getHSD();
   
-      fm.eta += species->getEta(i); //Eta(dd).r(i);
+	  fm.eta += species->getEta(i); //Eta(dd).r(i);
 
-      fm.s0 += species->getS(i)/(hsd*hsd) ;
-      fm.s1 += species->getS(i)/hsd;
-      fm.s2 += species->getS(i);
+	  fm.s0 += species->getS(i)/(hsd*hsd) ;
+	  fm.s1 += species->getS(i)/hsd;
+	  fm.s2 += species->getS(i);
 
-      for(int j=0;j<3;j++)
-	{
-	  fm.v1[j] += species->getV(j,i)/hsd;
-	  fm.v2[j] += species->getV(j,i);
-	  for(int k=0;k<3;k++)
-	    fm.T[j][k] += species->getT(j,k,i);
+	  for(int j=0;j<3;j++)
+	    {
+	      fm.v1[j] += species->getV(j,i)/hsd;
+	      fm.v2[j] += species->getV(j,i);
+	      for(int k=0;k<3;k++)
+		fm.T[j][k] += species->getT(j,k,i);
+	    }
 	}
     }
-  /*
-  // touch up the normalization of the tensor density to account for any numerical errors
-  double ss = fm.T[0][0]+fm.T[1][1]+fm.T[2][2];
-
-  fm.T[0][0] += (fm.s2-ss)/3;
-  fm.T[1][1] += (fm.s2-ss)/3;
-  fm.T[2][2] += (fm.s2-ss)/3;
-  */
   fm.calculate_derived_quantities();
   
   return fm;
 }
 
 
-double FMT::Phi(const FundamentalMeasures& fm) const
+double FMT::calculate_Phi(const FundamentalMeasures& fm) const
 {
   // These are the eta-dependendent cofactors that lie at the heart of FMT
   double eta = fm.eta;
@@ -92,7 +86,7 @@ double FMT::Phi(const FundamentalMeasures& fm) const
   return phi;
 }
 
-void FMT::DPhi(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const
+void FMT::calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const
 {
   // These are the eta-dependendent cofactors that lie at the heart of FMT
   double eta = fm.eta;
@@ -133,10 +127,13 @@ void FMT::DPhi(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const
 	dPhi.T[j][k] = dPhi3_dT(j,k,fm)*f3; 		
 }
 
-void FMT::D2Phi(const FundamentalMeasures& fm, vector<vector<double>>& d2Phi) const
+static int count1 = 0;
+
+//This computes sum_b (d2Phi(n)/dn_{a} dn_{b}) v_{b} for some array v and where n_{a} are the fundamental measures.
+void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const
 {
   // These are the eta-dependendent cofactors that lie at the heart of FMT
-  double eta = fm.eta;
+  double eta = n.eta;
   
   double f1 = f1_(eta);
   double f2 = f2_(eta);
@@ -151,125 +148,111 @@ void FMT::D2Phi(const FundamentalMeasures& fm, vector<vector<double>>& d2Phi) co
   double f3pp = f3pp_(eta);  
   
 // Now, construct the derivatives
-  double s0 = fm.s0;
-  double s1 = fm.s1;
-  double s2 = fm.s2;
-  double v1_v2 = fm.v1_v2;
+  double s0 = n.s0;
+  double s1 = n.s1;
+  double s2 = n.s2;
+  double v1_v2 = n.v1_v2;
+
+  result.fillUniform(0);
   
   //eta-eta
-  d2Phi[0][0] -= (1/M_PI)*s0*f1pp; 
-  d2Phi[0][0] += (1/(2*M_PI))*(s1*s2-v1_v2)*f2pp;
-  d2Phi[0][0] += Phi3(fm)*f3pp;
-
+  result.eta += ( -(1/M_PI)*s0*f1pp 
+  		  +(1/(2*M_PI))*(s1*s2-v1_v2)*f2pp
+  		  + Phi3(n)*f3pp ) * v.eta;
   //eta-s0
-  d2Phi[0][1] -= (1/M_PI)*f1p;
+  result.eta += -(1/M_PI)*f1p * v.s0;
+  result.s0  += -(1/M_PI)*f1p * v.eta;    
 
   //eta-s1
-  d2Phi[0][2] += (1/(2*M_PI))*(s2)*f2p;
+  result.eta += (1/(2*M_PI))*(s2)*f2p * v.s1;
+  result.s1  += (1/(2*M_PI))*(s2)*f2p * v.eta;
 
   //eta-s2
-  d2Phi[0][3] += (1/(2*M_PI))*(s1)*f2p;
-  d2Phi[0][3] += dPhi3_dS2(fm)*f3p;
+  result.eta += ( (1/(2*M_PI))*(s1)*f2p + dPhi3_dS2(n)*f3p) * v.s2;
+  result.s2  += ( (1/(2*M_PI))*(s1)*f2p + dPhi3_dS2(n)*f3p) * v.eta;
 
   //eta-v1
-  d2Phi[0][4] += -(1/(2*M_PI))*fm.v2[0]*f2p;
-  d2Phi[0][5] += -(1/(2*M_PI))*fm.v2[1]*f2p;
-  d2Phi[0][6] += -(1/(2*M_PI))*fm.v2[2]*f2p;
+  result.eta += -(1/(2*M_PI))*n.v2[0]*f2p * v.v1[0];
+  result.eta += -(1/(2*M_PI))*n.v2[1]*f2p * v.v1[1];
+  result.eta += -(1/(2*M_PI))*n.v2[2]*f2p * v.v1[2];
+
+  result.v1[0] += -(1/(2*M_PI))*n.v2[0]*f2p * v.eta;
+  result.v1[1] += -(1/(2*M_PI))*n.v2[1]*f2p * v.eta;
+  result.v1[2] += -(1/(2*M_PI))*n.v2[2]*f2p * v.eta;
 
   //eta-v2
-  d2Phi[0][7] += -(1/(2*M_PI))*fm.v1[0]*f2p + dPhi3_dV2(0,fm)*f3p;
-  d2Phi[0][8] += -(1/(2*M_PI))*fm.v1[1]*f2p + dPhi3_dV2(1,fm)*f3p;
-  d2Phi[0][9] += -(1/(2*M_PI))*fm.v1[2]*f2p + dPhi3_dV2(2,fm)*f3p;
+  result.eta += (-(1/(2*M_PI))*n.v1[0]*f2p + dPhi3_dV2(0,n)*f3p) * v.v2[0];
+  result.eta += (-(1/(2*M_PI))*n.v1[1]*f2p + dPhi3_dV2(1,n)*f3p) * v.v2[1];
+  result.eta += (-(1/(2*M_PI))*n.v1[2]*f2p + dPhi3_dV2(2,n)*f3p) * v.v2[2];
 
-  // s0-s0, s0-s1, s1-s1
-  d2Phi[1][1] = 0.0;
-  d2Phi[1][2] = 0.0;
-  d2Phi[2][2] = 0.0;
+  result.v2[0] += (-(1/(2*M_PI))*n.v1[0]*f2p + dPhi3_dV2(0,n)*f3p) * v.eta;
+  result.v2[1] += (-(1/(2*M_PI))*n.v1[1]*f2p + dPhi3_dV2(1,n)*f3p) * v.eta;
+  result.v2[2] += (-(1/(2*M_PI))*n.v1[2]*f2p + dPhi3_dV2(2,n)*f3p) * v.eta;
+
+  // s0-s0, s0-s1, s1-s1 are all zero
 
   // s1-s2
-  d2Phi[2][3] = (1/(2*M_PI))*f2;
+  result.s1 += (1/(2*M_PI))*f2 * v.s2;
+  result.s2 += (1/(2*M_PI))*f2 * v.s1;
 
   //s2-s2
-  d2Phi[3][3] = dPhi3_dS2_dS2(fm)*f3;
-
-  // s2-v2
-  d2Phi[3][7] += dPhi3_dV2_dS2(0, fm)*f3;
-  d2Phi[3][8] += dPhi3_dV2_dS2(1, fm)*f3; 	  
-  d2Phi[3][9] += dPhi3_dV2_dS2(2, fm)*f3;
-
-  // v1-v2
-  d2Phi[4][7] = -(1/(2*M_PI))*f2;
-  d2Phi[5][8] = -(1/(2*M_PI))*f2;
-  d2Phi[6][9] = -(1/(2*M_PI))*f2;
-
-  // v2-v2
-  d2Phi[7][7] = dPhi3_dV2_dV2(0,0,fm)*f3;
-  d2Phi[7][8] = dPhi3_dV2_dV2(0,1,fm)*f3;
-  d2Phi[7][9] = dPhi3_dV2_dV2(0,2,fm)*f3;
-
-  d2Phi[8][8] = dPhi3_dV2_dV2(1,1,fm)*f3;
-  d2Phi[8][9] = dPhi3_dV2_dV2(1,2,fm)*f3;
-
-  d2Phi[9][9] = dPhi3_dV2_dV2(2,2,fm)*f3;  
-
- if(needsTensor())
-   {
-     throw std::runtime_error("D2PHI not implemented for tensor theories");
-   }
-
+  result.s2 += dPhi3_dS2_dS2(n)*f3 * v.s2;
   
-  for(int i=0;i<10;i++)
-    for(int j=0;j<i;j++)
-      d2Phi[i][j] = d2Phi[j][i];
+  for(int i=0;i<3;i++)
+    {
+      // s2-v2
+      result.s2    += dPhi3_dV2_dS2(i, n)*f3 * v.v2[i];
+      result.v2[i] += dPhi3_dV2_dS2(i, n)*f3 * v.s2;
+
+      // v1-v2
+      result.v1[i] += -(1/(2*M_PI))*f2 * v.v2[i];
+      result.v2[i] += -(1/(2*M_PI))*f2 * v.v1[i];
+      
+      for(int j=0;j<3;j++)
+	{
+	  // v2-v2
+	  result.v2[i] += dPhi3_dV2_dV2(i,j,n)*f3 * v.v2[j];
+
+	  result.eta     += dPhi3_dT(i,j,n)*f3p * v.T[i][j];
+	  result.T[i][j] += dPhi3_dT(i,j,n)*f3p * v.eta;
+
+	  // assuming s0-T and s1-T are zero
+	  result.s2      += dPhi3_dS2_dT(i,j,n)*f3 * v.T[i][j];
+	  result.T[i][j] += dPhi3_dS2_dT(i,j,n)*f3 * v.s2;
+	  
+	  for(int k=0;k<3;k++)
+	    {
+	      result.v2[i]   += dPhi3_dV2_dT(i,j,k,n)*f3 * v.T[j][k];
+	      result.T[j][k] += dPhi3_dV2_dT(i,j,k,n)*f3 * v.v2[i];
+	      for(int l=0;l<3;l++)
+		result.T[i][j] += dPhi3_dT_dT(i,j,k,l,n)*f3 * v.T[k][l];
+	    }
+	}
+    }
 }
+
 
 double FMT::dPHI(long i, vector<Species*> &allSpecies)
 {
   FundamentalMeasures fm = getWeightedDensities(i, allSpecies);
 
-  double phi = Phi(fm);
+  double phi = calculate_Phi(fm);
 
-  if(etaMax_ > 1.0)
-    if(fm.eta > 0.5 && 1-fm.eta < 0.0)
-      throw Eta_Too_Large_Exception();
+  if(fm.eta > 0.5 && 1-fm.eta < 0.0)
+    throw Eta_Too_Large_Exception();
   
   // Also add in the contributions to the derivative of phi (at lattice site i) wrt the various weighted densities
   // (part of the chain-rule evaluation of dPhi/drho(j) = dPhi/deta(i) * deta(i)/drho(j) + ...)
   // Note that at the level of the fundamental measures, we only keep track of one of each class since the others are trivially related
   // by factors of hsd.
-  
+
+  // Here, we fill dPhi with dPhi/d n_{alpha}(i) so I re-use the FundamentalMeasures structure even though the meaining here is different.
   FundamentalMeasures dPhi;
-  DPhi(fm,dPhi);
+  calculate_dPhi_wrt_fundamental_measures(fm,dPhi);
   
   for(Species* &generic_species : allSpecies)
-    {
-      generic_species->processFMTInfo(dPhi, i, needsTensor());
-      /* obsolete version
-      FMT_Species *species = dynamic_cast<FMT_Species*>(generic_species);
+      generic_species->set_fundamental_measure_derivatives(dPhi, i, needsTensor());
 
-      if(species)
-	{      
-	  double hsd = species->getHSD();
-
-	  double dPhi_dEta = dPhi.eta;
-	  double dPhi_dS2 = (dPhi.s0/(hsd*hsd)) + (dPhi.s1/hsd) + dPhi.s2;
-	  double dPhi_dV2[3] = {dPhi.v2[0] + dPhi.v1[0]/hsd,
-				dPhi.v2[1] + dPhi.v1[1]/hsd,
-				dPhi.v2[2] + dPhi.v1[2]/hsd};
-
-	  species->Set_dPhi_Eta(i,dPhi_dEta);
-	  species->Set_dPhi_S(i,dPhi_dS2);
-      
-	  for(int j=0;j<3;j++)
-	    {
-	      species->Set_dPhi_V(j,i,dPhi_dV2[j]);
-	      if(needsTensor())
-		for(int k=j;k<3;k++)	   
-		  species->Set_dPhi_T(j,k,i,(j ==k ? 1 : 2)*dPhi.T[j][k]); // taking account that we only use half the entries
-	    }
-	}
-      */
-    }
   return phi;
 }
 
@@ -278,12 +261,15 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
-  // Compute the FFT of density
+  // Do FFT of density and compute the fundamental measures by convolution
   for(auto s: allSpecies)
-    ((FMT_Species*)s)->convoluteDensities(needsTensor());
+    {
+      FMT_Species *f = dynamic_cast<FMT_Species*>(s);
+      if(f) f->calculateFundamentalMeasures(needsTensor());
+	//	f->convoluteDensities(needsTensor());
+    }
   
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
-
   long Ntot = allSpecies.front()->getLattice().Ntot();  
   
   // There is a problem throwing exceptions from an OMP loop - I think that only the affected thread stops and the others continue.
@@ -291,16 +277,12 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   bool hadCatch = false;
 
   Summation F;
-  int chunk = Ntot/20;
   long i;
-
-    //    schedule(static,chunk)		\
-  
-  #pragma omp parallel for		\
-    shared( chunk, allSpecies )				\
-    private(i)					\
-    schedule(auto)			\
-    reduction(SummationPlus:F)
+#pragma omp parallel for \
+  shared(allSpecies )	 \
+  private(i)		 \
+  schedule(static)	 \
+  reduction(SummationPlus:F)
   for(i=0;i<Ntot;i++)
     {
       try {
@@ -309,10 +291,21 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 	hadCatch = true;
       }
     }
+
   // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
   if(hadCatch) 
-    throw   Eta_Too_Large_Exception();
-  return F;
+    throw Eta_Too_Large_Exception();
+  
+  // For the AO species, there is additional work to do for both the free energy and the forces. 
+  // Do FFT of density and compute the fundamental measures by convolution
+  double FAO = 0;
+  for(auto s: allSpecies)
+    {
+      FMT_AO_Species *fao_species = dynamic_cast<FMT_AO_Species*>(s);
+      if(fao_species)
+	  FAO += fao_species->free_energy_post_process(needsTensor());
+    }
+  return F.sum()+ FAO;
 }
 
 // Calculate dF[i] = dPhi/drho(i)
@@ -332,7 +325,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  // The  derivatives
+  // The  derivatives: for each species s  we need the deriv wrt the species' density at each lattice site: dF/d n_{s}(i) 
   double dV = allSpecies.front()->getLattice().dV();
 
   DFT_FFT dPhi_(allSpecies.front()->getLattice().Nx(),
@@ -341,16 +334,52 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
   
   for(auto &s: allSpecies)
     {
-      FMT_Species &species = *((FMT_Species*) s);
+      FMT_Species *species = dynamic_cast<FMT_Species*>(s);
+      if(species)
+	{      
+	  dPhi_.Four().zeros();
+	  species->Accumulate_dPhi(dPhi_.Four(), needsTensor());
+	  
+	  dPhi_.do_fourier_2_real();
 
-      dPhi_.Four().zeros();
-      species.Accumulate_dPhi(dPhi_.Four(), needsTensor());
+	  dPhi_.Real().MultBy(dV);
+	  species->addToForce(dPhi_.cReal()); //HERE
+	}
 
-      dPhi_.do_fourier_2_real();
+  // Add in AO part, if there is any
+      FMT_AO_Species *fao_species = dynamic_cast<FMT_AO_Species*>(s);
+      if(fao_species)
+	{
+	  // The weights now hold Upsilon for each measure. We now need Upsilon-bar
+	  // PSI will be used to hold intermediate results
 
-      dPhi_.Real().MultBy(dV);
-      species.addToForce(dPhi_.cReal());
+	  long pos;
+#pragma omp parallel for  private(pos)  schedule(static)				
+	  for(pos=0; pos<fao_species->getLattice().Ntot();pos++)
+	    {
+	      FundamentalMeasures n;
+	      fao_species->getFundamentalMeasures(pos, n);
+	      
+	      FundamentalMeasures upsilon;
+	      fao_species->getFundamentalMeasures_AO(pos, upsilon);		  
+	      
+	      // This calculates SUM_b (d2Phi(n)/dn_a dn_b) upsilon_b
+	      // The vector gets a minus sign because there is a parity factor.
+	      FundamentalMeasures result;		  
+	      calculate_d2Phi_dot_V(n, upsilon, result);
+	      double hsd1 = 1.0/(fao_species->getHSD());
+	      double eta = result.eta;
+	      double s   = result.s0*hsd1*hsd1+result.s1*hsd1+result.s2;
+	      double v[3];
+	      for(int direction=0;direction<3;direction++)
+		v[direction] = -result.v1[direction]*hsd1 - result.v2[direction];
+	      fao_species->setFundamentalMeasures_AO(pos,eta,s,v,result.T);
+	    }
+	  fao_species->computeAOForceContribution();
+	}
     }
+
+  
   return F*dV;
 };
 
@@ -362,6 +391,9 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 //
 void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies)
 {
+  throw std::runtime_error("FMT::add_second_derivative needs to be reimplemented due to change in d2Phi interface");
+
+  /*
   if(needsTensor()) throw std::runtime_error("Second derivatives not implemented for tensor densities");
   if(allSpecies.size() < 1)  throw std::runtime_error("No species for FMT::add_second_derivative to work with");
 
@@ -420,7 +452,7 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
     {
       FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
       vector<vector<double>> d2Phi(Nfmt,vector<double>(Nfmt,0.0));
-      D2Phi(fm, d2Phi);
+      calculate_d2Phi_dot_V(fm, d2Phi);
 
       for(int a=0;a<Nfmt;a++)
 	for(int b=0;b<Nfmt;b++)	    
@@ -469,12 +501,17 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
 
   for(auto &f: d2F)
     f.MultBy(dV);
+  */
 }
 
 // Brute-force evaluation of second derivatives
 double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies)
 {
-  FMT_Species *s1 = dynamic_cast<FMT_Species*>(allSpecies[si]);
+  throw std::runtime_error("FMT::d2Phi_dn_dn needs to be reimplemented due to change in d2Phi interface");
+  return 0;
+
+
+  /*  FMT_Species *s1 = dynamic_cast<FMT_Species*>(allSpecies[si]);
   if(!s1) return 0; // Not an FMT_Species
 
   FMT_Species *s2 = dynamic_cast<FMT_Species*>(allSpecies[sj]);
@@ -503,11 +540,12 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
 	  
 	  FundamentalMeasures fm = getWeightedDensities(K, allSpecies);
 	  vector<vector<double>> d2Phi(Nfmt,vector<double>(Nfmt,0.0));
-	  D2Phi(fm, d2Phi);	      	      
+	  calculate_d2Phi_dot_V(fm, d2Phi);	      	      
 	  
 	  for(int a=0;a<Nfmt;a++)
 	    for(int b=0;b<Nfmt;b++)
 	      f += d2Phi[a][b]*s1->getExtendedWeight(KI,a)*s2->getExtendedWeight(KJ,b);
 	}
   return f*dV;
+  */
 }

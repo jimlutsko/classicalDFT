@@ -67,18 +67,6 @@ class Interaction_Base
    */    
   virtual double getInteractionEnergyAndForces();
 
-
-  /**
-  *   @brief  Calculates (d2F/dn_i dn_j)v_j
-  *  
-  *   @param  v: input vector
-  *   @param  d2F: vector to be filled
-  */    
-  void add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F);
-
-  // This is only used for testing add_second_derivative.
-  double second_derivative_brute_force(int I[3], int J[3], vector<DFT_FFT> &v);
-
   /**
    *   @brief  An internal, debugging function. It should be suppressed at some point.
    *  
@@ -103,7 +91,7 @@ class Interaction_Base
    *
    *   @return the chemical potential divided by kT
    */        
-  double Mu(const vector<double> &x, int species) const
+  virtual double Mu(const vector<double> &x, int species) const
   {
     double mu = 0.0;
 
@@ -123,7 +111,7 @@ class Interaction_Base
    *
    *   @return the mean-field contribution to the free energy per unit volume divided by kT
    */  
-  double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_->getSequenceNumber()]*x[s2_->getSequenceNumber()];}  
+  virtual double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_->getSequenceNumber()]*x[s2_->getSequenceNumber()];}  
 
   /**
    *   @brief  Returns the vDW parameter calculated from the weights
@@ -131,7 +119,7 @@ class Interaction_Base
    *   @return sum_{\mathbf R} w({\mathbf R})/kT
    */    
   double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_vdw_;}
-  
+
  protected:
   
   /**
@@ -163,6 +151,8 @@ class Interaction_Base
     ar & kT_;
   }
 
+
+  
  protected:
   Species *s1_; ///< First of the interacting species
   Species *s2_; ///< Second of the interacting species
@@ -477,9 +467,9 @@ class Interaction_Interpolation_LE : public Interaction_Interpolation
    */      
  Interaction_Interpolation_LE(Species *s1, Species *s2, Potential1 *v, double kT) :
   Interaction_Interpolation(s1,s2,v,kT)
-    { vv_.push_back( 1.0); vv_.push_back(26.0); vv_.push_back(66.0); vv_.push_back(26.0); vv_.push_back(1.0);
-      pt_.push_back(-2.0); pt_.push_back(-1.0); pt_.push_back( 0.0); pt_.push_back( 1.0); pt_.push_back(2.0);
-      for(auto &x: vv_) x /= 120.0;
+    {
+      vv_ = {1.0/120, 26.0/120, 66.0/120, 26.0/120, 1.0/120};
+      pt_ = {-2.0, -1.0,  0.0,  1.0, 2.0};
     }
 
   Interaction_Interpolation_LE() : 
@@ -509,9 +499,10 @@ class Interaction_Interpolation_QE : public Interaction_Interpolation
    */      
  Interaction_Interpolation_QE(Species *s1, Species *s2, Potential1 *v, double kT) :
   Interaction_Interpolation(s1,s2,v,kT)
-    { vv_.push_back(-1.0); vv_.push_back(8.0);  vv_.push_back(18.0); vv_.push_back(112.0); vv_.push_back(86.0); vv_.push_back(112.0); vv_.push_back(18.0); vv_.push_back(8.0); vv_.push_back(-1.0);
-      pt_.push_back(-2.0); pt_.push_back(-1.5); pt_.push_back(-1.0); pt_.push_back(-0.5);  pt_.push_back(0.0);  pt_.push_back(0.5);   pt_.push_back(1.0);  pt_.push_back(1.5); pt_.push_back(2.0);
-      for(auto &x: vv_) x /= 360.0;
+    {
+
+      vv_ = {-1.0/360 ,8.0/360  ,18.0/360 ,112.0/360 ,86.0/360 ,112.0/360 ,18.0/360 ,8.0/360 ,-1.0/360};
+      pt_ = {-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0};
     }
 
   Interaction_Interpolation_QE() : 
@@ -540,9 +531,9 @@ class Interaction_Interpolation_LF : public Interaction_Interpolation
    */      
  Interaction_Interpolation_LF(Species *s1, Species *s2, Potential1 *v, double kT) :
   Interaction_Interpolation(s1,s2,v,kT)
-    { vv_.push_back(1.0);  vv_.push_back(4.0); vv_.push_back(1.0);
-      pt_.push_back(-1.0); pt_.push_back(0.0); pt_.push_back(1.0);
-      for(auto &x: vv_) x /= 6;
+    {
+      vv_ = {1.0/6, 4.0/6, 1.0/6};
+      pt_ = {-1.0,0.0,1.0};
     }
 
   Interaction_Interpolation_LF() : 
@@ -570,10 +561,11 @@ class Interaction_Interpolation_QF : public Interaction_Interpolation
    *   @param kT: the temperature
    */      
  Interaction_Interpolation_QF(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT)
-    { vv_.push_back(1.0/3);  vv_.push_back(1.0/3); vv_.push_back(1.0/3);
-      pt_.push_back(-0.5); pt_.push_back(0.0); pt_.push_back(0.5);
-    }  
+   Interaction_Interpolation(s1,s2,v,kT)
+  {
+    vv_ = {1.0/3.0,1.0/3.0,1.0/3.0};
+    pt_ = {-0.5,0.0,0.5};
+  }
   Interaction_Interpolation_QF() : 
     Interaction_Interpolation(){}
   

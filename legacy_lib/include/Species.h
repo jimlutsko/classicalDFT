@@ -65,6 +65,7 @@ class Species
       }
     return Fx;
   }
+
   /**
   *   @brief  Get the hard sphere diameter. This is a place-holder for the child objects that actually have a hsd.
   *  
@@ -75,7 +76,7 @@ class Species
    *   @brief  Placeholder for FMT-specific processing: non-FMT classes do nothing
    *  
    */  
-  virtual void processFMTInfo(FundamentalMeasures &fm, long pos, bool needsTensor) {}
+  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &fm, long pos, bool needsTensor) {}
  
   /**
    *   @brief  Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
@@ -94,7 +95,7 @@ class Species
    *   @brief  Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
    *  
    */    
-  void endForceCalculation()
+  double endForceCalculation()
   {
     if(fixedMass_ > 0.0)
       {
@@ -107,6 +108,8 @@ class Species
 	for(long p=0;p<density_.Ntot();p++)
 	  dF_.set(p, dF_.get(p)-mu_*density_.dV());
       }
+
+    return 0;
   }
 
   friend class boost::serialization::access;
@@ -133,8 +136,8 @@ protected:
   /**
    *  @brief Species Class: hard sphere diameters, etc.
    *
-   *    This class holds an 11-dimentional array called d_ . This in turn holds the weighted densities as
-   *             d_ = {eta(N),s(N),V1(N),...,VD(N), T11(N), T12(N), ... T1D(N), T22(N), ..., TDD(N)}
+   *    This class holds an 11-dimentional array called fmt_weighted_densities . This in turn holds the weighted densities as
+   *             fmt_weighted_densities = {eta(N),s(N),V1(N),...,VD(N), T11(N), T12(N), ... T1D(N), T22(N), ..., TDD(N)}
    *             where for D=3 there are 1+1+3+(3+2+1) = 11 entries.
    *             Note that each of these, e.g. eta(N), is an N-dimensional vector holding the value of the weighted density at each point.
    */
@@ -147,7 +150,6 @@ public:
    *  
    *   @param  hsd is the hard-sphere diameter
    *   @param  lattice describes the mesh
-   *   @param  pointsFile contains the points for spherical integration: if it does not exist, the analytic weights are used
    *   @return nothing 
    */    
   FMT_Species(Density& density, double hsd, double mu = 0, int seq = -1);
@@ -170,7 +172,7 @@ public:
    *   @param  pos is the mesh position
    *   @return value of Eta at pos
    */    
-  double getEta(long pos) const { return d_[EI()].real(pos);}
+  double getEta(long pos) const { return fmt_weighted_densities[EI()].real(pos);}
 
   /**
    *   @brief  get value of S at pos
@@ -178,7 +180,7 @@ public:
    *   @param  pos is the mesh position
    *   @return value of S at pos
    */      
-  double getS(long pos) const { return d_[SI()].real(pos);}
+  double getS(long pos) const { return fmt_weighted_densities[SI()].real(pos);}
 
   /**
    *   @brief  get value of component j of V at pos
@@ -187,7 +189,7 @@ public:
    *   @param  pos is the mesh position
    *   @return value of V(j) at pos
    */      
-  double getV(int j, long pos)      const { return d_[VI(j)].real(pos);}
+  double getV(int j, long pos)      const { return fmt_weighted_densities[VI(j)].real(pos);}
 
   /**
    *   @brief  get value of component j,k of T at pos
@@ -197,44 +199,10 @@ public:
    *   @param  pos is the mesh position
    *   @return value of T(j,k) at pos
    */      
-  double getT(int j,int k,long pos) const { return d_[TI(j,k)].real(pos);}
+  double getT(int j,int k,long pos) const { return fmt_weighted_densities[TI(j,k)].real(pos);}
   
-  const DFT_Vec_Complex& getWEK() const { return d_[EI()].wk();}
+  const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
 
-  /**
-   *   @brief  set value of dPhi_dEta at pos
-   *  
-   *   @param  pos is the mesh position
-   *   @return none
-   */        
-  //  void Set_dPhi_Eta(long pos,double val)  {d_[EI()].Set_dPhi(pos,val);}
-
-  /**
-   *   @brief  set value of dPhi_dS at pos
-   *  
-   *   @param  pos is the mesh position
-   *   @return none
-   */        
-  //  void Set_dPhi_S(long pos,double val) {d_[SI()].Set_dPhi(pos,val);}
-
-  /**
-   *   @brief  set value of dPhi_dV_j at pos
-   *  
-   *   @param  j is index of V
-   *   @param  pos is the mesh position
-   *   @return none
-   */        
-  //  void Set_dPhi_V(int j, long pos,double val) {d_[VI(j)].Set_dPhi(pos,val);}
-
-  /**
-   *   @brief  set value of dPhi_dT(j,k) at pos
-   *  
-   *   @param  j is first index of T
-   *   @param  k is second index of T
-   *   @param  pos is the mesh position
-   *   @return none
-   */        
-  //  void Set_dPhi_T(int j, int k, long i,double val) {d_[TI(j,k)].Set_dPhi(i,val);}
 
   /**
    *   @brief This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
@@ -242,16 +210,17 @@ public:
    *  
    *   @return none
    */        
-  virtual void convoluteDensities(bool needsTensor)
+  //  virtual void convoluteDensities(bool needsTensor)
+  virtual void calculateFundamentalMeasures(bool needsTensor)
   {
     // reference to Fourier-space array of density
     density_.doFFT();
     const DFT_Vec_Complex &rho_k = density_.getDK();
 
-    int imax = (needsTensor ? d_.size() : 5);
+    int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
 
     for(int i=0;i<imax;i++)
-      d_[i].convolute(rho_k);      
+      fmt_weighted_densities[i].convoluteWith(rho_k);      
   }
 
   void convolute_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
@@ -265,7 +234,7 @@ public:
 
   void convolute_weight_with(int pos, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
   {
-    result.Four().Schur(v.cFour(), d_[pos].wk(),bConjugate);
+    result.Four().Schur(v.cFour(), fmt_weighted_densities[pos].wk(),bConjugate);
     result.do_fourier_2_real();
   }  
   
@@ -277,44 +246,44 @@ public:
    */  
   void Accumulate_dPhi(DFT_Vec_Complex& dPhi, bool needsTensor)
   {
-    int imax = (needsTensor ? d_.size() : 5);
+    int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
 
     for(int i=0;i<imax;i++)      
-      d_[i].add_to_dPhi(dPhi);
+      fmt_weighted_densities[i].add_weight_schur_dPhi_to_arg(dPhi);
   }
-
+  
   // These return the real weight at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getExtendedWeight(long K, int a)
   {
-    if(a == 0) return d_[EI()].getWeight(K);
+    if(a == 0) return fmt_weighted_densities[EI()].getWeight(K);
 
-    if(a == 1) return d_[SI()].getWeight(K)/(hsd_*hsd_);
-    if(a == 2) return d_[SI()].getWeight(K)/hsd_;
-    if(a == 3) return d_[SI()].getWeight(K);
+    if(a == 1) return fmt_weighted_densities[SI()].getWeight(K)/(hsd_*hsd_);
+    if(a == 2) return fmt_weighted_densities[SI()].getWeight(K)/hsd_;
+    if(a == 3) return fmt_weighted_densities[SI()].getWeight(K);
 
-    if(a == 4) return d_[VI(0)].getWeight(K)/hsd_;
-    if(a == 5) return d_[VI(1)].getWeight(K)/hsd_;
-    if(a == 6) return d_[VI(2)].getWeight(K)/hsd_;
+    if(a == 4) return fmt_weighted_densities[VI(0)].getWeight(K)/hsd_;
+    if(a == 5) return fmt_weighted_densities[VI(1)].getWeight(K)/hsd_;
+    if(a == 6) return fmt_weighted_densities[VI(2)].getWeight(K)/hsd_;
 
-    if(a == 7) return d_[VI(0)].getWeight(K);
-    if(a == 8) return d_[VI(1)].getWeight(K);
-    if(a == 9) return d_[VI(2)].getWeight(K);
+    if(a == 7) return fmt_weighted_densities[VI(0)].getWeight(K);
+    if(a == 8) return fmt_weighted_densities[VI(1)].getWeight(K);
+    if(a == 9) return fmt_weighted_densities[VI(2)].getWeight(K);
 
-    if(a == 10) return d_[TI(0,0)].getWeight(K);
-    if(a == 11) return d_[TI(0,1)].getWeight(K);
-    if(a == 12) return d_[TI(0,2)].getWeight(K);
+    if(a == 10) return fmt_weighted_densities[TI(0,0)].getWeight(K);
+    if(a == 11) return fmt_weighted_densities[TI(0,1)].getWeight(K);
+    if(a == 12) return fmt_weighted_densities[TI(0,2)].getWeight(K);
 
-    if(a == 13) return d_[TI(1,0)].getWeight(K);
-    if(a == 14) return d_[TI(1,1)].getWeight(K);
-    if(a == 15) return d_[TI(1,2)].getWeight(K);
+    if(a == 13) return fmt_weighted_densities[TI(1,0)].getWeight(K);
+    if(a == 14) return fmt_weighted_densities[TI(1,1)].getWeight(K);
+    if(a == 15) return fmt_weighted_densities[TI(1,2)].getWeight(K);
 
-    if(a == 16) return d_[TI(2,0)].getWeight(K);
-    if(a == 17) return d_[TI(2,1)].getWeight(K);
-    if(a == 18) return d_[TI(2,2)].getWeight(K);        
+    if(a == 16) return fmt_weighted_densities[TI(2,0)].getWeight(K);
+    if(a == 17) return fmt_weighted_densities[TI(2,1)].getWeight(K);
+    if(a == 18) return fmt_weighted_densities[TI(2,2)].getWeight(K);        
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeight");
   }
-
+  
   // FOr testing only: brute-force evaluation of weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getBruteForceWeightedDensity(int K[3], int a)
   {
@@ -333,76 +302,113 @@ public:
 	  }
     return d;
   }
+  /*
   // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getExtendedWeightedDensity(long K, int a)
   {
-    if(a == 0) return d_[EI()].getDensity(K);
+    if(a == 0) return fmt_weighted_densities[EI()].getDensity(K);
 
-    if(a == 1) return d_[SI()].getDensity(K)/(hsd_*hsd_);
-    if(a == 2) return d_[SI()].getDensity(K)/hsd_;
-    if(a == 3) return d_[SI()].getDensity(K);
+    if(a == 1) return fmt_weighted_densities[SI()].getDensity(K)/(hsd_*hsd_);
+    if(a == 2) return fmt_weighted_densities[SI()].getDensity(K)/hsd_;
+    if(a == 3) return fmt_weighted_densities[SI()].getDensity(K);
 
-    if(a == 4) return d_[VI(0)].getDensity(K)/hsd_;
-    if(a == 5) return d_[VI(1)].getDensity(K)/hsd_;
-    if(a == 6) return d_[VI(2)].getDensity(K)/hsd_;
+    if(a == 4) return fmt_weighted_densities[VI(0)].getDensity(K)/hsd_;
+    if(a == 5) return fmt_weighted_densities[VI(1)].getDensity(K)/hsd_;
+    if(a == 6) return fmt_weighted_densities[VI(2)].getDensity(K)/hsd_;
 
-    if(a == 7) return d_[VI(0)].getDensity(K);
-    if(a == 8) return d_[VI(1)].getDensity(K);
-    if(a == 9) return d_[VI(2)].getDensity(K);
+    if(a == 7) return fmt_weighted_densities[VI(0)].getDensity(K);
+    if(a == 8) return fmt_weighted_densities[VI(1)].getDensity(K);
+    if(a == 9) return fmt_weighted_densities[VI(2)].getDensity(K);
 
-    if(a == 10) return d_[TI(0,0)].getDensity(K);
-    if(a == 11) return d_[TI(0,1)].getDensity(K);
-    if(a == 12) return d_[TI(0,2)].getDensity(K);
+    if(a == 10) return fmt_weighted_densities[TI(0,0)].getDensity(K);
+    if(a == 11) return fmt_weighted_densities[TI(0,1)].getDensity(K);
+    if(a == 12) return fmt_weighted_densities[TI(0,2)].getDensity(K);
 
-    if(a == 13) return d_[TI(1,0)].getDensity(K);
-    if(a == 14) return d_[TI(1,1)].getDensity(K);
-    if(a == 15) return d_[TI(1,2)].getDensity(K);
+    if(a == 13) return fmt_weighted_densities[TI(1,0)].getDensity(K);
+    if(a == 14) return fmt_weighted_densities[TI(1,1)].getDensity(K);
+    if(a == 15) return fmt_weighted_densities[TI(1,2)].getDensity(K);
 
-    if(a == 16) return d_[TI(2,0)].getDensity(K);
-    if(a == 17) return d_[TI(2,1)].getDensity(K);
-    if(a == 18) return d_[TI(2,2)].getDensity(K);    
+    if(a == 16) return fmt_weighted_densities[TI(2,0)].getDensity(K);
+    if(a == 17) return fmt_weighted_densities[TI(2,1)].getDensity(K);
+    if(a == 18) return fmt_weighted_densities[TI(2,2)].getDensity(K);    
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeightedDensity");
   }
+  */
 
+  // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
+  void getFundamentalMeasures(long K, FundamentalMeasures &fm) {getFundamentalMeasures_Helper(K,fm,fmt_weighted_densities, hsd_);}
+  void getFundamentalMeasures_Helper(long K, FundamentalMeasures &fm, const vector<FMT_Weighted_Density>  &weighted_densities, double hsd) 
+  {
+    fm.eta = weighted_densities[EI()].getDensity(K);
+
+    fm.s0 = weighted_densities[SI()].getDensity(K)/(hsd*hsd);
+    fm.s1 = weighted_densities[SI()].getDensity(K)/hsd;
+    fm.s2 = weighted_densities[SI()].getDensity(K);
+
+    fm.v1[0] = weighted_densities[VI(0)].getDensity(K)/hsd;
+    fm.v1[1] = weighted_densities[VI(1)].getDensity(K)/hsd;
+    fm.v1[2] = weighted_densities[VI(2)].getDensity(K)/hsd;
+
+    fm.v2[0] = weighted_densities[VI(0)].getDensity(K);
+    fm.v2[1] = weighted_densities[VI(1)].getDensity(K);
+    fm.v2[2] = weighted_densities[VI(2)].getDensity(K);
+
+    fm.T[0][0] = weighted_densities[TI(0,0)].getDensity(K);
+    fm.T[0][1] = weighted_densities[TI(0,1)].getDensity(K);
+    fm.T[0][2] = weighted_densities[TI(0,2)].getDensity(K);
+    
+    fm.T[1][0] = weighted_densities[TI(1,0)].getDensity(K);
+    fm.T[1][1] = weighted_densities[TI(1,1)].getDensity(K);
+    fm.T[1][2] = weighted_densities[TI(1,2)].getDensity(K);
+
+    fm.T[2][0] = weighted_densities[TI(2,0)].getDensity(K);
+    fm.T[2][1] = weighted_densities[TI(2,1)].getDensity(K);
+    fm.T[2][2] = weighted_densities[TI(2,2)].getDensity(K);
+
+    fm.calculate_derived_quantities();      
+    
+  }
+  
   /**
    *   @brief  Take derivatives of free energy wrt fundamental measures and set dPhi_dEta, etc. The point is that 
    *           these are, e.g., dPhi_dS2 = dPhi_dS0/(hsd*hsd) + dPhi_dS1/(hsd) + dPhi_dS2 and so differ for each species. 
    *           An alternative would be to hold each measure individually (S0, S1, S2) but this would cost more in cpu and memory (I think).
    *
-   *   @param fm: array of fundamental measures for the point pos
+   *   @param DPHI: array holding dPhi/d n_{a}(pot) where n_{a}(pot) is fundamental measure a at position pos.
    *   @param pos: spatial point (in 1D indexing)
    *   @param needsTensor: true if we need to calculate tensor quantities too.
    *  
    */  
-  virtual void processFMTInfo(FundamentalMeasures &fm, long pos, bool needsTensor)
+  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
   {
-    double dPhi_dEta = fm.eta;
-    double dPhi_dS2 = (fm.s0/(hsd_*hsd_)) + (fm.s1/hsd_) + fm.s2;
-    double dPhi_dV2[3] = {fm.v2[0] + fm.v1[0]/hsd_,
-			  fm.v2[1] + fm.v1[1]/hsd_,
-			  fm.v2[2] + fm.v1[2]/hsd_};
+    double dPhi_dEta = DPHI.eta;
+    double dPhi_dS = (DPHI.s0/(hsd_*hsd_)) + (DPHI.s1/hsd_) + DPHI.s2;
+    double dPhi_dV[3] = {DPHI.v2[0] + DPHI.v1[0]/hsd_,
+			  DPHI.v2[1] + DPHI.v1[1]/hsd_,
+			  DPHI.v2[2] + DPHI.v1[2]/hsd_};
 
-    d_[EI()].Set_dPhi(pos,dPhi_dEta);
-    d_[SI()].Set_dPhi(pos,dPhi_dS2);    
+    fmt_weighted_densities[EI()].Set_dPhi(pos,dPhi_dEta);
+    fmt_weighted_densities[SI()].Set_dPhi(pos,dPhi_dS);    
 
+    // Note the parity factor in the vector term which is needed when we calculate forces
     for(int j=0;j<3;j++)
       {
-	d_[VI(j)].Set_dPhi(pos,dPhi_dV2[j]);	
+	fmt_weighted_densities[VI(j)].Set_dPhi(pos, -dPhi_dV[j]);	
 	if(needsTensor)
 	  for(int k=j;k<3;k++)
-	    d_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*fm.T[j][k]); // taking account that we only use half the entries
+	    fmt_weighted_densities[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
       }
   }
 
     
-  FMT_Weighted_Density& getEta() { return d_[0];}
+  FMT_Weighted_Density& getEta() { return fmt_weighted_densities[0];}
 
-  double getWeight(int index, long pos) { return d_[index].getWeight(pos);}
+  double getWeight(int index, long pos) { return fmt_weighted_densities[index].getWeight(pos);}
   
   // Used in DFT_Surfactant ...
-  const DFT_Vec &getV_Real(int J) const { return d_[VI(J)].Real();}
-  const DFT_Vec_Complex& getVweight_Four(int J) const { return d_[VI(J)].wk();}  
+  const DFT_Vec &getV_Real(int J) const { return fmt_weighted_densities[VI(J)].Real();}
+  const DFT_Vec_Complex& getVweight_Four(int J) const { return fmt_weighted_densities[VI(J)].wk();}  
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
@@ -415,23 +421,23 @@ public:
   
 protected:
   /**
-   *   @brief  Get the index of the "eta" partial weighted density in the array of weighted densities, d_
+   *   @brief  Get the index of the "eta" partial weighted density in the array of weighted densities, fmt_weighted_densities
    *   @returns  the index.
    */        
   int EI() const {return 0;}
 
   /**
-   *   @brief  Get the index of the scalar partial weighted density in the array of weighted densities, d_
+   *   @brief  Get the index of the scalar partial weighted density in the array of weighted densities, fmt_weighted_densities
    *   @returns  the index.
    */          
   int SI() const {return 1;}
   /**
-   *   @brief  Get the index of the vector partial weighted density in the array of weighted densities, d_
+   *   @brief  Get the index of the vector partial weighted density in the array of weighted densities, fmt_weighted_densities
    *   @returns  the index.
    */          
   int VI(int j) const {return 2+j;}
   /**
-   *   @brief  Get the index of the tensor partial weighted density in the array of weighted densities, d_
+   *   @brief  Get the index of the tensor partial weighted density in the array of weighted densities, fmt_weighted_densities
    *   @returns  the index.
    */          
   int TI(int j, int k) const
@@ -443,112 +449,115 @@ protected:
   }
 
 protected:
-  double hsd_ = 0.0; ///< hard sphere diameter 
-  vector<FMT_Weighted_Density>  d_; ///< all weighted densities in real & fourier space
-};
-
-/**
-   *  @brief FMT Species Class with weights generated numerically
-   *
-   *       Same as FMT_Species with weights generated from tabulated integration points on a sphere
-   */
-
-class FMT_Species_Numeric : public FMT_Species
-{
-public:
-  /**
-   *   @brief  Default  constructor for FMT_Species 
-   *  
-   *   @param  hsd is the hard-sphere diameter
-   *   @param  lattice describes the mesh
-   *   @param  pointsFile contains the points for spherical integration: if it does not exist, the analytic weights are used
-   *   @return nothing 
-   */    
-  FMT_Species_Numeric(Density& density, double hsd, string &pointsFile, double mu = 0, int seq = -1);
-
-  FMT_Species_Numeric(const FMT_Species &) = delete;
-  
-  ~FMT_Species_Numeric(){}
-
-  friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
-  {
-        boost::serialization::void_cast_register<FMT_Species_Numeric, FMT_Species>(static_cast<FMT_Species_Numeric *>(NULL),static_cast<FMT_Species *>(NULL));
-  }     
-  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Numeric * t, const unsigned int file_version);
-  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Numeric * t, const unsigned int file_version);
-  
- protected:
   /**
    *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). Their evaluation involves real-space integrations for which the 
-   *           integration points are given in the file pointsFile. Most of the work occurs via a call to initializeWeightedDensities@
+   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
    *
-   *   @param  pointsFile is the file holding the integration points for integrating a spherical shell
    */        
-  void generateWeights(string &pointsFile);
+  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
 
-
-
+protected:
+  double hsd_ = 0.0; ///< hard sphere diameter 
+  vector<FMT_Weighted_Density>  fmt_weighted_densities; ///< all weighted densities in real & fourier space
 };
 
-
-
-/**
-   *  @brief An FMT Species Class with analytic weight generation 
+  /**
+   *  @brief Class to implement AO model
    *
-   *    Same as FMT_Species except that the weights are generated from analytic formulas. Tensors are not yet implemented.
    */
 
-class FMT_Species_Analytic : public FMT_Species
+class FMT_AO_Species : public FMT_Species
 {
 public:
   /**
    *   @brief  Default  constructor for FMT_Species 
    *  
    *   @param  hsd is the hard-sphere diameter
-   *   @param  lattice describes the mesh
+   *   @param  Rp is the polymer radius
+   *   @param  lambda_p is the polymer-density related parameter.
    *   @return nothing 
    */    
-  FMT_Species_Analytic(Density& density, double hsd, double mu = 0, int seq = -1);
+  FMT_AO_Species(Density& density, double hsd, double Rp, double reservoir_density, double mu = 0, int seq = -1);
+  FMT_AO_Species(const FMT_Species &) = delete;
+  ~FMT_AO_Species(){}
 
-  FMT_Species_Analytic(const FMT_Species &) = delete;
+  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor);
+  virtual double free_energy_post_process(bool needsTensor);
+
+  unsigned size() const { return fmt_weighted_densitiesAO_.size();}
+  void setPSI(long pos, double val) { PSI_.Real().set(pos,val);}
+  double getReservoirDensity() const {return reservoir_density_;}
+  double getHSDP() const { return 2*Rp_;}
   
-  ~FMT_Species_Analytic(){}
+  void getFundamentalMeasures_AO(long K, FundamentalMeasures &fm) {getFundamentalMeasures_Helper(K,fm,fmt_weighted_densitiesAO_, 2*Rp_);}
 
-  virtual void convoluteDensities(bool needsTensor)
+  
+  void setFundamentalMeasures_AO(long K, double eta, double s, const double v[3], const double T[3][3])
   {
-    if(needsTensor)
-      throw std::runtime_error("FMT_Species_Analytic cannot calculate tensor measures and is obsolete: use FMT_Species_Analytic_2 instead");
-    FMT_Species::convoluteDensities(needsTensor);
+    fmt_weighted_densitiesAO_[EI()].setDensity(K,eta);
+    fmt_weighted_densitiesAO_[SI()].setDensity(K,s);
+
+    fmt_weighted_densitiesAO_[VI(0)].setDensity(K,v[0]);
+    fmt_weighted_densitiesAO_[VI(1)].setDensity(K,v[1]);
+    fmt_weighted_densitiesAO_[VI(2)].setDensity(K,v[2]);
+
+    fmt_weighted_densitiesAO_[TI(0,0)].setDensity(K,T[0][0]);
+    fmt_weighted_densitiesAO_[TI(0,1)].setDensity(K,T[0][1]);
+    fmt_weighted_densitiesAO_[TI(0,2)].setDensity(K,T[0][2]);
+
+    fmt_weighted_densitiesAO_[TI(1,0)].setDensity(K,T[1][0]);
+    fmt_weighted_densitiesAO_[TI(1,1)].setDensity(K,T[1][1]);
+    fmt_weighted_densitiesAO_[TI(1,2)].setDensity(K,T[1][2]);
+
+    fmt_weighted_densitiesAO_[TI(2,0)].setDensity(K,T[2][0]);
+    fmt_weighted_densitiesAO_[TI(2,1)].setDensity(K,T[2][1]);
+    fmt_weighted_densitiesAO_[TI(2,2)].setDensity(K,T[2][2]);        
   }
   
+  void computeAOForceContribution()
+  {
+    
+    for(int a=0;a<size();a++)
+      {
+	fmt_weighted_densitiesAO_[a].density_do_real_2_fourier();
+
+	// This does the Schur product of the fmtr weighted density and the AO weighted density (which is actually Upsilon-bar), putting the result into PSI and transforming PSI back to real space
+	fmt_weighted_densities[a].convoluteWith(fmt_weighted_densitiesAO_[a].Four(), PSI_); 
+
+	PSI_.Real().MultBy(reservoir_density_*density_.dV()); // because all forces are multiplied by dV
+	
+	addToForce(PSI_.Real());
+      }
+    
+  }
+
+  // TODO:
+  /*
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
   {
-    boost::serialization::void_cast_register<FMT_Species_Analytic, FMT_Species>(static_cast<FMT_Species_Analytic *>(NULL),static_cast<FMT_Species *>(NULL));
-  }      
-  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic * t, const unsigned int file_version);
-  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic * t, const unsigned int file_version);
-
-
+    boost::serialization::void_cast_register<FMT_Species, Species>(static_cast<FMT_AO_Species *>(NULL),static_cast<Species *>(NULL));
+  }    
+  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_AO_Species * t, const unsigned int file_version);
+  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_AO_Species * t, const unsigned int file_version);
+  */
   
 protected:
-  /**
-   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
-   *
-   */        
-  void generateWeights();
+  double Rp_ = -1; 
+  double reservoir_density_ = 0.0;
+  vector<FMT_Weighted_Density>  fmt_weighted_densitiesAO_; ///< all weighted densities in real & fourier space
+  DFT_FFT PSI_;
 };
 
-/**
-   *  @brief An FMT Species Class with analytic weight generation 
+
+
+
+  /**
+   *  @brief Extend FMT_Species to include EOS correction
    *
-   *    Same as FMT_Species except that the weights are generated from analytic formulas. Tensors are not yet implemented.
    */
 
-class FMT_Species_Analytic_2 : public FMT_Species
+class FMT_Species_EOS : public FMT_Species
 {
 public:
   /**
@@ -558,30 +567,38 @@ public:
    *   @param  lattice describes the mesh
    *   @return nothing 
    */    
-  FMT_Species_Analytic_2(Density& density, double hsd, double mu = 0, int seq = -1);
+  FMT_Species_EOS(double D_EOS, Density& density, double hsd, double mu = 0, int seq = -1);
 
-  FMT_Species_Analytic_2(const FMT_Species &) = delete;
+  FMT_Species_EOS(const FMT_Species &) = delete;
   
-  ~FMT_Species_Analytic_2(){}
+  ~FMT_Species_EOS(){}
 
-  friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
+  virtual void calculateFundamentalMeasures(bool needsTensor)
   {
-    boost::serialization::void_cast_register<FMT_Species_Analytic_2, FMT_Species>(static_cast<FMT_Species_Analytic_2 *>(NULL),static_cast<FMT_Species *>(NULL));
-  }      
-  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic_2 * t, const unsigned int file_version);
-  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic_2 * t, const unsigned int file_version);
+    FMT_Species::calculateFundamentalMeasures(needsTensor);
 
-  void calculateWeight(double Sx, double Sy, double Sz, double &w_eta, double &w_s, double w_v[3], double w_T[3][3]);
+    const DFT_Vec_Complex &rho_k = density_.getDK();    
+    eos_weighted_density_[0].convoluteWith(rho_k);          
+  }
+
+  double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
+  
+  // TODO
+  //  friend class boost::serialization::access;
+  //  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
+  //  {
+  //    boost::serialization::void_cast_register<FMT_Species, Species>(static_cast<FMT_Species *>(NULL),static_cast<Species *>(NULL));
+  //  }    
+  //  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species * t, const unsigned int file_version);
+  //  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version);
   
 protected:
-  /**
-   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
-   *
-   */        
-  void generateWeights();
+  //  virtual void generate_additional_Weight();
+  vector<FMT_Weighted_Density> eos_weighted_density_; ///< all weighted densities in real & fourier space
+  double D_EOS_;
 };
+
+
 
 
 
@@ -630,7 +647,7 @@ inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Sp
   ar << t->SequenceNumber_;
   ar << t->index_;  
   ar << t->hsd_;
-  ar << t->d_;
+  ar << t->fmt_weighted_densities;
 }
 
 template<class Archive>
@@ -652,128 +669,7 @@ inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species 
   ar >> t->SequenceNumber_;
   ar >> t->index_;  
   ar >> t->hsd_;
-  ar >> t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic * t, const unsigned int file_version)
-{
-  //  ar << static_cast<const FMT_Species*>(t);
-  ar << & t->density_;
-  ar << t->mu_;
-  ar << t->seq_num_;
-  ar << t->dF_;
-  ar << t->fixedMass_;
-  ar << t->SequenceNumber_;
-  ar << t->index_;
-  
-  ar << t->hsd_;
-  ar << t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *d;
-  ar >> d;
-
-    // invoke inplace constructor to initialize instance of my_class
-  double mu = 0;
-  int seq_num = 0;
-  double hsd = 1; // place holder
-  ::new(t)FMT_Species_Analytic(*d,hsd, mu, seq_num);
-  
-  ar >> t->mu_;
-  ar >> t->seq_num_;  
-  ar >> t->dF_;
-  ar >> t->fixedMass_;
-  ar >> t->SequenceNumber_;
-  ar >> t->index_;
-  
-  ar >> t->hsd_;
-  ar >> t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Analytic_2 * t, const unsigned int file_version)
-{
-  //  ar << static_cast<const FMT_Species*>(t);
-  ar << & t->density_;
-  ar << t->mu_;
-  ar << t->seq_num_;
-  ar << t->dF_;
-  ar << t->fixedMass_;
-  ar << t->SequenceNumber_;
-  ar << t->index_;
-  
-  ar << t->hsd_;
-  ar << t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Analytic_2 * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *d;
-  ar >> d;
-
-    // invoke inplace constructor to initialize instance of my_class
-  double mu = 0;
-  int seq_num = 0;
-  double hsd = 1; // place holder
-  ::new(t)FMT_Species_Analytic_2(*d,hsd, mu, seq_num);
-  
-  ar >> t->mu_;
-  ar >> t->seq_num_;  
-  ar >> t->dF_;
-  ar >> t->fixedMass_;
-  ar >> t->SequenceNumber_;
-  ar >> t->index_;
-  
-  ar >> t->hsd_;
-  ar >> t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species_Numeric * t, const unsigned int file_version)
-{
-  //  ar << static_cast<const FMT_Species*>(t);
-  ar << & t->density_;
-  ar << t->mu_;
-  ar << t->seq_num_;
-  ar << t->dF_;
-  ar << t->fixedMass_;
-  ar << t->SequenceNumber_;
-  ar << t->index_;
-  
-  ar << t->hsd_;
-  ar << t->d_;  
-}
-
-template<class Archive>
-inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species_Numeric * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *d;
-  ar >> d;
-
-  // invoke inplace constructor to initialize instance of my_class
-  double mu = 0;
-  double hsd = 1;
-  int seq_num = 0;
-  string noFile;
-  ::new(t)FMT_Species_Numeric(*d, hsd, noFile, 0, seq_num);
-
-  ar >> t->mu_;
-  ar >> t->seq_num_;    
-  ar >> t->dF_;
-  ar >> t->fixedMass_;
-  ar >> t->SequenceNumber_;
-  ar >> t->index_;
-  
-  ar >> t->hsd_;
-  ar >> t->d_;  
+  ar >> t->fmt_weighted_densities;  
 }
 
 #endif // __LUTSKO__SPECIES__

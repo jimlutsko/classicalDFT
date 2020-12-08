@@ -271,7 +271,7 @@ class Density : public Lattice
    *  
    *   @return double* array
    */  
-  double* getData() { return Density_.Real().memptr();}
+  //  double* getData() { return Density_.Real().memptr();}
 
   /**
    *   @brief  Read-only accessor for array holding fft of density;
@@ -285,7 +285,7 @@ class Density : public Lattice
   *  
   *   @return Density_.Four()[i]
   */  
-  const complex<double> DensityK(long i) const { return Density_.cFour().get(i);}
+  //const complex<double> DensityK(long i) const { return Density_.cFour().get(i);}
 
   /**
   *   @brief  Accessor for array holding the wall potential
@@ -306,7 +306,7 @@ class Density : public Lattice
    *  
    *   @return boolean true/false
    */  
-  virtual bool IsInUnphysicalRegion(int i, int j, int k) const {return false;}
+  //  virtual bool IsInUnphysicalRegion(int i, int j, int k) const {return false;}
 
   /**
   *   @brief  Get the value of the external (wall) field at point (ijk)
@@ -369,7 +369,7 @@ class Density : public Lattice
   void write_VTK_File(string &filename);
 
 
-  DFT_FFT& getFullVector() { return Density_;}
+  //  DFT_FFT& getFullVector() { return Density_;}
 
   friend ostream &operator<<(ostream &of, const Density &d) {of << static_cast<const Lattice &>(d) << d.Density_ << d.vWall_; return of;}  
   friend istream &operator>>(istream  &in, Density &d )     {in >> static_cast<Lattice &>(d) >> d.Density_ >> d.vWall_; return in;}
