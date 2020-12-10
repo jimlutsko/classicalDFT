@@ -96,7 +96,7 @@ double Minimizer::getDF_DX()
   }
 
   for(int Jspecies = 0; Jspecies<dft_->getNumberOfSpecies(); Jspecies++)
-    dft_->getDensity(Jspecies).alias_deriv(dft_->getDF(Jspecies));    
+    dft_->getDensity(Jspecies).alias_deriv(x_[Jspecies],dft_->getDF(Jspecies));    
     
     //    dft_->getDF(Jspecies).alias_Jacobian(x_[Jspecies]);
 

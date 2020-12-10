@@ -91,27 +91,18 @@ class Lattice
   
 
   /**
-  *   @brief  Translate a (Cartesian) x-index into a position in the cubic box.
-  *  
-  *   @param  x-index
-  *   @return position x
+  *   @brief  Translate a (Cartesian) index into a position in the box.
   */  
   double getX(int i) const { return dx_*(i-(Nx_-1)/2);}
-  /**
-  *   @brief  Translate a (Cartesian) y-index into a position in the cubic box.
-  *  
-  *   @param  y-index
-  *   @return position y
-  */  
   double getY(int i) const { return dy_*(i-(Ny_-1)/2);}
-  /**
-  *   @brief  Translate a (Cartesian) z-index into a position in the cubic box.
-  *  
-  *   @param  z-index
-  *   @return position z
-  */  
   double getZ(int i) const { return dz_*(i-(Nz_-1)/2);}
 
+
+  // Translate a position into the nearest coordinate
+  int getIX(double x) const { return round(x/dx_)+(Nx_-1)/2;}
+  int getIY(double y) const { return round(y/dy_)+(Ny_-1)/2;}
+  int getIZ(double z) const { return round(z/dz_)+(Nz_-1)/2;}
+  
   /**
   *   @brief  Accessor for spaceing in x-direction
   *  

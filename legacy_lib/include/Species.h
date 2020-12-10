@@ -210,7 +210,6 @@ public:
    *  
    *   @return none
    */        
-  //  virtual void convoluteDensities(bool needsTensor)
   virtual void calculateFundamentalMeasures(bool needsTensor)
   {
     // reference to Fourier-space array of density
@@ -223,21 +222,6 @@ public:
       fmt_weighted_densities[i].convoluteWith(rho_k);      
   }
 
-  void convolute_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
-  { convolute_weight_with(EI(),v,result,bConjugate);}
-
-  void convolute_s_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
-  { convolute_weight_with(SI(),v,result,bConjugate);}
-
-  void convolute_v_weight_with(int i, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
-  { convolute_weight_with(VI(i),v,result, bConjugate);}    
-
-  void convolute_weight_with(int pos, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
-  {
-    result.Four().Schur(v.cFour(), fmt_weighted_densities[pos].wk(),bConjugate);
-    result.do_fourier_2_real();
-  }  
-  
   /**
    *   @brief Loop over the weighted densities and ask each one to add its contribution to dPhi
    *          In other words:   SUM_{a} SUM_j d PHI/d n_{a}(j) w_{a}(j-i)
@@ -284,7 +268,7 @@ public:
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeight");
   }
   
-  // FOr testing only: brute-force evaluation of weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
+  // For testing only: brute-force evaluation of weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getBruteForceWeightedDensity(int K[3], int a)
   {
     double d = 0.0;
@@ -302,39 +286,6 @@ public:
 	  }
     return d;
   }
-  /*
-  // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
-  double getExtendedWeightedDensity(long K, int a)
-  {
-    if(a == 0) return fmt_weighted_densities[EI()].getDensity(K);
-
-    if(a == 1) return fmt_weighted_densities[SI()].getDensity(K)/(hsd_*hsd_);
-    if(a == 2) return fmt_weighted_densities[SI()].getDensity(K)/hsd_;
-    if(a == 3) return fmt_weighted_densities[SI()].getDensity(K);
-
-    if(a == 4) return fmt_weighted_densities[VI(0)].getDensity(K)/hsd_;
-    if(a == 5) return fmt_weighted_densities[VI(1)].getDensity(K)/hsd_;
-    if(a == 6) return fmt_weighted_densities[VI(2)].getDensity(K)/hsd_;
-
-    if(a == 7) return fmt_weighted_densities[VI(0)].getDensity(K);
-    if(a == 8) return fmt_weighted_densities[VI(1)].getDensity(K);
-    if(a == 9) return fmt_weighted_densities[VI(2)].getDensity(K);
-
-    if(a == 10) return fmt_weighted_densities[TI(0,0)].getDensity(K);
-    if(a == 11) return fmt_weighted_densities[TI(0,1)].getDensity(K);
-    if(a == 12) return fmt_weighted_densities[TI(0,2)].getDensity(K);
-
-    if(a == 13) return fmt_weighted_densities[TI(1,0)].getDensity(K);
-    if(a == 14) return fmt_weighted_densities[TI(1,1)].getDensity(K);
-    if(a == 15) return fmt_weighted_densities[TI(1,2)].getDensity(K);
-
-    if(a == 16) return fmt_weighted_densities[TI(2,0)].getDensity(K);
-    if(a == 17) return fmt_weighted_densities[TI(2,1)].getDensity(K);
-    if(a == 18) return fmt_weighted_densities[TI(2,2)].getDensity(K);    
-
-    throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeightedDensity");
-  }
-  */
 
   // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   void getFundamentalMeasures(long K, FundamentalMeasures &fm) {getFundamentalMeasures_Helper(K,fm,fmt_weighted_densities, hsd_);}

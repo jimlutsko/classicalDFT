@@ -20,6 +20,9 @@
 
 #include <complex>
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
 
 static const double SMALL_VALUE = 1e-18;
 
@@ -67,18 +70,23 @@ class Density : public Lattice
 
   virtual void set_from_alias(const DFT_Vec &x)
   {
-    for(long i=0;i<x.size();i++)
-      set(i,1e-20+x.get(i)*x.get(i));
+    long pos;
+#pragma omp parallel for  private(pos)  schedule(static)				    
+    for(pos=0;pos<x.size();pos++)      
+      set(pos,1e-20+x.get(pos)*x.get(pos));
   }
 
   virtual void set_alias(DFT_Vec &x) const
   {
-    for(long i=0;i<x.size();i++)
-      x.set(i, sqrt(std::max(0.0, get(i)-1e-20)));          
+    long pos;
+#pragma omp parallel for  private(pos)  schedule(static)				    
+    for(pos=0;pos<x.size();pos++)
+      x.set(pos, sqrt(std::max(0.0, get(pos)-1e-20)));          
   }
 
-  virtual void alias_deriv(DFT_Vec &dF_dRho) const
+  virtual void alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   {
+    dF_dRho.Schur(x,dF_dRho);
     dF_dRho.MultBy(2.0);
   }  
   
