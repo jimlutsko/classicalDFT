@@ -7,17 +7,20 @@ namespace dft_core {
 namespace geometry {
 namespace two_dimensional {
 
-const int DEFAULT_DIMENSION = 2;
-const double DEFAULT_LENGTH = 1;
-const std::vector<double> DEFAULT_ORIGIN = std::vector<double>{0, 0};
+const double DEFAULT_BOX_LENGTH = 1;
+const std::vector<double> DEFAULT_2D_BOX_ORIGIN = std::vector<double>{0, 0};
 
 class SquareBox : public Element {
  private:
-  double length_ = DEFAULT_LENGTH;
+  double length_ = DEFAULT_BOX_LENGTH;
+  void _initialise(double dx, const std::vector<double>& origin);
 
  public:
   SquareBox();
   explicit SquareBox(double length, const std::vector<double>& origin);
+  explicit SquareBox(std::vector<Vertex>&& vertices);
+
+  double volume() const;
 };
 
 }}}

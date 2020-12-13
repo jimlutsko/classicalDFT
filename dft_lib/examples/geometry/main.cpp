@@ -58,5 +58,15 @@ int main(int argc, char **argv)
   auto custom_box = two_dimensional::SquareBox(0.25, {0,0});
   std::cout << "Customised square-box:" << std::endl
             << custom_box << std::endl;
+
+  auto v_list_b = std::vector<Vertex>{ {0,0}, {0,1}, {1,1}, {1,0} };
+  std::cout << "Move-semantics square-box:" << std::endl
+            << "v_list[3]: " << v_list_b[3] << std::endl
+            << "v_list[2]: " << v_list_b[2] << std::endl
+            << "v_list[1]: " << v_list_b[1] << std::endl
+            << "v_list[0]: " << v_list_b[0] << std::endl << std::endl;
+
+  auto move_box = two_dimensional::SquareBox(std::move(v_list_b));
+  std::cout << move_box << std::endl;
   // endregion
 }

@@ -15,19 +15,36 @@ static vertex_vec _generate_vertices(double dx, const std::vector<double>& x0)
   };
 }
 
+void SquareBox::_initialise(double dx, const std::vector<double>& origin)
+{
+  vertices_raw_ = _generate_vertices(dx, origin);
+  length_ = dx;
+  _initialise_element();
+}
+
 SquareBox::SquareBox()
 {
-  dimension_ = DEFAULT_DIMENSION;
-  auto origin = DEFAULT_ORIGIN;
-  vertices_raw_ = _generate_vertices(DEFAULT_LENGTH, origin);
-  _initialise_element();
+  _initialise(DEFAULT_BOX_LENGTH, DEFAULT_2D_BOX_ORIGIN);
 }
 
 SquareBox::SquareBox(double length, const std::vector<double>& origin)
 {
-  dimension_ = DEFAULT_DIMENSION;
-  vertices_raw_ = _generate_vertices(length, origin);
-  _initialise_element();
+  _initialise(length, origin);
+}
+
+SquareBox::SquareBox(vertex_vec && vertices)
+{
+  if (vertices.size() == 4)
+  {
+    vertices_raw_ = std::move(vertices);
+    _initialise_element();
+  } else {
+    throw std::runtime_error("2D square-box needs 4 vertices to be initialised");
+  }
+}
+
+double SquareBox::volume() const {
+  return length_ * length_;
 }
 
 }}}

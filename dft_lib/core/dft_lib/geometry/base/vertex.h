@@ -32,24 +32,24 @@ class Vertex {
   // region Cttors:
 
   /**
-   * @brief: Initialises the Vertex object with dimension_ = 0 and empty coordinates_
+   * @brief Initialises the Vertex object with dimension_ = 0 and empty coordinates_
    */
   Vertex() = default;
 
   /**
-   * @brief: Initialises the Vertex object with the coordinates passed in the initalizer_list.
+   * @brief Initialises the Vertex object with the coordinates passed in the initalizer_list.
    * @param x Set of values representing the coordinates (x1,...,xN)
    */
   Vertex(const std::initializer_list<x_type>& x);
 
   /**
-   * @brief: Initialises the Vertex object with the coordinates passed in vector x.
+   * @brief Initialises the Vertex object with the coordinates passed in vector x.
    * @param x: Set of values representing the coordinates (x1,...,xN)
    */
   explicit Vertex(const vec_type& x);
 
   /**
-   * @brief: Initialises the Vertex object with the coordinates passed in vector x (move semantics).
+   * @brief Initialises the Vertex object with the coordinates passed in vector x (move semantics).
    * @param x: Set of values representing the coordinates (x1,...,xN)
    */
   explicit Vertex(vec_type&& x);

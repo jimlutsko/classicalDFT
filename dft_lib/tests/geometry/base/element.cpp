@@ -32,7 +32,17 @@ TEST(geometry_element, element_initializer_list_cttor_test)
 TEST(geometry_element, element_initializer_list_cttor_throws_exeption)
 {
   EXPECT_THROW(
+      Element({{1},{4, 6},{7, 8, 9}}),
+      std::runtime_error
+  );
+
+  EXPECT_THROW(
       Element({{1, 2, 3},{4, 6},{7, 8, 9}}),
+      std::runtime_error
+  );
+
+  EXPECT_THROW(
+      Element({{1, 2, 3},{4, 5, 6},{7, 8}}),
       std::runtime_error
   );
 }

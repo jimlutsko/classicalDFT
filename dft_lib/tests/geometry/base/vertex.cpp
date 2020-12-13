@@ -84,4 +84,43 @@ TEST(geometry_vertex, vertex_indexer_works_ok)
   ASSERT_DOUBLE_EQ(2.0, p[2]);
 }
 
+TEST(geometry_vertex, vertex_sum_overload_ok)
+{
+  dft_core::geometry::Vertex p1 = {0.0, 1.0, 2.0};
+  dft_core::geometry::Vertex p2 = {2.0, 1.0, 0.0};
+  auto p_sum = p1 + p2;
+  ASSERT_DOUBLE_EQ(2.0 , p_sum[0]);
+  ASSERT_DOUBLE_EQ(2.0 , p_sum[1]);
+  ASSERT_DOUBLE_EQ(2.0 , p_sum[2]);
+}
+
+TEST(geometry_vertex, vertex_sum_overload_throws_error)
+{
+  dft_core::geometry::Vertex p1 = {0.0, 1.0, 2.0};
+  dft_core::geometry::Vertex p2 = {2.0, 1.0};
+  EXPECT_THROW(
+      p1 + p2,
+      std::runtime_error
+  );
+}
+
+TEST(geometry_vertex, vertex_sub_overload_ok)
+{
+  dft_core::geometry::Vertex p1 = {0.0, 1.0, 2.0};
+  dft_core::geometry::Vertex p2 = {2.0, 1.0, 0.0};
+  auto p_sub = p2-p1;
+  ASSERT_DOUBLE_EQ(2.0 , p_sub[0]);
+  ASSERT_DOUBLE_EQ(0.0 , p_sub[1]);
+  ASSERT_DOUBLE_EQ(-2.0 , p_sub[2]);
+}
+
+TEST(geometry_vertex, vertex_sub_overload_throws_error)
+{
+  dft_core::geometry::Vertex p1 = {0.0, 1.0, 2.0};
+  dft_core::geometry::Vertex p2 = {2.0, 1.0};
+  EXPECT_THROW(
+      p1 - p2,
+      std::runtime_error
+  );
+}
 // endregion
