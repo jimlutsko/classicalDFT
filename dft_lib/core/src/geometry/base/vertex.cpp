@@ -1,5 +1,7 @@
 #include "dft_lib/geometry/base/vertex.h"
 
+#include <boost/range/combine.hpp>
+
 namespace dft_core {
 namespace geometry {
 
@@ -31,6 +33,34 @@ std::ostream& operator<<(std::ostream& os, const Vertex& vertex)
   }
   os << " [front \u27fc " << std::addressof(vertex.coordinates_.front()) << "]";
   return os;
+}
+
+Vertex operator+(const Vertex& a, const Vertex& b)
+{
+  if (a.dimension_ != b.dimension_) { throw std::runtime_error("The vertices you're trying to add don't have the same dimension");}
+
+  vec_type x = vec_type();
+  for (auto tup : boost::combine(a.coordinates(), b.coordinates()))
+  {
+    double y, z; boost::tie(y,z) = tup;
+    x.push_back(y+z);
+  }
+
+  return Vertex(std::move(x));
+}
+
+Vertex operator-(const Vertex& a, const Vertex& b)
+{
+  if (a.dimension_ != b.dimension_) { throw std::runtime_error("The vertices you're trying to add don't have the same dimension");}
+
+  vec_type x = vec_type();
+  for (auto tup : boost::combine(a.coordinates(), b.coordinates()))
+  {
+    double y, z; boost::tie(y,z) = tup;
+    x.push_back(y-z);
+  }
+
+  return Vertex(std::move(x));
 }
 // endregion
 }}

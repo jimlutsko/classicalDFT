@@ -18,7 +18,14 @@ const double DEFAULT_COORDINATES = 0.0;
  */
 class Vertex {
  private:
+  /**
+   * @brief: The dimension of the space where the vertex is in, i.e. number of components
+   */
   int dimension_ = DEFAULT_DIMENSION;
+
+  /**
+   * @brief The vector with the coordinates of the vertex
+   */
   vec_type coordinates_ = vec_type();
 
  public:
@@ -78,6 +85,22 @@ class Vertex {
    * @return
    */
   friend std::ostream& operator<<(std::ostream& os, const Vertex& vertex);
+
+  /**
+   * Add two vertices' components to create a new Vertex
+   * @param a
+   * @param b
+   * @return Vertex object with the element-wise-added components
+   */
+  friend Vertex operator+(const Vertex& a, const Vertex& b);
+
+  /**
+   * Subtract two vertices' components to create a new Vertex
+   * @param a
+   * @param b
+   * @return Vertex object with the element-wise-subtract components
+   * */
+  friend Vertex operator-(const Vertex& a, const Vertex& b);
   // endregion
 };
 
