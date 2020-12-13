@@ -1,4 +1,4 @@
-#include "dft_lib/geometry/vertex.h"
+#include "dft_lib/geometry/base/vertex.h"
 
 #include <gtest/gtest.h>
 

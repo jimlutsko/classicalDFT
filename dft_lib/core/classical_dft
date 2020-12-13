@@ -22,7 +22,16 @@
 //endregion
 
 //region Geometry
-#include "dft_lib/geometry/vertex.h"
-#include "dft_lib/geometry/element.h"
-#include "dft_lib/geometry/mesh.h"
+#include "dft_lib/geometry/base/element.h"
+#include "dft_lib/geometry/base/mesh.h"
+#include "dft_lib/geometry/base/vertex.h"
+
+//region 2D
+#include "dft_lib/geometry/2D/element.h"
+#include "dft_lib/geometry/2D/mesh.h"
+//endregion
+
+//region 3D
+//endregion
+
 //endregion

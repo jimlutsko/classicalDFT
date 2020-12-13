@@ -1,9 +1,9 @@
 #ifndef CLASSICALDFT_MESH_H
 #define CLASSICALDFT_MESH_H
 
-#include "dft_lib/geometry/vertex.h"
-
 #include <vector>
+
+#include "vertex.h"
 
 namespace dft_core {
 namespace geometry {

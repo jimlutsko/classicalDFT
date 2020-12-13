@@ -1,11 +1,11 @@
 #ifndef CLASSICALDFT_ELEMENT_H
 #define CLASSICALDFT_ELEMENT_H
 
-#include "dft_lib/geometry/vertex.h"
-
-#include <vector>
-#include <unordered_map>
 #include <functional>
+#include <unordered_map>
+#include <vector>
+
+#include "vertex.h"
 
 namespace dft_core {
 namespace geometry {
@@ -17,9 +17,14 @@ typedef std::vector<Vertex> vertex_vec;
 typedef std::unordered_map<int, vertex_refwrap> vertex_map;
 
 class Element {
- private:
+ protected:
+  int dimension_ = DEFAULT_DIMENSION;
   vertex_vec vertices_raw_ = DEFAULT_VERTICES_RAW;
   vertex_map vertices_ = {};
+
+  void _initialise_dimension();
+  void _initialise_vertex_map(vertex_vec& v_vec, vertex_map& vertex_map);
+  void _initialise_element();
 
  public:
   // region Cttors:
@@ -40,9 +45,10 @@ class Element {
 
   int number_of_vertices() const;
 
-  virtual int dimension() const { return vertices_raw().empty() ? 0 : vertices_raw().front().dimension(); };
+  virtual int dimension() const { return dimension_; };
   virtual double length() const { return 0.0; };
   virtual double volume() const { return 0.0; };
+
   // endregion
 
   // region Overloads:

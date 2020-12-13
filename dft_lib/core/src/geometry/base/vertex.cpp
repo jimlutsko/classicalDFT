@@ -1,4 +1,4 @@
-#include "dft_lib/geometry/vertex.h"
+#include "dft_lib/geometry/base/vertex.h"
 
 namespace dft_core {
 namespace geometry {

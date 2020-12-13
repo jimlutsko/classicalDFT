@@ -1,7 +1,7 @@
-#include "dft_lib/geometry/element.h"
+#include "dft_lib/geometry/base/element.h"
 
+#include <string>
 #include <iostream>
-#include <memory>
 #include <iterator>
 #include <stdexcept>
 
@@ -10,29 +10,45 @@ namespace geometry {
 
 // region Cttors:
 
-static void initialize_vertex_map(vertex_vec & v_vec, vertex_map& vertex_map)
+void Element::_initialise_vertex_map(vertex_vec& v_vec, vertex_map& vertex_map)
 {
+  auto dimension = v_vec.front().dimension();
   for (auto k = 0; k < v_vec.size(); ++k)
   {
+    auto dk = v_vec[k].dimension();
+    if (dk != dimension) {
+      std::string msg = "The component: " + std::to_string(k) + " of the vertex list has non-consistent dimensions";
+      throw std::runtime_error(msg);
+    }
     vertex_map.insert({k, std::ref(v_vec[k])});
   }
 }
 
+void Element::_initialise_dimension()
+{
+  dimension_ = vertices_raw_.empty() ? 0 : vertices_raw_.front().dimension();
+}
+
+void Element::_initialise_element()
+{
+  _initialise_vertex_map(vertices_raw_, vertices_);
+  _initialise_dimension();
+}
+
 Element::Element(const std::vector<Vertex>& vertices): vertices_raw_(vertices)
 {
-  initialize_vertex_map(vertices_raw_, vertices_);
+  _initialise_element();
 }
 
 Element::Element(std::vector<Vertex>&& vertices): vertices_raw_(std::move(vertices))
 {
-  initialize_vertex_map(vertices_raw_, vertices_);
+  _initialise_element();
 }
 
 Element::Element(const std::initializer_list<Vertex>& vertices): vertices_raw_(vertices)
 {
-  initialize_vertex_map(vertices_raw_, vertices_);
+  _initialise_element();
 }
-
 
 // endregion
 

@@ -1,8 +1,6 @@
-#include "dft_lib/geometry/element.h"
+#include "dft_lib/geometry/base/element.h"
 
 #include <gtest/gtest.h>
-
-#include <boost/range/combine.hpp>
 
 // region Cttors:
 
@@ -29,4 +27,12 @@ TEST(geometry_element, element_initializer_list_cttor_test)
     e_idx += ((k!=0) && (k%3 == 0)) ? 1 : 0;
     ASSERT_EQ(k+1, e[e_idx][k%3]);
   }
+}
+
+TEST(geometry_element, element_initializer_list_cttor_throws_exeption)
+{
+  EXPECT_THROW(
+      Element({{1, 2, 3},{4, 6},{7, 8, 9}}),
+      std::runtime_error
+  );
 }

@@ -48,4 +48,15 @@ int main(int argc, char **argv)
 
   std::cout << e2 << std::endl;
   // endregion
+
+  // region 2D: SquareBox
+  console::Info("Square boxes:");
+  auto default_box = two_dimensional::SquareBox();
+  std::cout << "Default square-box:" << std::endl
+            << default_box << std::endl;
+
+  auto custom_box = two_dimensional::SquareBox(0.25, {0,0});
+  std::cout << "Customised square-box:" << std::endl
+            << custom_box << std::endl;
+  // endregion
 }

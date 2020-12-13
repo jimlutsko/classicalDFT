@@ -18,9 +18,11 @@ set(ALL_SOURCES
         # Physics:
         ${dft_lib_src_path}/physics/potentials/intermolecular/potential.cpp
         # Geometry:
-        ${dft_lib_src_path}/geometry/vertex.cpp
-        ${dft_lib_src_path}/geometry/element.cpp
-        ${dft_lib_src_path}/geometry/mesh.cpp
+        ${dft_lib_src_path}/geometry/base/vertex.cpp
+        ${dft_lib_src_path}/geometry/base/element.cpp
+        ${dft_lib_src_path}/geometry/base/mesh.cpp
+        # Geometry::2D:
+        ${dft_lib_src_path}/geometry/2D/element.cpp
         )
 
 # Set up the dependencies and naming of the library
