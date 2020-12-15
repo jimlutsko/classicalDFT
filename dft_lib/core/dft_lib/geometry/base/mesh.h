@@ -1,9 +1,10 @@
 #ifndef CLASSICALDFT_MESH_H
 #define CLASSICALDFT_MESH_H
 
-#include <vector>
-
 #include "vertex.h"
+#include "element.h"
+
+#include <vector>
 
 namespace dft_core {
 namespace geometry {
@@ -26,7 +27,7 @@ class Mesh {
   vertex_map vertices_ = {};
   element_map elements_ = {};
   std::vector<int> shape_ = {};
-  std::vector<double> length_;
+  std::vector<double> length_ = {};
 
  public:
   // region Cttors:
