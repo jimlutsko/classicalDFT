@@ -1,5 +1,5 @@
-#ifndef CLASSICALDFT_2DBOX_H
-#define CLASSICALDFT_2DBOX_H
+#ifndef CLASSICALDFT_2D_BOX_H
+#define CLASSICALDFT_2D_BOX_H
 
 #include "dft_lib/geometry/base/element.h"
 
@@ -20,7 +20,7 @@ class SquareBox : public Element {
   explicit SquareBox(double length, const std::vector<double>& origin);
   explicit SquareBox(std::vector<Vertex>&& vertices);
 
-  double volume() const;
+  double volume() const override;
 };
 
 }}}
