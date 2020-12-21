@@ -67,29 +67,6 @@ class Density : public Lattice
   void set(int i, int j, int k, double val) { set(pos(i,j,k),val);}
   void set(unsigned i, double val)  { Density_.Real().set(i,val);}
 
-
-  virtual void set_from_alias(const DFT_Vec &x)
-  {
-    long pos;
-#pragma omp parallel for  private(pos)  schedule(static)				    
-    for(pos=0;pos<x.size();pos++)      
-      set(pos,1e-20+x.get(pos)*x.get(pos));
-  }
-
-  virtual void set_alias(DFT_Vec &x) const
-  {
-    long pos;
-#pragma omp parallel for  private(pos)  schedule(static)				    
-    for(pos=0;pos<x.size();pos++)
-      x.set(pos, sqrt(std::max(0.0, get(pos)-1e-20)));          
-  }
-
-  virtual void alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
-  {
-    dF_dRho.Schur(x,dF_dRho);
-    dF_dRho.MultBy(2.0);
-  }  
-  
   /**
   *   @brief Decendents of the Density object can implement this method to do graphical displays
   *  

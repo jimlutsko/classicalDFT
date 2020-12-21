@@ -261,7 +261,7 @@ void Interaction_Base::generateWeights()
 	    if(nz > ny) swap(ny,nz);
 	    long p = ((nx*(nx+1)*(nx+2))/6) + ((ny*(ny+1))/2) + nz;
 	    
-	    if(p > Nmax) throw std::runtime_error("counter out of range in Interaction_Base::generateWeights");
+	    if(p >= w2.size()) throw std::runtime_error("counter out of range in Interaction_Base::generateWeights");
 	    double w = w2[p];
 	    // and get the point it contributes to
 	    long pos = s1_->getDensity().get_PBC_Pos(ix,iy,iz);

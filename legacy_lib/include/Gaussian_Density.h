@@ -28,56 +28,79 @@ class Gaussian
   double R2max(double tol = SMALL_VALUE) const { return -log(tol/(n_*norm_))/alf_;}
 
   // FMT measures
-  void get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const
+  void get_measures(double dx, double dy, double dz, double hsd, FundamentalMeasures &fm) const
   {
-    double dx = fabs(rx-Rx_); 
-    double dy = fabs(ry-Ry_); 
-    double dz = fabs(rz-Rz_); 
-
     double r2 = dx*dx+dy*dy+dz*dz;
     double r = sqrt(r2);
-    double R = hsd/2;    
 
     double sqalf = sqrt(alf_);
 
-    double ep = exp(-alf_*(r+R)*(r+R));
-    double em = exp(-alf_*(r-R)*(r-R));
+    double A = 0.25*sqalf*alf_*hsd*hsd*M_2_SQRTPI;
     
-    double f = 0.5*(erf(sqalf*(r+R))-erf(sqalf*(r-R)));
-    f -= (1/(4*r))*(M_2_SQRTPI/sqalf)*(em-ep);
-          
-    fm.eta += n_*norm_*f;
+    double f1 = 0;
+    double f2 = 0;
+    double f3 = 0;
 
-    double s = n_*norm_*(hsd*sqalf*M_2_SQRTPI/4)*(em-ep); 
+    double y = alf_*hsd*r;
+    
+    if(y < 0.01)
+      {
+	double y2 = y*y;
+	double y4 = y2*y2;
+	f1 = 2+(y2/3)+(y4/60);
+	f2 = (2.0/3)+(y2/15)+(y4/420);
+	f3 = (2.0/15)+(y2/105)+(y4/3780);
+
+	double ee = exp(-alf_*(r2+0.25*hsd*hsd));
+	f1 *= ee;
+	f2 *= ee;
+	f3 *= ee;
+	
+      } else {
+      double em = exp(-y-alf_*(r2+0.25*hsd*hsd));
+      double ep = exp(y-alf_*(r2+0.25*hsd*hsd));
+      f1 = (ep-em)/y;
+      f2 = ((1+y)*em-(1-y)*ep)/(y*y*y);
+      f3 = ((3-3*y+y*y)*ep-(3+3*y+y*y)*em)/(y*y*y*y*y);
+    }
+
+    fm.eta += -n_*(A/(alf_*hsd))*f1+n_*0.5*(erf(sqalf*(r+hsd/2))-erf(sqalf*(r-hsd/2)));
+
+    double s = n_*A*f1;
     fm.s0  += s/(hsd*hsd);
     fm.s1  += s/hsd;
     fm.s2  += s;
 
-    double v = n_*norm_*(M_2_SQRTPI/(4*sqalf*r*r))*((1-hsd*r*alf_)*em-(1+hsd*r*alf_)*ep);
+    dx *= alf_*hsd;
+    dy *= alf_*hsd;
+    dz *= alf_*hsd;
     
-    fm.v1[0] += (rx/r)*v/hsd;
-    fm.v1[1] += (ry/r)*v/hsd;
-    fm.v1[2] += (rz/r)*v/hsd;
-
-    fm.v2[0] += (rx/r)*v;
-    fm.v2[1] += (ry/r)*v;
-    fm.v2[2] += (rz/r)*v;
-
-    double T1 = n_*norm_*(M_2_SQRTPI/(4*hsd*alf_*sqalf))*(1/(r*r*r))*((hsd*r*alf_+1)*ep+(hsd*r*alf_-1)*em);
-    double T2 = n_*norm_*(M_2_SQRTPI/(4*hsd*alf_*sqalf))*(1/(r*r*r*r*r))*((3-3*hsd*r*alf_+hsd*hsd*r*r*alf_*alf_)*em-(3+3*hsd*r*alf_+hsd*hsd*r*r*alf_*alf_)*ep);
+    double v = n_*A*f2;
     
-    fm.T[0][0] += T1 + rx*rx*T2;
-    fm.T[1][1] += T1 + ry*ry*T2;
-    fm.T[2][2] += T1 + rz*rz*T2;
+    fm.v1[0] += dx*v/hsd;
+    fm.v1[1] += dy*v/hsd;
+    fm.v1[2] += dz*v/hsd;
 
-    fm.T[0][1] += rx*ry*T2;
-    fm.T[0][2] += rx*rz*T2;
+    fm.v2[0] += dx*v;
+    fm.v2[1] += dy*v;
+    fm.v2[2] += dz*v;
 
-    fm.T[1][0] += ry*rx*T2;
-    fm.T[1][2] += ry*rz*T2;
+    double T1 = n_*A*f2;
+    double T2 = n_*A*f3;
+    
+    fm.T[0][0] += T1 + dx*dx*T2;
+    fm.T[1][1] += T1 + dy*dy*T2;
+    fm.T[2][2] += T1 + dz*dz*T2;
 
-    fm.T[2][0] += rz*rx*T2;
-    fm.T[2][1] += rz*ry*T2;        
+    fm.T[0][1] += dx*dy*T2;
+    fm.T[0][2] += dx*dz*T2;
+
+    fm.T[1][0] += dy*dx*T2;
+    fm.T[1][2] += dy*dz*T2;
+
+    fm.T[2][0] += dz*dx*T2;
+    fm.T[2][1] += dz*dy*T2;
+
   }
 
   
@@ -141,20 +164,51 @@ class GaussianDensity : public Density
 	    for(int jz = iz-Nmax; jz < iz+Nmax; jz++)
 	      {
 		long pos = get_PBC_Pos(jx, jy, jz);
-		set(pos, get(pos) + g.density(getX(jx), getY(jy), getZ(jz)));
+		set(pos, get(pos) + g.density(getX(jx),getY(jy),getZ(jz)));
 	      }
       }
   }
 
+  void get_measures(long pos, double hsd, FundamentalMeasures &fm) const
+  {
+    long ix,iy,iz;
+    cartesian(pos,ix,iy,iz);
+    get_measures(getX(ix), getY(iy), getZ(iz), hsd, fm);
+  }
+  
   void get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const
   {
-        for(auto &g: gaussians_)
-	  g.get_measures(rx,ry,rz,hsd,fm);
+    for(auto &g: gaussians_)
+      {
+	// find closest image
+	double dx = rx - g.Rx_; while(dx > L_[0]/2) dx -= L_[0]; while(dx < -L_[0]/2) dx += L_[0];
+	double dy = ry - g.Ry_; while(dy > L_[1]/2) dy -= L_[1]; while(dy < -L_[1]/2) dy += L_[1];
+	double dz = rz - g.Rz_; while(dz > L_[2]/2) dz -= L_[2]; while(dz < -L_[2]/2) dz += L_[2]; 
+	
+	// take additional images as necessary: if Rmax > L/2, we need more images
+	double Rmax = sqrt(g.R2max());
+	int Nimage_x = (Rmax < L_[0]/2 ? 0 : 1 + int(-0.5+Rmax/L_[0]));
+	int Nimage_y = (Rmax < L_[1]/2 ? 0 : 1 + int(-0.5+Rmax/L_[1]));
+	int Nimage_z = (Rmax < L_[2]/2 ? 0 : 1 + int(-0.5+Rmax/L_[2]));
+
+	
+	//	double Rmax = sqrt(g.R2max());
+	//	int Nimage_x = std::max(0, int(2*Rmax/L_[0]));
+	//	int Nimage_y = std::max(0, int(2*Rmax/L_[1]));
+	//	int Nimage_z = std::max(0, int(2*Rmax/L_[2]));
+
+	for(int imx = -Nimage_x; imx <= Nimage_x; imx++)
+	  for(int imy = -Nimage_y; imy <= Nimage_y; imy++)
+	    for(int imz = -Nimage_z; imz <= Nimage_z; imz++)
+	      g.get_measures(dx+imx*L_[0],dy+imy*L_[1],dz+imz*L_[2],hsd,fm);
+
+      }
   }
 
  protected:
   vector<Gaussian> gaussians_;
 };
+
 
 
 

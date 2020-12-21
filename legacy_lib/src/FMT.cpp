@@ -237,7 +237,7 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
   FundamentalMeasures fm = getWeightedDensities(i, allSpecies);
 
   double phi = calculate_Phi(fm);
-
+  
   if(fm.eta > 0.5 && 1-fm.eta < 0.0)
     throw Eta_Too_Large_Exception();
   
@@ -253,6 +253,7 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
   for(Species* &generic_species : allSpecies)
       generic_species->set_fundamental_measure_derivatives(dPhi, i, needsTensor());
 
+  if(isnan(phi)) { cout << i << endl; throw std::runtime_error("isnan(phi)  detected");}
   return phi;
 }
 
@@ -268,7 +269,6 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
       if(f) f->calculateFundamentalMeasures(needsTensor());
 	//	f->convoluteDensities(needsTensor());
     }
-  
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
   long Ntot = allSpecies.front()->getLattice().Ntot();  
   
@@ -281,7 +281,7 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 #pragma omp parallel for \
   shared(allSpecies )	 \
   private(i)		 \
-  schedule(static)	 \
+  schedule(static)				\
   reduction(SummationPlus:F)
   for(i=0;i<Ntot;i++)
     {
@@ -325,26 +325,15 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  // The  derivatives: for each species s  we need the deriv wrt the species' density at each lattice site: dF/d n_{s}(i) 
+  // The  derivatives: for each species s  we need the deriv wrt the species' density at each lattice site: dF/d n_{s}(i)
   double dV = allSpecies.front()->getLattice().dV();
-
-  DFT_FFT dPhi_(allSpecies.front()->getLattice().Nx(),
-		allSpecies.front()->getLattice().Ny(),
-		allSpecies.front()->getLattice().Nz());
   
   for(auto &s: allSpecies)
     {
       FMT_Species *species = dynamic_cast<FMT_Species*>(s);
       if(species)
-	{      
-	  dPhi_.Four().zeros();
-	  species->Accumulate_dPhi(dPhi_.Four(), needsTensor());
-	  
-	  dPhi_.do_fourier_2_real();
+	species->Build_Force(needsTensor());
 
-	  dPhi_.Real().MultBy(dV);
-	  species->addToForce(dPhi_.cReal()); //HERE
-	}
 
   // Add in AO part, if there is any
       FMT_AO_Species *fao_species = dynamic_cast<FMT_AO_Species*>(s);

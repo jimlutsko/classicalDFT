@@ -320,11 +320,15 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 
 double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
+
+  for(auto &species : allSpecies_)
+    species->zeroForce();
+  
   Summation F;
   // Ideal gas contribution  
   if(!onlyFex) 
     for(auto &species : allSpecies_)
-      {
+      {	
 	const Density& density = species->getDensity();
 	double dV = density.dV();
 	long Ntot = density.Ntot();

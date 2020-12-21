@@ -72,11 +72,7 @@ void Minimizer::initialize()
   calls_ = 0;
 
   for(int Jspecies=0;Jspecies<dft_->getNumberOfSpecies();Jspecies++)
-      dft_->getDensity(Jspecies).set_alias(x_[Jspecies]);    
-  //    {
-  //      const Density& density = dft_->getDensity(Jspecies);
-  //      x_[Jspecies].setAliasFromValues(density.getDensity());
-  //    }
+      dft_->getSpecies(Jspecies)->get_density_alias(x_[Jspecies]);    
 }
 
 
@@ -85,8 +81,7 @@ double Minimizer::getDF_DX()
   calls_++;
 
   for(int Jspecies=0;Jspecies<x_.size();Jspecies++)
-    dft_->getDensity(Jspecies).set_from_alias(x_[Jspecies]);        
-    //    dft_->set_density_from_alias(Jspecies,x_[Jspecies]);
+    dft_->getSpecies(Jspecies)->set_density_from_alias(x_[Jspecies]);        
 
   double F = 0;
   try {
@@ -96,10 +91,8 @@ double Minimizer::getDF_DX()
   }
 
   for(int Jspecies = 0; Jspecies<dft_->getNumberOfSpecies(); Jspecies++)
-    dft_->getDensity(Jspecies).alias_deriv(x_[Jspecies],dft_->getDF(Jspecies));    
+    dft_->getSpecies(Jspecies)->convert_to_alias_deriv(x_[Jspecies],dft_->getDF(Jspecies));    
     
-    //    dft_->getDF(Jspecies).alias_Jacobian(x_[Jspecies]);
-
   return F;
 }
 
@@ -303,7 +296,6 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
       new_fmax = max(new_fmax, df.inf_norm()/dft_->getDensity(Jspecies).dV());
       fnorm += f*f;
       cnorm += df.size();
-      cout << "Jspecies = " << Jspecies << " fmax_ = " << fmax_ << " df.inf_norm = " << df.inf_norm() << " fnorm = " << fnorm << " cnorm = " << cnorm << endl;
     }
   rms_force_ = sqrt(fnorm/cnorm);
   fmax_ = new_fmax;

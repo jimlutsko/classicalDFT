@@ -8,6 +8,7 @@
 #include "FMT_Weighted_Density.h"
 #include "Potential1.h"
 #include "Density.h"
+#include "Gaussian_Density.h"
 #include "Fundamental_Measures.h"
 
 class Species
@@ -29,10 +30,14 @@ class Species
   Density& getDensity(){ return density_;}
 
   void doDisplay(string &title, string &file) const { density_.doDisplay(title,file, seq_num_);}
-  void set_density_from_alias(DFT_Vec &x) {density_.set_from_alias(x);}
+
   void set_density(DFT_Vec &x) {density_.set(x);}
   void set_density(long j, double x) {density_.set(j,x);}
 
+  virtual void set_density_from_alias(const DFT_Vec &x);
+  virtual void get_density_alias(DFT_Vec &x) const;
+  virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
+    
   void zeroForce() {dF_.zeros();}
   void addToForce(long i, double v) {dF_.IncrementBy(i,v);}
   void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}
@@ -173,33 +178,15 @@ public:
    *   @return value of Eta at pos
    */    
   double getEta(long pos) const { return fmt_weighted_densities[EI()].real(pos);}
-
-  /**
-   *   @brief  get value of S at pos
-   *  
-   *   @param  pos is the mesh position
-   *   @return value of S at pos
-   */      
   double getS(long pos) const { return fmt_weighted_densities[SI()].real(pos);}
-
-  /**
-   *   @brief  get value of component j of V at pos
-   *  
-   *   @param  j is index of V
-   *   @param  pos is the mesh position
-   *   @return value of V(j) at pos
-   */      
   double getV(int j, long pos)      const { return fmt_weighted_densities[VI(j)].real(pos);}
-
-  /**
-   *   @brief  get value of component j,k of T at pos
-   *  
-   *   @param  j is first index of T
-   *   @param  k is second index of T
-   *   @param  pos is the mesh position
-   *   @return value of T(j,k) at pos
-   */      
   double getT(int j,int k,long pos) const { return fmt_weighted_densities[TI(j,k)].real(pos);}
+
+
+  virtual void set_density_from_alias(const DFT_Vec &x);
+  virtual void get_density_alias(DFT_Vec &x) const;
+  virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
+
   
   const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
 
@@ -225,15 +212,24 @@ public:
   /**
    *   @brief Loop over the weighted densities and ask each one to add its contribution to dPhi
    *          In other words:   SUM_{a} SUM_j d PHI/d n_{a}(j) w_{a}(j-i)
+   *          The point here is that we have both arrays in Fourier space, so the convolution requires 
+   *          doing the loop over FM's and adding in Schur product for each one.
    *  
    *   @return none
    */  
-  void Accumulate_dPhi(DFT_Vec_Complex& dPhi, bool needsTensor)
+  virtual void Build_Force(bool needsTensor)
   {
+    DFT_FFT dPhi(getLattice().Nx(), getLattice().Ny(), getLattice().Nz());
+    double dV = getLattice().dV();    
+    
     int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
 
     for(int i=0;i<imax;i++)      
-      fmt_weighted_densities[i].add_weight_schur_dPhi_to_arg(dPhi);
+      fmt_weighted_densities[i].add_weight_schur_dPhi_to_arg(dPhi.Four());
+
+    dPhi.do_fourier_2_real();
+    dPhi.Real().MultBy(dV);
+    addToForce(dPhi.cReal());   
   }
   
   // These return the real weight at position K using the extended notation: eta, s0,s1,s2,v1,v2
@@ -291,31 +287,31 @@ public:
   void getFundamentalMeasures(long K, FundamentalMeasures &fm) {getFundamentalMeasures_Helper(K,fm,fmt_weighted_densities, hsd_);}
   void getFundamentalMeasures_Helper(long K, FundamentalMeasures &fm, const vector<FMT_Weighted_Density>  &weighted_densities, double hsd) 
   {
-    fm.eta = weighted_densities[EI()].getDensity(K);
+    fm.eta = weighted_densities[EI()].get_fundamental_measure(K);
 
-    fm.s0 = weighted_densities[SI()].getDensity(K)/(hsd*hsd);
-    fm.s1 = weighted_densities[SI()].getDensity(K)/hsd;
-    fm.s2 = weighted_densities[SI()].getDensity(K);
+    fm.s0 = weighted_densities[SI()].get_fundamental_measure(K)/(hsd*hsd);
+    fm.s1 = weighted_densities[SI()].get_fundamental_measure(K)/hsd;
+    fm.s2 = weighted_densities[SI()].get_fundamental_measure(K);
 
-    fm.v1[0] = weighted_densities[VI(0)].getDensity(K)/hsd;
-    fm.v1[1] = weighted_densities[VI(1)].getDensity(K)/hsd;
-    fm.v1[2] = weighted_densities[VI(2)].getDensity(K)/hsd;
+    fm.v1[0] = weighted_densities[VI(0)].get_fundamental_measure(K)/hsd;
+    fm.v1[1] = weighted_densities[VI(1)].get_fundamental_measure(K)/hsd;
+    fm.v1[2] = weighted_densities[VI(2)].get_fundamental_measure(K)/hsd;
 
-    fm.v2[0] = weighted_densities[VI(0)].getDensity(K);
-    fm.v2[1] = weighted_densities[VI(1)].getDensity(K);
-    fm.v2[2] = weighted_densities[VI(2)].getDensity(K);
+    fm.v2[0] = weighted_densities[VI(0)].get_fundamental_measure(K);
+    fm.v2[1] = weighted_densities[VI(1)].get_fundamental_measure(K);
+    fm.v2[2] = weighted_densities[VI(2)].get_fundamental_measure(K);
 
-    fm.T[0][0] = weighted_densities[TI(0,0)].getDensity(K);
-    fm.T[0][1] = weighted_densities[TI(0,1)].getDensity(K);
-    fm.T[0][2] = weighted_densities[TI(0,2)].getDensity(K);
+    fm.T[0][0] = weighted_densities[TI(0,0)].get_fundamental_measure(K);
+    fm.T[0][1] = weighted_densities[TI(0,1)].get_fundamental_measure(K);
+    fm.T[0][2] = weighted_densities[TI(0,2)].get_fundamental_measure(K);
     
-    fm.T[1][0] = weighted_densities[TI(1,0)].getDensity(K);
-    fm.T[1][1] = weighted_densities[TI(1,1)].getDensity(K);
-    fm.T[1][2] = weighted_densities[TI(1,2)].getDensity(K);
+    fm.T[1][0] = weighted_densities[TI(1,0)].get_fundamental_measure(K);
+    fm.T[1][1] = weighted_densities[TI(1,1)].get_fundamental_measure(K);
+    fm.T[1][2] = weighted_densities[TI(1,2)].get_fundamental_measure(K);
 
-    fm.T[2][0] = weighted_densities[TI(2,0)].getDensity(K);
-    fm.T[2][1] = weighted_densities[TI(2,1)].getDensity(K);
-    fm.T[2][2] = weighted_densities[TI(2,2)].getDensity(K);
+    fm.T[2][0] = weighted_densities[TI(2,0)].get_fundamental_measure(K);
+    fm.T[2][1] = weighted_densities[TI(2,1)].get_fundamental_measure(K);
+    fm.T[2][2] = weighted_densities[TI(2,2)].get_fundamental_measure(K);
 
     fm.calculate_derived_quantities();      
     
@@ -412,6 +408,49 @@ protected:
   vector<FMT_Weighted_Density>  fmt_weighted_densities; ///< all weighted densities in real & fourier space
 };
 
+class FMT_Gaussian_Species : public FMT_Species
+{
+public:
+  // Constructors: hsd is the hard-sphere diameter of the species
+  FMT_Gaussian_Species(GaussianDensity& density, double hsd, double mu = 0, int seq = -1)
+    : FMT_Species(density,hsd,mu,seq){}
+  FMT_Gaussian_Species(const FMT_Gaussian_Species &) = delete;  
+  ~FMT_Gaussian_Species(){}
+
+  // This is done using the explicit Gaussian formula
+  virtual void calculateFundamentalMeasures(bool needsTensor)
+  {
+    long pos;
+#pragma omp parallel for  private(pos)  schedule(static)				
+    for(pos = 0; pos < density_.Ntot(); pos++)
+      {
+	FundamentalMeasures fm;
+	dynamic_cast<GaussianDensity*>(&density_)->get_measures(pos,hsd_,fm);
+
+	fmt_weighted_densities[EI()].set_fundamental_measure(pos,fm.eta);
+	fmt_weighted_densities[SI()].set_fundamental_measure(pos,fm.s2);
+	for(int j=0;j<3;j++)
+	  {
+	    fmt_weighted_densities[VI(j)].set_fundamental_measure(pos,fm.v2[j]);
+	    if(needsTensor)
+	      for(int k=j;k<3;k++)
+		fmt_weighted_densities[TI(j,k)].set_fundamental_measure(pos,fm.T[j][k]);
+	  }
+      }
+  }
+
+  /**
+   *   @brief Loop over the weighted densities and ask each one to add its contribution to dPhi
+   *          In other words:   SUM_{a} SUM_j d PHI/d n_{a}(j) w_{a}(j-i)
+   *  
+   *   @return none
+   */  
+  virtual void Build_Force(bool needsTensor)
+  {
+    FMT_Species::Build_Force(needsTensor);
+  }
+};
+
   /**
    *  @brief Class to implement AO model
    *
@@ -441,28 +480,27 @@ public:
   double getHSDP() const { return 2*Rp_;}
   
   void getFundamentalMeasures_AO(long K, FundamentalMeasures &fm) {getFundamentalMeasures_Helper(K,fm,fmt_weighted_densitiesAO_, 2*Rp_);}
-
   
   void setFundamentalMeasures_AO(long K, double eta, double s, const double v[3], const double T[3][3])
   {
-    fmt_weighted_densitiesAO_[EI()].setDensity(K,eta);
-    fmt_weighted_densitiesAO_[SI()].setDensity(K,s);
+    fmt_weighted_densitiesAO_[EI()].set_fundamental_measure(K,eta);
+    fmt_weighted_densitiesAO_[SI()].set_fundamental_measure(K,s);
 
-    fmt_weighted_densitiesAO_[VI(0)].setDensity(K,v[0]);
-    fmt_weighted_densitiesAO_[VI(1)].setDensity(K,v[1]);
-    fmt_weighted_densitiesAO_[VI(2)].setDensity(K,v[2]);
+    fmt_weighted_densitiesAO_[VI(0)].set_fundamental_measure(K,v[0]);
+    fmt_weighted_densitiesAO_[VI(1)].set_fundamental_measure(K,v[1]);
+    fmt_weighted_densitiesAO_[VI(2)].set_fundamental_measure(K,v[2]);
 
-    fmt_weighted_densitiesAO_[TI(0,0)].setDensity(K,T[0][0]);
-    fmt_weighted_densitiesAO_[TI(0,1)].setDensity(K,T[0][1]);
-    fmt_weighted_densitiesAO_[TI(0,2)].setDensity(K,T[0][2]);
+    fmt_weighted_densitiesAO_[TI(0,0)].set_fundamental_measure(K,T[0][0]);
+    fmt_weighted_densitiesAO_[TI(0,1)].set_fundamental_measure(K,T[0][1]);
+    fmt_weighted_densitiesAO_[TI(0,2)].set_fundamental_measure(K,T[0][2]);
 
-    fmt_weighted_densitiesAO_[TI(1,0)].setDensity(K,T[1][0]);
-    fmt_weighted_densitiesAO_[TI(1,1)].setDensity(K,T[1][1]);
-    fmt_weighted_densitiesAO_[TI(1,2)].setDensity(K,T[1][2]);
+    fmt_weighted_densitiesAO_[TI(1,0)].set_fundamental_measure(K,T[1][0]);
+    fmt_weighted_densitiesAO_[TI(1,1)].set_fundamental_measure(K,T[1][1]);
+    fmt_weighted_densitiesAO_[TI(1,2)].set_fundamental_measure(K,T[1][2]);
 
-    fmt_weighted_densitiesAO_[TI(2,0)].setDensity(K,T[2][0]);
-    fmt_weighted_densitiesAO_[TI(2,1)].setDensity(K,T[2][1]);
-    fmt_weighted_densitiesAO_[TI(2,2)].setDensity(K,T[2][2]);        
+    fmt_weighted_densitiesAO_[TI(2,0)].set_fundamental_measure(K,T[2][0]);
+    fmt_weighted_densitiesAO_[TI(2,1)].set_fundamental_measure(K,T[2][1]);
+    fmt_weighted_densitiesAO_[TI(2,2)].set_fundamental_measure(K,T[2][2]);        
   }
   
   void computeAOForceContribution()

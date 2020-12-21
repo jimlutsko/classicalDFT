@@ -103,23 +103,9 @@ class Lattice
   int getIY(double y) const { return round(y/dy_)+(Ny_-1)/2;}
   int getIZ(double z) const { return round(z/dz_)+(Nz_-1)/2;}
   
-  /**
-  *   @brief  Accessor for spaceing in x-direction
-  *  
-  *   @return dx_
-  */  
+  // spacings
   double getDX() const {return dx_;}
-  /**
-  *   @brief  Accessor for spaceing in y-direction
-  *  
-  *   @return dy_
-  */  
   double getDY() const {return dy_;}
-  /**
-  *   @brief  Accessor for spaceing in z-direction
-  *  
-  *   @return dz_
-  */  
   double getDZ() const {return dz_;}
 
   /**
