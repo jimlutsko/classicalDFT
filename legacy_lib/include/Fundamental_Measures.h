@@ -73,6 +73,22 @@ class FundamentalMeasures
       calculate_derived_quantities();
     }
   
+  void scale(double s);
+    {
+      eta *= s;
+      s0 *= s;
+      s1 *= s;
+      s2 *= s;
+      for(int i=0;i<3;i++)
+	{
+	  v1[i] *= s;
+	  v2[i] *= s;
+	  for(int j=0;j<3;j++)
+	    T[i][j] *= s;
+	}
+      calculate_derived_quantities();
+    }
+  
   void calculate_derived_quantities()
   {
     vT[0] = v2[0]*T[0][0] + v2[1]*T[1][0] + v2[2]*T[2][0];

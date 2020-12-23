@@ -417,6 +417,10 @@ public:
   FMT_Gaussian_Species(const FMT_Gaussian_Species &) = delete;  
   ~FMT_Gaussian_Species(){}
 
+  virtual void set_density_from_alias(const DFT_Vec &x){}
+  virtual void get_density_alias(DFT_Vec &x) const {}
+  virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const {}
+
   // This is done using the explicit Gaussian formula
   virtual void calculateFundamentalMeasures(bool needsTensor)
   {

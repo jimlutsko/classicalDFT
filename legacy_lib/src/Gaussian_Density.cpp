@@ -1,0 +1,270 @@
+#include <cmath>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <complex>
+#include <stdexcept>
+#include <vector>
+#include <time.h>
+
+
+using namespace std;
+
+#include "Gaussian_Density.h"
+
+void Gaussian::set_parameters(double x, double alf, double Rx, double Ry, double Rz, double hsd, double L[])
+{
+  alf_ = alf;
+  Rx_  = Rx;
+  Ry_  = Ry;
+  Rz_  = Rz;
+
+  // the vacancy concetration: aliased against a necessary but not sufficient max
+  double z    = sqrt(alf_)*hsd/2;
+  double xmax = 1.0/(erf(z)-M_2_SQRTPI*z*exp(-z*z));
+
+  prefactor_  = xmax*g(x);
+  dprefactor_ = xmax*g1(x);
+    
+  norm_ = pow(alf_/M_PI,1.5);
+
+  // spatial limits concerning the influence of this Gaussian:
+  // can only be determined once all parameters have been set    
+  Rmax_ = sqrt(R2max());
+  Nimage_x_ = (Rmax_ < L[0]/2 ? 0 : 1 + int(-0.5+Rmax_/L[0]));
+  Nimage_y_ = (Rmax_ < L[1]/2 ? 0 : 1 + int(-0.5+Rmax_/L[1]));
+  Nimage_z_ = (Rmax_ < L[2]/2 ? 0 : 1 + int(-0.5+Rmax_/L[2]));
+}
+
+
+void Gaussian::get_measures(double dx, double dy, double dz, double hsd, FundamentalMeasures &fm) const
+{
+  double r2 = dx*dx+dy*dy+dz*dz;
+  double r = sqrt(r2);
+
+  double sqalf = sqrt(alf_);
+
+  double A = 0.25*sqalf*alf_*hsd*hsd*M_2_SQRTPI*prefactor_;
+    
+  double f1 = 0;
+  double f2 = 0;
+  double f3 = 0;
+
+  double y = alf_*hsd*r;
+    
+  if(y < 0.01)
+    {
+      double y2 = y*y;
+      double y4 = y2*y2;
+      f1 = 2+(y2/3)+(y4/60);
+      f2 = (2.0/3)+(y2/15)+(y4/420);
+      f3 = (2.0/15)+(y2/105)+(y4/3780);
+
+      double ee = exp(-alf_*(r2+0.25*hsd*hsd));
+      f1 *= ee;
+      f2 *= ee;
+      f3 *= ee;
+	
+    } else {
+    double em = exp(-y-alf_*(r2+0.25*hsd*hsd));
+    double ep = exp(y-alf_*(r2+0.25*hsd*hsd));
+    f1 = (ep-em)/y;
+    f2 = ((1+y)*em-(1-y)*ep)/(y*y*y);
+    f3 = ((3-3*y+y*y)*ep-(3+3*y+y*y)*em)/(y*y*y*y*y);
+  }
+
+  fm.eta += -(A/(alf_*hsd))*f1+prefactor_*0.5*(erf(sqalf*(r+hsd/2))-erf(sqalf*(r-hsd/2)));
+
+  double s = A*f1;
+  fm.s0  += s/(hsd*hsd);
+  fm.s1  += s/hsd;
+  fm.s2  += s;
+
+  dx *= alf_*hsd;
+  dy *= alf_*hsd;
+  dz *= alf_*hsd;
+    
+  double v = A*f2;
+    
+  fm.v1[0] += dx*v/hsd;
+  fm.v1[1] += dy*v/hsd;
+  fm.v1[2] += dz*v/hsd;
+
+  fm.v2[0] += dx*v;
+  fm.v2[1] += dy*v;
+  fm.v2[2] += dz*v;
+
+  double T1 = A*f2;
+  double T2 = A*f3;
+    
+  fm.T[0][0] += T1 + dx*dx*T2;
+  fm.T[1][1] += T1 + dy*dy*T2;
+  fm.T[2][2] += T1 + dz*dz*T2;
+
+  fm.T[0][1] += dx*dy*T2;
+  fm.T[0][2] += dx*dz*T2;
+
+  fm.T[1][0] += dy*dx*T2;
+  fm.T[1][2] += dy*dz*T2;
+
+  fm.T[2][0] += dz*dx*T2;
+  fm.T[2][1] += dz*dy*T2;
+
+  calculate_derived_quantities();      
+}
+
+void Gaussian::get_dmeasures_dX(double dx, double dy, double dz, double hsd, FundamentalMeasures &dfm) const
+{
+  get_measures(dx,dy,dz,hsd,dfm);
+  dfm.scale(dprefactor_/prefactor_);
+}
+
+void Gaussian::get_f1f2f3f4(double y, double hsd, double r2, double &f1, double &f2, double &f3, double &f4) const
+{
+  double y2 = y*y;
+  double y4 = y2*y2;
+  double y6= y4*y2;
+      
+  if(y < 0.01)
+    {
+      f1 = 2+(y2/3)+(y4/60);
+      f2 = (2.0/3)+(y2/15)+(y4/420);
+      f3 = (2.0/15)+(y2/105)+(y4/3780);
+      f4 = (2.0/105)+(y2/945)+(y4/41580);
+      
+      double ee = exp(-alf_*(r2+0.25*hsd*hsd));
+      f1 *= ee;
+      f2 *= ee;
+      f3 *= ee;
+      f4 *= ee;
+	
+    } else {
+    double em = exp(-y-alf_*(r2+0.25*hsd*hsd));
+    double ep = exp(y-alf_*(r2+0.25*hsd*hsd));
+    f1 = (ep-em)/y;
+    f2 = ((1+y)*em-(1-y)*ep)/(y*y2);
+    f3 = ((3-3*y+y*y)*ep-(3+3*y+y*y)*em)/(y*y4);
+    f4 = ((-15+15*y-6*y*y+y*y*y)*ep-(15+15*y+6*y*y+y*y*y)*em)/(y*y6);
+  }
+  
+}
+
+
+void Gaussian::get_measures(double dx, double dy, double dz, double hsd, FundamentalMeasures &fm) const
+{
+  double r2 = dx*dx+dy*dy+dz*dz;
+  double r = sqrt(r2);
+
+  double sqalf = sqrt(alf_);
+
+  double A = 0.25*sqalf*alf_*hsd*hsd*M_2_SQRTPI*prefactor_;
+    
+  double y = alf_*hsd*r;
+
+  double f1 = 0;
+  double f2 = 0;
+  double f3 = 0;
+  double f4 = 0;
+
+  get_f1f2f3f4(y,hsd,r2,f1,f2,f3,f4);
+
+  fm.eta += -(A/(alf_*hsd))*f1+prefactor_*0.5*(erf(sqalf*(r+hsd/2))-erf(sqalf*(r-hsd/2)));
+
+  double s = A*f1;
+  fm.s0  += s/(hsd*hsd);
+  fm.s1  += s/hsd;
+  fm.s2  += s;
+
+  dx *= alf_*hsd;
+  dy *= alf_*hsd;
+  dz *= alf_*hsd;
+    
+  double v = A*f2;
+    
+  fm.v1[0] += dx*v/hsd;
+  fm.v1[1] += dy*v/hsd;
+  fm.v1[2] += dz*v/hsd;
+
+  fm.v2[0] += dx*v;
+  fm.v2[1] += dy*v;
+  fm.v2[2] += dz*v;
+
+  double T1 = A*f2;
+  double T2 = A*f3;
+    
+  fm.T[0][0] += T1 + dx*dx*T2;
+  fm.T[1][1] += T1 + dy*dy*T2;
+  fm.T[2][2] += T1 + dz*dz*T2;
+
+  fm.T[0][1] += dx*dy*T2;
+  fm.T[0][2] += dx*dz*T2;
+
+  fm.T[1][0] += dy*dx*T2;
+  fm.T[1][2] += dy*dz*T2;
+
+  fm.T[2][0] += dz*dx*T2;
+  fm.T[2][1] += dz*dy*T2;
+
+  calculate_derived_quantities();      
+}
+
+
+void Gaussian::get_dmeasures_dR(double dx, double dy, double dz, double hsd, FundamentalMeasures &dfm[3]) const
+{
+  double r2 = dx*dx+dy*dy+dz*dz;
+  double r = sqrt(r2);
+
+  double sqalf = sqrt(alf_);
+
+  double A = 0.25*sqalf*alf_*hsd*hsd*M_2_SQRTPI*prefactor_;
+
+  double e1 = erf(sqalf*hsd/2);
+  double e2 = sqalf_*M_2_SQRTPI*exp(-alf_*0.25*hsd*hsd);
+  
+  double B = 1.5 - alf_*r2 - (e1/(e1-e2))*0.25*alf_*hsd*hsd;
+  
+  double y = alf_*hsd*r;
+
+  double f1 = 0;
+  double f2 = 0;
+  double f3 = 0;
+  double f4 = 0;
+  
+  get_f1f2f3f4(y,hsd,r2,f1,f2,f3,f4);
+
+  dx *= alf_*hsd;
+  dy *= alf_*hsd;
+  dz *= alf_*hsd;
+
+  double yv[] = {dx,dy,dz};
+
+  double fac = -hsd*alf_*A;
+  
+  for(int i=0;i<3;i++)
+    {
+      dfm[i].eta += A*(f2+f1/(0.5*hsd*hsd*alf_))*yv[i];
+      
+      double s = fac*f2*yv[i];
+
+      dfm[i].s0  += s/(hsd*hsd);
+      dfm[i].s1  += s/hsd;
+      dfm[i].s2  += s;
+    
+      for(int j=0;j<3;j++)
+	{
+	  if(i == j) {dfm[i].v1[j] += fac*f2/hsd; dfm[i].v2[j] += fac*f2;}
+	  dfm[i].v1[j] += fac*f3*yv[i]*yv[j]/hsd;
+	  dfm[i].v2[j] += fac*f3*yv[i]*yv[j];
+
+	  if(j == k) dfm[i].T[j][k] += fac*yv[i]*f3;
+	  if(i == k) dfm[i].T[j][k] += fac*yv[j]*f3;
+	  if(i == j) dfm[i].T[j][k] += fac*yv[k]*f3;
+
+	  dfm[i].T[j][k] += fac*yv[i]*yv[j]*yv[k]*f4;
+	}
+    }
+
+  calculate_derived_quantities();      
+}
+
+
