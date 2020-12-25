@@ -15,19 +15,15 @@ enum class Direction {
   Z
 };
 
-typedef std::reference_wrapper<Element> element_refwrap;
-typedef std::vector<Element> element_vec;
-typedef std::unordered_map<int, element_refwrap> element_map;
-
 class Mesh {
 
  protected:
+  std::vector<long> shape_ = {};
+  std::vector<double> dimensions_;
   vertex_vec vertices_raw_ = {};
-  element_vec elements_raw_ = {};
   vertex_map vertices_ = {};
-  element_map elements_ = {};
-  std::vector<int> shape_ = {};
-  std::vector<double> length_ = {};
+
+  long number_vertices_ = 0;
 
  public:
   // region Cttors:
@@ -38,9 +34,11 @@ class Mesh {
 
   // region Inspectors:
 
-  const std::vector<int>& shape() const;
-  const std::vector<double>& length() const;
+  const std::vector<long>& shape() const;
+  const std::vector<double>& dimensions() const;
   long number_vertices() const;
+
+  const vertex_vec& vertices() const;
 
   // endregion
 
@@ -52,7 +50,9 @@ class Mesh {
 
   // region Overloads:
 
-  virtual const Vertex& operator[](const std::initializer_list<int>& idx) const = 0;
+  virtual const Vertex& operator[](const std::vector<long>& idx) const = 0;
+
+  friend std::ostream& operator<<(std::ostream& os, const Mesh& mesh);
 
   // endregion
 };

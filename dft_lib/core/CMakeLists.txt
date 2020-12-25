@@ -23,6 +23,7 @@ set(ALL_SOURCES
         ${dft_lib_src_path}/geometry/base/mesh.cpp
         # Geometry::2D:
         ${dft_lib_src_path}/geometry/2D/element.cpp
+        ${dft_lib_src_path}/geometry/2D/mesh.cpp
         )
 
 # Set up the dependencies and naming of the library

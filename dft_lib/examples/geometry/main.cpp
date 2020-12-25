@@ -69,4 +69,15 @@ int main(int argc, char **argv)
   auto move_box = two_dimensional::SquareBox(std::move(v_list_b));
   std::cout << move_box << std::endl;
   // endregion
+
+  auto origin = std::vector<double>{0,0};
+  auto suq_mesh = two_dimensional::SUQMesh(0.25, 1.0, origin);
+  std::cout << suq_mesh << std::endl;
+            //<< "Mesh shape: [" << suq_mesh.shape()[0] << ", " << suq_mesh.shape()[1] << "]" << std::endl;
+
+  std::cout << "Vertex[-1,-1]: " << suq_mesh[{-1,-1}] << std::endl;
+
+  auto vs = suq_mesh.elements();
+  for (const auto& v : vs) { std::cout << v << std::endl; }
+
 }
