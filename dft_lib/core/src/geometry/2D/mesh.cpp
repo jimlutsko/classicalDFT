@@ -1,9 +1,10 @@
 #include "dft_lib/geometry/2D/mesh.h"
+#include "dft_lib/geometry/2D/element.h"
+#include "dft_lib/graph/grace.h"
 
 #include <boost/range/combine.hpp>
+#include <numeric>
 #include <utility>
-
-#include "dft_lib/geometry/2D/element.h"
 
 namespace dft_core {
 namespace geometry {
@@ -11,16 +12,20 @@ namespace two_dimensional {
 
 const static double _scaling_dx = 1E-8;
 
-SUQMesh::SUQMesh(double dx, double length, std::vector<double>& origin)
+SUQMesh::SUQMesh(double dx, std::vector<double>& dimensions, std::vector<double>& origin)
     : origin_(std::move(origin))
 {
-  dimensions_ = {length, length};
-  shape_ = {
-      static_cast<long>((dimensions_[0] + _scaling_dx * dx) / dx) + 1,
-      static_cast<long>((dimensions_[1] + _scaling_dx * dx) / dx) + 1,
-  };
-  number_vertices_ = shape_[0] * shape_[1];
-  idx_max_ = {shape_[0] - 1, shape_[1] - 1};
+  dimensions_ = std::move(dimensions);
+
+  for (auto l : dimensions_)
+  {
+    auto s = static_cast<long>((l + _scaling_dx * dx) / dx) + 1;
+    shape_.push_back(s);
+    idx_max_.push_back(s - 1);
+  }
+
+  number_vertices_ = std::accumulate(begin(shape_), end(shape_), 1, std::multiplies<>());
+  number_elements_ = std::accumulate(begin(idx_max_), end(idx_max_), 1, std::multiplies<>());
 
   //region Vertices init:
   auto vertex_index = 0;
@@ -28,16 +33,16 @@ SUQMesh::SUQMesh(double dx, double length, std::vector<double>& origin)
 
   auto x = origin_[0]; auto y = origin_[1];
   vertices_raw_ = vertex_vec(number_vertices_);
-  elements_raw_ = element_vec((shape_[0]-1)*(shape_[1]-1));
+  elements_raw_ = element_vec(number_elements_);
 
-  for (auto y_idx = 0; y_idx < shape_[1]; y_idx++)
+  for (auto j_idx = 0; j_idx < shape_[1]; j_idx++)
   {
-    for (auto x_idx = 0; x_idx < shape_[0]; x_idx++)
+    for (auto i_idx = 0; i_idx < shape_[0]; i_idx++)
     {
       vertices_raw_[vertex_index] = Vertex({x, y});
       vertices_.insert({vertex_index, std::ref(vertices_raw_[vertex_index])});
 
-      if ((x_idx < idx_max_[0]) && (y_idx < idx_max_[1]))
+      if ((i_idx < idx_max_[0]) && (j_idx < idx_max_[1]))
       {
         elements_raw_[element_index] = SquareBox(dx, {x, y});
         element_index += 1;
@@ -102,4 +107,26 @@ const Vertex& SUQMesh::operator[](const std::vector<long>& idx) const
 
 double SUQMesh::volume() const { return dimensions_[0] * dimensions_[1]; }
 
+void SUQMesh::plot() const
+{
+  auto g = dft_core::grace_plot::Grace();
+  for (const auto& v : vertices_raw_)
+  { g.AddPoint(v.coordinates()[0], v.coordinates()[1]); }
+
+  auto dx = std::vector<double>{
+    0.1 * dimensions_[0], 0.1 * dimensions_[1]
+  };
+
+  g.SetLimits(
+      {origin_[0]-dx[0], (dimensions_[0]+origin_[0]) + dx[0]},
+      {origin_[1]-dx[1], (dimensions_[1]+origin_[1]) + dx[1]}
+      );
+
+  g.SetLineType(dft_core::grace_plot::LineStyle::NO_LINE, 0);
+  g.SetSymbol(dft_core::grace_plot::Symbol::SQUARE, 0);
+  g.SetSymbolColor(dft_core::grace_plot::Color::BLUE, 0);
+  g.SetSymbolFill(dft_core::grace_plot::Color::DARKGREEN, 0);
+
+  g.RedrawAndWait();
+}
 }}}

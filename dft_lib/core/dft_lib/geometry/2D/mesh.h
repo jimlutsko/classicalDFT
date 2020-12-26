@@ -20,17 +20,20 @@ class SUQMesh : public Mesh
 
   element_vec elements_raw_ = {};
   element_map elements_ = {};
-  std::vector<long> idx_max_ = {0, 0};
-  std::vector<double> origin_ = {0, 0};
+  std::vector<long> idx_max_ = {};
+  std::vector<double> origin_ = {};
 
  public:
   // region Cttors:
-  explicit SUQMesh(double dx, double length, std::vector<double>& origin);
+  explicit SUQMesh(double dx, std::vector<double>& dimensions, std::vector<double>& origin);
   // endregion
 
   // region Overwrites:
   double volume() const override ;
+  void plot() const override ;
+
   const std::vector<SquareBox>& elements() const {return elements_raw_;}
+
   const Vertex& operator[](const std::vector<long>& idx) const override;
   // endregion
 };

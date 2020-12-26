@@ -19,11 +19,12 @@ class Mesh {
 
  protected:
   std::vector<long> shape_ = {};
-  std::vector<double> dimensions_;
+  std::vector<double> dimensions_ = {};
   vertex_vec vertices_raw_ = {};
   vertex_map vertices_ = {};
 
   long number_vertices_ = 0;
+  long number_elements_ = 0;
 
  public:
   // region Cttors:
@@ -45,6 +46,8 @@ class Mesh {
   // region Methods:
 
   virtual double volume() const = 0;
+
+  virtual void plot() const = 0;
 
   // endregion
 
