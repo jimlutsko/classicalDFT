@@ -32,6 +32,8 @@
 //endregion
 
 //region 3D
+#include "dft_lib/geometry/3D/element.h"
+#include "dft_lib/geometry/3D/mesh.h"
 //endregion
 
 //endregion

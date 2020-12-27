@@ -46,19 +46,19 @@ class Element {
   /**
    * @brief Initialisation of the `dimension_` property
    */
-  void _initialise_dimension();
+  void initialise_dimension();
 
   /**
    * @brief  Initialisation of the `int -> Vertex` mapping
    * @param v_vec Vector of vertices to be mapped
    * @param vertex_map Unordered-map which assigns an `int` to each Vertex
    */
-  void _initialise_vertex_map(vertex_vec& v_vec, vertex_map& vertex_map);
+  void initialise_vertex_map(vertex_vec& v_vec, vertex_map& vertex_map);
 
   /**
    * @brief Initialiser for the various constructors
    */
-  void _initialise_element();
+  void initialise_element();
 
  public:
   // region Cttors:
@@ -117,7 +117,7 @@ class Element {
    * Prototype function for when we need to measure the length in a given direction
    * @return Length in the requested direction
    */
-  virtual double length() const { return 0.0; };
+  //virtual double length() const { return 0.0; };
 
   /**
    * Prototype function to compute the element volume
@@ -144,6 +144,48 @@ class Element {
   friend std::ostream& operator<<(std::ostream& os, const Element& element);
   // endregion
 };
+
+// region Abstract SquareBox:
+
+const double DEFAULT_SQUAREBOX_LENGTH = 1;
+
+/**
+ * SquareBox is the abstract template for the creation of square-box elements in
+ * 2D, 3D (and higher dimensions)
+ */
+class SquareBox : public Element {
+ protected:
+  /**
+   * Width/height/length of the box
+   */
+  double length_ = DEFAULT_SQUAREBOX_LENGTH;
+
+  /**
+   * Element's origin coordinates
+   */
+  std::vector<double> origin_ = {};
+
+  /**
+   * Initialiser of the element's attributes which are general for all the possible dimensions
+   * @param dx The length/width/height of the box
+   * @param origin The origin's coordinates to build the box
+   */
+  void initialise(double dx, const std::vector<double>& origin);
+
+ public:
+  /**
+   * Default constructor
+   */
+  SquareBox() = default;
+
+  /**
+   * Gets the volume of the element: pow(length_, dimension_)
+   * @return The element's volume
+   */
+  double volume() const final;
+};
+
+// endregion
 
 }}
 

@@ -10,7 +10,7 @@ namespace geometry {
 
 // region Cttors:
 
-void Element::_initialise_vertex_map(vertex_vec& v_vec, vertex_map& vertex_map)
+void Element::initialise_vertex_map(vertex_vec& v_vec, vertex_map& vertex_map)
 {
   auto dimension = v_vec.front().dimension();
   for (auto k = 0; k < v_vec.size(); ++k)
@@ -24,30 +24,30 @@ void Element::_initialise_vertex_map(vertex_vec& v_vec, vertex_map& vertex_map)
   }
 }
 
-void Element::_initialise_dimension()
+void Element::initialise_dimension()
 {
   dimension_ = vertices_raw_.empty() ? 0 : vertices_raw_.front().dimension();
 }
 
-void Element::_initialise_element()
+void Element::initialise_element()
 {
-  _initialise_vertex_map(vertices_raw_, vertices_);
-  _initialise_dimension();
+  initialise_vertex_map(vertices_raw_, vertices_);
+  initialise_dimension();
 }
 
 Element::Element(const std::vector<Vertex>& vertices): vertices_raw_(vertices)
 {
-  _initialise_element();
+  initialise_element();
 }
 
 Element::Element(std::vector<Vertex>&& vertices): vertices_raw_(std::move(vertices))
 {
-  _initialise_element();
+  initialise_element();
 }
 
 Element::Element(const std::initializer_list<Vertex>& vertices): vertices_raw_(vertices)
 {
-  _initialise_element();
+  initialise_element();
 }
 
 // endregion
@@ -60,8 +60,9 @@ const std::unordered_map<int, vertex_refwrap>& Element::vertices() const { retur
 
 int Element::number_of_vertices() const
 {
-  return vertices_raw().size();
+  return vertices_.size();
 }
+
 // endregion
 
 // region Overloads:
@@ -81,6 +82,7 @@ std::ostream& operator<<(std::ostream& os, const Element& element)
 {
   os << "Element [" << std::addressof(element) << "]" << std::endl;
   os << "\u2b91 Number of vertices: " << element.number_of_vertices() << std::endl;
+  os << "\u2b91 Volume: " << element.volume() << std::endl;
 
   for (const auto& v : element.vertices())
   {
@@ -92,4 +94,19 @@ std::ostream& operator<<(std::ostream& os, const Element& element)
 
 // endregion
 
+// region SquareBox:
+
+void SquareBox::initialise(double dx, const std::vector<double>& origin)
+{
+  length_ = dx;
+  origin_ = origin;
+  initialise_element();
+}
+
+double SquareBox::volume() const
+{
+  return std::pow(length_, dimension_);
+}
+
+// endregion
 }}

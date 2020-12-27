@@ -50,14 +50,15 @@ int main(int argc, char **argv)
   // endregion
 
   // region 2D: SquareBox
-  console::Info("Square boxes:");
-  auto default_box = two_dimensional::SquareBox();
+  console::Info("Square boxes 2D: default");
+  auto default_box_2D = two_dimensional::SquareBox();
   std::cout << "Default square-box:" << std::endl
-            << default_box << std::endl;
+            << default_box_2D << std::endl;
 
-  auto custom_box = two_dimensional::SquareBox(0.25, {0,0});
+  console::Info("Square boxes 2D: customized");
+  auto custom_box_2D = two_dimensional::SquareBox(0.25, {0,0});
   std::cout << "Customised square-box:" << std::endl
-            << custom_box << std::endl;
+            << custom_box_2D << std::endl;
 
   auto v_list_b = std::vector<Vertex>{ {0,0}, {0,1}, {1,1}, {1,0} };
   std::cout << "Move-semantics square-box:" << std::endl
@@ -66,17 +67,52 @@ int main(int argc, char **argv)
             << "v_list[1]: " << v_list_b[1] << std::endl
             << "v_list[0]: " << v_list_b[0] << std::endl << std::endl;
 
-  auto move_box = two_dimensional::SquareBox(std::move(v_list_b));
-  std::cout << move_box << std::endl;
+  auto move_box_2D = two_dimensional::SquareBox(std::move(v_list_b));
+  std::cout << move_box_2D << std::endl;
   // endregion
 
-  auto origin = std::vector<double>{0,0};
-  auto lengths = std::vector<double>{1.0,1.0};
-  auto suq_mesh = two_dimensional::SUQMesh(0.25, lengths, origin);
+  // region 2D::SUQMesh
+  console::Info("Mesh 2D: lattice");
 
-  std::cout << suq_mesh << std::endl;
-  std::cout << "Vertex[-1,-1]: " << suq_mesh[{-1,-1}] << std::endl;
-  std::cout << suq_mesh.elements()[10] << std::endl;
+  auto origin_2D = std::vector<double>{0,0};
+  auto lengths_2D = std::vector<double>{1.0,1.0};
+  auto lattice_2D = two_dimensional::Lattice(0.25, lengths_2D, origin_2D);
 
-  suq_mesh.plot();
+  std::cout << lattice_2D << std::endl;
+
+  std::cout << "Vertex[-1,-1]: " << lattice_2D[{-1,-1}] << std::endl;
+  std::cout << "Vertex[2,3]: " << lattice_2D[{2,3}] << std::endl;
+
+  std::cout << "Element[10]: " << std::endl;
+  std::cout << lattice_2D.elements()[10] << std::endl;
+
+  std::cout << "Element volume: " << std::endl
+            << lattice_2D.element_volume() << std::endl;
+
+  console::Info("Mesh 2D: lattice plot");
+  lattice_2D.plot();
+
+  // endregion
+
+  // region 3D::SquareBox
+  console::Info("Square boxes 3D: default");
+  auto default_box_3D = three_dimensional::SquareBox();
+  std::cout << "Default square-box (3D):" << std::endl
+            << default_box_3D << std::endl;
+
+  console::Info("Mesh 3D: lattice");
+  auto origin_3D = std::vector<double>{0,0,0};
+  auto lengths_3D = std::vector<double>{1.0,1.0,1.0};
+  auto lattice_3D = three_dimensional::Lattice(0.25, lengths_3D, origin_3D);
+
+  std::cout << lattice_3D << std::endl;
+  std::cout << "Vertex[-1,-1,-1]: " << lattice_3D[{-1,-1,-1}] << std::endl;
+  std::cout << "Vertex[2,3,1]: " << lattice_3D[{2,3,1}] << std::endl;
+
+  std::cout << "Element[10]: " << std::endl;
+  std::cout << lattice_3D.elements()[10] << std::endl;
+
+  std::cout << "Element volume: " << std::endl
+            << lattice_3D.element_volume() << std::endl;
+  // endregion
 }
