@@ -73,7 +73,7 @@ class FundamentalMeasures
       calculate_derived_quantities();
     }
   
-  void scale(double s);
+  void scale(double s)
     {
       eta *= s;
       s0 *= s;

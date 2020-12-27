@@ -45,12 +45,10 @@ class Gaussian
 
 
   // FMT measures
-  void get_measures(double dx, double dy, double dz, double hsd, FundamentalMeasures &fm) const;
-  void get_dmeasures_dalf(double dx, double dy, double dz, double hsd, FundamentalMeasures &fm) const;
-  void get_dmeasures_dRx(double dx, double dy, double dz, double hsd, FundamentalMeasures &fm) const;
-  void get_dmeasures_dRy(double dx, double dy, double dz, double hsd, FundamentalMeasures &fm) const;
-  void get_dmeasures_dRz(double dx, double dy, double dz, double hsd, FundamentalMeasures &fm) const;
-  void get_dmeasures_dX(double dx, double dy, double dz, double hsd, FundamentalMeasures &fm) const;
+  void get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const;
+  void get_dmeasures_dAlf(double rx, double ry, double rz, double hsd, FundamentalMeasures &dfm) const;
+  void get_dmeasures_dR(double rx, double ry, double rz, double hsd, FundamentalMeasures dfm[3]) const;
+  void get_dmeasures_dX(double rx, double ry, double rz, double hsd, FundamentalMeasures &dfm) const;
 
   int get_Nimage_x() const { return Nimage_x_;}
   int get_Nimage_y() const { return Nimage_y_;}
@@ -66,7 +64,7 @@ protected:
   // Maybe better if these were members that could be over-ridden
   static double    g(double x) { return 1.0-exp(-x*x);}
   static double ginv(double z) { return sqrt(fabs(log(1.0-z)));}
-  static double   g1(double x) { return -2*x*exp(-x*x);}
+  static double   g1(double x) { return 2*x*exp(-x*x);}
 
   void get_f1f2f3f4(double y, double hsd, double r2, double &f1, double &f2, double &f3, double &f4) const;
     
@@ -157,16 +155,15 @@ class GaussianDensity : public Density
     for(auto &g: gaussians_)
       {
 	// find closest image
-	double dx = rx - g.Rx(); while(dx > L_[0]/2) dx -= L_[0]; while(dx < -L_[0]/2) dx += L_[0];
-	double dy = ry - g.Ry(); while(dy > L_[1]/2) dy -= L_[1]; while(dy < -L_[1]/2) dy += L_[1];
-	double dz = rz - g.Rz(); while(dz > L_[2]/2) dz -= L_[2]; while(dz < -L_[2]/2) dz += L_[2]; 
+	while(rx-g.Rx() > L_[0]/2) rx -= L_[0]; while(rx-g.Rx() < -L_[0]/2) rx += L_[0];
+	while(ry-g.Ry() > L_[1]/2) ry -= L_[1]; while(ry-g.Ry() < -L_[1]/2) ry += L_[1];
+	while(rz-g.Rz() > L_[2]/2) rz -= L_[2]; while(rz-g.Rz() < -L_[2]/2) rz += L_[2];
 	
-	// take additional images as necessary: if Rmax > L/2, we need more images
-
+	// sum over all contributing images
 	for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
 	  for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
 	    for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)
-	      g.get_measures(dx+imx*L_[0],dy+imy*L_[1],dz+imz*L_[2],hsd,fm);
+	      g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm);
       }
   }
 
