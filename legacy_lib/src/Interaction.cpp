@@ -399,7 +399,7 @@ double Interaction_Base::checkCalc(int jx, int jy, int jz)
 	  long si = density1.pos(ix,iy,iz);
 	  long sk = density1.pos(kx,ky,kz);
 		    
-	  dd += w_att_.Real().get(sk)*density1.getDensity(si);
+	  dd += w_att_.Real().get(sk)*density1.get(si);
 	}
   return dd*dV*dV;
 }

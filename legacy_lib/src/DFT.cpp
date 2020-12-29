@@ -316,8 +316,6 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
   return F;
 }
 
-#pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
-
 double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
 
@@ -328,23 +326,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   // Ideal gas contribution  
   if(!onlyFex) 
     for(auto &species : allSpecies_)
-      {	
-	const Density& density = species->getDensity();
-	double dV = density.dV();
-	long Ntot = density.Ntot();
-	long pos;
-#pragma omp parallel for				\
-  shared(species, dV)				\
-  private(pos)						\
-  schedule(static)				\
-  reduction(SummationPlus:F)
-	for(pos=0;pos<Ntot;pos++)
-	  {
-	    double d0 = density.getDensity(pos);
-	    F += (d0*log(d0)-d0)*dV;
-	    species->addToForce(pos,log(d0)*dV); //HERE
-	  }
-      }
+      F += species->calculateFreeEnergyAndDerivatives_IdealGas_();
   F_id_ = F;
 
   // Hard-sphere contribution
@@ -390,7 +372,7 @@ void DFT::second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID
   if(noFID == false)
     for(int s=0;s<allSpecies_.size();s++)
       for(unsigned i=0;i<v[s].cReal().size();i++)
-	d2F[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().getDensity(i));
+	d2F[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().get(i));
   
   // Hard-sphere
   if(fmt_)

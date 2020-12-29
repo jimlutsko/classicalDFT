@@ -23,11 +23,10 @@ void Gaussian::set_parameters(double x, double alf, double Rx, double Ry, double
   double z    = sqrt(alf_)*hsd/2;
   double xmax = 1.0/(erf(z)-M_2_SQRTPI*z*exp(-z*z));
 
-  prefactor_  = xmax*g(x);
-  dprefactor_ = xmax*g1(x);
+  prefactor_       = xmax*g(x);
+  dprefactor_dx_   = xmax*g1(x);
+  dprefactor_dalf_ = -M_2_SQRTPI*0.25*hsd*hsd*z*exp(-z*z)*xmax*xmax*g(x);
 
-  cout << "x = " << x << " prefactor_ = " << prefactor_ << " dprefactor_ = " << dprefactor_ << " xmax = " << xmax << " g(x) = " << g(x) << " g1(x) = " << g1(x) << endl;
-  
   norm_ = pow(alf_/M_PI,1.5);
 
   // spatial limits concerning the influence of this Gaussian:
@@ -36,6 +35,31 @@ void Gaussian::set_parameters(double x, double alf, double Rx, double Ry, double
   Nimage_x_ = (Rmax_ < L[0]/2 ? 0 : 1 + int(-0.5+Rmax_/L[0]));
   Nimage_y_ = (Rmax_ < L[1]/2 ? 0 : 1 + int(-0.5+Rmax_/L[1]));
   Nimage_z_ = (Rmax_ < L[2]/2 ? 0 : 1 + int(-0.5+Rmax_/L[2]));
+}
+
+void Gaussian::get_parameters(double &x, double &alf, double &Rx, double &Ry, double &Rz, double hsd) const
+{
+  alf = alf_;
+  Rx  = Rx_;
+  Ry  = Ry_;
+  Rz  = Rz_;
+
+  double z    = sqrt(alf_)*hsd/2;
+  double xmax = 1.0/(erf(z)-M_2_SQRTPI*z*exp(-z*z));
+
+  x = ginv(prefactor_/xmax);
+}
+
+
+double Gaussian::density(double rx, double ry, double rz) const
+{
+  double dx = fabs(rx-Rx_); 
+  double dy = fabs(ry-Ry_); 
+  double dz = fabs(rz-Rz_); 
+
+  double r2 = dx*dx+dy*dy+dz*dz;
+
+  return prefactor_*norm_*exp(-alf_*r2);
 }
 
 void Gaussian::get_f1f2f3f4(double y, double hsd, double r2, double &f1, double &f2, double &f3, double &f4) const
@@ -133,7 +157,7 @@ void Gaussian::get_measures(double rx, double ry, double rz, double hsd, Fundame
 void Gaussian::get_dmeasures_dX(double rx, double ry, double rz, double hsd, FundamentalMeasures &dfm) const
 {
   get_measures(rx,ry,rz,hsd,dfm);
-  dfm.scale(dprefactor_/prefactor_);
+  dfm.scale(dprefactor_dx_/prefactor_);
 }
 
 

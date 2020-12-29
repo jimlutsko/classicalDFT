@@ -267,7 +267,6 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
     {
       FMT_Species *f = dynamic_cast<FMT_Species*>(s);
       if(f) f->calculateFundamentalMeasures(needsTensor());
-	//	f->convoluteDensities(needsTensor());
     }
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
   long Ntot = allSpecies.front()->getLattice().Ntot();  

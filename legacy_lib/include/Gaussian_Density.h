@@ -4,7 +4,7 @@
 #include "Density.h"
 #include "Fundamental_Measures.h"
 
-
+class FMT_Gaussian_Species;
 
 class Gaussian
 {
@@ -15,7 +15,8 @@ class Gaussian
 
   // Setting the parameters
   // Note that the parameter y is an alias controlling the vacancy concentration
-  void set_parameters(double x, double alf, double Rx, double Ry, double Rz, double hsd, double L[]);
+  void set_parameters(double x,  double alf,  double Rx,  double Ry,  double Rz, double hsd, double L[]);
+  void get_parameters(double &x, double &alf, double &Rx, double &Ry, double &Rz, double hsd) const; 
 
   static double get_prefac_alias(double prefac, double alf, double hsd) 
   {
@@ -30,19 +31,14 @@ class Gaussian
   double R2max(double tol = SMALL_VALUE) const { return -log(tol/(prefactor_*norm_))/alf_;}
   double Rmax() const { return Rmax_;}
 
-  
-  double density(double rx, double ry, double rz) const
-  {
-    double dx = fabs(rx-Rx_); 
-    double dy = fabs(ry-Ry_); 
-    double dz = fabs(rz-Rz_); 
-
-    double r2 = dx*dx+dy*dy+dz*dz;
-
-    return prefactor_*norm_*exp(-alf_*r2);
-  }
+  // Density
+  double density(double rx, double ry, double rz) const;
   double density(double r[3]) const { return density(r[0], r[1], r[2]);}
 
+  
+  // accessors
+  double prefactor() const { return prefactor_;}
+  double alf() const { return alf_;}
 
   // FMT measures
   void get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const;
@@ -58,7 +54,10 @@ class Gaussian
   double Ry() const { return Ry_;}
   double Rz() const { return Rz_;}
 
+  void zeroForces() { dx_ = dalf_ = dRx_ = dRy_= dRz_ = 0.0;}
 
+  friend FMT_Gaussian_Species;
+  
 protected:
   // these are the alias function, its inverse and its derivative
   // Maybe better if these were members that could be over-ridden
@@ -67,7 +66,9 @@ protected:
   static double   g1(double x) { return 2*x*exp(-x*x);}
 
   void get_f1f2f3f4(double y, double hsd, double r2, double &f1, double &f2, double &f3, double &f4) const;
-    
+
+
+  
 protected:   
   //double x_   = 1;
   double alf_ = 1;
@@ -75,11 +76,19 @@ protected:
   double Ry_  = 0;
   double Rz_  = 0;
 
+  // forces
+  double dx_   = 0.0;
+  double dalf_ = 0.0;
+  double dRx_  = 0.0;
+  double dRy_  = 0.0;
+  double dRz_  = 0.0;
+  
   // These are derived quantities we cash
-  double norm_       = 1;
-  double Rmax_       = 1;
-  double prefactor_  = 1;
-  double dprefactor_ = 0;
+  double norm_            = 1;
+  double Rmax_            = 1;
+  double prefactor_       = 1;
+  double dprefactor_dx_   = 0;
+  double dprefactor_dalf_ = 0;
 
   int Nimage_x_ = 0;
   int Nimage_y_ = 0;
@@ -88,6 +97,7 @@ protected:
   
 };
    
+
 
 
 
@@ -114,11 +124,14 @@ class GaussianDensity : public Density
       gaussians_.push_back(x);
     initialize_density_field(base_density);
   }
-      
+
+  friend FMT_Gaussian_Species;
+  
+  
   void initialize_density_field(double base_density = 0.0)
   {
     Density_.zeros();
-
+    /*
     DFT_Vec &density = Density_.Real();
     
     density.ShiftBy(-base_density);
@@ -141,8 +154,24 @@ class GaussianDensity : public Density
 		set(pos, get(pos) + g.density(getX(jx),getY(jy),getZ(jz)));
 	      }
       }
+    */
   }
 
+  virtual double getNumberAtoms() const
+  {
+    double N = 0;
+    for(auto &g: gaussians_) N += g.prefactor();
+    return N;
+  }
+
+
+  virtual double getRsquared() const
+  {
+    double r2 = 0;
+    for(auto &g: gaussians_) r2 += g.prefactor()/g.alf();
+    return r2/getNumberAtoms();
+  }
+  
   void get_measures(long pos, double hsd, FundamentalMeasures &fm) const
   {
     long ix,iy,iz;
@@ -167,6 +196,8 @@ class GaussianDensity : public Density
       }
   }
 
+  
+  
  protected:
   vector<Gaussian> gaussians_;
 };

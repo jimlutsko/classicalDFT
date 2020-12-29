@@ -66,7 +66,16 @@ class Density : public Lattice
 
   void set(int i, int j, int k, double val) { set(pos(i,j,k),val);}
   void set(unsigned i, double val)  { Density_.Real().set(i,val);}
+  void set(const DFT_Vec &x) { Density_.Real().set(x);}
 
+  virtual double get(long pos) const { return Density_.cReal().get(pos);} 
+  virtual double get(int ix, int iy, int iz) const { putIntoBox(ix,iy,iz);return Density_.cReal().get(pos(ix,iy,iz));}
+
+  void scale_to(double a) { Density_.Real().MultBy(a);} 
+
+  //const DFT_Vec& getDensity() const { return Density_.cReal();}  
+
+  
   /**
   *   @brief Decendents of the Density object can implement this method to do graphical displays
   *  
@@ -75,11 +84,7 @@ class Density : public Lattice
   *   @return  none
   */  
   virtual void doDisplay(string &title, string &file, int seq = 0) const {}
-
-
-
-
-
+  
   /**
   *   @brief  Total number of particles
   *  
@@ -99,147 +104,15 @@ class Density : public Lattice
   *   @param  rz: cm in z direction
   *   @return  cm
   */  
-  void getCenterOfMass(double &rx, double &ry, double &rz) const
-  {
-    rx = ry = rz = 0.0;
-    double m = 0;
-    for(int i=0;i<Nx_;i++)
-      for(int j=0;j<Ny_;j++)
-	for(int k=0;k<Nz_;k++)
-	  {
-	    double d = getDensity(i,j,k);
-	    rx += d*i;
-	    ry += d*j;
-	    rz += d*k;
-	    m += d;
-	  }
-    rx /= m;
-    ry /= m;
-    rz /= m;
-    return;
-  }
+  void getCenterOfMass(double &rx, double &ry, double &rz) const;
 
     /**
   *   @brief  <R^2>
   *  
   *   @return R2 (for computing Lindemann parameter of uniform solid)
   */  
-  double getRsquared() const 
-  {
-    double r2 = 0;
-    double m = 0;
-    for(int i=0;i<Nx_;i++)
-      for(int j=0;j<Ny_;j++)
-	for(int k=0;k<Nz_;k++)
-	  {
-	    double x = getX(i);
-	    double y = getY(j);
-	    double z = getZ(k);
+  double getRsquared() const ;
 
-	    double d = getDensity(i,j,k);
-	    if(x*x+y*y+z*z < (0.5*Nx_*dx_)*(0.5*Nx_*dx_))
-	      {
-		r2 += d*(x*x+y*y+z*z);
-		m += d;
-	      }
-	  }
-    return r2/m;
-  }
-
-  /**
-  *   @brief  set density at a given lattice position
-  *  
-  *   @param  i: lattice position in x direction
-  *   @param  j: lattice position in y direction
-  *   @param  k: lattice position in z direction
-  *   @param  val: density of the given point
-  *   @return none
-  */  
-  //  void set_Density_Elem(int i, int j, int k, double val)   { set_Density_Elem(pos(i,j,k),val);}
-
-  /**
-  *   @brief  set density at a given lattice position
-  *  
-  *   @param  i: multi-index lattice positionlattice position in x direction
-  *   @param  val: density of the given point
-  *   @return none
-  */    
-  //  void set_Density_Elem(unsigned i, double val)  { Density_.Real().set(i,val);}
-
-  /**
-  *   @brief  set density at all positions based on amplitude: d = SMALL_VALUE + amplitude*amplitude: used during minimization to assure a positive definite density.
-  *  
-  *   @param  x: amplitude
-  *   @return none
-  */  
-  //void set_density_from_amplitude(const DFT_Vec &x) { Density_.Real().setFromAlias(x);}
-
-  /**
-  *   @brief  set density by copying given vector
-  *  
-  *   @param  x: density to copy
-  *   @return none
-  */  
-  void set(const DFT_Vec &x) { Density_.Real().set(x);}
-
-  /**
-  *   @brief  scale the density by a scalar
-  *  
-  *   @param  a: all densities are multiplied by a.
-  *   @return none
-  */  
-  void scale_to(double a) { Density_.Real().MultBy(a);} 
-
-  /**
-  *   @brief  Get density at point i
-  *  
-  *   @param  i: index of element to be returned
-  *   @return Density_.Real[i]
-  */  
-  virtual double getDensity(long i) const { return Density_.cReal().get(i);}
-  virtual double get(long pos) const { return Density_.cReal().get(pos);} 
-
-  /**
-  *   @brief  Get density at coordinates ix,iy,iz
-  *  
-  *   @param  ix: index of point in x-direction
-  *   @param  iy: index of point in y-direction
-  *   @param  iz: index of point in z-direction
-  *   @return density of given point
-  */  
-  virtual double getDensity(int ix, int iy, int iz) const
-  { 
-    putIntoBox(ix,iy,iz);
-    return Density_.cReal().get(pos(ix,iy,iz));
-  }
-
-  /**
-  *   @brief  Translate coordinates ix,iy,iz into an index taking account of the periodic boundaries
-  *  
-  *   @param  ix: index of point in x-direction
-  *   @param  iy: index of point in y-direction
-  *   @param  iz: index of point in z-direction
-  *   @return index
-  */  
-  virtual long get_PBC_Pos(int ix, int iy, int iz) const
-  { 
-    putIntoBox(ix,iy,iz);
-    return pos(ix,iy,iz);
-  }
-
-  /**
-   *   @brief  Read-only accessor for entire real-space density array
-   *  
-   *   @return Density_.Real()
-   */  
-  const DFT_Vec& getDensity() const { return Density_.cReal();}
-
-  /**
-   *   @brief  Directly access the data
-   *  
-   *   @return double* array
-   */  
-  //  double* getData() { return Density_.Real().memptr();}
 
   /**
    *   @brief  Read-only accessor for array holding fft of density;
@@ -247,13 +120,6 @@ class Density : public Lattice
    *   @return Density_.Four()
    */  
   const DFT_Vec_Complex & getDK() const { return Density_.cFour();} 
-
-  /**
-  *   @brief  Density fft at wavevector i
-  *  
-  *   @return Density_.Four()[i]
-  */  
-  //const complex<double> DensityK(long i) const { return Density_.cFour().get(i);}
 
   /**
   *   @brief  Accessor for array holding the wall potential
@@ -268,13 +134,6 @@ class Density : public Lattice
   *   @return none
   */  
   void doFFT() {Density_.do_real_2_fourier();} 
-
-  /**
-   *  @brief  Returns true for lattice points for which the external potential is infinite and the density is therefore zero:
-   *  
-   *   @return boolean true/false
-   */  
-  //  virtual bool IsInUnphysicalRegion(int i, int j, int k) const {return false;}
 
   /**
   *   @brief  Get the value of the external (wall) field at point (ijk)

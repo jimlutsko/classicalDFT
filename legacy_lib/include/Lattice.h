@@ -121,6 +121,20 @@ class Lattice
     return k + Nz_*(j +  Ny_*i);
   }
 
+  /**
+  *   @brief  Translate coordinates ix,iy,iz into an index taking account of the periodic boundaries
+  *  
+  *   @param  ix: index of point in x-direction
+  *   @param  iy: index of point in y-direction
+  *   @param  iz: index of point in z-direction
+  *   @return index
+  */  
+  virtual long get_PBC_Pos(int ix, int iy, int iz) const
+  { 
+    putIntoBox(ix,iy,iz);
+    return pos(ix,iy,iz);
+  }
+
     /**
    *  @brief  Translated single index into cartesian indices
    *  
@@ -131,56 +145,15 @@ class Lattice
    */  
   inline void cartesian(long pos, long &i, long &j, long &k) const { k = pos%(Nz_); pos = (pos-k)/Nz_; j = pos%Ny_; i = pos/Ny_;}
 
-  /**
-   *  @brief  Accessor for (total) number of lattice points in x direction
-   *  
-   *   @return returns Nx_
-   */  
   long Nx() const { return Nx_;}
-  /**
-   *  @brief  Accessor for (total) number of lattice points in y direction
-   *  
-   *   @return returns Ny_
-   */    
   long Ny() const { return Ny_;}
-  /**
-   *  @brief  Accessor for (total) number of lattice points in z direction
-   *  
-   *   @return returns Nz_
-   */  
   long Nz() const { return Nz_;}
 
-    /**
-   *  @brief  Accessor for box length in x direction
-   *  
-   *   @return returns L_[0]
-   */  
   double Lx() const { return L_[0];}
-  /**
-   *  @brief  Accessor for nox length in y direction
-   *  
-   *   @return returns L_[1]
-   */    
   double Ly() const { return L_[1];}
-  /**
-   *  @brief  Accessor for box length in z direction
-   *  
-   *   @return returns L_[2]
-   */  
   double Lz() const { return L_[2];}
 
-  /**
-   *  @brief  Accessor for (total) number of lattice points redundant with @size()
-   *  
-   *   @return returns Ntot_
-   */  
   long Ntot() const { return Ntot_;}
-
-  /**
-   *  @brief  Accessor for (total) number of lattice points : redundant with @Ntot()
-   *  
-   *   @return returns Ntot_
-   */  
   long size() const { return Ntot_;}
 
   /**

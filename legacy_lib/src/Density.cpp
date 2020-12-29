@@ -69,7 +69,7 @@ void Density::initialize_from_smaller_density(const Density &density)
 	      if(jz < 0) jz = 0;
 	      else if(jz > Nz1-1) jz = Nz1-1; 
 
-	      double d  = density.getDensity(jx,jy,jz);
+	      double d  = density.get(jx,jy,jz);
 	      
 	      set(ix,iy,iz,d);
 	    }
@@ -119,6 +119,52 @@ void Density::detectClusters(double threshold, vector< vector<long> > &clusters)
 
 }
 
+
+void Density::getCenterOfMass(double &rx, double &ry, double &rz) const
+{
+  rx = ry = rz = 0.0;
+  double m = 0;
+  for(int i=0;i<Nx_;i++)
+    for(int j=0;j<Ny_;j++)
+      for(int k=0;k<Nz_;k++)
+	{
+	  double d = get(i,j,k);
+	  rx += d*i;
+	  ry += d*j;
+	  rz += d*k;
+	  m += d;
+	}
+  rx /= m;
+  ry /= m;
+  rz /= m;
+  return;
+}
+
+
+double Density::getRsquared() const 
+{
+  double r2 = 0;
+  double m = 0;
+  for(int i=0;i<Nx_;i++)
+    for(int j=0;j<Ny_;j++)
+      for(int k=0;k<Nz_;k++)
+	{
+	  double x = getX(i);
+	  double y = getY(j);
+	  double z = getZ(k);
+
+	  double d = get(i,j,k);
+	  if(x*x+y*y+z*z < (0.5*Nx_*dx_)*(0.5*Nx_*dx_))
+	    {
+	      r2 += d*(x*x+y*y+z*z);
+	      m += d;
+	    }
+	}
+  return r2/m;
+}
+
+
+
 void Density::write_VTK_File(string &filename)
 {
   // I don't understand why it has to be plus 1 ...
@@ -140,7 +186,7 @@ void Density::write_VTK_File(string &filename)
     for(int j = 0; j < Ny_; ++j)
       for(int i = 0; i < Nx_; ++i)
 	{
-	  density[pos] = getDensity(i,j,k);
+	  density[pos] = get(i,j,k);
 	  pos++;
 	}
   /* Use visit_writer to write a regular mesh with data. */

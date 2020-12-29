@@ -19,7 +19,7 @@ class Species
 
   int getSequenceNumber() const { return seq_num_;}
 
-  void doFFT(){ density_.doFFT();}
+  virtual void doFFT(){ density_.doFFT();}
   
   void setFixedMass(double m) { fixedMass_ = m; if(m > 0.0) mu_ = 0.0;}
 
@@ -38,7 +38,7 @@ class Species
   virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
     
-  void zeroForce() {dF_.zeros();}
+  virtual void zeroForce() {dF_.zeros();}
   void addToForce(long i, double v) {dF_.IncrementBy(i,v);}
   void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}
   void setForce(const DFT_Vec &f) {dF_.set(f);}
@@ -52,6 +52,8 @@ class Species
   // This species is held as allSpecies_[index_]
   void setIndex(int i) { index_ = i;}
   int  getIndex() const { return index_;}
+
+  virtual double calculateFreeEnergyAndDerivatives_IdealGas_();
   
   /**
   *   @brief  This adds in the external field contribution (which is species dependent). Force calculation is optional
@@ -107,7 +109,7 @@ class Species
 	mu_ = 0.0;
       
 	for(long p=0;p<density_.Ntot();p++)
-	  mu_ += dF_.get(p)*density_.getDensity(p);
+	  mu_ += dF_.get(p)*density_.get(p);
 	mu_ /= fixedMass_;
 	  
 	for(long p=0;p<density_.Ntot();p++)
@@ -278,7 +280,7 @@ public:
 	for(int iz = 0;iz<Nz;iz++)
 	  {
 	    long KI = density_.get_PBC_Pos(K[0]-ix,K[1]-iy,K[2]-iz);
-	    d += getExtendedWeight(KI,a)*density_.getDensity(ix,iy,iz);
+	    d += getExtendedWeight(KI,a)*density_.get(ix,iy,iz);
 	  }
     return d;
   }
@@ -417,10 +419,14 @@ public:
   FMT_Gaussian_Species(const FMT_Gaussian_Species &) = delete;  
   ~FMT_Gaussian_Species(){}
 
-  virtual void set_density_from_alias(const DFT_Vec &x){}
-  virtual void get_density_alias(DFT_Vec &x) const {}
-  virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const {}
+  virtual void set_density_from_alias(const DFT_Vec &x);
+  virtual void get_density_alias(DFT_Vec &x) const;
+  virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const {} // do nothing
 
+  virtual double calculateFreeEnergyAndDerivatives_IdealGas_();
+
+  virtual void doFFT(){ } // not needed for pure gaussians
+    
   // This is done using the explicit Gaussian formula
   virtual void calculateFundamentalMeasures(bool needsTensor)
   {

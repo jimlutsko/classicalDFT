@@ -19,6 +19,28 @@ using namespace std;
 
 int Species::SequenceNumber_ = 0;
 
+#pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in)
+
+double Species::calculateFreeEnergyAndDerivatives_IdealGas_()
+{
+  const double dV = density_.dV();
+  long Ntot = density_.Ntot();
+  long pos;
+  Summation F;  
+#pragma omp parallel for			\
+  private(pos)						\
+  schedule(static)					\
+  reduction(SummationPlus:F)
+  for(pos=0;pos<Ntot;pos++)
+    {
+      double d0 = density_.get(pos);
+      double ld = log(d0);
+      F += (d0*ld-d0)*dV;
+      addToForce(pos,ld*dV); 
+    }
+  return F;
+}
+
 // These functions just alias the density so that it is always non-zero and in fact bigger than SMALL_VALUE.
 void Species::set_density_from_alias(const DFT_Vec &x)
 {
@@ -131,12 +153,6 @@ FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Spec
 
   for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.transformWeights();
-
-  //  if(hsd > 0.99)
-  //    for(int i=2;i<fmt_weighted_densities.size();i++)
-  //      fmt_weighted_densities[i].zero();
-
-  
 }
 
 
@@ -739,3 +755,69 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   
   return F;
 }
+
+
+void FMT_Gaussian_Species::set_density_from_alias(const DFT_Vec &x)
+{
+  GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
+  double L[] = {density.Lx(), density.Ly(), density.Lz()};
+  
+  for(int ig=0; ig<density.gaussians_.size(); ig++)  
+    {
+      Gaussian &g = density.gaussians_[ig];
+      long pos = ig*5;
+      g.set_parameters(x.get(pos), x.get(pos+1), x.get(pos+2), x.get(pos+3), x.get(pos+4), hsd_, L);
+    }      
+}
+
+  
+void FMT_Gaussian_Species::get_density_alias(DFT_Vec &x) const
+{
+  GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
+  double L[] = {density.Lx(), density.Ly(), density.Lz()};
+  
+  for(int ig=0; ig<density.gaussians_.size(); ig++)  
+    {
+      Gaussian &g = density.gaussians_[ig];
+      double y,alf,Rx,Ry,Rz;
+
+      g.get_parameters(y,alf,Rx,Ry,Rz,hsd_);
+
+      long pos = ig*5;
+      x.set(pos,   y);
+      x.set(pos+1, alf);
+      x.set(pos+2, Rx);
+      x.set(pos+3, Ry);
+      x.set(pos+4, Rz);
+    }        
+}
+
+double FMT_Gaussian_Species::calculateFreeEnergyAndDerivatives_IdealGas_()
+{
+  GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
+
+  double F = 0.0;
+
+  for(int ig=0; ig<density.gaussians_.size(); ig++)
+    {
+      Gaussian &g = density.gaussians_[ig];
+      
+      double x = g.prefactor();
+      double alf = g.alf();
+            
+      F += x*log(x) + 1.5*x*log(alf/M_PI)-2.5*x;
+
+      double dF_dX   = log(x) + 1.0 + 1.5*log(alf/M_PI)-2.5;
+      double dF_dAlf = 1.5*x/alf;
+
+      double dX_dY   = g.dprefactor_dx_;
+      double dX_dAlf = g.dprefactor_dalf_;
+      
+      // flatten 
+      int pos = 5*ig;
+      dF_.IncrementBy(pos,   dF_dX*dX_dY);
+      dF_.IncrementBy(pos+1, dF_dAlf + dF_dX*dX_dAlf);
+    }
+  return F;
+}
+
