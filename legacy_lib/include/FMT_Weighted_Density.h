@@ -57,7 +57,8 @@ class FMT_Weighted_Density
   void   setWeight(long pos, double x) {weight_.Real().set(pos,x);} 
   double getWeight(long pos) const {return weight_.cReal().get(pos);}
   void   addToWeight(long pos, double x) {weight_.Real().IncrementBy(pos,x);}
-  void   Set_dPhi(long pos, double x) {dPhi_.Real().set(pos,x);} 
+  void   Set_dPhi(long pos, double x) {dPhi_.Real().set(pos,x);}
+  double get_dPhi(long pos) {return dPhi_.Real().get(pos);} 
  
   double real(long i) const { return weighted_density_.cReal().get(i); }
  

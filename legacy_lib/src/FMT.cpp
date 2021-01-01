@@ -232,15 +232,16 @@ void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalM
 }
 
 
-double FMT::dPHI(long i, vector<Species*> &allSpecies)
+double FMT::dPHI(long pos, vector<Species*> &allSpecies)
 {
-  FundamentalMeasures fm = getWeightedDensities(i, allSpecies);
+  FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
 
   double phi = calculate_Phi(fm);
   
   if(fm.eta > 0.5 && 1-fm.eta < 0.0)
-    throw Eta_Too_Large_Exception();
-  
+    {
+      throw Eta_Too_Large_Exception();
+    }
   // Also add in the contributions to the derivative of phi (at lattice site i) wrt the various weighted densities
   // (part of the chain-rule evaluation of dPhi/drho(j) = dPhi/deta(i) * deta(i)/drho(j) + ...)
   // Note that at the level of the fundamental measures, we only keep track of one of each class since the others are trivially related
@@ -251,9 +252,9 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
   calculate_dPhi_wrt_fundamental_measures(fm,dPhi);
   
   for(Species* &generic_species : allSpecies)
-      generic_species->set_fundamental_measure_derivatives(dPhi, i, needsTensor());
+      generic_species->set_fundamental_measure_derivatives(dPhi, pos, needsTensor());
 
-  if(isnan(phi)) { cout << i << endl; throw std::runtime_error("isnan(phi)  detected");}
+  if(isnan(phi)) { cout << pos << endl; throw std::runtime_error("isnan(phi)  detected");}
   return phi;
 }
 
@@ -316,8 +317,11 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 // It therefore FFT's both of these and adds them to dPhi_.Four.
 // Once this is done of all alpha, dPhi_ FFT's back to real space and the result is put into dF (with a factor of dV thrown in).
 
+FMT *fmt = NULL;
 double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 {
+  fmt = this;
+  
   double F = 0;
   try {
     F = calculateFreeEnergy(allSpecies);
@@ -366,8 +370,6 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	  fao_species->computeAOForceContribution();
 	}
     }
-
-  
   return F*dV;
 };
 

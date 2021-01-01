@@ -16,6 +16,7 @@ using namespace std;
 
 #include "Species.h"
 #include "myColor.h"
+#include "FMT.h"
 
 int Species::SequenceNumber_ = 0;
 
@@ -794,6 +795,7 @@ void FMT_Gaussian_Species::get_density_alias(DFT_Vec &x) const
 
 double FMT_Gaussian_Species::calculateFreeEnergyAndDerivatives_IdealGas_()
 {
+  return 0.0;
   GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
 
   double F = 0.0;
@@ -820,4 +822,79 @@ double FMT_Gaussian_Species::calculateFreeEnergyAndDerivatives_IdealGas_()
     }
   return F;
 }
+extern FMT *fmt;
+void FMT_Gaussian_Species::Build_Force(bool needsTensor)
+{
+  GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
 
+  double dV = density.dV();    
+  
+  for(int ig=0; ig<density.gaussians_.size(); ig++)
+    {
+      Gaussian &g = density.gaussians_[ig];
+      
+      for(long pos = 0; pos < density.Ntot(); pos++)
+	{
+	  // turn lattice position into spatial position
+	  long ix,iy,iz;
+	  density.cartesian(pos,ix,iy,iz);
+	  double rx = density.getX(ix);
+	  double ry = density.getY(iy);
+	  double rz = density.getZ(iz);
+
+	  // get derivatives
+	  
+	  FundamentalMeasures dfm[5];
+	  density.get_dmeasures_for_gaussian(ig, rx, ry, rz, hsd_, dfm);
+
+	  FundamentalMeasures fm1;
+	  density.get_measures(rx, ry, rz, hsd_, fm1);
+
+	  FundamentalMeasures dfm1;
+	  fmt->calculate_dPhi_wrt_fundamental_measures(fm1, dfm1);
+	  
+	  double df = 0.0;
+	  // here, the dPhi that is held by each weighted measure is actually the "collapsed" version:
+	  // so, e.g. fmt_weighted_densities[1].dPhi is  dPhi_ds0/hsd*hsd + dPhi_ds1/hsd + dPhi_ds2
+
+	  for(int j=0;j<5;j++)
+	    {
+	      df = fmt_weighted_densities[EI()].get_dPhi(pos);	  
+	      dF_.IncrementBy(5*ig+j,df*dfm[j].eta*dV);
+
+	      df = fmt_weighted_densities[SI()].get_dPhi(pos);	  	  
+	      dF_.IncrementBy(5*ig+j,df*dfm[j].s2*dV);
+	  
+	      df = fmt_weighted_densities[VI(0)].get_dPhi(pos);	  	  	  
+	      dF_.IncrementBy(5*ig+j,df*dfm[j].v2[0]*dV);
+
+	      df = fmt_weighted_densities[VI(1)].get_dPhi(pos);	  	  	  
+	      dF_.IncrementBy(5*ig+j,df*dfm[j].v2[1]*dV);
+
+	      df = fmt_weighted_densities[VI(2)].get_dPhi(pos);	  	  	  
+	      dF_.IncrementBy(5*ig+j,df*dfm[j].v2[2]*dV);
+
+	      if(needsTensor)
+		{
+		  df = fmt_weighted_densities[TI(0,0)].get_dPhi(pos);	  	  	  
+		  dF_.IncrementBy(5*ig+j,df*dfm[j].T[0][0]*dV);
+		  
+		  df = fmt_weighted_densities[TI(0,1)].get_dPhi(pos);	  	  	  
+		  dF_.IncrementBy(5*ig+j,df*dfm[j].T[0][1]*dV);
+
+		  df = fmt_weighted_densities[TI(0,2)].get_dPhi(pos);	  	  	  
+		  dF_.IncrementBy(5*ig+j,df*dfm[j].T[0][2]*dV);
+		  
+		  df = fmt_weighted_densities[TI(1,1)].get_dPhi(pos);	  	  	  
+		  dF_.IncrementBy(5*ig+j,df*dfm[j].T[1][1]*dV);
+		  
+		  df = fmt_weighted_densities[TI(1,2)].get_dPhi(pos);	  	  	  
+		  dF_.IncrementBy(5*ig+j,df*dfm[j].T[1][2]*dV);
+
+		  df = fmt_weighted_densities[TI(2,2)].get_dPhi(pos);	  	  	  
+		  dF_.IncrementBy(5*ig+j,df*dfm[j].T[2][2]*dV);
+		}
+	    }
+	}
+    }
+}

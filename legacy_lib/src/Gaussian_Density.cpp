@@ -87,7 +87,7 @@ void Gaussian::get_f1f2f3f4(double y, double hsd, double r2, double &f1, double 
     f1 = (ep-em)/y;
     f2 = ((1+y)*em-(1-y)*ep)/(y*y2);
     f3 = ((3-3*y+y*y)*ep-(3+3*y+y*y)*em)/(y*y4);
-    f4 = ((-15+15*y-6*y*y+y*y*y)*ep-(15+15*y+6*y*y+y*y*y)*em)/(y*y6);
+    f4 = ((-15+15*y-6*y*y+y*y*y)*ep+(15+15*y+6*y*y+y*y*y)*em)/(y*y6);
   }
 }
 
@@ -114,7 +114,8 @@ void Gaussian::get_measures(double rx, double ry, double rz, double hsd, Fundame
 
   get_f1f2f3f4(y,hsd,r2,f1,f2,f3,f4);
 
-  fm.eta += -(A/(alf_*hsd))*f1+prefactor_*0.5*(erf(sqalf*(r+hsd/2))-erf(sqalf*(r-hsd/2)));
+  //  fm.eta += -(A/(alf_*hsd))*f1+prefactor_*0.5*(erf(sqalf*(r+hsd/2))-erf(sqalf*(r-hsd/2)));
+  fm.eta += (-0.25*sqalf*hsd*M_2_SQRTPI*f1+0.5*(erf(sqalf*(r+hsd/2))-erf(sqalf*(r-hsd/2))))*prefactor_;
 
   double s = A*f1;
   fm.s0  += s/(hsd*hsd);
@@ -156,8 +157,64 @@ void Gaussian::get_measures(double rx, double ry, double rz, double hsd, Fundame
 
 void Gaussian::get_dmeasures_dX(double rx, double ry, double rz, double hsd, FundamentalMeasures &dfm) const
 {
-  get_measures(rx,ry,rz,hsd,dfm);
-  dfm.scale(dprefactor_dx_/prefactor_);
+  double dx = rx-Rx_;
+  double dy = ry-Ry_;
+  double dz = rz-Rz_;
+  
+  double r2 = dx*dx+dy*dy+dz*dz;
+  double r = sqrt(r2);
+
+  double sqalf = sqrt(alf_);
+
+  double A = 0.25*sqalf*alf_*hsd*hsd*M_2_SQRTPI*dprefactor_dx_;
+
+  double y = alf_*hsd*r;
+
+  double f1 = 0;
+  double f2 = 0;
+  double f3 = 0;
+  double f4 = 0;
+
+  get_f1f2f3f4(y,hsd,r2,f1,f2,f3,f4);
+
+  dfm.eta += -(A/(alf_*hsd))*f1+dprefactor_dx_*0.5*(erf(sqalf*(r+hsd/2))-erf(sqalf*(r-hsd/2)));
+
+  double s = A*f1;
+  dfm.s0  += s/(hsd*hsd);
+  dfm.s1  += s/hsd;
+  dfm.s2  += s;
+
+  dx *= alf_*hsd;
+  dy *= alf_*hsd;
+  dz *= alf_*hsd;
+    
+  double v = A*f2;
+    
+  dfm.v1[0] += dx*v/hsd;
+  dfm.v1[1] += dy*v/hsd;
+  dfm.v1[2] += dz*v/hsd;
+
+  dfm.v2[0] += dx*v;
+  dfm.v2[1] += dy*v;
+  dfm.v2[2] += dz*v;
+
+  double T1 = A*f2;
+  double T2 = A*f3;
+    
+  dfm.T[0][0] += T1 + dx*dx*T2;
+  dfm.T[1][1] += T1 + dy*dy*T2;
+  dfm.T[2][2] += T1 + dz*dz*T2;
+
+  dfm.T[0][1] += dx*dy*T2;
+  dfm.T[0][2] += dx*dz*T2;
+
+  dfm.T[1][0] += dy*dx*T2;
+  dfm.T[1][2] += dy*dz*T2;
+
+  dfm.T[2][0] += dz*dx*T2;
+  dfm.T[2][1] += dz*dy*T2;
+
+  dfm.calculate_derived_quantities();
 }
 
 

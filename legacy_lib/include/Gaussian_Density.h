@@ -181,6 +181,7 @@ class GaussianDensity : public Density
   
   void get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const
   {
+    //    FundamentalMeasures fm_r = fm;
     for(auto &g: gaussians_)
       {
 	// find closest image
@@ -192,8 +193,36 @@ class GaussianDensity : public Density
 	for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
 	  for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
 	    for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)
-	      g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm);
+	      {
+		//		cout << fm.eta << endl;
+		g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm);
+		//		cout << fm.eta << endl;		
+		if(fm.eta > 1.0)
+		  {		    
+		    cout << "Jerrej" << endl;
+		    //		    g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm_r);
+		  }
+	      }
       }
+  }
+  void get_dmeasures_for_gaussian(int igaussian, double rx, double ry, double rz, double hsd, FundamentalMeasures dfm[5]) const
+  {
+    const Gaussian &g = gaussians_[igaussian];
+
+    // find closest image
+    while(rx-g.Rx() > L_[0]/2) rx -= L_[0]; while(rx-g.Rx() < -L_[0]/2) rx += L_[0];
+    while(ry-g.Ry() > L_[1]/2) ry -= L_[1]; while(ry-g.Ry() < -L_[1]/2) ry += L_[1];
+    while(rz-g.Rz() > L_[2]/2) rz -= L_[2]; while(rz-g.Rz() < -L_[2]/2) rz += L_[2];
+	  
+    // sum over all contributing images
+    for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
+      for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
+	for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)
+	  {
+	    g.get_dmeasures_dX(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,dfm[0]);
+	    g.get_dmeasures_dAlf(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,dfm[1]);
+	    g.get_dmeasures_dR(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,dfm+2);
+	  }
   }
 
   

@@ -341,6 +341,7 @@ public:
     fmt_weighted_densities[SI()].Set_dPhi(pos,dPhi_dS);    
 
     // Note the parity factor in the vector term which is needed when we calculate forces
+    // This is because in the force calculation, we need dPhi(j)w_a(j-i) = parity_a w_a(i-j)dPhi(j)
     for(int j=0;j<3;j++)
       {
 	fmt_weighted_densities[VI(j)].Set_dPhi(pos, -dPhi_dV[j]);	
@@ -448,6 +449,26 @@ public:
 	  }
       }
   }
+  // The only reason for this is that the FMT function includes a "parity switch" which is not needed here.
+  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
+  {
+    double dPhi_dEta = DPHI.eta;
+    double dPhi_dS = (DPHI.s0/(hsd_*hsd_)) + (DPHI.s1/hsd_) + DPHI.s2;
+    double dPhi_dV[3] = {DPHI.v2[0] + DPHI.v1[0]/hsd_,
+			  DPHI.v2[1] + DPHI.v1[1]/hsd_,
+			  DPHI.v2[2] + DPHI.v1[2]/hsd_};
+
+    fmt_weighted_densities[EI()].Set_dPhi(pos,dPhi_dEta);
+    fmt_weighted_densities[SI()].Set_dPhi(pos,dPhi_dS);    
+
+    for(int j=0;j<3;j++)
+      {
+	fmt_weighted_densities[VI(j)].Set_dPhi(pos, dPhi_dV[j]);	
+	if(needsTensor)
+	  for(int k=j;k<3;k++)
+	    fmt_weighted_densities[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
+      }
+  }
 
   /**
    *   @brief Loop over the weighted densities and ask each one to add its contribution to dPhi
@@ -455,10 +476,7 @@ public:
    *  
    *   @return none
    */  
-  virtual void Build_Force(bool needsTensor)
-  {
-    FMT_Species::Build_Force(needsTensor);
-  }
+  virtual void Build_Force(bool needsTensor);
 };
 
   /**
