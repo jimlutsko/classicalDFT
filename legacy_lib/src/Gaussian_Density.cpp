@@ -31,10 +31,15 @@ void Gaussian::set_parameters(double x, double alf, double Rx, double Ry, double
 
   // spatial limits concerning the influence of this Gaussian:
   // can only be determined once all parameters have been set    
-  Rmax_ = sqrt(R2max());
+  Rmax_ = 0.5*hsd-log(SMALL_VALUE/(prefactor_*norm_))/alf_; // sqrt(R2max());
   Nimage_x_ = (Rmax_ < L[0]/2 ? 0 : 1 + int(-0.5+Rmax_/L[0]));
   Nimage_y_ = (Rmax_ < L[1]/2 ? 0 : 1 + int(-0.5+Rmax_/L[1]));
   Nimage_z_ = (Rmax_ < L[2]/2 ? 0 : 1 + int(-0.5+Rmax_/L[2]));
+
+  Nimage_x_ = max(1,Nimage_x_);
+  Nimage_y_ = max(1,Nimage_y_);
+  Nimage_z_ = max(1,Nimage_z_);
+
 }
 
 void Gaussian::get_parameters(double &x, double &alf, double &Rx, double &Ry, double &Rz, double hsd) const
@@ -101,6 +106,9 @@ void Gaussian::get_measures(double rx, double ry, double rz, double hsd, Fundame
   double r2 = dx*dx+dy*dy+dz*dz;
   double r = sqrt(r2);
 
+  // This is to be consistent with the cutoff (i.e. with Gaussians that are not being used)
+  if(r > Rmax()) return;  
+
   double sqalf = sqrt(alf_);
 
   double A = 0.25*sqalf*alf_*hsd*hsd*M_2_SQRTPI*prefactor_;
@@ -163,6 +171,9 @@ void Gaussian::get_dmeasures_dX(double rx, double ry, double rz, double hsd, Fun
   
   double r2 = dx*dx+dy*dy+dz*dz;
   double r = sqrt(r2);
+
+  // This is to be consistent with the cutoff (i.e. with Gaussians that are not being used)
+  if(r > Rmax()) return;
 
   double sqalf = sqrt(alf_);
 
@@ -228,6 +239,9 @@ void Gaussian::get_dmeasures_dR(double rx, double ry, double rz, double hsd, Fun
   double r2 = dx*dx+dy*dy+dz*dz;
   double r = sqrt(r2);
 
+  // This is to be consistent with the cutoff (i.e. with Gaussians that are not being used)
+  if(r > Rmax()) return;
+  
   double sqalf = sqrt(alf_);
 
   double A = 0.25*sqalf*alf_*hsd*hsd*M_2_SQRTPI*prefactor_;
@@ -255,7 +269,6 @@ void Gaussian::get_dmeasures_dR(double rx, double ry, double rz, double hsd, Fun
   for(int i=0;i<3;i++)
     {
       dfm[i].eta += A*f2*yv[i];
-
       
       double s = (2*A/hsd)*(f1-0.5*alf_*hsd*hsd*f2)*yv[i];
 
@@ -294,6 +307,9 @@ void Gaussian::get_dmeasures_dAlf(double rx, double ry, double rz, double hsd, F
   double r2 = dx*dx+dy*dy+dz*dz;
   double r = sqrt(r2);
 
+  // This is to be consistent with the cutoff (i.e. with Gaussians that are not being used)
+  if(r > Rmax()) return;
+  
   double sqalf = sqrt(alf_);
 
   double A = 0.25*sqalf*alf_*hsd*hsd*M_2_SQRTPI*prefactor_;

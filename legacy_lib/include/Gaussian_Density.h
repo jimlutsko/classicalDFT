@@ -192,17 +192,8 @@ class GaussianDensity : public Density
 	// sum over all contributing images
 	for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
 	  for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
-	    for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)
-	      {
-		//		cout << fm.eta << endl;
-		g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm);
-		//		cout << fm.eta << endl;		
-		if(fm.eta > 1.0)
-		  {		    
-		    cout << "Jerrej" << endl;
-		    //		    g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm_r);
-		  }
-	      }
+	    for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)	      
+	      g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm);
       }
   }
   void get_dmeasures_for_gaussian(int igaussian, double rx, double ry, double rz, double hsd, FundamentalMeasures dfm[5]) const

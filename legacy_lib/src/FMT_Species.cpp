@@ -828,6 +828,7 @@ void FMT_Gaussian_Species::Build_Force(bool needsTensor)
   GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
 
   double dV = density.dV();    
+
   
   for(int ig=0; ig<density.gaussians_.size(); ig++)
     {
@@ -838,6 +839,15 @@ void FMT_Gaussian_Species::Build_Force(bool needsTensor)
 	  // turn lattice position into spatial position
 	  long ix,iy,iz;
 	  density.cartesian(pos,ix,iy,iz);
+
+	  //	  if(ix == density.getIX(0))
+	  //	    if(iy == density.getIY(0))
+	  //	      if(iz == density.getIZ(0))
+	  //		{
+	  //		  cout << "Here" << endl;
+	  //		}
+
+	  
 	  double rx = density.getX(ix);
 	  double ry = density.getY(iy);
 	  double rz = density.getZ(iz);
