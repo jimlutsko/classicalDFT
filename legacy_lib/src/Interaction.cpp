@@ -715,3 +715,41 @@ void Interaction::generateWeights()
   w_att_.Real().save(of);
 }
 
+
+
+Interaction_Gaussian_Density::Interaction_Gaussian_Density(FMT_Gaussian_Species *s1, FMT_Gaussian_Species *s2, Potential1 *v, double kT, int n_gauss_legendre) :
+  Interaction_Interpolation_Zero(s1,s2,v,kT), r_(n_gauss_legendre), w_(n_gauss_legendre)
+{
+  const gsl_integration_fixed_type * T = gsl_integration_fixed_legendre;
+  gsl_integration_fixed_workspace * w = gsl_integration_fixed_alloc(T, n_gauss_legendre, v->getRmin(), v->getRcut(), 0.0, 0.0);
+  
+  for(int i=0;i<n_gauss_legendre;i++)
+    {
+      r_[i] = gsl_integration_fixed_nodes(w)[i];
+      w_[i] = gsl_integration_fixed_weights(w)[i];
+      w_[i] *= v->Watt(r_[i])/kT;
+    }
+  
+  gsl_integration_fixed_free(w);
+}
+
+void Interaction_Gaussian_Density::initialize()
+{
+  Interaction_Interpolation_Zero::initialize();
+}
+
+
+double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
+{
+  double F = 0.0;
+
+  if(s1_ != s2_) throw std::runtime_error("Interaction_Gaussian_Density::getInteractionEnergyAndForces only implemented for single species");
+
+  DFT_Vec dF;
+  
+  F = dynamic_cast<FMT_Gaussian_Species*>(s1_)->FMF(v_->Watt(0)/kT_, v_->getRmin(), r_,w_, dF);
+
+  s1_->addToForce(dF);
+  
+  return F;
+}

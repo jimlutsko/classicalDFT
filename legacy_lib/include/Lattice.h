@@ -153,8 +153,8 @@ class Lattice
   double Ly() const { return L_[1];}
   double Lz() const { return L_[2];}
 
-  long Ntot() const { return Ntot_;}
-  long size() const { return Ntot_;}
+  long   Ntot() const { return Ntot_;}
+  size_t size() const { return Ntot_;}
 
   /**
    *  @brief  Accessor for (total) number of (complex) wave vectors returned by fftw3

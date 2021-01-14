@@ -34,7 +34,7 @@ void Minimizer::resume(long maxSteps)
     step_counter_++;
 
     double Ntotal = dft_->getNumberAtoms(0);
-    double Volume = dft_->lattice().getVolume();
+    double Volume = dft_->get_lattice().getVolume();
 
     f_abs_max_ = get_convergence_monitor();
 
@@ -99,7 +99,8 @@ double Minimizer::getDF_DX()
 fireMinimizer2::fireMinimizer2(DFT *dft) :  Minimizer(dft)
 {
   v_.resize(dft_->getNumberOfSpecies());
-  for(auto &v: v_) v.resize(dft_->lattice().Ntot());
+  for(int s=0;s<v_.size();s++)
+    v_[s].resize(dft_->getSpecies(s)->number_of_parameters());
 
   dt_ = 1e-3; // my guess
   dt_max_ = 10*dt_;
@@ -125,7 +126,7 @@ void fireMinimizer2::initialize()
   N_P_positive_ = 0;
   N_P_negative_ = 0;
 
-  vv_ = 1.0;
+  free_energy_velocity_ = 1.0;
   
   steps_since_backtrack_ = 0;
 
@@ -208,7 +209,7 @@ double fireMinimizer2::step()
   double rem = fmax_;
   try {
     SemiImplicitEuler(begin_relax, end_relax);
-    vv_ = vv_*0.9 + 0.1*(fabs(F_ - fold)/dt_); // a measure of the rate at which the energy is changing
+    free_energy_velocity_ = free_energy_velocity_*0.9 + 0.1*(fabs(F_ - fold)/dt_); // a measure of the rate at which the energy is changing
     steps_since_backtrack_++;
   } catch(Eta_Too_Large_Exception &e) {
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
@@ -293,7 +294,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
     {
       DFT_Vec &df = dft_->getDF(Jspecies);
       double f = df.euclidean_norm();
-      new_fmax = max(new_fmax, df.inf_norm()/dft_->getDensity(Jspecies).dV());
+      new_fmax = max(new_fmax, df.inf_norm()/dft_->get_lattice().dV());
       fnorm += f*f;
       cnorm += df.size();
     }

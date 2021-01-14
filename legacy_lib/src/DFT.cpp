@@ -47,7 +47,7 @@ double DFT::Fhelmholtz(const vector<double> &x) const
 {
   double F = 0.0;
 
-  double V = lattice().getVolume();
+  double V = get_lattice().getVolume();
 
   for(auto &y: x)
     F += y*log(y)-y;
@@ -323,7 +323,6 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
     species->zeroForce();
 
   Summation F;
-
     
   // Ideal gas contribution  
   if(!onlyFex) 

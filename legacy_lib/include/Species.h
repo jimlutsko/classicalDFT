@@ -14,38 +14,46 @@
 class Species
 {
  public:
-  Species(Density &density, double mu = 0, int seq = -1) : density_(density), dF_(density.Ntot()), mu_(mu), fixedMass_(-1) { if(seq >=0) {seq_num_ = seq; SequenceNumber_ = seq+1;} else seq_num_ = SequenceNumber_++;}
+  Species(Density &density, double mu = 0, int seq = -1) : density_(density), dF_(density.number_of_parameters()), mu_(mu), fixedMass_(-1)
+  {
+    if(seq >=0) {seq_num_ = seq; SequenceNumber_ = seq+1;} else seq_num_ = SequenceNumber_++;
+  }
   ~Species(){}
 
+  virtual size_t number_of_parameters() const { return density_.number_of_parameters();}
+  
   int getSequenceNumber() const { return seq_num_;}
 
-  virtual void doFFT(){ density_.doFFT();}
-  
-  void setFixedMass(double m) { fixedMass_ = m; if(m > 0.0) mu_ = 0.0;}
+  // Hard-sphere diameter
+  virtual double getHSD() const { return 0.0;}
 
+  // basic thermodynamics: fixed mass is enforced iff fixedMass_ > 0
+  void   setFixedMass(double m)     { fixedMass_ = m; if(m > 0.0) mu_ = 0.0;}
+  void   setChemPotential(double m) { mu_ = m;}
   double getChemPotential() const {return mu_;}
-  void setChemPotential(double m) {mu_ = m;}
 
   const Lattice& getLattice() const { return density_;}
-  Density& getDensity(){ return density_;}
+  const Density& getDensity(){ return density_;}
 
+  // this will go eventually
+  void densityChanged() { dF_.resize(density_.number_of_parameters());}
+  
+  
   void doDisplay(string &title, string &file) const { density_.doDisplay(title,file, seq_num_);}
 
   void set_density(DFT_Vec &x) {density_.set(x);}
-  void set_density(long j, double x) {density_.set(j,x);}
 
   virtual void set_density_from_alias(const DFT_Vec &x);
   virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
+
+  virtual void doFFT(){ density_.doFFT();}
     
+  // Everything having to do with the force
   virtual void zeroForce() {dF_.zeros();}
-  void addToForce(long i, double v) {dF_.IncrementBy(i,v);}
-  void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}
-  void setForce(const DFT_Vec &f) {dF_.set(f);}
-  void multForce(double f) {dF_.MultBy(f);}  
-  
-  double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}
-  
+  void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}  
+  virtual double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}  
+  // These two functions exist so that the force can be copy and restored by the Minimizer ... better to simply have that functionality here ...
   DFT_Vec &getDF() {return dF_;}
   void setDF(DFT_Vec &df) {return dF_.set(df);}
 
@@ -61,7 +69,7 @@ class Species
   *   @param  bCalcForces: forces are calculated if this is true
   *   @return  the contribution to the free energy
   */  
-  double externalField(bool bCalcForces)
+  virtual double externalField(bool bCalcForces)
   {
     double dV = density_.dV();
     double Fx = density_.getExternalFieldEnergy()*dV - density_.getNumberAtoms()*mu_;
@@ -72,12 +80,6 @@ class Species
       }
     return Fx;
   }
-
-  /**
-  *   @brief  Get the hard sphere diameter. This is a place-holder for the child objects that actually have a hsd.
-  *  
-  */  
-  virtual double getHSD() const { return 0.0;}
   
   /**
    *   @brief  Placeholder for FMT-specific processing: non-FMT classes do nothing
@@ -85,10 +87,8 @@ class Species
    */  
   virtual void set_fundamental_measure_derivatives(FundamentalMeasures &fm, long pos, bool needsTensor) {}
  
-  /**
-   *   @brief  Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
-   *  
-   */    
+  // Constant particle number is enforced at the species-level by the following pre- and post-processing of the forces.
+  // If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
   void beginForceCalculation()
   {
     if(fixedMass_ > 0.0)
@@ -97,11 +97,6 @@ class Species
 	mu_ = 0.0;
       }
   }
-
-  /**
-   *   @brief  Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
-   *  
-   */    
   double endForceCalculation()
   {
     if(fixedMass_ > 0.0)
@@ -231,7 +226,7 @@ public:
 
     dPhi.do_fourier_2_real();
     dPhi.Real().MultBy(dV);
-    addToForce(dPhi.cReal());   
+    dF_.IncrementBy(dPhi.cReal());   
   }
   
   // These return the real weight at position K using the extended notation: eta, s0,s1,s2,v1,v2
@@ -426,57 +421,22 @@ public:
 
   virtual double calculateFreeEnergyAndDerivatives_IdealGas_();
 
-  virtual void doFFT(){ } // not needed for pure gaussians
+  virtual void doFFT(){ } // not needed for pure gaussians : add back later when density field is introduced
     
   // This is done using the explicit Gaussian formula
-  virtual void calculateFundamentalMeasures(bool needsTensor)
-  {
-    long pos;
-#pragma omp parallel for  private(pos)  schedule(static)				
-    for(pos = 0; pos < density_.Ntot(); pos++)
-      {
-	FundamentalMeasures fm;
-	dynamic_cast<GaussianDensity*>(&density_)->get_measures(pos,hsd_,fm);
+  virtual void calculateFundamentalMeasures(bool needsTensor);
 
-	fmt_weighted_densities[EI()].set_fundamental_measure(pos,fm.eta);
-	fmt_weighted_densities[SI()].set_fundamental_measure(pos,fm.s2);
-	for(int j=0;j<3;j++)
-	  {
-	    fmt_weighted_densities[VI(j)].set_fundamental_measure(pos,fm.v2[j]);
-	    if(needsTensor)
-	      for(int k=j;k<3;k++)
-		fmt_weighted_densities[TI(j,k)].set_fundamental_measure(pos,fm.T[j][k]);
-	  }
-      }
-  }
   // The only reason for this is that the FMT function includes a "parity switch" which is not needed here.
-  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
-  {
-    double dPhi_dEta = DPHI.eta;
-    double dPhi_dS = (DPHI.s0/(hsd_*hsd_)) + (DPHI.s1/hsd_) + DPHI.s2;
-    double dPhi_dV[3] = {DPHI.v2[0] + DPHI.v1[0]/hsd_,
-			  DPHI.v2[1] + DPHI.v1[1]/hsd_,
-			  DPHI.v2[2] + DPHI.v1[2]/hsd_};
+  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor);
 
-    fmt_weighted_densities[EI()].Set_dPhi(pos,dPhi_dEta);
-    fmt_weighted_densities[SI()].Set_dPhi(pos,dPhi_dS);    
-
-    for(int j=0;j<3;j++)
-      {
-	fmt_weighted_densities[VI(j)].Set_dPhi(pos, dPhi_dV[j]);	
-	if(needsTensor)
-	  for(int k=j;k<3;k++)
-	    fmt_weighted_densities[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
-      }
-  }
-
-  /**
-   *   @brief Loop over the weighted densities and ask each one to add its contribution to dPhi
-   *          In other words:   SUM_{a} SUM_j d PHI/d n_{a}(j) w_{a}(j-i)
-   *  
-   *   @return none
-   */  
+  // Loop over the weighted densities and ask each one to add its contribution to dPhi
   virtual void Build_Force(bool needsTensor);
+
+  // TBD: for now, only includes chemical potential
+  virtual double externalField(bool bCalcForces);
+
+  // This is for calculating the mf term
+  virtual double FMF(double w0, double r0, vector<double> &x, vector<double> &w, DFT_Vec &dF) const;
 };
 
   /**
@@ -502,7 +462,7 @@ public:
   virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor);
   virtual double free_energy_post_process(bool needsTensor);
 
-  unsigned size() const { return fmt_weighted_densitiesAO_.size();}
+  virtual size_t size() const { return fmt_weighted_densitiesAO_.size();}
   void setPSI(long pos, double val) { PSI_.Real().set(pos,val);}
   double getReservoirDensity() const {return reservoir_density_;}
   double getHSDP() const { return 2*Rp_;}
@@ -543,7 +503,7 @@ public:
 
 	PSI_.Real().MultBy(reservoir_density_*density_.dV()); // because all forces are multiplied by dV
 	
-	addToForce(PSI_.Real());
+	dF_.IncrementBy(PSI_.Real());
       }
     
   }

@@ -26,9 +26,13 @@ class Gaussian
     Gaussian g;
     return ginv(prefac/xmax);
   }
+
+  void print()
+  {
+    cout << setw(20) << prefactor_ << setw(20) << alf_ << setw(20) << Rx_ << setw(20) << Ry_ << setw(20) << Rz_ << endl;
+  }
   
   // maximum range of this gaussian
-  double R2max(double tol = SMALL_VALUE) const { return -log(tol/(prefactor_*norm_))/alf_;}
   double Rmax() const { return Rmax_;}
 
   // Density
@@ -37,8 +41,10 @@ class Gaussian
 
   
   // accessors
-  double prefactor() const { return prefactor_;}
-  double alf() const { return alf_;}
+  double prefactor()       const { return prefactor_;}
+  double dprefactor_dx()   const { return dprefactor_dx_;}
+  double dprefactor_dalf() const { return dprefactor_dalf_;}
+  double alf()             const { return alf_;}
 
   // FMT measures
   void get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const;
@@ -117,12 +123,14 @@ class GaussianDensity : public Density
   ~GaussianDensity(){}
 
 
+  virtual size_t number_of_parameters() const { return 5*gaussians_.size();}
+  
   void initialize_density_field(vector<Gaussian> &gaussians, double base_density = 0.0)
   {
     gaussians_.clear();
     for(auto &x: gaussians)
       gaussians_.push_back(x);
-    initialize_density_field(base_density);
+    initialize_density_field(base_density);    
   }
 
   friend FMT_Gaussian_Species;
@@ -164,7 +172,8 @@ class GaussianDensity : public Density
     return N;
   }
 
-
+  void get_dN(int ig, double &dN_dx, double &dN_dalf) const;
+    
   virtual double getRsquared() const
   {
     double r2 = 0;
@@ -179,42 +188,9 @@ class GaussianDensity : public Density
     get_measures(getX(ix), getY(iy), getZ(iz), hsd, fm);
   }
   
-  void get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const
-  {
-    //    FundamentalMeasures fm_r = fm;
-    for(auto &g: gaussians_)
-      {
-	// find closest image
-	while(rx-g.Rx() > L_[0]/2) rx -= L_[0]; while(rx-g.Rx() < -L_[0]/2) rx += L_[0];
-	while(ry-g.Ry() > L_[1]/2) ry -= L_[1]; while(ry-g.Ry() < -L_[1]/2) ry += L_[1];
-	while(rz-g.Rz() > L_[2]/2) rz -= L_[2]; while(rz-g.Rz() < -L_[2]/2) rz += L_[2];
-	
-	// sum over all contributing images
-	for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
-	  for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
-	    for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)	      
-	      g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm);
-      }
-  }
-  void get_dmeasures_for_gaussian(int igaussian, double rx, double ry, double rz, double hsd, FundamentalMeasures dfm[5]) const
-  {
-    const Gaussian &g = gaussians_[igaussian];
-
-    // find closest image
-    while(rx-g.Rx() > L_[0]/2) rx -= L_[0]; while(rx-g.Rx() < -L_[0]/2) rx += L_[0];
-    while(ry-g.Ry() > L_[1]/2) ry -= L_[1]; while(ry-g.Ry() < -L_[1]/2) ry += L_[1];
-    while(rz-g.Rz() > L_[2]/2) rz -= L_[2]; while(rz-g.Rz() < -L_[2]/2) rz += L_[2];
-	  
-    // sum over all contributing images
-    for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
-      for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
-	for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)
-	  {
-	    g.get_dmeasures_dX(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,dfm[0]);
-	    g.get_dmeasures_dAlf(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,dfm[1]);
-	    g.get_dmeasures_dR(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,dfm+2);
-	  }
-  }
+  void get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const;
+  void get_dmeasures_for_gaussian(int igaussian, double rx, double ry, double rz, double hsd, FundamentalMeasures dfm[5]) const;
+  double FMF(double w0, double r0, vector<double> &x, vector<double> &w, DFT_Vec &dF) const;  
 
   
   

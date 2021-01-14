@@ -60,6 +60,7 @@ class Density : public Lattice
   }
   ~Density(){}
 
+  virtual size_t number_of_parameters() const { return Ntot_;}
   
   virtual void initialize_from_smaller_density(const Density &density);
   virtual void initialize_from_file(const char *filename);

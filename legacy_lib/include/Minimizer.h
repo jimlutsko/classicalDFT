@@ -19,7 +19,9 @@ class Minimizer
   {
     x_.resize(dft->getNumberOfSpecies());
 
-    for(auto &x: x_) x.resize(dft_->lattice().Ntot()); 
+    //    for(auto &x: x_) x.resize(dft_->get_lattice().Ntot());
+    for(int s = 0; s < dft_->getNumberOfSpecies(); s++)
+      x_[s].resize(dft_->getSpecies(s)->number_of_parameters());
   }
 
   Minimizer() {}
@@ -37,7 +39,6 @@ class Minimizer
 
   virtual void reportMessage(string message){}
 
-  
   int getCalls() const { return calls_;}
   double getF() const { return F_;}
 
@@ -62,7 +63,8 @@ class Minimizer
   double f_abs_max_; // max absolute value of dF_
   bool bFrozenBoundary_;
 
-  double vv_ = 0;
+  // Exponential average of dF/dt: v = 0.9v + 0.1(dF/dt)
+  double free_energy_velocity_ = 0;
 
   double minDensity_ = -1;
 
@@ -81,7 +83,7 @@ class Minimizer
     ar & forceLimit_;
     ar & f_abs_max_;
     ar & bFrozenBoundary_;
-    ar & vv_;
+    ar & free_energy_velocity_;
     ar & minDensity_;
   }
 
@@ -114,7 +116,7 @@ class fireMinimizer2 : public Minimizer
   void setAlphaFac(double a)     { f_alf_ = a;}
   void setBacktrackFac(double a) { f_back_ = a;}  
 
-  virtual double get_convergence_monitor() const { return fabs(vv_/dft_->lattice().getVolume());}
+  virtual double get_convergence_monitor() const { return fabs(free_energy_velocity_/dft_->get_lattice().getVolume());}
   
  protected:
   void SemiImplicitEuler(int begin, int end);

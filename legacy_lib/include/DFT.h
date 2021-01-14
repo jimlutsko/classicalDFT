@@ -100,7 +100,7 @@ class DFT
    *  
    *   @returns a read-only reference to the Lattice object
    */ 
-  const Lattice& lattice() const {return allSpecies_.front()->getLattice();}
+  const Lattice& get_lattice() const {return allSpecies_.front()->getLattice();}
 
   /**
    *   @brief  Requests the value of the convergence criterion for free energy minimization
@@ -108,36 +108,18 @@ class DFT
    *   @returns the value of the convergence criterion for free energy minimization
    */   
   double get_convergence_monitor() const { double d = 0; for(auto& s: allSpecies_) d += s->get_convergence_monitor(); return d;}
-
-  /**
-   *   @brief  Requests the Density object associated with one of the species
-   *  
-   *   @param   species: the species
-   *   @returns a read-only reference to the density object
-   */     
-  Density& getDensity(int species) {return allSpecies_[species]->getDensity();}
-
   
+  // TODO: get rid of this function
+  void set_density(int species,DFT_Vec &x) {allSpecies_[species]->set_density(x);}
+
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
   void setDF(int i, DFT_Vec &df) {return allSpecies_[i]->setDF(df);}
 
-  
-  void doDisplay(string &title, string &file)
-  {
-    for(auto &x: allSpecies_) x->doDisplay(title,file);
-  }
+  // Called during processing to allow density object to update output like GUI
+  void doDisplay(string &title, string &file) {for(auto &x: allSpecies_) x->doDisplay(title,file);}
 
-  /**
-   *   @brief  Sets the densities based on amplitudes by passing to the species object
-   *  
-   *   @param  i is the species
-   *   @param x is the amplitde
-   */  
-  //  void set_density_from_alias(int i,DFT_Vec &x) {allSpecies_[i]->set_density_from_alias(x);}
-  void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
-  void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
 
-  void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
+  void writeDensity(int species, string &of) const {allSpecies_[species]->getDensity().writeDensity(of);}
 
   /**
    *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions. 

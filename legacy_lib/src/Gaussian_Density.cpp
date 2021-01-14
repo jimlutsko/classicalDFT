@@ -30,16 +30,12 @@ void Gaussian::set_parameters(double x, double alf, double Rx, double Ry, double
   norm_ = pow(alf_/M_PI,1.5);
 
   // spatial limits concerning the influence of this Gaussian:
-  // can only be determined once all parameters have been set    
-  Rmax_ = 0.5*hsd-log(SMALL_VALUE/(prefactor_*norm_))/alf_; // sqrt(R2max());
+  // can only be determined once all parameters have been set
+  // tol = A*exp(-alf*(r-R)^2) ==> r = R+sqrt(-log(tol/A)/alf)
+  Rmax_ = 0.5*hsd+sqrt(-log(SMALL_VALUE/(prefactor_*norm_))/alf_); 
   Nimage_x_ = (Rmax_ < L[0]/2 ? 0 : 1 + int(-0.5+Rmax_/L[0]));
   Nimage_y_ = (Rmax_ < L[1]/2 ? 0 : 1 + int(-0.5+Rmax_/L[1]));
   Nimage_z_ = (Rmax_ < L[2]/2 ? 0 : 1 + int(-0.5+Rmax_/L[2]));
-
-  Nimage_x_ = max(1,Nimage_x_);
-  Nimage_y_ = max(1,Nimage_y_);
-  Nimage_z_ = max(1,Nimage_z_);
-
 }
 
 void Gaussian::get_parameters(double &x, double &alf, double &Rx, double &Ry, double &Rz, double hsd) const
@@ -73,12 +69,34 @@ void Gaussian::get_f1f2f3f4(double y, double hsd, double r2, double &f1, double 
   double y4 = y2*y2;
   double y6= y4*y2;
       
-  if(y < 0.01)
+  if(y < 0.5)
     {
+      /*
       f1 = 2+(y2/3)+(y4/60);
       f2 = (2.0/3)+(y2/15)+(y4/420);
       f3 = (2.0/15)+(y2/105)+(y4/3780);
       f4 = (2.0/105)+(y2/945)+(y4/41580);
+      */
+
+      double a1 = 2;
+      double a2 = 2.0/3;
+      double a3 = 2.0/15;
+      double a4 = 2.0/105;
+      f1 = a1; f2 = a2; f3 = a3; f4 = a4;
+      double f1_old;
+      int n = 1;
+      do {
+	f1_old = f1;
+
+	int n2 = 2*n;
+	a1 *= (y2/n2)/(n2+1); f1 += a1;
+	a2 *= (y2/n2)/(n2+3); f2 += a2;
+	a3 *= (y2/n2)/(n2+5); f3 += a3;
+	a4 *= (y2/n2)/(n2+7); f4 += a4;
+
+	n++;
+	if(n > 20) throw std::runtime_error("Something went wrong in Gaussian::f1234");
+      } while(f1 != f1_old);
       
       double ee = exp(-alf_*(r2+0.25*hsd*hsd));
       f1 *= ee;
@@ -318,12 +336,11 @@ void Gaussian::get_dmeasures_dAlf(double rx, double ry, double rz, double hsd, F
   double e1 = erf(z1);
   double e2 = exp(-z1*z1);
   
-  double B = 1.5 - alf_*r2 - z1*z1*e1/(e1-M_2_SQRTPI*z1*e2);
+  double B = 1.5 - alf_*r2 -alf_*0.25*hsd*hsd + alf_*dprefactor_dalf_/prefactor_; //- z1*z1*e1/(e1-M_2_SQRTPI*z1*e2);
 
-  double z    = sqrt(alf_)*hsd/2;
-  double xmax = 1.0/(erf(z)-M_2_SQRTPI*z*exp(-z*z));
+  //  double z    = sqrt(alf_)*hsd/2;
+  //  double xmax = 1.0/(erf(z)-M_2_SQRTPI*z*exp(-z*z));
 
-  
   double y = alf_*hsd*r;
 
   double f1 = 0;
@@ -366,3 +383,185 @@ void Gaussian::get_dmeasures_dAlf(double rx, double ry, double rz, double hsd, F
 }
 
 
+void GaussianDensity::get_dN(int ig, double &dN_dx, double &dN_dalf) const
+{
+  const Gaussian &g = gaussians_[ig];
+  dN_dx = g.dprefactor_dx();
+  dN_dalf = g.dprefactor_dalf();
+}
+
+void GaussianDensity::get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const
+{
+  for(auto &g: gaussians_)
+    {
+      // find closest image
+      while(rx-g.Rx() > L_[0]/2) rx -= L_[0]; while(rx-g.Rx() < -L_[0]/2) rx += L_[0];
+      while(ry-g.Ry() > L_[1]/2) ry -= L_[1]; while(ry-g.Ry() < -L_[1]/2) ry += L_[1];
+      while(rz-g.Rz() > L_[2]/2) rz -= L_[2]; while(rz-g.Rz() < -L_[2]/2) rz += L_[2];
+	
+      // sum over all contributing images
+      for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
+	for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
+	  for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)	      
+	    g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm);
+    }
+}
+void GaussianDensity::get_dmeasures_for_gaussian(int igaussian, double rx, double ry, double rz, double hsd, FundamentalMeasures dfm[5]) const
+{
+  const Gaussian &g = gaussians_[igaussian];
+
+  // find closest image
+  while(rx-g.Rx() > L_[0]/2) rx -= L_[0]; while(rx-g.Rx() < -L_[0]/2) rx += L_[0];
+  while(ry-g.Ry() > L_[1]/2) ry -= L_[1]; while(ry-g.Ry() < -L_[1]/2) ry += L_[1];
+  while(rz-g.Rz() > L_[2]/2) rz -= L_[2]; while(rz-g.Rz() < -L_[2]/2) rz += L_[2];
+	  
+  // sum over all contributing images
+  for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
+    for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
+      for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)
+	{
+	  g.get_dmeasures_dX(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,dfm[0]);
+	  g.get_dmeasures_dAlf(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,dfm[1]);
+	  g.get_dmeasures_dR(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,dfm+2);
+	}
+}
+
+
+double GaussianDensity::FMF(double w0, double r0, vector<double> &x, vector<double> &w, DFT_Vec &dF1) const
+{
+  double F = 0;
+
+  int XMAX = 3;
+  int YMAX = 3;
+  int ZMAX = 3;
+
+  vector<double> dF(5*gaussians_.size(),0.0);
+
+  for(int l=0; l<gaussians_.size(); l++)
+    {
+      double al     = gaussians_[l].alf();
+      double xl     = gaussians_[l].prefactor();
+      double dxl_dy = gaussians_[l].dprefactor_dx();
+      double dxl_da = gaussians_[l].dprefactor_dalf();
+      
+      double all = al/2;
+      double sall = sqrt(all);
+
+      double ep0 = exp(-all*r0*r0);
+      double dFdx = 0;
+      double arg = (erf(sall*r0)-M_2_SQRTPI*sall*r0*ep0);
+      
+      F    += 0.5*w0*xl*xl*arg;
+      dFdx += w0*xl*arg;
+
+      double sum1 = 0.0;
+      for(int n=0;n<x.size();n++)
+	{
+	  arg = w[n]*x[n]*x[n]*exp(-all*x[n]*x[n]);
+	  F    += xl*xl*M_2_SQRTPI*sall*all*arg;
+	  dFdx +=  2*xl*M_2_SQRTPI*sall*all*arg;
+	  sum1 += (3-2*all*x[n]*x[n])*arg;
+	}
+      
+      dF[5*l+0] += dxl_dy*dFdx;
+      dF[5*l+1] += dxl_da*dFdx;
+      dF[5*l+1] += 0.25*xl*xl*M_2_SQRTPI*sall*(w0*r0*r0*r0*ep0 + sum1);	      
+      
+      for(int m=l; m<gaussians_.size(); m++)
+	{
+	  double Rx = gaussians_[l].Rx() - gaussians_[m].Rx(); while(Rx > L_[0]/2) Rx -= L_[0]; while(Rx < -L_[0]/2) Rx += L_[0];
+	  double Ry = gaussians_[l].Ry() - gaussians_[m].Ry(); while(Ry > L_[1]/2) Ry -= L_[1]; while(Ry < -L_[1]/2) Ry += L_[1];
+	  double Rz = gaussians_[l].Rz() - gaussians_[m].Rz(); while(Rz > L_[2]/2) Rz -= L_[2]; while(Rz < -L_[2]/2) Rz += L_[2];
+
+	  for(int ix = -XMAX; ix <= XMAX; ix++)
+	    for(int iy = -YMAX; iy <= YMAX; iy++)
+	      for(int iz = -ZMAX; iz <= ZMAX; iz++)
+		{
+		  if(m == l && ix == 0 && iy == 0 && iz == 0) continue;
+		  double fac = 1;
+		  if(m == l) fac = 0.5;
+		  
+		  double rx = Rx + ix*L_[0];
+		  double ry = Ry + iy*L_[1];
+		  double rz = Rz + iz*L_[2];
+		  
+		  double Rlm = sqrt(rx*rx+ry*ry+rz*rz);
+	  
+		  double am     = gaussians_[m].alf();
+		  double xm     = gaussians_[m].prefactor();
+		  double dxm_dy = gaussians_[m].dprefactor_dx();
+		  double dxm_da = gaussians_[m].dprefactor_dalf();
+		  
+		  double alm  = al*am/(al+am);
+		  double salm = sqrt(alm);
+
+		  double er = 0.5*erf(salm*(r0-Rlm))+0.5*erf(salm*(r0+Rlm));
+		  double em = exp(-alm*(r0-Rlm)*(r0-Rlm));
+		  double ep = exp(-alm*(r0+Rlm)*(r0+Rlm));
+		  		  
+		  F += fac*w0*xl*xm*er;
+		  F += fac*w0*xl*xm*(ep-em)*M_2_SQRTPI/(4*salm*Rlm);
+
+		  dF[5*l+0] += fac*dxl_dy*w0*xm*(er+(ep-em)*M_2_SQRTPI/(4*salm*Rlm));
+		  dF[5*m+0] += fac*dxm_dy*w0*xl*(er+(ep-em)*M_2_SQRTPI/(4*salm*Rlm));
+
+		  dF[5*l+1] += fac*dxl_da*w0*xm*(er+(ep-em)*M_2_SQRTPI/(4*salm*Rlm));
+		  dF[5*m+1] += fac*dxm_da*w0*xl*(er+(ep-em)*M_2_SQRTPI/(4*salm*Rlm));		  
+		  
+		  dF[5*l+1] += fac*(xl*xm/(al*al))*w0*M_2_SQRTPI*(salm/(8*Rlm))*((1-2*alm*r0*(Rlm-r0))*em-(1+2*alm*r0*(Rlm+r0))*ep);
+		  dF[5*m+1] += fac*(xl*xm/(am*am))*w0*M_2_SQRTPI*(salm/(8*Rlm))*((1-2*alm*r0*(Rlm-r0))*em-(1+2*alm*r0*(Rlm+r0))*ep);
+
+		  dF[5*l+2] += fac*w0*rx*xl*xm*(M_2_SQRTPI/(4*Rlm*Rlm*Rlm*salm))*((1-2*alm*Rlm*r0)*em-(1+2*alm*Rlm*r0)*ep);
+		  dF[5*m+2] -= fac*w0*rx*xl*xm*(M_2_SQRTPI/(4*Rlm*Rlm*Rlm*salm))*((1-2*alm*Rlm*r0)*em-(1+2*alm*Rlm*r0)*ep);
+
+		  dF[5*l+3] += fac*w0*ry*xl*xm*(M_2_SQRTPI/(4*Rlm*Rlm*Rlm*salm))*((1-2*alm*Rlm*r0)*em-(1+2*alm*Rlm*r0)*ep);
+		  dF[5*m+3] -= fac*w0*ry*xl*xm*(M_2_SQRTPI/(4*Rlm*Rlm*Rlm*salm))*((1-2*alm*Rlm*r0)*em-(1+2*alm*Rlm*r0)*ep);
+
+		  dF[5*l+4] += fac*w0*rz*xl*xm*(M_2_SQRTPI/(4*Rlm*Rlm*Rlm*salm))*((1-2*alm*Rlm*r0)*em-(1+2*alm*Rlm*r0)*ep);
+		  dF[5*m+4] -= fac*w0*rz*xl*xm*(M_2_SQRTPI/(4*Rlm*Rlm*Rlm*salm))*((1-2*alm*Rlm*r0)*em-(1+2*alm*Rlm*r0)*ep);		  
+
+		  double sum1 = 0;
+		  double sum2 = 0;
+		  double sum3 = 0;
+		  for(int n=0;n<x.size();n++)
+		    {
+		      double enm = exp(-alm*(x[n]-Rlm)*(x[n]-Rlm));
+		      double enp = exp(-alm*(x[n]+Rlm)*(x[n]+Rlm));
+
+		      sum1 += w[n]*x[n]*(enm-enp);
+		      sum2 += w[n]*x[n]*((1-2*alm*(Rlm-x[n])*(Rlm-x[n]))*enm-(1-2*alm*(Rlm+x[n])*(Rlm+x[n]))*enp);
+		      sum3 += w[n]*x[n]*((1+2*alm*Rlm*(Rlm+x[n]))*enp-(1+2*alm*Rlm*(Rlm-x[n]))*enm);
+		    }
+		  F += fac*xl*xm*(M_2_SQRTPI*salm/(2*Rlm))*sum1;
+		  
+		  dF[5*l+0] += fac*dxl_dy*xm*M_2_SQRTPI*(salm/(2*Rlm))*sum1;
+		  dF[5*m+0] += fac*dxm_dy*xl*M_2_SQRTPI*(salm/(2*Rlm))*sum1;
+		  
+		  dF[5*l+1] += fac*dxl_da*xm*M_2_SQRTPI*(salm/(2*Rlm))*sum1;
+		  dF[5*m+1] += fac*dxm_da*xl*M_2_SQRTPI*(salm/(2*Rlm))*sum1;
+
+		  dF[5*l+1] += fac*0.25*(xl*xm/(al*al))*M_2_SQRTPI*alm*(salm/Rlm)*sum2;
+		  dF[5*m+1] += fac*0.25*(xl*xm/(am*am))*M_2_SQRTPI*alm*(salm/Rlm)*sum2;
+
+		  dF[5*l+2] += fac*rx*xl*xm*M_2_SQRTPI*(salm/(2*Rlm*Rlm*Rlm))*sum3;
+		  dF[5*m+2] -= fac*rx*xl*xm*M_2_SQRTPI*(salm/(2*Rlm*Rlm*Rlm))*sum3;
+
+		  dF[5*l+3] += fac*ry*xl*xm*M_2_SQRTPI*(salm/(2*Rlm*Rlm*Rlm))*sum3;
+		  dF[5*m+3] -= fac*ry*xl*xm*M_2_SQRTPI*(salm/(2*Rlm*Rlm*Rlm))*sum3;
+
+		  dF[5*l+4] += fac*rz*xl*xm*M_2_SQRTPI*(salm/(2*Rlm*Rlm*Rlm))*sum3;
+		  dF[5*m+4] -= fac*rz*xl*xm*M_2_SQRTPI*(salm/(2*Rlm*Rlm*Rlm))*sum3;		  
+
+
+		}
+	}
+      
+    }
+
+  for(unsigned pos=0;pos<dF.size();pos++)
+    dF1.set(pos,dF[pos]);
+  
+  return F;
+}
+
+	  
