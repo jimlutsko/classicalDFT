@@ -1,6 +1,7 @@
 #ifndef __LUTSKO_FUNDAMENTAL_MEASURES__
 #define __LUTSKO_FUNDAMENTAL_MEASURES__
 
+#include <iostream>
 
 class FundamentalMeasures
 {
@@ -17,6 +18,13 @@ class FundamentalMeasures
     }
   FundamentalMeasures(double density, double hsd) {fillUniform(density,hsd);}
 
+  void print()
+  {
+    std::cout << eta << " " << s0 << " " << v1[0] << " " << v1[1] << " " << v1[2] << " " << T[0][0] << " " << T[0][1] << " " << T[0][2] << std::endl;
+
+
+  }
+  
   void fillUniform(double density, double hsd = 1)
   {
       eta = M_PI*density*hsd*hsd*hsd/6;

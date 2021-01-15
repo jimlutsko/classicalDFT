@@ -329,7 +329,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
     for(auto &species : allSpecies_)
       F += species->calculateFreeEnergyAndDerivatives_IdealGas_();
   F_id_ = F;
-  
+
   // Hard-sphere contribution
   if(fmt_)
     {    
@@ -343,7 +343,6 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
     for(auto &species : allSpecies_)
       species->doFFT();
   }
-  
   //< Mean field contribution to F and dF
   F_mf_ = 0;
   for(auto &interaction: DFT::Interactions_)    

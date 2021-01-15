@@ -139,7 +139,6 @@ void fireMinimizer2::initialize()
 
 double fireMinimizer2::step()
 {
-
   it_++;
   static double fold = F_;
 
@@ -168,42 +167,42 @@ double fireMinimizer2::step()
       dF_rem[Jspecies].set(dft_->getDF(Jspecies));
     }
 
-  
-  if(P > 0)
+
+  if(it_ > 1) // not meaningful on first pass
     {
-      N_P_positive_++;
-      N_P_negative_ = 0;
-      if(N_P_positive_ > N_delay_)
+      if(P > 0)
 	{
-	  dt_ = min(dt_*f_inc_,dt_max_);
-	  alpha_ =alpha_*f_alf_;
-	}
-    } else {
-    N_P_positive_ = 0;
-    N_P_negative_++;
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // This is the new, alternative stopping criterion: if there are too many steps in the wrong direction, hang up.
-    // This needs to be communicated up the ladder so that it can be dealt with accordingly ... 
-    if(N_P_negative_ > N_P_negative_max_) throw std::runtime_error("Cannot stop going uphill in Fire2");
+	  N_P_positive_++;
+	  N_P_negative_ = 0;
+	  if(N_P_positive_ > N_delay_)
+	    {
+	      dt_ = min(dt_*f_inc_,dt_max_);
+	      alpha_ =alpha_*f_alf_;
+	    }
+	} else {
+	N_P_positive_ = 0;
+	N_P_negative_++;
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// This is the new, alternative stopping criterion: if there are too many steps in the wrong direction, hang up.
+	// This needs to be communicated up the ladder so that it can be dealt with accordingly ... 
+	if(N_P_negative_ > N_P_negative_max_) throw std::runtime_error("Cannot stop going uphill in Fire2");
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Here, there is the possiblity of an initial delay of Ndelay_ steps before beginning the decrease of dt and of alpha. 
-    if(!(initial_delay_ && it_ < N_delay_))
-      {
-	if(dt_*f_dec_ >= dt_min_)
-	  dt_ *= f_dec_;
-	alpha_ = alpha_start_;
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Here, there is the possiblity of an initial delay of Ndelay_ steps before beginning the decrease of dt and of alpha. 
+	if(!(initial_delay_ && it_ < N_delay_))
+	  {
+	    if(dt_*f_dec_ >= dt_min_)
+	      dt_ *= f_dec_;
+	    alpha_ = alpha_start_;
+	  }
+	reportMessage("Uphill motion stopped");
+	for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+	  {
+	    x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
+	    v_[Jspecies].MultBy(0.1);
+	  }
       }
-    reportMessage("Uphill motion stopped");
-    for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-      {
-	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
-	//	v_[Jspecies].zeros();
-	v_[Jspecies].MultBy(0.1);
-	//v_[Jspecies].MultBy(0.5);
-      }
-  }
-
+    }
   // integration step
   // Changed handling of backtracking 21/10/2019
   double rem = fmax_;
@@ -297,6 +296,21 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
       new_fmax = max(new_fmax, df.inf_norm()/dft_->get_lattice().dV());
       fnorm += f*f;
       cnorm += df.size();
+
+      double lmax = -1e30;
+      double lmin = 1e30;
+      long imax = -1;
+      long imin = -1;
+      for(long pos = 0; pos < df.size(); pos++)
+	{
+	  double dfp = df.get(pos);
+	  if(dfp > lmax) { lmax = dfp; imax = pos;}
+	  if(dfp < lmin) { lmin = dfp; imin = pos;}
+	}
+      //      cout << "pmax = " << imax << " dfmax = " << lmax << " x = " << x_[Jspecies].get(imax) << endl;
+      //      cout << "pmin = " << imin << " dfmin = " << lmin << " x = " << x_[Jspecies].get(imin) << endl;
+      //      cout << "p30  = " << 30   << " dfmax = " << df.get(30) << " x = " << x_[Jspecies].get(30) << endl;
+      //      cout << "p31  = " << 31   << " dfmax = " << df.get(31) << " x = " << x_[Jspecies].get(31) << endl;
     }
   rms_force_ = sqrt(fnorm/cnorm);
   fmax_ = new_fmax;

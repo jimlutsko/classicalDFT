@@ -28,10 +28,7 @@ double Species::calculateFreeEnergyAndDerivatives_IdealGas_()
   long Ntot = density_.Ntot();
   long pos;
   Summation F;  
-#pragma omp parallel for			\
-  private(pos)						\
-  schedule(static)					\
-  reduction(SummationPlus:F)
+#pragma omp parallel for private(pos)  schedule(static)  shared(density_, dF_) reduction(SummationPlus:F)
   for(pos=0;pos<Ntot;pos++)
     {
       double d0 = density_.get(pos);
@@ -134,8 +131,9 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   for(pos=0;pos<x.size();pos++)
     {
       double y = x.get(pos);
-      //dF_dRho.set(pos, dF_dRho.get(pos)*(2*c*y*exp(-y*y)));
-      dF_dRho.set(pos, dF_dRho.get(pos)*(2*c*y/((1+y*y)*(1+y*y))));
+      double df = dF_dRho.get(pos);
+      //dF_dRho.set(pos, df*(2*c*y*exp(-y*y)));
+      dF_dRho.set(pos, df*(2*c*y/((1+y*y)*(1+y*y))));
     }
   
 }
