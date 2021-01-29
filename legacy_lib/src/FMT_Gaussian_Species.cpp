@@ -19,33 +19,45 @@ using namespace std;
 #include "FMT.h"
 
 
+FMT_Gaussian_Species::FMT_Gaussian_Species(GaussianDensity& density, double hsd, double mu, int seq)
+  : FMT_Species(density,hsd,mu,seq)
+{
+  density.set_hsd(hsd);
+}
+
 void FMT_Gaussian_Species::set_density_from_alias(const DFT_Vec &x)
 {
   GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
-  double L[] = {density.Lx(), density.Ly(), density.Lz()};
-  
-  for(int ig=0; ig<density.gaussians_.size(); ig++)  
+
+  long pos = 0;
+  if(density.use_discrete())
     {
-      Gaussian &g = density.gaussians_[ig];
-      long pos = ig*5;
-      g.set_parameters(x.get(pos), x.get(pos+1), x.get(pos+2), x.get(pos+3), x.get(pos+4), hsd_, L);
-    }      
+      Species::set_density_from_alias(x);
+      pos += density.Ntot();
+    }
+
+  for(int ig=0; ig<density.number_of_gaussians(); ig++, pos += 5)  
+    density.set_gaussian(ig, x.get(pos), x.get(pos+1), x.get(pos+2), x.get(pos+3), x.get(pos+4));
 }
 
   
 void FMT_Gaussian_Species::get_density_alias(DFT_Vec &x) const
 {
   GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
-  double L[] = {density.Lx(), density.Ly(), density.Lz()};
-  
-  for(int ig=0; ig<density.gaussians_.size(); ig++)  
+
+  long pos = 0;
+  if(density.use_discrete())
     {
-      Gaussian &g = density.gaussians_[ig];
+      FMT_Species::get_density_alias(x);
+      pos += density.Ntot();
+    }
+
+  for(int ig=0; ig<density.number_of_gaussians(); ig++, pos += 5)  
+    {
       double y,alf,Rx,Ry,Rz;
 
-      g.get_parameters(y,alf,Rx,Ry,Rz,hsd_);
+      density.get_gaussian(ig, y,alf,Rx,Ry,Rz);
 
-      long pos = ig*5;
       x.set(pos,   y);
       x.set(pos+1, alf);
       x.set(pos+2, Rx);
@@ -59,27 +71,41 @@ double FMT_Gaussian_Species::calculateFreeEnergyAndDerivatives_IdealGas_()
   GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
 
   double F = 0.0;
+  const double dV = density.dV();
+  long pos = 0;
 
-  for(int ig=0; ig<density.gaussians_.size(); ig++)
+  if(density.use_discrete())
     {
-      Gaussian &g = density.gaussians_[ig];
+#pragma omp parallel for  private(pos)  shared(dV) schedule(static)				
+      for(pos = 0; pos < density.Ntot(); pos++)
+	{
+	  double dg = density.get_discrete_gauss_at(pos);
+	  double dd = density.get(pos);
+
+	  double ld = log(dd+dg);
+	  
+	  F += ((dd+dg)*ld - dg*log(dg) - dd)*dV;
+
+	  dF_.IncrementBy(pos,ld*dV);
+	}
+    }
+  
+  for(int ig=0; ig<density.number_of_gaussians(); ig++, pos += 5)
+    {
+      const Gaussian &g = density.get_gaussian(ig);
       
       double x = g.prefactor();
       double alf = g.alf();
-            
-      F += x*log(x) + 1.5*x*log(alf/M_PI)-2.5*x;
 
-      double dF_dX   = log(x) + 1.0 + 1.5*log(alf/M_PI)-2.5;
-      double dF_dAlf = 1.5*x/alf;
-
-      double dX_dY   = g.dprefactor_dx_;
-      double dX_dAlf = g.dprefactor_dalf_;
+      double dfdx = 0;
+      double dfda = 0;
       
+      F += g.get_ideal_f(dfdx, dfda);
       // flatten 
-      int pos = 5*ig;
-      dF_.IncrementBy(pos,   dF_dX*dX_dY);
-      dF_.IncrementBy(pos+1, dF_dAlf + dF_dX*dX_dAlf);
+      dF_.IncrementBy(pos+0, dfdx);
+      dF_.IncrementBy(pos+1, dfda);      
     }
+
   return F;
 }
 
@@ -132,9 +158,9 @@ void FMT_Gaussian_Species::Build_Force(bool needsTensor)
   double dV = density.dV();    
 
   
-  for(int ig=0; ig<density.gaussians_.size(); ig++)
+  for(int ig=0; ig<density.number_of_gaussians(); ig++)
     {
-      Gaussian &g = density.gaussians_[ig];
+      const Gaussian &g = density.get_gaussian(ig);
       
       for(long pos = 0; pos < density.Ntot(); pos++)
 	{
@@ -208,7 +234,7 @@ double FMT_Gaussian_Species::externalField(bool bCalcForces)
   if(bCalcForces)
     {
       GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
-      for(int ig=0; ig<density.gaussians_.size(); ig++)
+      for(int ig=0; ig<density.number_of_gaussians(); ig++)
 	{
 	  double dN_dx;
 	  double dN_dalf;
@@ -229,9 +255,21 @@ double FMT_Gaussian_Species::FMF(double w0, double r0, vector<double> &x, vector
   GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
   //  vector<double> dF(5*density.gaussians_.size());
 
-  dF.zeros(5*density.gaussians_.size());
+  dF.zeros(5*density.number_of_gaussians());
   F = density.FMF(w0,r0,x,w,dF);
 
   
   return F;
+}
+
+
+void FMT_Gaussian_Species::beginForceCalculation()
+{
+  if(fixedMass_ > 0.0)
+    throw std::runtime_error("Fixed mass not implemented in FMT_Gaussian_Species::beginForceCalculation");
+
+  GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
+  if(density.use_discrete())
+    density.fill_discrete_gaussian_field();
+  
 }

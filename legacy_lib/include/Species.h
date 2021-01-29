@@ -36,7 +36,7 @@ class Species
   const Density& getDensity(){ return density_;}
 
   // this will go eventually
-  void densityChanged() { dF_.resize(density_.number_of_parameters());}
+  //  void densityChanged() { dF_.resize(density_.number_of_parameters());}
   
   
   void doDisplay(string &title, string &file) const { density_.doDisplay(title,file, seq_num_);}
@@ -89,7 +89,7 @@ class Species
  
   // Constant particle number is enforced at the species-level by the following pre- and post-processing of the forces.
   // If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
-  void beginForceCalculation()
+  virtual void beginForceCalculation()
   {
     if(fixedMass_ > 0.0)
       {
@@ -410,8 +410,7 @@ class FMT_Gaussian_Species : public FMT_Species
 {
 public:
   // Constructors: hsd is the hard-sphere diameter of the species
-  FMT_Gaussian_Species(GaussianDensity& density, double hsd, double mu = 0, int seq = -1)
-    : FMT_Species(density,hsd,mu,seq){}
+  FMT_Gaussian_Species(GaussianDensity& density, double hsd, double mu = 0, int seq = -1);
   FMT_Gaussian_Species(const FMT_Gaussian_Species &) = delete;  
   ~FMT_Gaussian_Species(){}
 
@@ -437,6 +436,8 @@ public:
 
   // This is for calculating the mf term
   virtual double FMF(double w0, double r0, vector<double> &x, vector<double> &w, DFT_Vec &dF) const;
+
+  virtual void beginForceCalculation();
 };
 
   /**

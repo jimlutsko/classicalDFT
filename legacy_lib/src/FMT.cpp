@@ -242,7 +242,7 @@ double FMT::dPHI(long pos, vector<Species*> &allSpecies)
     {
       #pragma omp critical
       {
-	//	if(fm.eta > 10) 	cout << "fm.eta = " << fm.eta << " pos = " << pos << endl;
+	cout << "fm.eta = " << fm.eta << " pos = " << pos << endl;
 
       }
       throw Eta_Too_Large_Exception();
