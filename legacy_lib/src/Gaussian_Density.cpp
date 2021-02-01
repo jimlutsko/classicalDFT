@@ -20,23 +20,27 @@ void GaussianDensity::get_dN(int ig, double &dN_dx, double &dN_dalf) const
   dN_dalf = g.dprefactor_dalf();
 }
 
-void GaussianDensity::get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const
+void GaussianDensity::get_measures(double rx1, double ry1, double rz1, double hsd, FundamentalMeasures &fm) const
 {
   // maximum range for a non-zero contribution is A+R
   // so we need max (2A+2R)/L images
   
   for(auto &g: gaussians_)
     {
+      double rx = rx1 - g.Rx();
+      double ry = ry1 - g.Ry();
+      double rz = rz1 - g.Rz();
+      
       // find closest image
-      while(rx-g.Rx() > L_[0]/2) rx -= L_[0]; while(rx-g.Rx() < -L_[0]/2) rx += L_[0];
-      while(ry-g.Ry() > L_[1]/2) ry -= L_[1]; while(ry-g.Ry() < -L_[1]/2) ry += L_[1];
-      while(rz-g.Rz() > L_[2]/2) rz -= L_[2]; while(rz-g.Rz() < -L_[2]/2) rz += L_[2];
+      while(rx > L_[0]/2) rx -= L_[0]; while(rx < -L_[0]/2) rx += L_[0];
+      while(ry > L_[1]/2) ry -= L_[1]; while(ry < -L_[1]/2) ry += L_[1];
+      while(rz > L_[2]/2) rz -= L_[2]; while(rz < -L_[2]/2) rz += L_[2];
 
        // sum over all contributing images
-      //      for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
-      //	for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
-      //	  for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)	      
-      //	    g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],hsd,fm);
+      //            for(int imx = -g.get_Nimage_x(); imx <= g.get_Nimage_x(); imx++)
+      //      	for(int imy = -g.get_Nimage_y(); imy <= g.get_Nimage_y(); imy++)
+      //      	  for(int imz = -g.get_Nimage_z(); imz <= g.get_Nimage_z(); imz++)	      
+      //      	    g.get_measures(rx+imx*L_[0],ry+imy*L_[1],rz+imz*L_[2],fm);
 
       
       double R2max = (g.A()+hsd/2)*(g.A()+hsd/2);
@@ -46,16 +50,16 @@ void GaussianDensity::get_measures(double rx, double ry, double rz, double hsd, 
 	  for(double Ry = ry; Rx*Rx+Ry*Ry+rz*rz < R2max; Ry += L_[1])
 	    {
 	      for(double Rz = rz; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz += L_[2])
-		g.get_measures(Rx,Ry,Rz,fm);
+		g.get_measures(Rx+g.Rx(),Ry+g.Ry(),Rz+g.Rz(),fm);
 	      for(double Rz = rz-L_[2]; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz -= L_[2])
-		g.get_measures(Rx,Ry,Rz,fm);
+		g.get_measures(Rx+g.Rx(),Ry+g.Ry(),Rz+g.Rz(),fm);
 	    }
 	  for(double Ry = ry-L_[1]; Rx*Rx+Ry*Ry+rz*rz < R2max; Ry -= L_[1])
 	    {
 	      for(double Rz = rz; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz += L_[2])
-		g.get_measures(Rx,Ry,Rz,fm);
+		g.get_measures(Rx+g.Rx(),Ry+g.Ry(),Rz+g.Rz(),fm);
 	      for(double Rz = rz-L_[2]; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz -= L_[2])
-		g.get_measures(Rx,Ry,Rz,fm);
+		g.get_measures(Rx+g.Rx(),Ry+g.Ry(),Rz+g.Rz(),fm);
 	    }
 	}
       for(double Rx = rx-L_[0]; Rx*Rx+ry*ry+rz*rz <  R2max; Rx -= L_[0])
@@ -63,20 +67,20 @@ void GaussianDensity::get_measures(double rx, double ry, double rz, double hsd, 
 	  for(double Ry = ry; Rx*Rx+Ry*Ry+rz*rz < R2max; Ry += L_[1])
 	    {
 	      for(double Rz = rz; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz += L_[2])
-		g.get_measures(Rx,Ry,Rz,fm);
+		g.get_measures(Rx+g.Rx(),Ry+g.Ry(),Rz+g.Rz(),fm);
 	      for(double Rz = rz-L_[2]; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz -= L_[2])
-		g.get_measures(Rx,Ry,Rz,fm);
+		g.get_measures(Rx+g.Rx(),Ry+g.Ry(),Rz+g.Rz(),fm);
 	    }
 	  for(double Ry = ry-L_[1]; Rx*Rx+Ry*Ry+rz*rz < R2max; Ry -= L_[1])
 	    {
 	      for(double Rz = rz; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz += L_[2])
-		g.get_measures(Rx,Ry,Rz,fm);
+		g.get_measures(Rx+g.Rx(),Ry+g.Ry(),Rz+g.Rz(),fm);
 	      for(double Rz = rz-L_[2]; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz -= L_[2])
-		g.get_measures(Rx,Ry,Rz,fm);
+		g.get_measures(Rx+g.Rx(),Ry+g.Ry(),Rz+g.Rz(),fm);
 	    }
 	}
-      
-    }      
+    }   
+         
 }
 
 void GaussianDensity::get_dmeasures_for_gaussian(int igaussian, double rx, double ry, double rz, double hsd, FundamentalMeasures dfm[5]) const
