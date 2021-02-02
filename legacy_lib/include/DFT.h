@@ -85,6 +85,8 @@ class DFT
    */ 
   int getNumberOfSpecies() const {return allSpecies_.size();}
 
+  Species *getSpecies(int s) const { return allSpecies_[s];}
+  
   /**
    *   @brief  Requests the number of atoms of species s
    *  
@@ -125,13 +127,6 @@ class DFT
     for(auto &x: allSpecies_) x->doDisplay(title,file);
   }
 
-  /**
-   *   @brief  Sets the densities based on amplitudes by passing to the species object
-   *  
-   *   @param  i is the species
-   *   @param x is the amplitde
-   */  
-  void set_density_from_amplitude(int i,DFT_Vec &x) {allSpecies_[i]->set_density_from_amplitude(x);}
   void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
   void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
 

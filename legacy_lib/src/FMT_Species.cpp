@@ -20,6 +20,105 @@ using namespace std;
 int Species::SequenceNumber_ = 0;
 
 
+// These functions just alias the density so that it is always non-zero and in fact bigger than SMALL_VALUE.
+void Species::set_density_from_alias(const DFT_Vec &x)
+{
+  long pos;
+  const double dmin = SMALL_VALUE;
+  
+#pragma omp parallel for  private(pos)  schedule(static)
+  for(pos=0;pos<x.size();pos++)
+    density_.set(pos,dmin+x.get(pos)*x.get(pos));
+}
+  
+void Species::get_density_alias(DFT_Vec &x) const
+{
+  long pos;
+  const double dmin = SMALL_VALUE;
+  
+#pragma omp parallel for  private(pos)  schedule(static)				    
+  for(pos=0;pos<x.size();pos++)
+    x.set(pos, sqrt(std::max(0.0, density_.get(pos)-1e-20)));    
+}
+
+void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
+{
+  dF_dRho.Schur(x,dF_dRho);
+  dF_dRho.MultBy(2.0);
+}
+
+
+// These impose density limits based on the fact that in the most extreme case,
+// if the density at some point is dmax and all other points it is dmin, then
+// eta at that point is (4*pi/3)*hsd*hsd*hsd*dmin + (dmax-dmin)*dV.
+// So the largest possible value of dmax, based on eta < 1, is
+//    dmax = dmin + (eta-etamin)/dV
+// Note that the limits used here are really only valid for FMT_Species
+// but for now, those are really the only ones used.
+
+void FMT_Species::set_density_from_alias(const DFT_Vec &x)
+{
+  //Species::set_density_from_alias(x);
+  
+  long pos;
+  const double dmin = SMALL_VALUE;
+  const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
+  const double c = (1.0-etamin)/density_.dV();
+  
+#pragma omp parallel for  private(pos)  schedule(static)				    
+  for(pos=0;pos<x.size();pos++)
+    {
+      double y = x.get(pos);
+      //double z = dmin +c*(1-exp(-y*y));
+      double z = dmin +c*y*y/(1+y*y);
+      density_.set(pos,z);
+    }
+  
+}
+
+  
+void FMT_Species::get_density_alias(DFT_Vec &x) const
+{
+  //Species::get_density_alias(x);
+   
+  long pos;
+  double dv = density_.dV();
+  
+  const double dmin = SMALL_VALUE;
+  const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
+  const double c = (1.0-etamin)/density_.dV();
+  
+#pragma omp parallel for  private(pos)  schedule(static)				    
+  for(pos=0;pos<x.size();pos++)
+    {
+      double z = (density_.get(pos) - dmin)/c;
+      //double y = sqrt(fabs(log(1.0/(1-z))));
+      double y = sqrt(fabs(z/(1-z)));
+      x.set(pos, y);          
+    }
+  
+}
+
+void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
+{
+  //Species::convert_to_alias_deriv(x,dF_dRho);  
+  
+  long pos;
+  const double dmin = SMALL_VALUE;
+  const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
+  const double c = (1.0-etamin)/density_.dV();  
+
+#pragma omp parallel for  private(pos)  schedule(static)				      
+  for(pos=0;pos<x.size();pos++)
+    {
+      double y = x.get(pos);
+      double df = dF_dRho.get(pos);
+      //dF_dRho.set(pos, df*(2*c*y*exp(-y*y)));
+      dF_dRho.set(pos, df*(2*c*y/((1+y*y)*(1+y*y))));
+    }
+  
+}
+
 FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Species(density,mu,seq), hsd_(hsd), fmt_weighted_densities(11)
 {
   long Nx = density_.Nx();

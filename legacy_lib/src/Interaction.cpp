@@ -361,7 +361,7 @@ double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, double 
   return sum/216;
 }
 
-double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx, double dx, double dy, double dz)
+double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz)
 {
   double sum = 0.0;
   

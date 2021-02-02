@@ -177,7 +177,7 @@ class Density : public Lattice
 	    double z = getZ(k);
 
 	    double d = getDensity(i,j,k);
-	    if(x*x+y*y+z*z < (0.5*Nx_*dx_)*(0.5*Nx_*dx_)+(0.5*Ny_*dy_)*(0.5*Ny_*dy_)+(0.5*Nz_*dz_)*(0.5*Nz_*dz_))
+	    if(x*x+y*y+z*z < (0.5*Nx_*dx_)*(0.5*Nx_*dx_)) //+(0.5*Ny_*dy_)*(0.5*Ny_*dy_)+(0.5*Nz_*dz_)*(0.5*Nz_*dz_))
 	      {
 		r2 += d*(x*x+y*y+z*z);
 		m += d;
@@ -206,13 +206,7 @@ class Density : public Lattice
   */    
   void set_Density_Elem(unsigned i, double val)  { Density_.Real().set(i,val);}
 
-  /**
-  *   @brief  set density at all positions based on amplitude: d = SMALL_VALUE + amplitude*amplitude: used during minimization to assure a positive definite density.
-  *  
-  *   @param  x: amplitude
-  *   @return none
-  */  
-  void set_density_from_amplitude(const DFT_Vec &x) { Density_.Real().setFromAlias(x);}
+  void set(unsigned pos, double val)  { Density_.Real().set(pos,val);}  
 
   /**
   *   @brief  set density by copying given vector
@@ -236,7 +230,8 @@ class Density : public Lattice
   *   @param  i: index of element to be returned
   *   @return Density_.Real[i]
   */  
-  virtual double getDensity(long i) const { return Density_.cReal().get(i);} 
+  virtual double getDensity(long i) const { return Density_.cReal().get(i);}
+  virtual double get(long pos) const { return Density_.cReal().get(pos);} 
 
   /**
   *   @brief  Get density at coordinates ix,iy,iz
