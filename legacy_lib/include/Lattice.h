@@ -21,34 +21,43 @@ class Lattice
 
   Lattice(double dx, double L[])
     : Nx_(0), Ny_(0), Nz_(0), dx_(dx), dy_(dx), dz_(dx)
-    {
-      L_[0] =L[0];
-      L_[1] =L[1];
-      L_[2] =L[2];
+  { init(L);}
 
-      Nx_ = long((L[0]+1e-8*dx_)/dx_);
-      Ny_ = long((L[1]+1e-8*dy_)/dy_);
-      Nz_ = long((L[2]+1e-8*dz_)/dz_);
-
-      L_[0] = (Nx_-0)*dx_;
-      L_[1] = (Ny_-0)*dy_;
-      L_[2] = (Nz_-0)*dz_;
+  Lattice(double dx, double dy, double dz, double L[])
+    : Nx_(0), Ny_(0), Nz_(0), dx_(dx), dy_(dy), dz_(dz)
+  { init(L);}  
+  
 
 
-      if(fabs(L[0]-Nx_*dx_) > 1e-5*dx_)
-	{
-	  cout << "L[0] = " << L[0] << " L_[0] = " << L_[0] << " Nx*dx = " << Nx_*dx_ << endl;
-	  throw std::runtime_error("Box length incommensurate with lattice in x direction");
-	}
-      if(fabs(L[1]-Ny_*dy_) > 1e-5*dy_)
-	throw std::runtime_error("Box length incommensurate with lattice in y direction");
+  void init(double L[])
+  {	
+    L_[0] =L[0];
+    L_[1] =L[1];
+    L_[2] =L[2];
 
-      if(fabs(L[2]-Nz_*dz_) > 1e-5*dz_)
-	throw std::runtime_error("Box length incommensurate with lattice in z direction");
+    Nx_ = long((L[0]+1e-8*dx_)/dx_);
+    Ny_ = long((L[1]+1e-8*dy_)/dy_);
+    Nz_ = long((L[2]+1e-8*dz_)/dz_);
 
-      Ntot_ = Nx_*Ny_*Nz_;
-      Nout_ = Nx_*Ny_*((Nz_/2)+1);
-    }
+    L_[0] = (Nx_-0)*dx_;
+    L_[1] = (Ny_-0)*dy_;
+    L_[2] = (Nz_-0)*dz_;
+
+
+    if(fabs(L[0]-Nx_*dx_) > 1e-5*dx_)
+      {
+	cout << "L[0] = " << L[0] << " L_[0] = " << L_[0] << " Nx*dx = " << Nx_*dx_ << endl;
+	throw std::runtime_error("Box length incommensurate with lattice in x direction");
+      }
+    if(fabs(L[1]-Ny_*dy_) > 1e-5*dy_)
+      throw std::runtime_error("Box length incommensurate with lattice in y direction");
+
+    if(fabs(L[2]-Nz_*dz_) > 1e-5*dz_)
+      throw std::runtime_error("Box length incommensurate with lattice in z direction");
+
+    Ntot_ = Nx_*Ny_*Nz_;
+    Nout_ = Nx_*Ny_*((Nz_/2)+1);
+  }
   /**
   *   @brief  Copy constructor for Lattice
   *   @param  ref: the Lattice to be copied

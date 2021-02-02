@@ -149,7 +149,7 @@ class Interaction_Base
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
    */          
-  virtual double generateWeight(int Sx, int Sy, int Sz, double dx) = 0;
+  virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz) = 0;
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -283,7 +283,7 @@ class Interaction_Gauss : public Interaction_Base
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
    */        
-  virtual double generateWeight(int Sx, int Sy, int Sz, double dx);
+  virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz);
   /**
    *   @brief  Returns the kernel of the integral being evaluated
    *  
@@ -293,7 +293,7 @@ class Interaction_Gauss : public Interaction_Base
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
    */        
-  virtual double getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z) = 0;
+  virtual double getKernel(int Sx, int Sy, int Sz, double dx, double dy, double dz, double x, double y, double z) = 0;
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -346,7 +346,7 @@ class Interaction_Gauss_E : public Interaction_Gauss
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
    */        
-  double getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z);
+  double getKernel(int Sx, int Sy, int Sz, double dx, double dy, double dz, double x, double y, double z);
 };
 
 /**
@@ -386,7 +386,7 @@ class Interaction_Gauss_F : public Interaction_Gauss
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
    */      
-  double getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z);
+  double getKernel(int Sx, int Sy, int Sz, double dx, double dy, double dz, double x, double y, double z);
 };
 
 /**
@@ -418,7 +418,7 @@ class Interaction_Interpolation : public Interaction_Base
    *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
    */        
-  virtual double generateWeight(int Sx, int Sy, int Sz, double dx);
+  virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz);
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)

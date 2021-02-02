@@ -49,6 +49,13 @@ class Density : public Lattice
       vWall_.zeros(Ntot_);
     }
 
+  Density(double dx, double dy, double dz, double L[])
+    : Lattice(dx, dy, dz, L), Density_(), vWall_()
+    {
+      Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
+      vWall_.zeros(Ntot_);
+    }  
+
   /**
   *   @brief  Do-nothing  constructor for Density : allows density to be constructed from string.
   *  
@@ -170,7 +177,7 @@ class Density : public Lattice
 	    double z = getZ(k);
 
 	    double d = getDensity(i,j,k);
-	    if(x*x+y*y+z*z < (0.5*Nx_*dx_)*(0.5*Nx_*dx_))
+	    if(x*x+y*y+z*z < (0.5*Nx_*dx_)*(0.5*Nx_*dx_)+(0.5*Ny_*dy_)*(0.5*Ny_*dy_)+(0.5*Nz_*dz_)*(0.5*Nz_*dz_))
 	      {
 		r2 += d*(x*x+y*y+z*z);
 		m += d;

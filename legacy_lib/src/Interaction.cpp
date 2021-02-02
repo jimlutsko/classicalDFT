@@ -221,7 +221,7 @@ void Interaction_Base::generateWeights()
 	if(Sy > Sx || Sz > Sy || Sx*(Sx+1)*(Sx+2)+3*Sy*(Sy+1)+6*Sz != 6*p)
 	  throw std::runtime_error("Bad indices in generateWeights");
 
-	w2[p] = global_factor*generateWeight(Sx, Sy, Sz, dx);
+	w2[p] = global_factor*generateWeight(Sx, Sy, Sz, dx,dy,dz);
 	
 	if(local_count++ % chunk == chunk-1)
 	  {
@@ -282,7 +282,7 @@ void Interaction_Base::generateWeights()
     
 }
 
-double Interaction_Gauss::generateWeight(int Sx, int Sy, int Sz, double dx)
+double Interaction_Gauss::generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz)
 {
   double sum = 0.0;
   for(int Gx=0; Gx < gauss_p.size(); Gx++)
@@ -298,14 +298,14 @@ double Interaction_Gauss::generateWeight(int Sx, int Sy, int Sz, double dx)
 	      double z  = gauss_p[Gz];
 	      double wz = gauss_w[Gz];
 
-	      sum += wx*wy*wz*getKernel(Sx,Sy,Sz,dx,x,y,z);
+	      sum += wx*wy*wz*getKernel(Sx,Sy,Sz,dx,dy,dz,x,y,z);
 	    }
 	}
     }
   return sum;
 }
 
-double Interaction_Gauss_F::getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z)
+double Interaction_Gauss_F::getKernel(int Sx, int Sy, int Sz, double dx, double dy, double dz, double x, double y, double z)
 {
   double sum = 0.0;
 
@@ -314,15 +314,15 @@ double Interaction_Gauss_F::getKernel(int Sx, int Sy, int Sz, double dx, double 
       for(int c=0;c<=1;c++)
 	{
 	  double r2 = (Sx+a-1+x)*(Sx+a-1+x)*dx*dx
-	    + (Sy+b-1+y)*(Sy+b-1+y)*dx*dx
-	    + (Sz+c-1+z)*(Sz+c-1+z)*dx*dx;
+	    + (Sy+b-1+y)*(Sy+b-1+y)*dy*dy
+	    + (Sz+c-1+z)*(Sz+c-1+z)*dz*dz;
 	  
 	  sum += (a == 0 ? x : 1-x)*(b == 0 ? y : 1-y)*(c == 0 ? z : 1-z)*v_->Watt2(r2);
 	}
   return sum;
 }
 
-double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, double x, double y, double z)
+double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, double dy, double dz, double x, double y, double z)
 {
   double sum = 0.0;
 	      
@@ -351,8 +351,8 @@ double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, double 
 	      else             fz *= (1-z)*(1-z)*(1-z);		      
 
 	      double r2 = (Sx+a+x)*(Sx+a+x)*dx*dx
-		+ (Sy+b+y)*(Sy+b+y)*dx*dx
-		+ (Sz+c+z)*(Sz+c+z)*dx*dx;
+		+ (Sy+b+y)*(Sy+b+y)*dy*dy
+		+ (Sz+c+z)*(Sz+c+z)*dz*dz;
 
 	      sum += fx*fy*fz*v_->Watt2(r2);
 	    }
@@ -361,7 +361,7 @@ double Interaction_Gauss_E::getKernel(int Sx, int Sy, int Sz, double dx, double 
   return sum/216;
 }
 
-double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx)
+double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double dx, double dx, double dy, double dz)
 {
   double sum = 0.0;
   
@@ -369,7 +369,7 @@ double Interaction_Interpolation::generateWeight(int Sx, int Sy, int Sz, double 
     for(int j=0;j<vv_.size();j++)
       for(int k=0;k<vv_.size();k++)
 	{
-	  double r2 = (Sx+pt_[i])*(Sx+pt_[i])*dx*dx+(Sy+pt_[j])*(Sy+pt_[j])*dx*dx+(Sz+pt_[k])*(Sz+pt_[k])*dx*dx;
+	  double r2 = (Sx+pt_[i])*(Sx+pt_[i])*dx*dx+(Sy+pt_[j])*(Sy+pt_[j])*dy*dy+(Sz+pt_[k])*(Sz+pt_[k])*dz*dz;
 	  sum += vv_[i]*vv_[j]*vv_[k]*v_->Watt2(r2);
 	}
   return sum;
