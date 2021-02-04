@@ -538,10 +538,19 @@ class Interaction_Gaussian_Density : public Interaction_Interpolation_Zero
   //  executes the basic functionality of computing energies and forces
   virtual double getInteractionEnergyAndForces();
 
+
+  double Klm(double al, double am, double A, double r) const;
+  double dKlm_dal(double al, double am, double A, double r) const;
+  double dKlm_dr(double al, double am, double A, double r) const;
+  
+  double Elm(double al, double am, double Rlm, double A) const;
+  double dElm_dal(double al, double am, double Rlm, double A) const;
+  double dElm_dRlm(double al, double am, double Rlm, double A) const;  
+    
+  
 protected:
   vector<double> r_;  // Gauss-Legendre points
   vector<double> w_;  // Gauss-Legendre weights
-  
 };
 
 #endif // __LUTSKO__INTERACTION__

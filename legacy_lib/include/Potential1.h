@@ -40,30 +40,31 @@ class Potential1
   double V2(double r2) const { return vr2(r2)-shift_;}  ///< The cut and shifted potential at point r calculated from r^2
 
   double Watt(double r) const {return Watt2(r*r);} ///< The attractive tail 
-  
-    /*
-  {
-    double ret = 0.0;    
-    if(r < rcut_)  
-      if(bhFlag_) ret =  (r < getR0() ? 0.0 : V(r)); 
-      else if(r < r_att_min_) ret = 0.0;  
-      else if (r < rmin_) ret = Vmin_;    
-      else ret = V(r);                    
-    
-    return ret;
-  }
-    */
   double Watt2(double r2) const ///< Attractive part calcuated from r2
   {
     double ret = 0.0;
-    if(r2 < rcut_*rcut_)  // zero outside of cutoff      
-      if(bhFlag_) ret =  (r2 < getR0()*getR0() ? 0.0 : V2(r2)); // BH case 
-      else if(r2 < r_att_min_*r_att_min_) ret = 0.0; // Our "generalized" WCA
-      else if (r2 < rmin_*rmin_) ret = Vmin_; // WCA continuation inside rmin
-      else ret = V2(r2); // Just the potential outsize of rmin
+    if(r2 < rcut_*rcut_)  // zero outside of cutoff
+      {
+	if(bhFlag_) ret =  (r2 < getR0()*getR0() ? 0.0 : V2(r2)); // BH case 
+	else if(r2 < r_att_min_*r_att_min_) ret = 0.0; // Our "generalized" WCA
+	else if (r2 < rmin_*rmin_) ret = Vmin_; // WCA continuation inside rmin
+	else ret = V2(r2); // Just the potential outsize of rmin
+      }
     return ret;
   }  
-
+  double dWatt_dr(double r) const
+  { 
+    double ret = 0.0;
+    if(r < rcut_)  // zero outside of cutoff
+      {
+	if(bhFlag_) ret =  (r < getR0() ? 0.0 : dvr_dr(r)); // BH case 
+	else if(r < r_att_min_) ret = 0.0; // Our "generalized" WCA
+	else if (r < rmin_) ret = 0.0; // deriv of constant part is zero
+	else ret = dvr_dr(r); // Just the potential outsize of rmin
+      }
+    return ret;
+  }
+  
   double V0(double r) const ///< The repulsive part of the potential
   {
     if(bhFlag_) return (r < getR0() ? V(r) : 0.0);
@@ -95,7 +96,8 @@ class Potential1
  protected:
   virtual double vr(double r)   const = 0; ///< The underlying potential
   virtual double vr2(double r2) const = 0; ///< The underlying potential
-
+  virtual double dvr_dr(double r) const = 0; ///< Derivative of the underlying potential
+  
   virtual double dBH_Kernal(double r) const {return (1.0-exp(-V0(r)/kT_));}  ///< Kernal for calcuating hsd
   virtual double vdw_Kernal(double r) const {return r*r*Watt(r);}  ///< Kernel for calculating vDW parameter
 
@@ -178,7 +180,15 @@ class LJ : public Potential1
     double y6 = y2*y2*y2;
     return 4*eps_*(y6*y6-y6);
   }
+  virtual double dvr_dr(double r) const
+  {
+    double y = sigma_/r;
+    double y3 = y*y*y;
+    double y6 = y3*y3;
+    return 4*eps_*(-12*y6*y6+6*y6)/r;
+  }
 
+  
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
@@ -261,6 +271,17 @@ class tWF : public Potential1
       double y3 = y*y*y;
       
       return (4*eps_/(alpha_*alpha_))*(y3*y3-alpha_*y3);
+  }
+
+  virtual double dvr_dr(double r) const
+  {
+      if(r < sigma_) return 1e50;
+
+      double s = r/sigma_;
+      double y = 1.0/(s*s-1);
+      double y3 = y*y*y;
+      
+      return (4*eps_/(alpha_*alpha_))*(-6*y3*y3+3*alpha_*y3)*y*2*s/sigma_;
   }  
 
   double alpha_;
@@ -320,6 +341,13 @@ class WHDF : public Potential1
     double y2 = sigma_*sigma_/r2;
     double z2 = rcut_*rcut_/r2;
     return eps_*(y2-1)*(z2-1)*(z2-1);
+  }
+  virtual double dvr_dr(double r) const
+  {
+    double y = sigma_/r;
+    double z = rcut_/r;
+    return eps_*(-2*y*y/r)*(z*z-1)*(z*z-1)
+      + eps_*(y*y-1)*2*(-2*z*z/r)*(z*z-1);
   }  
 };
 
