@@ -751,6 +751,76 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
   throw std::runtime_error("Need to rework Interaction_Gaussian_Density::getInteractionEnergyAndForces()");
   //  F = dynamic_cast<FMT_Gaussian_Species*>(s1_)->FMF(v_->Watt(0)/kT_, v_->getRmin(), r_,w_, dF);
 
+  FMT_Gaussian_Species *s = dynamic_cast<FMT_Gaussian_Species*>(s1_);
+  
+  size_t ng = s->number_of_gaussians();
+  vector<double> dF(5*ng,0.0);
+  
+  for(int l = 0; l < ng; l++)
+    {
+      const Gaussian& gl = s->get_gaussian(l);
+      double xl  = gl.prefactor();
+      double al  = gl.alf();
+      double A   = gl.A();
+      double Rlx = gl.Rx();
+      double Rly = gl.Ry();
+      double Rlz = gl.Rz();
+
+      double dxl_dx = gl.dprefactor_dx();
+      double dxl_da = gl.dprefactor_dalf();
+
+      double E = Ell(al,A);
+      
+      F += 0.5*xl*xl*E;
+      dF[5*l+0] += dxl_dx*xl*E;
+      dF[5*l+1] += dxl_da()*xl*E + 0.5*xl*xl*dEll_dal(al,A);
+      
+      for(int m=l+1; m < ng; m++)
+	{
+	  const Gaussian& gm = s->get_gaussian(m);
+	  double xm  = gm.prefactor();
+	  double am  = gm.alf();
+	  
+	  double dxm_dx = gm.dprefactor_dx();
+	  double dxm_da = gm.dprefactor_dalf();
+	  
+	  double Rmx = gm.Rx();
+	  double Rmy = gm.Ry();
+	  double Rmz = gm.Rz();
+
+	  double Rlmx = Rlx - Rmx;
+	  double Rlmy = Rly - Rmy;
+	  double Rlmz = Rlz - Rmz;
+
+	  vector<vector<double>> images;
+	  s->get_images(Rlmx, Rlmy, Rlmz, (2*A+rc)*(2*A+rc), images);
+
+	  for(auto &R: images)
+	    {
+	      double Rlm = sqrt(R[0]*R[0]+R[1]*R[1]+R[2]*R[2]);
+	      
+	      double E = Elm(al,am,A,Rlm);
+  
+	      F += xl*xm*E;
+
+	      dF[5*l+0] += dxl_dx*xm*E;
+	      dF[5*m+0] += dxm_dx*xl*E;
+  
+	      dF[5*l+1] += dxl_da*xm*E + xl*xm*dElm_dal(al,am,A,Rlm);
+	      dF[5*m+1] += dxm_da*xl*E + xl*xm*dElm_dal(am,al,A,Rlm);
+  
+	      E = dElm_dRlm(al,am,A,Rlm);
+	      dF[5*l+2] += xl*xm*E*(R[0]/Rlm);
+	      dF[5*m+2] -= xl*xm*E*(R[0]/Rlm);
+  
+	      dF[5*l+3] += xl*xm*E*(R[1]/Rlm);
+	      dF[5*m+3] -= xl*xm*E*(R[1]/Rlm);
+  
+	      dF[5*l+4] += xl*xm*E*(R[2]/Rlm);
+	      dF[5*m+4] -= xl*xm*E*(R[2]/Rlm);	  	  	    	      
+	    }
+	}
+    }  
   s1_->addToForce(dF);
   
   return F;
@@ -758,206 +828,256 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 
 
 
-double Interaction_Gaussian_Density::Klm(double al, double am, double A, double r) const
-{
-  double K = 0;
+  double Interaction_Gaussian_Density::Ell(double al, double A) const
+  {
+    double E = 0;
 
-  double alm = al*am/(al+am);
+    double rc = v_->getRcut();
 
-  K += 2*sqrt(al*am/M_PI)*exp(-(al+am)*A*A)*(2*A-r);
-  K += sqrt(am)*exp(-am*A*A)*(erf(-sqrt(al)*(A-r))-erf(sqrt(al)*A));
-  K += sqrt(al)*exp(-al*A*A)*(erf(-sqrt(am)*(A-r))-erf(sqrt(am)*A));
-  K += sqrt(alm)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(am/(al+am))*r));
-  K += sqrt(alm)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(al/(al+am))*r));
-
-  return K;
-}
-
-double Interaction_Gaussian_Density::dKlm_dal(double al, double am, double A, double r) const
-{
-  double dK = 0;
-
-  double alm = al*am/(al+am);
-  double dalm = am*am/((al+am)*(al+am));
+    double a = 0;
+    double b = min(2*A,rc);
   
-  dK += sqrt(am/(al*M_PI))*exp(-(al+am)*A*A)*(2*A-r);
-  dK += 2*sqrt(al*am/M_PI)*(-A*A)*exp(-(al+am)*A*A)*(2*A-r);
+    for(int n=0;n<r_.size(); n++)
+      {
+	double r0 = r_[n];
+	double w0 = w_[n];
 
-  dK += sqrt(am/(al*M_PI))*exp(-am*A*A)*((r-A)*exp(-al*(A-r)*(A-r))-A*exp(-al*A*A));
+	double r = 0.5*(b-a)*r0+0.5*(b+a);
 
-  dK += (0.5/sqrt(al))*exp(-al*A*A)*(erf(-sqrt(am)*(A-r))-erf(sqrt(am)*A));
-  dK += sqrt(al)*(-A*A)*exp(-al*A*A)*(erf(-sqrt(am)*(A-r))-erf(sqrt(am)*A));
+	E += 0.5*(b-a)*w0*M_2_PI*al*exp(-2*al*A*A)*r*v_->Watt(r);
+	E -= 0.5*(b-a)*w0*M_2_PI*al*exp(-al*A*A)*exp(-al*(A-r)*(A-r))*r*v_->Watt(r);
+	E += 0.5*(b-a)*w0*al*sqrt(2*al/M_PI)*exp(-0.5*al*r*r)*erf(sqrt(al/2)*(2*A-r))*r*r*v_->Watt(r);
+      }
+    return E;
+  }
 
-  dK += dalm*(0.5/sqrt(alm))*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(am/(al+am))*r));
-  dK += dalm*sqrt(alm)*(-r*r)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(am/(al+am))*r));
-  dK += (sqrt(al*am/M_PI)/((al+am)*(al+am)))*(A*al+A*am+r*am)*exp(-al*A*A)*exp(-am*(A-r)*(A-r));
+  double Interaction_Gaussian_Density::dEll_dal(double al, double A) const
+  {
+    double E = 0;
+
+    double rc = v_->getRcut();
+
+    double a = 0;
+    double b = min(2*A,rc);
+  
+    for(int n=0;n<r_.size(); n++)
+      {
+	double r0 = r_[n];
+	double w0 = w_[n];
+
+	double r = 0.5*(b-a)*r0+0.5*(b+a);
+
+	E += 0.5*(b-a)*w0*M_2_PI*(1-2*al*A*A)*exp(-2*al*A*A)*r*v_->Watt(r);
+
+	E -= 0.5*(b-a)*w0*M_2_PI*(1-al*A*A-al*(A-r)*(A-r))*exp(-al*A*A)*exp(-al*(A-r)*(A-r))*r*v_->Watt(r);
+
+	E += 0.5*(b-a)*w0*sqrt(2*al/M_PI)*(1.5-0.5*al*r*r)*exp(-0.5*al*r*r)*erf(sqrt(al/2)*(2*A-r))*r*r*v_->Watt(r);
+	E += 0.5*(b-a)*w0*(al/M_PI)*(2*A-r)*exp(-al*A*A)*exp(-al*(A-r)*(A-r))*r*r*v_->Watt(r);      
+      }
+    return E;  
+  }
+
+
+  double Interaction_Gaussian_Density::Klm(double al, double am, double A, double r) const
+  {
+    double K = 0;
+
+    double alm = al*am/(al+am);
+
+    K += 2*sqrt(al*am/M_PI)*exp(-(al+am)*A*A)*(2*A-r);
+    K += sqrt(am)*exp(-am*A*A)*(erf(-sqrt(al)*(A-r))-erf(sqrt(al)*A));
+    K += sqrt(al)*exp(-al*A*A)*(erf(-sqrt(am)*(A-r))-erf(sqrt(am)*A));
+    K += sqrt(alm)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(am/(al+am))*r));
+    K += sqrt(alm)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(al/(al+am))*r));
+
+    return K;
+  }
+
+  double Interaction_Gaussian_Density::dKlm_dal(double al, double am, double A, double r) const
+  {
+    double dK = 0;
+
+    double alm = al*am/(al+am);
+    double dalm = am*am/((al+am)*(al+am));
+  
+    dK += sqrt(am/(al*M_PI))*exp(-(al+am)*A*A)*(2*A-r);
+    dK += 2*sqrt(al*am/M_PI)*(-A*A)*exp(-(al+am)*A*A)*(2*A-r);
+
+    dK += sqrt(am/(al*M_PI))*exp(-am*A*A)*((r-A)*exp(-al*(A-r)*(A-r))-A*exp(-al*A*A));
+
+    dK += (0.5/sqrt(al))*exp(-al*A*A)*(erf(-sqrt(am)*(A-r))-erf(sqrt(am)*A));
+    dK += sqrt(al)*(-A*A)*exp(-al*A*A)*(erf(-sqrt(am)*(A-r))-erf(sqrt(am)*A));
+
+    dK += dalm*(0.5/sqrt(alm))*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(am/(al+am))*r));
+    dK += dalm*sqrt(alm)*(-r*r)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(am/(al+am))*r));
+    dK += (sqrt(al*am/M_PI)/((al+am)*(al+am)))*(A*al+A*am+r*am)*exp(-al*A*A)*exp(-am*(A-r)*(A-r));
       
-  dK += dalm*(0.5/sqrt(alm))*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(al/(al+am))*r));
-  dK += dalm*sqrt(alm)*(-r*r)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(al/(al+am))*r));
-  dK += (sqrt(al*am/M_PI)/((al+am)*(al+am)))*(A*al+A*am-r*al-2*r*am)*exp(-am*A*A)*exp(-al*(A-r)*(A-r));  
+    dK += dalm*(0.5/sqrt(alm))*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(al/(al+am))*r));
+    dK += dalm*sqrt(alm)*(-r*r)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(al/(al+am))*r));
+    dK += (sqrt(al*am/M_PI)/((al+am)*(al+am)))*(A*al+A*am-r*al-2*r*am)*exp(-am*A*A)*exp(-al*(A-r)*(A-r));  
 
-  return dK;
-}
+    return dK;
+  }
 
-double Interaction_Gaussian_Density::dKlm_dr(double al, double am, double A, double r) const
-{
-  double dK = 0;
+  double Interaction_Gaussian_Density::dKlm_dr(double al, double am, double A, double r) const
+  {
+    double dK = 0;
 
-  double alm = al*am/(al+am);
+    double alm = al*am/(al+am);
 
-  dK += 2*sqrt(al*am/M_PI)*exp(-(al+am)*A*A)*(-1);
+    dK += 2*sqrt(al*am/M_PI)*exp(-(al+am)*A*A)*(-1);
 
-  dK += 2*sqrt(al/M_PI)*sqrt(am)*exp(-am*A*A)*exp(-al*(A-r)*(A-r));
+    dK += 2*sqrt(al/M_PI)*sqrt(am)*exp(-am*A*A)*exp(-al*(A-r)*(A-r));
 
-  dK += 2*sqrt(am/M_PI)*sqrt(al)*exp(-al*A*A)*exp(-am*(A-r)*(A-r));  
+    dK += 2*sqrt(am/M_PI)*sqrt(al)*exp(-al*A*A)*exp(-am*(A-r)*(A-r));  
   
-  dK += sqrt(alm)*(-2*alm*r)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(am/(al+am))*r));
-  dK += -M_2_SQRTPI*(am*sqrt(al*am)/(al+am))*exp(-al*A*A)*exp(-am*(A-r)*(A-r));
+    dK += sqrt(alm)*(-2*alm*r)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(am/(al+am))*r));
+    dK += -M_2_SQRTPI*(am*sqrt(al*am)/(al+am))*exp(-al*A*A)*exp(-am*(A-r)*(A-r));
   
-  dK += sqrt(alm)*(-2*alm*r)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(al/(al+am))*r));
-  dK += -M_2_SQRTPI*(al*sqrt(al*am)/(al+am))*exp(-am*A*A)*exp(-al*(A-r)*(A-r));
+    dK += sqrt(alm)*(-2*alm*r)*exp(-alm*r*r)*erf(sqrt(al+am)*(A-(al/(al+am))*r));
+    dK += -M_2_SQRTPI*(al*sqrt(al*am)/(al+am))*exp(-am*A*A)*exp(-al*(A-r)*(A-r));
 
-  return dK;
-}
+    return dK;
+  }
 
-double Interaction_Gaussian_Density::Elm(double al, double am, double Rlm, double A) const
-{
-  double E = 0;
+  double Interaction_Gaussian_Density::Elm(double al, double am, double Rlm, double A) const
+  {
+    double E = 0;
 
-  double rc = v_->getRcut();
+    double rc = v_->getRcut();
   
-  for(int n=0;n<r_.size(); n++)
-    {
-      double r0 = r_[n];
-      double w0 = w_[n];
+    for(int n=0;n<r_.size(); n++)
+      {
+	double r0 = r_[n];
+	double w0 = w_[n];
 
-      if(2*A > Rlm)
-	{
-	  double a = 0;
-	  double b = min(rc, 2*A-Rlm);
+	if(2*A > Rlm)
+	  {
+	    double a = 0;
+	    double b = min(rc, 2*A-Rlm);
+	    double r = 0.5*(b-a)*r0+0.5*(b+a);
+	    E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm+r)*r*v_->Watt(r);
+
+	    b = min(rc, Rlm);
+	    r = 0.5*(b-a)*r0+0.5*(b+a);
+	    E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r);
+	  } else if(2*A+rc > Rlm) {		  
+	  double a = Rlm-2*A;
+	  double b = min(rc, Rlm);
 	  double r = 0.5*(b-a)*r0+0.5*(b+a);
-	  E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm+r)*r*v_->Watt(r);
-
-	  b = min(rc, Rlm);
-	  r = 0.5*(b-a)*r0+0.5*(b+a);
 	  E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r);
-	} else if(2*A+rc > Rlm) {		  
-	double a = Rlm-2*A;
-	double b = min(rc, Rlm);
-	double r = 0.5*(b-a)*r0+0.5*(b+a);
-	E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r);
-      }
-      if(Rlm < rc)
-	{
-	  double a = Rlm;
-	  double b = min(rc, Rlm+2*A);
-	  double r = 0.5*(b-a)*r0+0.5*(b+a);
-	  E += 0.5*(b-a)*w0*Klm(al,am,A,r-Rlm)*r*v_->Watt(r);
 	}
-    }
-  return E;
-}
-
-double Interaction_Gaussian_Density::dElm_dal(double al, double am, double Rlm, double A) const
-{
-  double E = 0;
-
-  double rc = v_->getRcut();
-  
-  for(int n=0;n<r_.size(); n++)
-    {
-      double r0 = r_[n];
-      double w0 = w_[n];      
-
-      if(2*A > Rlm)
-	{
-	  double a = 0;
-	  double b = min(rc, 2*A-Rlm);
-	  double r = 0.5*(b-a)*r0+0.5*(b+a);
-	  E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,Rlm+r)*r*v_->Watt(r);
-
-	  b = min(rc, Rlm);
-	  r = 0.5*(b-a)*r0+0.5*(b+a);
-	  E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,Rlm-r)*r*v_->Watt(r);	  
-	} else if(2*A+rc > Rlm) {		  
-	double a = Rlm-2*A;
-	double b = min(rc, Rlm);
-	double r = 0.5*(b-a)*r0+0.5*(b+a);
-	E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,Rlm-r)*r*v_->Watt(r);	
+	if(Rlm < rc)
+	  {
+	    double a = Rlm;
+	    double b = min(rc, Rlm+2*A);
+	    double r = 0.5*(b-a)*r0+0.5*(b+a);
+	    E += 0.5*(b-a)*w0*Klm(al,am,A,r-Rlm)*r*v_->Watt(r);
+	  }
       }
-      if(Rlm < rc)
-	{
-	  double a = Rlm;
-	  double b = min(rc, Rlm+2*A);
+    return E;
+  }
+
+  double Interaction_Gaussian_Density::dElm_dal(double al, double am, double Rlm, double A) const
+  {
+    double E = 0;
+
+    double rc = v_->getRcut();
+  
+    for(int n=0;n<r_.size(); n++)
+      {
+	double r0 = r_[n];
+	double w0 = w_[n];      
+
+	if(2*A > Rlm)
+	  {
+	    double a = 0;
+	    double b = min(rc, 2*A-Rlm);
+	    double r = 0.5*(b-a)*r0+0.5*(b+a);
+	    E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,Rlm+r)*r*v_->Watt(r);
+
+	    b = min(rc, Rlm);
+	    r = 0.5*(b-a)*r0+0.5*(b+a);
+	    E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,Rlm-r)*r*v_->Watt(r);	  
+	  } else if(2*A+rc > Rlm) {		  
+	  double a = Rlm-2*A;
+	  double b = min(rc, Rlm);
 	  double r = 0.5*(b-a)*r0+0.5*(b+a);
-	  E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,r-Rlm)*r*v_->Watt(r);		  
+	  E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,Rlm-r)*r*v_->Watt(r);	
 	}
-    }
-  return E;  
-}
-
-
-double Interaction_Gaussian_Density::dElm_dRlm(double al, double am, double Rlm, double A) const
-{
-  double E = 0;
-
-  double rc = v_->getRcut();
-  
-  for(int n=0;n<r_.size(); n++)
-    {
-      double r0 = r_[n];
-      double w0 = w_[n];
-
-      if(2*A > Rlm)
-	{
-	  double a = 0;
-	  double b = min(rc, 2*A-Rlm);
-	  double r = 0.5*(b-a)*r0+0.5*(b+a);
-
-	  double da = 0.0;
-	  double db = (2*A-Rlm < rc ? -1 : 0.0);
-	  double dr = 0.5*(db-da)*r0+0.5*(db+da);
-	  
-	  E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm+r)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
-	  E += 0.5*(db-da)*w0*Klm(al,am,A,Rlm+r)*r*v_->Watt(r);
-	  E += 0.5*(b-a)*w0*(1+dr)*dKlm_dr(al,am,A,Rlm+r)*r*v_->Watt(r);
-
-	  b = min(rc, Rlm);
-	  db = (Rlm < rc ? 1.0 : 0.0);
-	  dr = 0.5*(db-da)*r0+0.5*(db+da);	  	  
-	  r = 0.5*(b-a)*r0+0.5*(b+a);
-	  
-	  E += 0.5*(db-da)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r);
-	  E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
-	  E += 0.5*(b-a)*w0*(1-dr)*dKlm_dr(al,am,A,Rlm-r)*r*v_->Watt(r);
-	  
-	} else if(2*A+rc > Rlm) {		  
-	double a = Rlm-2*A;
-	double b = min(rc, Rlm);
-	double r = 0.5*(b-a)*r0+0.5*(b+a);
-
-	double da = 1.0;
-	double db = (Rlm < rc ? 1.0 :0.0);
-	double dr = 0.5*(db-da)*r0+0.5*(db+da);
-	
-	E += 0.5*(db-da)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r);
-	E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
-	E += 0.5*(b-a)*w0*(1-dr)*dKlm_dr(al,am,A,Rlm-r)*r*v_->Watt(r);	
+	if(Rlm < rc)
+	  {
+	    double a = Rlm;
+	    double b = min(rc, Rlm+2*A);
+	    double r = 0.5*(b-a)*r0+0.5*(b+a);
+	    E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,r-Rlm)*r*v_->Watt(r);		  
+	  }
       }
-      if(Rlm < rc)
-	{
-	  double a = Rlm;
-	  double b = min(rc, Rlm+2*A);
+    return E;  
+  }
+
+
+  double Interaction_Gaussian_Density::dElm_dRlm(double al, double am, double Rlm, double A) const
+  {
+    double E = 0;
+
+    double rc = v_->getRcut();
+  
+    for(int n=0;n<r_.size(); n++)
+      {
+	double r0 = r_[n];
+	double w0 = w_[n];
+
+	if(2*A > Rlm)
+	  {
+	    double a = 0;
+	    double b = min(rc, 2*A-Rlm);
+	    double r = 0.5*(b-a)*r0+0.5*(b+a);
+
+	    double da = 0.0;
+	    double db = (2*A-Rlm < rc ? -1 : 0.0);
+	    double dr = 0.5*(db-da)*r0+0.5*(db+da);
+	  
+	    E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm+r)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
+	    E += 0.5*(db-da)*w0*Klm(al,am,A,Rlm+r)*r*v_->Watt(r);
+	    E += 0.5*(b-a)*w0*(1+dr)*dKlm_dr(al,am,A,Rlm+r)*r*v_->Watt(r);
+
+	    b = min(rc, Rlm);
+	    db = (Rlm < rc ? 1.0 : 0.0);
+	    dr = 0.5*(db-da)*r0+0.5*(db+da);	  	  
+	    r = 0.5*(b-a)*r0+0.5*(b+a);
+	  
+	    E += 0.5*(db-da)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r);
+	    E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
+	    E += 0.5*(b-a)*w0*(1-dr)*dKlm_dr(al,am,A,Rlm-r)*r*v_->Watt(r);
+	  
+	  } else if(2*A+rc > Rlm) {		  
+	  double a = Rlm-2*A;
+	  double b = min(rc, Rlm);
 	  double r = 0.5*(b-a)*r0+0.5*(b+a);
 
 	  double da = 1.0;
-	  double db = (Rlm+2*A < rc ? 1.0 : 0.0);
+	  double db = (Rlm < rc ? 1.0 :0.0);
 	  double dr = 0.5*(db-da)*r0+0.5*(db+da);
-	  
-	  E += 0.5*(db-da)*w0*Klm(al,am,A,r-Rlm)*r*v_->Watt(r);
-	  E += 0.5*(b-a)*w0*Klm(al,am,A,r-Rlm)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
-	  E += 0.5*(b-a)*w0*(dr-1)*dKlm_dr(al,am,A,r-Rlm)*r*v_->Watt(r);		  
+	
+	  E += 0.5*(db-da)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r);
+	  E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
+	  E += 0.5*(b-a)*w0*(1-dr)*dKlm_dr(al,am,A,Rlm-r)*r*v_->Watt(r);	
 	}
-    }
-  return E;  
-}
+	if(Rlm < rc)
+	  {
+	    double a = Rlm;
+	    double b = min(rc, Rlm+2*A);
+	    double r = 0.5*(b-a)*r0+0.5*(b+a);
+
+	    double da = 1.0;
+	    double db = (Rlm+2*A < rc ? 1.0 : 0.0);
+	    double dr = 0.5*(db-da)*r0+0.5*(db+da);
+	  
+	    E += 0.5*(db-da)*w0*Klm(al,am,A,r-Rlm)*r*v_->Watt(r);
+	    E += 0.5*(b-a)*w0*Klm(al,am,A,r-Rlm)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
+	    E += 0.5*(b-a)*w0*(dr-1)*dKlm_dr(al,am,A,r-Rlm)*r*v_->Watt(r);		  
+	  }
+      }
+    return E;  
+  }

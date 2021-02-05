@@ -6,6 +6,7 @@
 #include "Gaussian.h"
 
 
+
 class GaussianDensity : public Density
 {
  public:

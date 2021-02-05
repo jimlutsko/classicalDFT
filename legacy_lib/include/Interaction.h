@@ -542,6 +542,9 @@ class Interaction_Gaussian_Density : public Interaction_Interpolation_Zero
   double Klm(double al, double am, double A, double r) const;
   double dKlm_dal(double al, double am, double A, double r) const;
   double dKlm_dr(double al, double am, double A, double r) const;
+
+  double Ell(double al, double A) const;
+  double dEll_dal(double al, double A) const;
   
   double Elm(double al, double am, double Rlm, double A) const;
   double dElm_dal(double al, double am, double Rlm, double A) const;

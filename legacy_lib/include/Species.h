@@ -414,6 +414,9 @@ public:
   FMT_Gaussian_Species(const FMT_Gaussian_Species &) = delete;  
   ~FMT_Gaussian_Species(){}
 
+  int number_of_gaussians() const { return (static_cast<GaussianDensity*>(&density_))->number_of_gaussians();}
+  const Gaussian& get_gaussian(int ig) const { return (static_cast<GaussianDensity*>(&density_))->get_gaussian(ig);}
+  
   virtual void set_density_from_alias(const DFT_Vec &x);
   virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const {} // do nothing

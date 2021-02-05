@@ -20,6 +20,78 @@ void GaussianDensity::get_dN(int ig, double &dN_dx, double &dN_dalf) const
   dN_dalf = g.dprefactor_dalf();
 }
 
+
+void GaussianDensity::get_images(double Rx, double Ry, double Rz, vector<vector<double>> &images) const
+{
+  // find nearest image
+  
+  while(Rx > L_[0]/2) Rx -= L_[0]; while(Rx < -L_[0]/2) Rx += L_[0];
+  while(Ry > L_[1]/2) Ry -= L_[1]; while(Ry < -L_[1]/2) Ry += L_[1];
+  while(Rz > L_[2]/2) Rz -= L_[2]; while(Rz < -L_[2]/2) Rz += L_[2];
+
+  for(double Rx = Rlmx; Rx*Rx+Rlmy*Rlmy+Rlmz*Rlmz <  R2max; Rx += L_[0])
+    {
+      for(double Ry = Rlmy; Rx*Rx+Ry*Ry+Rlmz*Rlmz < R2max; Ry += L_[1])
+	{
+	  for(double Rz = Rlmz; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz += L_[2])
+	    {
+	      vector<double> R{Rx,Ry,Rz};
+	      images.push_back(R);
+	    }
+	  for(double Rz = Rlmz-L_[2]; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz -= L_[2])
+	    {
+	      vector<double> R{Rx,Ry,Rz};
+	      images.push_back(R);
+	    }	    
+	}
+      for(double Ry = Rlmy-L_[1]; Rx*Rx+Ry*Ry+Rlmz*Rlmz < R2max; Ry -= L_[1])
+	{
+	  for(double Rz = Rlmz; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz += L_[2])
+	    {
+	      vector<double> R{Rx,Ry,Rz};
+	      images.push_back(R);
+	    }	    
+	  for(double Rz = Rlmz-L_[2]; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz -= L_[2])
+	    {
+	      vector<double> R{Rx,Ry,Rz};
+	      images.push_back(R);
+	    }	    
+	}
+    }
+  for(double Rx = rx-L_[0]; Rx*Rx+ry*ry+rz*rz <  R2max; Rx -= L_[0])
+    {
+      for(double Ry = ry; Rx*Rx+Ry*Ry+rz*rz < R2max; Ry += L_[1])
+	{
+	  for(double Rz = rz; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz += L_[2])
+	    {
+	      vector<double> R{Rx,Ry,Rz};
+	      images.push_back(R);
+	    }	    
+	  for(double Rz = rz-L_[2]; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz -= L_[2])
+	    {
+	      vector<double> R{Rx,Ry,Rz};
+	      images.push_back(R);
+	    }	    
+	}
+      for(double Ry = ry-L_[1]; Rx*Rx+Ry*Ry+rz*rz < R2max; Ry -= L_[1])
+	{
+	  for(double Rz = rz; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz += L_[2])
+	    {
+	      vector<double> R{Rx,Ry,Rz};
+	      images.push_back(R);
+	    }	    
+	  for(double Rz = rz-L_[2]; Rx*Rx+Ry*Ry+Rz*Rz < R2max; Rz -= L_[2])
+	    {
+	      vector<double> R{Rx,Ry,Rz};
+	      images.push_back(R);
+	    }	    
+	}
+    }  
+  
+  
+
+}
+
 void GaussianDensity::get_measures(double rx1, double ry1, double rz1, double hsd, FundamentalMeasures &fm) const
 {
   // maximum range for a non-zero contribution is A+R
