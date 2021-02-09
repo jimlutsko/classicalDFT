@@ -721,14 +721,12 @@ Interaction_Gaussian_Density::Interaction_Gaussian_Density(FMT_Gaussian_Species 
   Interaction_Interpolation_Zero(s1,s2,v,kT), r_(n_gauss_legendre), w_(n_gauss_legendre)
 {
   const gsl_integration_fixed_type * T = gsl_integration_fixed_legendre;
-  //  gsl_integration_fixed_workspace * w = gsl_integration_fixed_alloc(T, n_gauss_legendre, v->getRmin(), v->getRcut(), 0.0, 0.0);
   gsl_integration_fixed_workspace * w = gsl_integration_fixed_alloc(T, n_gauss_legendre, -1, 1, 0.0, 0.0);
   
   for(int i=0;i<n_gauss_legendre;i++)
     {
       r_[i] = gsl_integration_fixed_nodes(w)[i];
       w_[i] = gsl_integration_fixed_weights(w)[i];
-      //      w_[i] *= v->Watt(r_[i])/kT;
     }
   
   gsl_integration_fixed_free(w);
@@ -739,22 +737,19 @@ void Interaction_Gaussian_Density::initialize()
   Interaction_Interpolation_Zero::initialize();
 }
 
-
 double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 {
-  double F = 0.0;
-
   if(s1_ != s2_) throw std::runtime_error("Interaction_Gaussian_Density::getInteractionEnergyAndForces only implemented for single species");
 
-  DFT_Vec dF;
-
-  throw std::runtime_error("Need to rework Interaction_Gaussian_Density::getInteractionEnergyAndForces()");
+  //  throw std::runtime_error("Need to rework Interaction_Gaussian_Density::getInteractionEnergyAndForces()");
   //  F = dynamic_cast<FMT_Gaussian_Species*>(s1_)->FMF(v_->Watt(0)/kT_, v_->getRmin(), r_,w_, dF);
 
   FMT_Gaussian_Species *s = dynamic_cast<FMT_Gaussian_Species*>(s1_);
   
   size_t ng = s->number_of_gaussians();
   vector<double> dF(5*ng,0.0);
+
+  double F = 0.0;
   
   for(int l = 0; l < ng; l++)
     {
@@ -773,7 +768,7 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
       
       F += 0.5*xl*xl*E;
       dF[5*l+0] += dxl_dx*xl*E;
-      dF[5*l+1] += dxl_da()*xl*E + 0.5*xl*xl*dEll_dal(al,A);
+      dF[5*l+1] += dxl_da*xl*E + 0.5*xl*xl*dEll_dal(al,A);
       
       for(int m=l+1; m < ng; m++)
 	{
@@ -793,89 +788,102 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 	  double Rlmz = Rlz - Rmz;
 
 	  vector<vector<double>> images;
-	  s->get_images(Rlmx, Rlmy, Rlmz, (2*A+rc)*(2*A+rc), images);
+	  s->get_images(Rlmx, Rlmy, Rlmz, (2*A+v_->getRcut())*(2*A+v_->getRcut()), images);
 
 	  for(auto &R: images)
 	    {
-	      double Rlm = sqrt(R[0]*R[0]+R[1]*R[1]+R[2]*R[2]);
+	      if(l == m) // self-interaction already accounted for.
+		if(R == images[0])
+		  continue; 	      
 	      
-	      double E = Elm(al,am,A,Rlm);
-  
-	      F += xl*xm*E;
+	      double Rlm = sqrt(R[0]*R[0]+R[1]*R[1]+R[2]*R[2]);
 
-	      dF[5*l+0] += dxl_dx*xm*E;
-	      dF[5*m+0] += dxm_dx*xl*E;
+	      double E = Elm(al,am,Rlm,A);
+
+	      if(l == m)
+		{
+		  F += 0.5*xl*xm*E;
+	     
+		  dF[5*l+0] += dxl_dx*xm*E;
+		  dF[5*l+1] += dxl_da*xm*E + xl*xm*dElm_dal(al,am,Rlm,A);
+		} else {
+
+		F += xl*xm*E;
+
+		dF[5*l+0] += dxl_dx*xm*E;
+		dF[5*m+0] += dxm_dx*xl*E;
   
-	      dF[5*l+1] += dxl_da*xm*E + xl*xm*dElm_dal(al,am,A,Rlm);
-	      dF[5*m+1] += dxm_da*xl*E + xl*xm*dElm_dal(am,al,A,Rlm);
+		dF[5*l+1] += dxl_da*xm*E + xl*xm*dElm_dal(al,am,Rlm,A);
+		dF[5*m+1] += dxm_da*xl*E + xl*xm*dElm_dal(am,al,Rlm,A);
+
+		double dE = xl*xm*dElm_dRlm(al,am,Rlm,A);
+
+		dF[5*l+2] += dE*(R[0]/Rlm);
+		dF[5*m+2] -= dE*(R[0]/Rlm);
   
-	      E = dElm_dRlm(al,am,A,Rlm);
-	      dF[5*l+2] += xl*xm*E*(R[0]/Rlm);
-	      dF[5*m+2] -= xl*xm*E*(R[0]/Rlm);
+		dF[5*l+3] += dE*(R[1]/Rlm);
+		dF[5*m+3] -= dE*(R[1]/Rlm);
   
-	      dF[5*l+3] += xl*xm*E*(R[1]/Rlm);
-	      dF[5*m+3] -= xl*xm*E*(R[1]/Rlm);
-  
-	      dF[5*l+4] += xl*xm*E*(R[2]/Rlm);
-	      dF[5*m+4] -= xl*xm*E*(R[2]/Rlm);	  	  	    	      
+		dF[5*l+4] += dE*(R[2]/Rlm);
+		dF[5*m+4] -= dE*(R[2]/Rlm);
+		
+	      }
 	    }
-	}
-    }  
-  s1_->addToForce(dF);
-  
+	}      
+    }
+  s->addToGaussianForce(dF);  
   return F;
 }
 
+double Interaction_Gaussian_Density::Ell(double al, double A) const
+{
+  double E = 0;
 
+  double rc = v_->getRcut();
 
-  double Interaction_Gaussian_Density::Ell(double al, double A) const
-  {
-    double E = 0;
-
-    double rc = v_->getRcut();
-
-    double a = 0;
-    double b = min(2*A,rc);
+  double a = 0;
+  double b = min(2*A,rc);
   
-    for(int n=0;n<r_.size(); n++)
-      {
-	double r0 = r_[n];
-	double w0 = w_[n];
+  for(int n=0;n<r_.size(); n++)
+    {
+      double r0 = r_[n];
+      double w0 = w_[n];
 
-	double r = 0.5*(b-a)*r0+0.5*(b+a);
+      double r = 0.5*(b-a)*r0+0.5*(b+a);
 
-	E += 0.5*(b-a)*w0*M_2_PI*al*exp(-2*al*A*A)*r*v_->Watt(r);
-	E -= 0.5*(b-a)*w0*M_2_PI*al*exp(-al*A*A)*exp(-al*(A-r)*(A-r))*r*v_->Watt(r);
-	E += 0.5*(b-a)*w0*al*sqrt(2*al/M_PI)*exp(-0.5*al*r*r)*erf(sqrt(al/2)*(2*A-r))*r*r*v_->Watt(r);
-      }
-    return E;
-  }
+      E += 0.5*(b-a)*w0*M_2_PI*al*exp(-2*al*A*A)*r*v_->Watt(r);
+      E -= 0.5*(b-a)*w0*M_2_PI*al*exp(-al*A*A)*exp(-al*(A-r)*(A-r))*r*v_->Watt(r);
+      E += 0.5*(b-a)*w0*al*sqrt(2*al/M_PI)*exp(-0.5*al*r*r)*erf(sqrt(al/2)*(2*A-r))*r*r*v_->Watt(r);
+    }
 
-  double Interaction_Gaussian_Density::dEll_dal(double al, double A) const
-  {
-    double E = 0;
+  return E;
+}
 
-    double rc = v_->getRcut();
+double Interaction_Gaussian_Density::dEll_dal(double al, double A) const
+{
+  double E = 0;
 
-    double a = 0;
-    double b = min(2*A,rc);
+  double rc = v_->getRcut();
+
+  double a = 0;
+  double b = min(2*A,rc);
   
-    for(int n=0;n<r_.size(); n++)
-      {
-	double r0 = r_[n];
-	double w0 = w_[n];
+  for(int n=0;n<r_.size(); n++)
+    {
+      double r0 = r_[n];
+      double w0 = w_[n];
 
-	double r = 0.5*(b-a)*r0+0.5*(b+a);
+      double r = 0.5*(b-a)*r0+0.5*(b+a);
 
-	E += 0.5*(b-a)*w0*M_2_PI*(1-2*al*A*A)*exp(-2*al*A*A)*r*v_->Watt(r);
+      E += 0.5*(b-a)*w0*M_2_PI*(1-2*al*A*A)*exp(-2*al*A*A)*r*v_->Watt(r);
 
-	E -= 0.5*(b-a)*w0*M_2_PI*(1-al*A*A-al*(A-r)*(A-r))*exp(-al*A*A)*exp(-al*(A-r)*(A-r))*r*v_->Watt(r);
+      E -= 0.5*(b-a)*w0*M_2_PI*(1-al*A*A-al*(A-r)*(A-r))*exp(-al*A*A)*exp(-al*(A-r)*(A-r))*r*v_->Watt(r);
 
-	E += 0.5*(b-a)*w0*sqrt(2*al/M_PI)*(1.5-0.5*al*r*r)*exp(-0.5*al*r*r)*erf(sqrt(al/2)*(2*A-r))*r*r*v_->Watt(r);
-	E += 0.5*(b-a)*w0*(al/M_PI)*(2*A-r)*exp(-al*A*A)*exp(-al*(A-r)*(A-r))*r*r*v_->Watt(r);      
-      }
-    return E;  
-  }
+      E += 0.5*(b-a)*w0*sqrt(2*al/M_PI)*(1.5-0.5*al*r*r)*exp(-0.5*al*r*r)*erf(sqrt(al/2)*(2*A-r))*r*r*v_->Watt(r);
+      E += 0.5*(b-a)*w0*(al/M_PI)*(2*A-r)*exp(-al*A*A)*exp(-al*(A-r)*(A-r))*r*r*v_->Watt(r);      
+    }
+  return E;  
+}
 
 
   double Interaction_Gaussian_Density::Klm(double al, double am, double A, double r) const
@@ -883,7 +891,7 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
     double K = 0;
 
     double alm = al*am/(al+am);
-
+    
     K += 2*sqrt(al*am/M_PI)*exp(-(al+am)*A*A)*(2*A-r);
     K += sqrt(am)*exp(-am*A*A)*(erf(-sqrt(al)*(A-r))-erf(sqrt(al)*A));
     K += sqrt(al)*exp(-al*A*A)*(erf(-sqrt(am)*(A-r))-erf(sqrt(am)*A));
@@ -945,7 +953,7 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
     double E = 0;
 
     double rc = v_->getRcut();
-  
+
     for(int n=0;n<r_.size(); n++)
       {
 	double r0 = r_[n];
@@ -956,26 +964,26 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 	    double a = 0;
 	    double b = min(rc, 2*A-Rlm);
 	    double r = 0.5*(b-a)*r0+0.5*(b+a);
-	    E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm+r)*r*v_->Watt(r);
+	    E -= 0.5*(b-a)*w0*Klm(al,am,A,Rlm+r)*r*v_->Watt(r);
 
 	    b = min(rc, Rlm);
 	    r = 0.5*(b-a)*r0+0.5*(b+a);
 	    E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r);
 	  } else if(2*A+rc > Rlm) {		  
 	  double a = Rlm-2*A;
-	  double b = min(rc, Rlm);
+	  double b = min(rc, Rlm); 
 	  double r = 0.5*(b-a)*r0+0.5*(b+a);
-	  E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r);
+	  E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm-r)*r*v_->Watt(r); 
 	}
-	if(Rlm < rc)
+	if(rc > Rlm)
 	  {
 	    double a = Rlm;
-	    double b = min(rc, Rlm+2*A);
+	    double b = min(rc, Rlm+2*A); 
 	    double r = 0.5*(b-a)*r0+0.5*(b+a);
-	    E += 0.5*(b-a)*w0*Klm(al,am,A,r-Rlm)*r*v_->Watt(r);
+	    E += 0.5*(b-a)*w0*Klm(al,am,A,r-Rlm)*r*v_->Watt(r); 
 	  }
       }
-    return E;
+    return E*M_2_SQRTPI/(4*Rlm);
   }
 
   double Interaction_Gaussian_Density::dElm_dal(double al, double am, double Rlm, double A) const
@@ -994,7 +1002,7 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 	    double a = 0;
 	    double b = min(rc, 2*A-Rlm);
 	    double r = 0.5*(b-a)*r0+0.5*(b+a);
-	    E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,Rlm+r)*r*v_->Watt(r);
+	    E -= 0.5*(b-a)*w0*dKlm_dal(al,am,A,Rlm+r)*r*v_->Watt(r);
 
 	    b = min(rc, Rlm);
 	    r = 0.5*(b-a)*r0+0.5*(b+a);
@@ -1013,7 +1021,7 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 	    E += 0.5*(b-a)*w0*dKlm_dal(al,am,A,r-Rlm)*r*v_->Watt(r);		  
 	  }
       }
-    return E;  
+    return E*M_2_SQRTPI/(4*Rlm);  
   }
 
 
@@ -1079,5 +1087,7 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 	    E += 0.5*(b-a)*w0*(dr-1)*dKlm_dr(al,am,A,r-Rlm)*r*v_->Watt(r);		  
 	  }
       }
-    return E;  
+    E *= M_2_SQRTPI/(4*Rlm);
+    E -= Elm(al,am,Rlm,A)/Rlm;
+    return E;
   }

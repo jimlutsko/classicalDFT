@@ -56,14 +56,20 @@ void Gaussian::update_cache()
 
   // ideal-gas stuff
   double fac1 = (erf_A_-M_2_SQRTPI*sq_alf_*Acut_*exp_A_);
-  double fac = (log(prefactor_)+1.5*log(alf_)-2.5)*fac1+M_2_SQRTPI*alf_*sq_alf_*Acut_*Acut_*Acut_*exp_A_;
+  double fac2 = log(prefactor_)+1.5*log(alf_)-2.5;
+  double fac3 = M_2_SQRTPI*alf_*sq_alf_*Acut_*Acut_*Acut_*exp_A_;
+
+  double fac = fac1*fac2+fac3;
+
+  double dfac1_da = M_2_SQRTPI*Acut_*Acut_*Acut_*sq_alf_*exp_A_;
+  double dfac2_da = 1.5/alf_;
+  double dfac3_da = 0.5*M_2_SQRTPI*sq_alf_*Acut_*Acut_*Acut_*exp_A_*(3-2*alf_*Acut_*Acut_);
+
+  f_id_      = prefactor_*(fac1*fac2+fac3);
   
-  f_id_ = prefactor_*fac;
-  df_id_dx_ = dprefactor_dx_*(fac+fac1);
-  df_id_da_ = dprefactor_dalf_*(fac+fac1);
-  df_id_da_ += prefactor_*1.5*erf_A_/alf_;
-  df_id_da_ += prefactor_*exp_A_*((log(prefactor_)+1.5*log(alf_)-alf_*Acut_*Acut_-1)*M_2_SQRTPI*Acut_*Acut_*Acut_*sq_alf_-1.5*M_2_SQRTPI*Acut_/alf_);  
-  
+  df_id_dx_  = dprefactor_dx_*(fac1*fac2+fac3+fac1);
+  df_id_da_  = dprefactor_dalf_*(fac1*fac2+fac3+fac1);
+  df_id_da_ += prefactor_*(dfac1_da*fac2+fac1*dfac2_da+dfac3_da);  
 }
 
 void Gaussian::get_parameters(double &x, double &alf, double &Rx, double &Ry, double &Rz) const
@@ -73,7 +79,9 @@ void Gaussian::get_parameters(double &x, double &alf, double &Rx, double &Ry, do
   Ry  = Ry_;
   Rz  = Rz_;
 
-  double z    = sqrt(alf_)*hsd_/2;
+  double R    = hsd_/2;    
+  double z    = sqrt(alf)*min(R,Acut_);  
+    //  double z    = sqrt(alf_)*hsd_/2;
   double xmax = 1.0/(erf(z)-M_2_SQRTPI*z*exp(-z*z));
 
   x = ginv(prefactor_/xmax);

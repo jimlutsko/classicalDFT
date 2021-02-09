@@ -43,7 +43,8 @@ class GaussianDensity : public Density
   }
 
   const Gaussian& get_gaussian(int ig) const { return gaussians_[ig];}
-  
+
+  void get_images(double Rx, double Ry, double Rz, double R2max, vector<vector<double>> &images) const;
   
   virtual double getNumberAtoms() const
   {
@@ -70,7 +71,6 @@ class GaussianDensity : public Density
   
   void get_measures(double rx, double ry, double rz, double hsd, FundamentalMeasures &fm) const;
   void get_dmeasures_for_gaussian(int igaussian, double rx, double ry, double rz, double hsd, FundamentalMeasures dfm[5]) const;
-  double FMF(double w0, double r0, vector<double> &x, vector<double> &w, DFT_Vec &dF) const;  
   
  protected:
   vector<Gaussian> gaussians_;

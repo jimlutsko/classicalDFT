@@ -423,6 +423,8 @@ public:
 
   virtual double calculateFreeEnergyAndDerivatives_IdealGas_();
 
+  void addToGaussianForce(vector<double> &dF);
+    
   virtual void doFFT(){ } // not needed for pure gaussians : add back later when density field is introduced
     
   // This is done using the explicit Gaussian formula
@@ -434,11 +436,11 @@ public:
   // Loop over the weighted densities and ask each one to add its contribution to dPhi
   virtual void Build_Force(bool needsTensor);
 
+  // Get all images within R2cut of origin
+  void get_images(double Rx, double Ry, double Rz, double R2cut, vector<vector<double>> &images) const { (static_cast<GaussianDensity*>(&density_))->get_images(Rx,Ry,Rz,R2cut, images);}
+
   // TBD: for now, only includes chemical potential
   virtual double externalField(bool bCalcForces);
-
-  // This is for calculating the mf term
-  virtual double FMF(double w0, double r0, vector<double> &x, vector<double> &w, DFT_Vec &dF) const;
 
   virtual void beginForceCalculation();
 };

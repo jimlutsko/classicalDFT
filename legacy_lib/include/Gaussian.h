@@ -22,8 +22,7 @@ class Gaussian
   
   double get_prefac_alias(double prefac, double alf) 
   {
-    double R    = hsd_/2;
-    
+    double R    = hsd_/2;    
     double z    = sqrt(alf)*min(R,Acut_);
     double xmax = 1.0/(erf(z)-M_2_SQRTPI*z*exp(-z*z));
 
@@ -80,7 +79,6 @@ protected:
 
   void get_f1f2f3f4(double y, double r2, double &f1, double &f2, double &f3, double &f4) const;
   void get_measures_internal(double rx, double ry, double rz, double coeff, FundamentalMeasures &fm) const;
-
   
   void update_cache();
   
@@ -100,7 +98,7 @@ protected:
   double dRy_  = 0.0;
   double dRz_  = 0.0;
   
-  // These are derived quantities we cash
+  // These are derived quantities we cache
   double norm_            = 1;
   double Rmax_            = 1;
   double prefactor_       = 1;

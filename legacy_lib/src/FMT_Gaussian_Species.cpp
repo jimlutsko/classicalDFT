@@ -248,21 +248,6 @@ double FMT_Gaussian_Species::externalField(bool bCalcForces)
   return Fx;  
 }
 
-double FMT_Gaussian_Species::FMF(double w0, double r0, vector<double> &x, vector<double> &w, DFT_Vec &dF) const
-{
-  double F = 0;
-
-  GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
-  //  vector<double> dF(5*density.gaussians_.size());
-
-  dF.zeros(5*density.number_of_gaussians());
-  F = density.FMF(w0,r0,x,w,dF);
-
-  
-  return F;
-}
-
-
 void FMT_Gaussian_Species::beginForceCalculation()
 {
   if(fixedMass_ > 0.0)
@@ -272,4 +257,14 @@ void FMT_Gaussian_Species::beginForceCalculation()
   if(density.use_discrete())
     density.fill_discrete_gaussian_field();
   
+}
+
+void FMT_Gaussian_Species::addToGaussianForce(vector<double> &dF)
+{
+  GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));  
+  long pos = (density.use_discrete() ? density.Ntot() : 0);
+  
+  for(int i=0;i<dF.size();i++)
+    dF_.IncrementBy(pos+i, dF[i]);
+
 }

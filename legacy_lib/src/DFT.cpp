@@ -325,11 +325,13 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   Summation F;
     
   // Ideal gas contribution  
+  
   if(!onlyFex) 
     for(auto &species : allSpecies_)
       F += species->calculateFreeEnergyAndDerivatives_IdealGas_();
   F_id_ = F;
-
+  
+  
   // Hard-sphere contribution
   if(fmt_)
     {    
