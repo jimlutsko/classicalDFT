@@ -13,11 +13,11 @@ using namespace std;
 #include "Gaussian_Density.h"
 
 
-void GaussianDensity::get_dN(int ig, double &dN_dx, double &dN_dalf) const
+void GaussianDensity::get_dN(int ig, double &dN_dx, double &dN_db) const
 {
   const Gaussian &g = gaussians_[ig];
   dN_dx = g.dprefactor_dx();
-  dN_dalf = g.dprefactor_dalf();
+  dN_db = g.dprefactor_db();
 }
 
 
@@ -127,7 +127,7 @@ void GaussianDensity::get_dmeasures_for_gaussian(int igaussian, double rx, doubl
   for(auto &R: images)  
     {
       g.get_dmeasures_dX(R[0]+g.Rx(),R[1]+g.Ry(),R[2]+g.Rz(),dfm[0]);
-      g.get_dmeasures_dAlf(R[0]+g.Rx(),R[1]+g.Ry(),R[2]+g.Rz(),dfm[1]);
+      g.get_dmeasures_db(R[0]+g.Rx(),R[1]+g.Ry(),R[2]+g.Rz(),dfm[1]);
       g.get_dmeasures_dR(R[0]+g.Rx(),R[1]+g.Ry(),R[2]+g.Rz(),dfm+2);
     }
 }

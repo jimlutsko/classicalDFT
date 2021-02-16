@@ -12,13 +12,18 @@ using namespace std;
 
 #include "Gaussian.h"
 
-void Gaussian::set_parameters(double x, double alf, double Rx, double Ry, double Rz)
+double Gaussian::alf_min = 10;
+
+void Gaussian::set_parameters(double x, double b, double Rx, double Ry, double Rz)
 {
   x_   = x;
-  alf_ = alf;
+  b_   = b;
   Rx_  = Rx;
   Ry_  = Ry;
   Rz_  = Rz;
+
+
+  alf_ = alf_min+b*b;
 
   update_cache();
 }
@@ -34,7 +39,7 @@ void Gaussian::update_cache()
 
   prefactor_       = xmax*g(x_);
   dprefactor_dx_   = xmax*g1(x_);
-  dprefactor_dalf_ = -M_2_SQRTPI*z*z0*z0*exp(-z*z)*xmax*xmax*g(x_);
+  dprefactor_db_   = -2*b_*M_2_SQRTPI*z*z0*z0*exp(-z*z)*xmax*xmax*g(x_);
 
   norm_ = pow(alf_/M_PI,1.5);
 
@@ -68,23 +73,17 @@ void Gaussian::update_cache()
   f_id_      = prefactor_*(fac1*fac2+fac3);
   
   df_id_dx_  = dprefactor_dx_*(fac1*fac2+fac3+fac1);
-  df_id_da_  = dprefactor_dalf_*(fac1*fac2+fac3+fac1);
-  df_id_da_ += prefactor_*(dfac1_da*fac2+fac1*dfac2_da+dfac3_da);  
+  df_id_db_  = dprefactor_db_*(fac1*fac2+fac3+fac1);
+  df_id_db_ += 2*b_*prefactor_*(dfac1_da*fac2+fac1*dfac2_da+dfac3_da);  
 }
 
-void Gaussian::get_parameters(double &x, double &alf, double &Rx, double &Ry, double &Rz) const
+void Gaussian::get_parameters(double &x, double &b, double &Rx, double &Ry, double &Rz) const
 {
-  alf = alf_;
+  x   = x_;
+  b   = b_;
   Rx  = Rx_;
   Ry  = Ry_;
   Rz  = Rz_;
-
-  double R    = hsd_/2;    
-  double z    = sqrt(alf)*min(R,Acut_);  
-    //  double z    = sqrt(alf_)*hsd_/2;
-  double xmax = 1.0/(erf(z)-M_2_SQRTPI*z*exp(-z*z));
-
-  x = ginv(prefactor_/xmax);
 }
 
 
@@ -202,7 +201,7 @@ void Gaussian::get_measures_internal(double rx, double ry, double rz, double coe
       
     } else if(fabs(Acut_-R) < r && r < Acut_+R) {
 
-      if(firsttime) {cout << "Region II" << endl; firsttime = false;}
+    if(firsttime) {cout << "Region II" << endl;  firsttime = false;}
     
     double z = alf_*(r*r+R*R-Acut_*Acut_);
     double C = alf_*sq_alf_*M_2_SQRTPI*R*R;
@@ -218,8 +217,8 @@ void Gaussian::get_measures_internal(double rx, double ry, double rz, double coe
 
     s  = C*(e1-e2)/y;
     v  = C*((1-y)*e1-(1-z)*e2)/(y*y*y);
-    T1 = C*((y-1)*e1-(0.5*z*z-z+1-0.5*y*y)*e2)/(y*y*y);
-    T2 = C*((y*y-3*y+3)*e1-(0.5*y*y-1.5*z*z+3*z-3)*e2)/(y*y*y*y*y);
+    T1 = C*((y-1)*e1+(0.5*z*z-z+1-0.5*y*y)*e2)/(y*y*y); // here
+    T2 = C*((y*y-3*y+3)*e1+(0.5*y*y-1.5*z*z+3*z-3)*e2)/(y*y*y*y*y); // here
   } else if(R-Acut_ > r) {
 
     if(firsttime) {cout << "Region III" << endl; firsttime = false;}
@@ -339,15 +338,15 @@ void Gaussian::get_dmeasures_dR(double rx, double ry, double rz, FundamentalMeas
     v2  = -C*(-dy*e1 + (1-y)*de1+dz*e2)/(y*y*y*y);
     v2 += -C*(-3*dy)*((1-y)*e1-(1-z)*e2)/(y*y*y*y*y);
 	
-    T1  = -C*(dy*e1+(y-1)*de1-(dz*(z-1)-dy*y)*e2)/(y*y*y*y);
-    T1 += -C*(-3*dy)*((y-1)*e1-(0.5*z*z-z+1-0.5*y*y)*e2)/(y*y*y*y*y);    
+    T1  = -C*(dy*e1+(y-1)*de1+(dz*(z-1)-dy*y)*e2)/(y*y*y*y);
+    T1 += -C*(-3*dy)*((y-1)*e1+(0.5*z*z-z+1-0.5*y*y)*e2)/(y*y*y*y*y);    
     
-    T2 = (2*alf_*R)*C*((y*y-3*y+3)*e1-(0.5*y*y-1.5*z*z+3*z-3)*e2)/(y*y*y*y*y);    
+    T2 = (2*alf_*R)*C*((y*y-3*y+3)*e1+(0.5*y*y-1.5*z*z+3*z-3)*e2)/(y*y*y*y*y);    
 
     T1 += T2; // correct for way calculation is organized below.
 
-    T3  = -C*((2*dy*y-3*dy)*e1+(y*y-3*y+3)*de1-(dy*y-3*dz*z+3*dz)*e2)/(y*y*y*y*y*y);
-    T3 += -C*(-5*dy)*((y*y-3*y+3)*e1-(0.5*y*y-1.5*z*z+3*z-3)*e2)/(y*y*y*y*y*y*y);
+    T3  = -C*((2*dy*y-3*dy)*e1+(y*y-3*y+3)*de1+(dy*y-3*dz*z+3*dz)*e2)/(y*y*y*y*y*y);
+    T3 += -C*(-5*dy)*((y*y-3*y+3)*e1+(0.5*y*y-1.5*z*z+3*z-3)*e2)/(y*y*y*y*y*y*y);
 
   } else if(R-Acut_ > r) {
     e = 0;
@@ -398,7 +397,7 @@ void Gaussian::get_dmeasures_dR(double rx, double ry, double rz, FundamentalMeas
 }
 
 
-void Gaussian::get_dmeasures_dAlf(double rx, double ry, double rz, FundamentalMeasures &dfm) const
+void Gaussian::get_dmeasures_db(double rx, double ry, double rz, FundamentalMeasures &dfm) const
 {
   double dx = rx-Rx_;
   double dy = ry-Ry_;
@@ -468,25 +467,25 @@ void Gaussian::get_dmeasures_dAlf(double rx, double ry, double rz, FundamentalMe
     v += C*((-2+y)*e1-(-2+z)*e2)/(y*y*y*alf_);
     v += C*((1-y)*de1-(1-z)*de2)/(y*y*y);
 
-    T1  = dC*((y-1)*e1-(0.5*z*z-z+1-0.5*y*y)*e2)/(y*y*y);
-    T1 += C*((-2*y+3)*e1-(-0.5*z*z+2*z-3+0.5*y*y)*e2)/(y*y*y*alf_);
-    T1 += C*((y-1)*de1-(0.5*z*z-z+1-0.5*y*y)*de2)/(y*y*y);
+    T1  = dC*((y-1)*e1+(0.5*z*z-z+1-0.5*y*y)*e2)/(y*y*y);
+    T1 += C*((-2*y+3)*e1+(-0.5*z*z+2*z-3+0.5*y*y)*e2)/(y*y*y*alf_);
+    T1 += C*((y-1)*de1+(0.5*z*z-z+1-0.5*y*y)*de2)/(y*y*y);
 
-    T2  = dC*((y*y-3*y+3)*e1-(0.5*y*y-1.5*z*z+3*z-3)*e2)/(y*y*y*y*y);
-    T2 += C*((-y*y+6*y-9)*e1-(-0.5*y*y+1.5*z*z-6*z+9)*e2)/(y*y*y*y*y*alf_);
-    T2 += C*((y*y-3*y+3)*de1-(0.5*y*y-1.5*z*z+3*z-3)*de2)/(y*y*y*y*y);
+    T2  = dC*((y*y-3*y+3)*e1+(0.5*y*y-1.5*z*z+3*z-3)*e2)/(y*y*y*y*y);
+    T2 += C*((-y*y+6*y-9)*e1+(-0.5*y*y+1.5*z*z-6*z+9)*e2)/(y*y*y*y*y*alf_);
+    T2 += C*((y*y-3*y+3)*de1+(0.5*y*y-1.5*z*z+3*z-3)*de2)/(y*y*y*y*y);
   } else if(R-Acut_ > r) {
     e = M_2_SQRTPI*Acut_*Acut_*Acut_*sq_alf_*exp_A_;
   }
 
-  e  *= prefactor_;
-  s  *= prefactor_;
-  v  *= prefactor_;
-  T1 *= prefactor_;
-  T2 *= prefactor_;
+  e  *= 2*b_*prefactor_;
+  s  *= 2*b_*prefactor_;
+  v  *= 2*b_*prefactor_;
+  T1 *= 2*b_*prefactor_;
+  T2 *= 2*b_*prefactor_;
 
   // get contribution of dx/dalf
-  get_measures_internal(rx,ry,rz,dprefactor_dalf_,dfm);
+  get_measures_internal(rx,ry,rz,dprefactor_db_,dfm);
   
   dfm.eta += e;
   

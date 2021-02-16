@@ -54,12 +54,12 @@ void FMT_Gaussian_Species::get_density_alias(DFT_Vec &x) const
 
   for(int ig=0; ig<density.number_of_gaussians(); ig++, pos += 5)  
     {
-      double y,alf,Rx,Ry,Rz;
+      double y,b,Rx,Ry,Rz;
 
-      density.get_gaussian(ig, y,alf,Rx,Ry,Rz);
+      density.get_gaussian(ig, y,b,Rx,Ry,Rz);
 
       x.set(pos,   y);
-      x.set(pos+1, alf);
+      x.set(pos+1, b);
       x.set(pos+2, Rx);
       x.set(pos+3, Ry);
       x.set(pos+4, Rz);
@@ -98,12 +98,12 @@ double FMT_Gaussian_Species::calculateFreeEnergyAndDerivatives_IdealGas_()
       double alf = g.alf();
 
       double dfdx = 0;
-      double dfda = 0;
+      double dfdb = 0;
       
-      F += g.get_ideal_f(dfdx, dfda);
+      F += g.get_ideal_f(dfdx, dfdb);
       // flatten 
       dF_.IncrementBy(pos+0, dfdx);
-      dF_.IncrementBy(pos+1, dfda);      
+      dF_.IncrementBy(pos+1, dfdb);      
     }
 
   return F;
@@ -111,6 +111,9 @@ double FMT_Gaussian_Species::calculateFreeEnergyAndDerivatives_IdealGas_()
 
 void FMT_Gaussian_Species::calculateFundamentalMeasures(bool needsTensor)
 {
+  if(use_discrete)
+    FMT_Species.calculateFundamentalMeasures(needsTensor);
+  
   long pos;
 #pragma omp parallel for  private(pos)  schedule(static)				
   for(pos = 0; pos < density_.Ntot(); pos++)
@@ -118,14 +121,14 @@ void FMT_Gaussian_Species::calculateFundamentalMeasures(bool needsTensor)
       FundamentalMeasures fm;
       dynamic_cast<GaussianDensity*>(&density_)->get_measures(pos,hsd_,fm);
 
-      fmt_weighted_densities[EI()].set_fundamental_measure(pos,fm.eta);
-      fmt_weighted_densities[SI()].set_fundamental_measure(pos,fm.s2);
+      fmt_weighted_densities[EI()].add_fundamental_measure(pos,fm.eta);
+      fmt_weighted_densities[SI()].add_fundamental_measure(pos,fm.s2);
       for(int j=0;j<3;j++)
 	{
-	  fmt_weighted_densities[VI(j)].set_fundamental_measure(pos,fm.v2[j]);
+	  fmt_weighted_densities[VI(j)].add_fundamental_measure(pos,fm.v2[j]);
 	  if(needsTensor)
 	    for(int k=j;k<3;k++)
-	      fmt_weighted_densities[TI(j,k)].set_fundamental_measure(pos,fm.T[j][k]);
+	      fmt_weighted_densities[TI(j,k)].add_fundamental_measure(pos,fm.T[j][k]);
 	}
     }
 }
@@ -153,10 +156,13 @@ void FMT_Gaussian_Species::set_fundamental_measure_derivatives(FundamentalMeasur
 
 void FMT_Gaussian_Species::Build_Force(bool needsTensor)
 {
+  // HERE
+  // what to do about Species::Build_Force????
+
+  
   GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
 
   double dV = density.dV();    
-
   
   for(int ig=0; ig<density.number_of_gaussians(); ig++)
     {
@@ -242,7 +248,8 @@ double FMT_Gaussian_Species::externalField(bool bCalcForces)
 
 	  dF_.IncrementBy(5*ig  , -mu_*dN_dx);
 	  dF_.IncrementBy(5*ig+1, -mu_*dN_dalf);
-	  dF_.set(5*ig+1, 100000*dF_.get(5*ig+1)); // SCALE ALPHA FORCE
+	  //	  dF_.set(5*ig+1, 100000*dF_.get(5*ig+1)); // SCALE ALPHA FORCE
+	  //	  dF_.set(5*ig+1, dF_.get(5*ig+1)); // SCALE ALPHA FORCE
 	}
     }
   return Fx;  

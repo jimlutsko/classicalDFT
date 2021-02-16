@@ -18,11 +18,12 @@ class FundamentalMeasures
     }
   FundamentalMeasures(double density, double hsd) {fillUniform(density,hsd);}
 
-  void print()
+
+  friend ostream& operator<<(ostream& os, const FundamentalMeasures& fm);
+  
+  void print() const
   {
-    std::cout << eta << " " << s0 << " " << v1[0] << " " << v1[1] << " " << v1[2] << " " << T[0][0] << " " << T[0][1] << " " << T[0][2] << std::endl;
-
-
+    std::cout << *this << std::endl;
   }
   
   void fillUniform(double density, double hsd = 1)

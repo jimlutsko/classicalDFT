@@ -761,23 +761,25 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
       double Rly = gl.Ry();
       double Rlz = gl.Rz();
 
+      double dal_db = gl.dalf_db();	    
       double dxl_dx = gl.dprefactor_dx();
-      double dxl_da = gl.dprefactor_dalf();
+      double dxl_db = gl.dprefactor_db();
 
       double E = Ell(al,A);
       
       F += 0.5*xl*xl*E;
       dF[5*l+0] += dxl_dx*xl*E;
-      dF[5*l+1] += dxl_da*xl*E + 0.5*xl*xl*dEll_dal(al,A);
+      dF[5*l+1] += dxl_db*xl*E + dal_db*0.5*xl*xl*dEll_dal(al,A);
       
       for(int m=l+1; m < ng; m++)
 	{
 	  const Gaussian& gm = s->get_gaussian(m);
 	  double xm  = gm.prefactor();
 	  double am  = gm.alf();
-	  
+
+	  double dam_db = gm.dalf_db();	    	  
 	  double dxm_dx = gm.dprefactor_dx();
-	  double dxm_da = gm.dprefactor_dalf();
+	  double dxm_db = gm.dprefactor_db();
 	  
 	  double Rmx = gm.Rx();
 	  double Rmy = gm.Ry();
@@ -805,7 +807,7 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 		  F += 0.5*xl*xm*E;
 	     
 		  dF[5*l+0] += dxl_dx*xm*E;
-		  dF[5*l+1] += dxl_da*xm*E + xl*xm*dElm_dal(al,am,Rlm,A);
+		  dF[5*l+1] += dxl_db*xm*E + dal_db*xl*xm*dElm_dal(al,am,Rlm,A);
 		} else {
 
 		F += xl*xm*E;
@@ -813,8 +815,8 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 		dF[5*l+0] += dxl_dx*xm*E;
 		dF[5*m+0] += dxm_dx*xl*E;
   
-		dF[5*l+1] += dxl_da*xm*E + xl*xm*dElm_dal(al,am,Rlm,A);
-		dF[5*m+1] += dxm_da*xl*E + xl*xm*dElm_dal(am,al,Rlm,A);
+		dF[5*l+1] += dxl_db*xm*E + dal_db*xl*xm*dElm_dal(al,am,Rlm,A);
+		dF[5*m+1] += dxm_db*xl*E + dam_db*xl*xm*dElm_dal(am,al,Rlm,A);
 
 		double dE = xl*xm*dElm_dRlm(al,am,Rlm,A);
 
@@ -831,6 +833,7 @@ double Interaction_Gaussian_Density::getInteractionEnergyAndForces()
 	    }
 	}      
     }
+      
   s->addToGaussianForce(dF);  
   return F;
 }
@@ -1046,9 +1049,9 @@ double Interaction_Gaussian_Density::dEll_dal(double al, double A) const
 	    double db = (2*A-Rlm < rc ? -1 : 0.0);
 	    double dr = 0.5*(db-da)*r0+0.5*(db+da);
 	  
-	    E += 0.5*(b-a)*w0*Klm(al,am,A,Rlm+r)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
-	    E += 0.5*(db-da)*w0*Klm(al,am,A,Rlm+r)*r*v_->Watt(r);
-	    E += 0.5*(b-a)*w0*(1+dr)*dKlm_dr(al,am,A,Rlm+r)*r*v_->Watt(r);
+	    E -= 0.5*(b-a)*w0*Klm(al,am,A,Rlm+r)*dr*(v_->Watt(r)+r*v_->dWatt_dr(r));
+	    E -= 0.5*(db-da)*w0*Klm(al,am,A,Rlm+r)*r*v_->Watt(r);
+	    E -= 0.5*(b-a)*w0*(1+dr)*dKlm_dr(al,am,A,Rlm+r)*r*v_->Watt(r);
 
 	    b = min(rc, Rlm);
 	    db = (Rlm < rc ? 1.0 : 0.0);

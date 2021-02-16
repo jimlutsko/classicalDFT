@@ -356,6 +356,8 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   for(auto &species : allSpecies_)
     F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
   F += F_ext_;
+
+  //  cout << "Fid = " << F_id_ << " Fhs = " << F_hs_ << " Fmf = " << F_mf_ << " Fext = " << F_ext_ << endl;
   
   return F.sum();  
 }

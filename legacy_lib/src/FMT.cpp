@@ -27,6 +27,12 @@ using namespace std;
 ostringstream Eta_Too_Large_Exception::cnvt;
 
 
+ostream& operator<<(ostream& os, const FundamentalMeasures& fm)
+{
+  os <<  fm.eta << " " << fm.s0 << " " << fm.v1[0] << " " << fm.v1[1] << " " << fm.v1[2] << " " << fm.T[0][0] << " " << fm.T[0][1] << " " << fm.T[0][2];  
+  return os;
+}
+
 FundamentalMeasures FMT::getWeightedDensities(long i, vector<Species*> &allSpecies)
 {
   // the weighted densities for the lattice site under consideration (i).
@@ -83,6 +89,15 @@ double FMT::calculate_Phi(const FundamentalMeasures& fm) const
   phi += (1/(2*M_PI))*(s1*s2-v1_v2)*f2;
   phi += Phi3(fm)*f3;
 
+  if(phi < -1e-8)
+    {
+      cout << phi << " | " << fm << endl;
+      cout << "phi1 = " << -(1/M_PI)*s0*f1 << endl;
+      cout << "phi2 = " << (1/(2*M_PI))*(s1*s2-v1_v2)*f2 << endl;
+      cout << "phi3 = " << Phi3(fm)*f3 << endl;
+      //      exit(0);
+    }
+  
   return phi;
 }
 
@@ -236,18 +251,17 @@ double FMT::dPHI(long pos, vector<Species*> &allSpecies)
 {
   FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
 
-  double phi = calculate_Phi(fm);
-  
   if(1-fm.eta < 0.0)
     {
-      #pragma omp critical
-      {
-	cout << "fm.eta = " << fm.eta << " pos = " << pos << endl;
-
-      }
+      //#pragma omp critical
+      //      {
+      //      	cout << "fm.eta = " << fm.eta << " pos = " << pos << endl;
+      //      }
       throw Eta_Too_Large_Exception();
-
     }
+
+  double phi = calculate_Phi(fm);
+  
   // Also add in the contributions to the derivative of phi (at lattice site i) wrt the various weighted densities
   // (part of the chain-rule evaluation of dPhi/drho(j) = dPhi/deta(i) * deta(i)/drho(j) + ...)
   // Note that at the level of the fundamental measures, we only keep track of one of each class since the others are trivially related

@@ -32,14 +32,14 @@ class GaussianDensity : public Density
 
   size_t number_of_gaussians() const { return gaussians_.size();}
   
-  void set_gaussian(int ig, double y, double alf, double Rx, double Ry, double Rz)
+  void set_gaussian(int ig, double y, double b, double Rx, double Ry, double Rz)
   {
-    gaussians_[ig].set_parameters(y,alf,Rx,Ry,Rz);
+    gaussians_[ig].set_parameters(y,b,Rx,Ry,Rz);
   }
 
-  void get_gaussian(int ig, double &y, double &alf, double &Rx, double &Ry, double &Rz)
+  void get_gaussian(int ig, double &y, double &b, double &Rx, double &Ry, double &Rz)
   {
-    gaussians_[ig].get_parameters(y,alf,Rx,Ry,Rz);
+    gaussians_[ig].get_parameters(y,b,Rx,Ry,Rz);
   }
 
   const Gaussian& get_gaussian(int ig) const { return gaussians_[ig];}
@@ -53,7 +53,7 @@ class GaussianDensity : public Density
     return N;
   }
 
-  void get_dN(int ig, double &dN_dx, double &dN_dalf) const;
+  void get_dN(int ig, double &dN_dx, double &dN_db) const;
     
   virtual double getRsquared() const
   {

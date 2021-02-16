@@ -15,8 +15,8 @@ class Gaussian
 
   // Setting the parameters
   // Note that the parameter y is an alias controlling the vacancy concentration
-  void set_parameters(double x,  double alf,  double Rx,  double Ry,  double Rz);
-  void get_parameters(double &x, double &alf, double &Rx, double &Ry, double &Rz) const; 
+  void set_parameters(double x,  double b,  double Rx,  double Ry,  double Rz);
+  void get_parameters(double &x, double &b, double &Rx, double &Ry, double &Rz) const; 
 
   void set_hsd(double hsd) { hsd_ = hsd; update_cache();}
   
@@ -32,7 +32,7 @@ class Gaussian
 
   void print()
   {
-    cout << setw(20) << prefactor_ << setw(20) << alf_ << setw(20) << Rx_ << setw(20) << Ry_ << setw(20) << Rz_ << setw(20) << Acut_ << setw(20) << hsd_ << endl;
+    cout << setw(20) << prefactor_ << setw(20) << b_ << setw(20) << Rx_ << setw(20) << Ry_ << setw(20) << Rz_ << setw(20) << Acut_ << setw(20) << hsd_ << endl;
   }
   
   // maximum range of this gaussian
@@ -45,13 +45,15 @@ class Gaussian
   void zeroForces() { dx_ = dalf_ = dRx_ = dRy_= dRz_ = 0.0;}
 
   double get_N() const { return N_;};
-  double get_ideal_f(double &dfdx, double &dfda) const{ dfdx = df_id_dx_; dfda = df_id_da_; return f_id_;}
+  double get_ideal_f(double &dfdx, double &dfdb) const{ dfdx = df_id_dx_; dfdb = df_id_db_; return f_id_;}
   
   // accessors
   double prefactor()       const { return prefactor_;}
   double dprefactor_dx()   const { return dprefactor_dx_;}
-  double dprefactor_dalf() const { return dprefactor_dalf_;}
+  double dprefactor_db()   const { return dprefactor_db_;}
+  double dalf_db()         const { return 2*b_;}
   double alf()             const { return alf_;}
+  double b()               const { return b_;}
   double A()               const { return Acut_;}
   
   int get_Nimage_x() const { return Nimage_x_;}
@@ -64,11 +66,23 @@ class Gaussian
   
   // FMT measures
   void get_measures(double rx, double ry, double rz, FundamentalMeasures &fm) const;
-  void get_dmeasures_dAlf(double rx, double ry, double rz, FundamentalMeasures &dfm) const;
+  void get_dmeasures_db(double rx, double ry, double rz, FundamentalMeasures &dfm) const;
   void get_dmeasures_dR(double rx, double ry, double rz, FundamentalMeasures dfm[3]) const;
   void get_dmeasures_dX(double rx, double ry, double rz, FundamentalMeasures &dfm) const;
 
   friend FMT_Gaussian_Species;
+
+  static double alf_to_b(double alpha) 
+  {
+    if(alpha < alf_min)
+      throw std::runtime_error("alpha too small");
+
+    return sqrt(alpha-alf_min);
+  }
+  
+
+
+
   
 protected:
   // these are the alias function, its inverse and its derivative
@@ -84,6 +98,7 @@ protected:
   
 protected:   
   double x_   = 1;
+  double b_   = 1; // alias for alf_
   double alf_ = 1;
   double Rx_  = 0;
   double Ry_  = 0;
@@ -103,7 +118,7 @@ protected:
   double Rmax_            = 1;
   double prefactor_       = 1;
   double dprefactor_dx_   = 0;
-  double dprefactor_dalf_ = 0;
+  double dprefactor_db_   = 0;
   double sq_alf_          = 0;
   double exp_A_           = 0;
   double erf_A_           = 0;
@@ -117,7 +132,9 @@ protected:
   double N_        = 0.0;
   double f_id_     = 0.0;
   double df_id_dx_ = 0.0;
-  double df_id_da_ = 0.0;
+  double df_id_db_ = 0.0;
+
+  static double alf_min;
   
 };
    
