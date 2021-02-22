@@ -142,39 +142,44 @@ double  DFT::find_density_from_mu(double mu, double xmin, double xmax, double to
   return (xmin+xmax)/2;
 }
 
+// Cedric: I modified this method so that the steps get smaller near x=0.
+//         The old method was difficult to use at low temperatures because
+//         the coexistence density of the vapour phase gets extremely low.
+//         Now dx is a relative step and tol the relative precision on xvap.
+
 void DFT::findCoex(double xmax, double dx, double &x1, double &x2, double tol) const
 {
   // 0. Get limits of vap and liq regions: (0,xs1) and (xs2,xmax)
   double xs1,xs2;
   findSpinodal(xmax,dx,xs1,xs2,tol);
 
-  // 1. Bracket  
+  // 1. Bracket
   double xvap = xs1;
-  double xliq = find_density_from_mu(chempot(xvap,this), xs2,xmax-dx, tol);
+  double xliq = find_density_from_mu(chempot(xvap,this), xs2, xmax-dx, tol);
   double dp1 = pressure(xvap,this) - pressure(xliq,this);
   double dp2;
   do {
     dp2 = dp1;
-    xvap -= dx;
-    xliq = find_density_from_mu(chempot(xvap,this), xs2,xmax-dx,tol);      
+    xvap *= (1-dx);
+    xliq = find_density_from_mu(chempot(xvap,this), xs2, xmax-dx,tol);
     dp1 =  pressure(xvap,this) - pressure(xliq,this);
-  } while(xvap > dx && ((dp1<0) == (dp2<0)));
+  } while(chempot(xvap,this) > chempot(xs2,this) && ((dp1<0) == (dp2<0)));
 
-  if(xvap <= dx) throw std::runtime_error("DFT::findCoex failed 1");
+  if(chempot(xvap,this) <= chempot(xs2,this)) 
+    throw std::runtime_error("DFT::findCoex failed 1");
 
-  
-  // 2. Bracket is (xvap,xvap+dx) : refine
-
+  // 2. Bracket is (xvap,xvap(1+dx)) : refine
   double y1 = xvap;
-  double y2 = xvap+dx;  
+  double y2 = xvap*(1+dx);
+  double y;
   do {
-    double y = (y1+y2)/2;
-    xliq = find_density_from_mu(chempot(y,this), xs2,xmax-dx,tol);      
-    double dp =  pressure(y,this) - pressure(xliq,this);    
+    y = (y1+y2)/2;
+    xliq = find_density_from_mu(chempot(y,this), xs2,xmax-dx,tol);
+    double dp =  pressure(y,this) - pressure(xliq,this);
     if((dp<0) == (dp1<0)) { y1 = y; dp1 = dp;}
     else { y2 = y; dp2 = dp;}
-  } while(fabs(y2-y1) > tol);
+  } while(fabs(y2-y1) > tol*y);
 
-  x1 = (y1+y2)/2;
+  x1 = y;
   x2 = xliq;
 }
