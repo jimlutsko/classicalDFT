@@ -55,7 +55,7 @@ void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
 //    dmax = dmin + (eta-etamin)/dV
 // Note that the limits used here are really only valid for FMT_Species
 // but for now, those are really the only ones used.
-
+/*
 void FMT_Species::set_density_from_alias(const DFT_Vec &x)
 {
   //Species::set_density_from_alias(x);
@@ -118,7 +118,7 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
     }
   
 }
-
+*/
 FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Species(density,mu,seq), hsd_(hsd), fmt_weighted_densities(11)
 {
   long Nx = density_.Nx();
