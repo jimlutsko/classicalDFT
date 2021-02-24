@@ -63,7 +63,7 @@ void Density::initialize_from_smaller_density(const Density &density)
 
 	      double d  = density.getDensity(jx,jy,jz);
 	      
-	      set_Density_Elem(ix,iy,iz,d);
+	      set(ix,iy,iz,d);
 	    }
 }
 

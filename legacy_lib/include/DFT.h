@@ -101,6 +101,7 @@ class DFT
    *   @returns a read-only reference to the Lattice object
    */ 
   const Lattice& lattice() const {return allSpecies_.front()->getLattice();}
+  const Lattice& get_lattice() const {return allSpecies_.front()->getLattice();}
 
   /**
    *   @brief  Requests the value of the convergence criterion for free energy minimization
@@ -216,14 +217,14 @@ class DFT
    *   @brief  Only implemented for single species and one interaction
    */
   
-  virtual void getCriticalPoint(Potential1& p, double &xc, double &Tc)
+  virtual void getCriticalPoint(Potential1& p, double &xc, double &Tc, double HSD = -1)
   {
     //    if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::getCriticalPoint only implemented for exactly 1 species and 1 interaction");
     double T1 = Tc;
     
     do{
       T1 = Tc;
-      double hsd = p.getHSD(Tc);
+      double hsd = (HSD < 0 ? p.getHSD(Tc) : HSD);
       xc = 0.13044*(6.0/M_PI)*pow(hsd,-3.0);
       Tc = -0.090082*2*p.getVDW_Parameter(Tc)*pow(hsd,-3.0)*Tc;
     } while(fabs(T1-Tc) > 1e-8*(T1+Tc));
