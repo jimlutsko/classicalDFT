@@ -19,7 +19,7 @@ class Minimizer
   {
     x_.resize(dft->getNumberOfSpecies());
 
-    for(auto &x: x_) x.resize(dft_->lattice().Ntot()); 
+    for(auto &x: x_) x.resize(dft_->get_lattice().Ntot()); 
   }
 
   Minimizer() {}
@@ -114,7 +114,7 @@ class fireMinimizer2 : public Minimizer
   void setAlphaFac(double a)     { f_alf_ = a;}
   void setBacktrackFac(double a) { f_back_ = a;}  
 
-  virtual double get_convergence_monitor() const { return fabs(vv_/dft_->lattice().getVolume());}
+  virtual double get_convergence_monitor() const { return fabs(vv_/dft_->get_lattice().getVolume());}
   
  protected:
   void SemiImplicitEuler(int begin, int end);
@@ -129,9 +129,11 @@ class fireMinimizer2 : public Minimizer
   double f_alf_    = 0.99;
   double f_back_   = 0.8;
 
-  double dt_max_ = 1.0;
-  double dt_     = 1.0;
-  double dt_min_ = 0.0;        ///< minimum allowed timestep
+  double dt_max_  = 1.0;
+  double dt_      = 1.0;
+  double dt_min_  = 0.0;        ///< minimum allowed timestep
+  double dt_best_ = 0.0;
+  int backtracks_ = 0;
   
   unsigned it_;     ///< Loop counter
   unsigned cut_;    ///< used to keep track of number of steps P >0
@@ -139,6 +141,7 @@ class fireMinimizer2 : public Minimizer
 
   double alpha_;
   double alpha_start_ = 0.1;
+
   
   int N_P_positive_ = 0;
   int N_P_negative_ = 0;
@@ -148,7 +151,6 @@ class fireMinimizer2 : public Minimizer
   double vnorm_     = 0.0; // for reporting
   
   bool initial_delay_ = true; ///< flag to allow for a warmup period
-  int steps_since_backtrack_ = 0;
   double threshold_ = 0.0;
   double fmax_ = 0.0;
 
@@ -182,7 +184,6 @@ class fireMinimizer2 : public Minimizer
     ar & rms_force_;
     ar & vnorm_;
     ar & initial_delay_;
-    ar & steps_since_backtrack_;
     ar & threshold_;
     ar & fmax_;
 

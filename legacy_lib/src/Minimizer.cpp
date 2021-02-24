@@ -126,9 +126,9 @@ void fireMinimizer2::initialize()
   N_P_negative_ = 0;
 
   vv_ = 1.0;
-  
-  steps_since_backtrack_ = 0;
 
+  dt_best_ = dt_;
+  
   F_ = getDF_DX();
   
   for(auto &v: v_)
@@ -197,10 +197,9 @@ double fireMinimizer2::step()
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
 	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
-	//	v_[Jspecies].zeros();
 	v_[Jspecies].MultBy(0.1);
-	//v_[Jspecies].MultBy(0.5);
       }
+    backtracks_++;
   }
 
   // integration step
@@ -209,7 +208,7 @@ double fireMinimizer2::step()
   try {
     SemiImplicitEuler(begin_relax, end_relax);
     vv_ = vv_*0.9 + 0.1*(fabs(F_ - fold)/dt_); // a measure of the rate at which the energy is changing
-    steps_since_backtrack_++;
+    dt_best_ = max(dt_,dt_best_);
   } catch(Eta_Too_Large_Exception &e) {
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
@@ -218,19 +217,23 @@ double fireMinimizer2::step()
 	v_[Jspecies].MultBy(0.5);		
 	dft_->setDF(Jspecies,dF_rem[Jspecies]);
       }
-    //    dt_ /= 10; // This was previously 2
     dt_ /= 2;
-    dt_max_ *= f_back_;
-    steps_since_backtrack_ = 0;
+    //    dt_max_ *= f_back_; // old method of control of dt_max_
     fmax_ = 1000; //rem;
+    backtracks_++;
   }
   catch(...) {
     reportMessage("Unknown exception ...");
   }
-    
 
+  if(backtracks_ >= 10) // new control of dt_max_
+    {
+      dt_max_ = min(dt_best_, 0.9*dt_max_);
+      dt_best_ = 0;
+      backtracks_ = 0;
+    };
 
-
+  cout << "dt_best_ = " << dt_best_ << " backtracks_ = " << backtracks_ << endl;    
   // write a snapshot
   static int ic = 0;
   if(ic % 10 == 0)
@@ -296,7 +299,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
       new_fmax = max(new_fmax, df.inf_norm()/dft_->getDensity(Jspecies).dV());
       fnorm += f*f;
       cnorm += df.size();
-      cout << "Jspecies = " << Jspecies << " fmax_ = " << fmax_ << " df.inf_norm = " << df.inf_norm() << " fnorm = " << fnorm << " cnorm = " << cnorm << endl;
+      //      cout << "Jspecies = " << Jspecies << " fmax_ = " << fmax_ << " df.inf_norm = " << df.inf_norm() << " fnorm = " << fnorm << " cnorm = " << cnorm << endl;
     }
   rms_force_ = sqrt(fnorm/cnorm);
   fmax_ = new_fmax;

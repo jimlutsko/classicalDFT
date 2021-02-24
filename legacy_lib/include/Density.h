@@ -196,6 +196,7 @@ class Density : public Lattice
   *   @return none
   */  
   void set_Density_Elem(int i, int j, int k, double val)   { set_Density_Elem(pos(i,j,k),val);}
+  void set(int i, int j, int k, double val)   { set_Density_Elem(pos(i,j,k),val);}
 
   /**
   *   @brief  set density at a given lattice position
@@ -246,7 +247,9 @@ class Density : public Lattice
     putIntoBox(ix,iy,iz);
     return Density_.cReal().get(pos(ix,iy,iz));
   }
+  virtual double get(int ix, int iy, int iz) const { return getDensity(ix,iy,iz);}
 
+  
   /**
   *   @brief  Translate coordinates ix,iy,iz into an index taking account of the periodic boundaries
   *  
