@@ -152,7 +152,7 @@ class fireMinimizer2 : public Minimizer
   
   bool initial_delay_ = true; ///< flag to allow for a warmup period
   double threshold_ = 0.0;
-  double fmax_ = 0.0;
+  double fmax_ = -1.0;
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
