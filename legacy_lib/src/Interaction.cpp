@@ -170,16 +170,25 @@ void Interaction_Base::generateWeights()
   // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
   // This may mean going beyond nearest neighbors in certain conditions.
   // We also compute the vdw parameter at the same time.
-      
+
   double Rc = v_->getRcut();
 
   int Nx_lim = 1+int(Rc/dx);
   int Ny_lim = 1+int(Rc/dy);
-  int Nz_lim = 1+int(Rc/dz);    
-    
+  int Nz_lim = 1+int(Rc/dz);
+
+  int nnx = abs(Nx_lim+1);
+  int nny = abs(Ny_lim+1);
+  int nnz = abs(Nz_lim+1);
+
+  if(nny > nnx) swap(nnx,nny);
+  if(nnz > nnx) swap(nnx,nnz);
+  if(nnz > nny) swap(nny,nnz);
+
   // Add up the weights for each point.
-  long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Nx_lim+1)*(Nx_lim+2))/2) + Nx_lim+1;
-  int chunk = 1000; 
+  //long Nmax = (((Nx_lim+1)*(Nx_lim+1+1)*(Nx_lim+1+2))/6) + (((Ny_lim+1)*(Ny_lim+2))/2) + Nz_lim+1;
+  long Nmax = ((nnx*(nnx+1)*(nnx+2))/6) + ((nny*(nny+1))/2) + nnz;
+  int chunk = 1000;
   size_t steps_completed = 0;
   size_t total_steps = Nmax/chunk;
 
