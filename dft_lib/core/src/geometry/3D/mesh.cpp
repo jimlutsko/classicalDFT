@@ -31,8 +31,7 @@ void SUQMesh::initialise(double dx)
           element_index += 1;
         }
 
-        vertex_index += 1;
-        z += dx;
+        vertex_index += 1; z += dx;
       }
       z = 0; y += dx;
     }

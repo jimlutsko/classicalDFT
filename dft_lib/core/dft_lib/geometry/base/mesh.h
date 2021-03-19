@@ -112,25 +112,62 @@ class Mesh {
   // endregion
 
   // region Inspectors:
-
+  /**
+   * The shape of the mesh which contains the number of vertices in each direction
+   * @return std::vector<long> reference
+   */
   const std::vector<long>& shape() const;
+
+  /**
+   * The dimensions of the mesh in each possible direction
+   * @return std::vector<double> reference
+   */
   const std::vector<double>& dimensions() const;
+
+  /**
+   * The total number of vertices in the mesh
+   * @return
+   */
   long number_vertices() const;
 
+  /**
+   * Inspector method which returns the vertices forming the mesh
+   * @return
+   */
   const vertex_vec& vertices() const;
 
   // endregion
 
   // region Methods:
 
+  /**
+   * The volume occupied by the mesh
+   * @return
+   */
   virtual double volume() const = 0;
+
+  /**
+   * Method which will plot the mesh to visualise it
+   */
   virtual void plot() const = 0;
 
   // endregion
 
   // region Overloads:
 
+  /**
+   * Index accessor which returns a specific vertex given its cartesian integer coordinates
+   * @param idx
+   * @return
+   */
   virtual const Vertex& operator[](const std::vector<long>& idx) const = 0;
+
+  /**
+   * Overload to help in printing a Mesh object
+   * @param os
+   * @param mesh
+   * @return
+   */
   friend std::ostream& operator<<(std::ostream& os, const Mesh& mesh);
 
   // endregion
@@ -139,11 +176,25 @@ class Mesh {
 // endregion
 
 // region Abstract Lattice:
-
+/**
+ * SUQMesh stands for structured-uniform-quad mesh
+ * This class contains abstract template for the creation of SUQ meshes 2D, 3D (and/or higher dimensions)
+ */
 class SUQMesh : public Mesh {
  protected:
+  // region Attributes:
+
+  /**
+   * Vector which components are the maximum index in each dimension
+   */
   std::vector<long> idx_max_ = {};
+
+  /**
+   * Vector with the coordinates of the axis-system origin (e.g., (0,0,0) in 3D)
+   */
   std::vector<double> origin_ = {};
+
+  // endregion
 
   void initialise_dimensions(double dx, std::vector<double>& dimensions);
   long cartesian_to_global_index(const std::vector<long>& idxs, const std::vector<long>& shape) const final;
@@ -151,16 +202,42 @@ class SUQMesh : public Mesh {
 
  public:
   // region Cttors:
+
+  /**
+   * @brief Constuctor of the SUQMesh object with the given dimensions and origin
+   * @param dx The length/width/height of the box elements
+   * @param dimensions The dimension of the space where the mesh is built up
+   * @param origin The coordinates of the zeroth element of the mesh
+   */
   explicit SUQMesh(double dx, std::vector<double>& dimensions, std::vector<double>& origin);
+
   // endregion
 
   // region Methods:
+
+  /**
+   * @brief Gets the volume of the mesh by adding the volume of the constituent elements
+   * @return The volume of the mesh
+   */
   double volume() const final;
+
+  /**
+   * @brief Gets the volume of the fundamental element of the mesh
+   * @return The volume of the fundamental element
+   */
   virtual double element_volume() const = 0;
+
   // endregion
 
   // region Operators:
+
+  /**
+   * Gets a constituent vertex of the Mesh with the specified indexes
+   * @param idx Vector with the indexes to look for
+   * @return Vertex object reference
+   */
   const Vertex& operator[](const std::vector<long>& idx) const final;
+
   // endregion
 };
 

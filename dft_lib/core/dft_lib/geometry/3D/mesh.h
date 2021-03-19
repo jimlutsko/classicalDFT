@@ -15,8 +15,19 @@ typedef std::unordered_map<int, sqbox_refwrap> sqbox_map;
 class SUQMesh : public dft_core::geometry::SUQMesh
 {
  private:
+  // region Attributes
+
+  /**
+   * Vector of elements which constitutes the mesh
+   */
   sqbox_vec elements_raw_ = {};
+
+  /**
+   * Dictionary which maps a global index with every mesh element
+   */
   sqbox_map elements_ = {};
+
+  // endregion
 
   void initialise(double dx);
 
