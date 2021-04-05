@@ -299,7 +299,6 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
       new_fmax = max(new_fmax, df.inf_norm()/dft_->getDensity(Jspecies).dV());
       fnorm += f*f;
       cnorm += df.size();
-      //      cout << "Jspecies = " << Jspecies << " fmax_ = " << fmax_ << " df.inf_norm = " << df.inf_norm() << " fnorm = " << fnorm << " cnorm = " << cnorm << endl;
     }
   rms_force_ = sqrt(fnorm/cnorm);
   fmax_ = new_fmax;

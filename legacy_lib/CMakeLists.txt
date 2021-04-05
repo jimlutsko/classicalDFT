@@ -35,6 +35,8 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/Minimizer.cpp
   ${PROJECT_SOURCE_DIR}/src/Interaction.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT_Species.cpp
+  ${PROJECT_SOURCE_DIR}/src/FMT_Species_Surf.cpp
+  ${PROJECT_SOURCE_DIR}/src/EOS_Species.cpp
   ${PROJECT_SOURCE_DIR}/src/GitSHA1.cpp
   ${PROJECT_SOURCE_DIR}/src/myColor.cpp
   ${PROJECT_SOURCE_DIR}/src/options.cpp

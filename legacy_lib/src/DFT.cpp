@@ -62,7 +62,7 @@ double DFT::Fhelmholtz(const vector<double> &x) const
   double Fmf = 0.0;
   for(auto &interaction: Interactions_)
     Fmf += interaction->Fhelmholtz(x);
-
+  
   F += Fmf;
 
   return F;  

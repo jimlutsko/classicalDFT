@@ -266,7 +266,6 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
     {
       FMT_Species *f = dynamic_cast<FMT_Species*>(s);
       if(f) f->calculateFundamentalMeasures(needsTensor());
-	//	f->convoluteDensities(needsTensor());
     }
   
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
@@ -298,14 +297,16 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   
   // For the AO species, there is additional work to do for both the free energy and the forces. 
   // Do FFT of density and compute the fundamental measures by convolution
-  double FAO = 0;
+  double Additional_Energy = 0;
   for(auto s: allSpecies)
     {
-      FMT_AO_Species *fao_species = dynamic_cast<FMT_AO_Species*>(s);
-      if(fao_species)
-	  FAO += fao_species->free_energy_post_process(needsTensor());
+      Additional_Energy += s->free_energy_post_process(needsTensor());
+      
+      //      FMT_Species *ss = dynamic_cast<FMT_Species*>(s);
+      //      ss->report();      
     }
-  return F.sum()+ FAO;
+
+  return F.sum()+ Additional_Energy;
 }
 
 // Calculate dF[i] = dPhi/drho(i)

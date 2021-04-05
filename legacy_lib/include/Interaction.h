@@ -49,22 +49,14 @@ class Interaction_Base
    */  
   virtual void initialize();
 
-  /**
-   *   @brief  Scale the attractive interaction: i.e. same as multiplying the potential by a factor.
-   *  
-   *   @param scale_fac is the scale factor
-   */    
+  // multiply the potential by the given factor
   void scale_interaction(double scale_fac)
   {
     a_vdw_ *= scale_fac;
     w_att_.MultBy(scale_fac);  
   }
-  
-  /**
-   *   @brief  This executes the basic functionality of computing energies and forces
-   *  
-   *   @returns The mean-field contribution to the (total) free energy divided by kT.
-   */    
+
+  // Main functionality
   virtual double getInteractionEnergyAndForces();
 
 
@@ -395,6 +387,9 @@ class Interaction_Gauss_F : public Interaction_Gauss
 class Interaction_Interpolation : public Interaction_Base
 {
  public:
+
+  enum Mode{Zero, LinEnergy, QuadEnergy, LinForce, QuadForce};
+
   /**
    *   @brief  Constructor 
    *  
@@ -402,20 +397,36 @@ class Interaction_Interpolation : public Interaction_Base
    *   @param s2: the second species.
    *   @param kT: the temperature
    */      
- Interaction_Interpolation(Species *s1, Species *s2, Potential1 *v, double kT): 
-  Interaction_Base(s1,s2,v,kT) {}
+  Interaction_Interpolation(Species *s1, Species *s2, Potential1 *v, double kT, Interaction_Interpolation::Mode mode = Zero): 
+    Interaction_Base(s1,s2,v,kT)
+  {
+    if(mode == Zero) {
+      vv_.push_back(1.0); pt_.push_back(0.0);
+    } else if(mode == LinEnergy) {
+      vv_.push_back( 1.0); vv_.push_back(26.0); vv_.push_back(66.0); vv_.push_back(26.0); vv_.push_back(1.0);
+      pt_.push_back(-2.0); pt_.push_back(-1.0); pt_.push_back( 0.0); pt_.push_back( 1.0); pt_.push_back(2.0);
+      for(auto &x: vv_) x /= 120.0;
+    } else if(mode == QuadEnergy) {
+      vv_.push_back(-1.0); vv_.push_back(8.0);  vv_.push_back(18.0); vv_.push_back(112.0); vv_.push_back(86.0); vv_.push_back(112.0); vv_.push_back(18.0); vv_.push_back(8.0); vv_.push_back(-1.0);
+      pt_.push_back(-2.0); pt_.push_back(-1.5); pt_.push_back(-1.0); pt_.push_back(-0.5);  pt_.push_back(0.0);  pt_.push_back(0.5);   pt_.push_back(1.0);  pt_.push_back(1.5); pt_.push_back(2.0);
+      for(auto &x: vv_) x /= 360.0;      
+    } else if(mode == LinForce) {
+      vv_.push_back(1.0);  vv_.push_back(4.0); vv_.push_back(1.0);
+      pt_.push_back(-1.0); pt_.push_back(0.0); pt_.push_back(1.0);
+      for(auto &x: vv_) x /= 6;
+    } else if(mode == QuadForce) {
+      vv_.push_back(1.0/3);  vv_.push_back(1.0/3); vv_.push_back(1.0/3);
+      pt_.push_back(-0.5); pt_.push_back(0.0); pt_.push_back(0.5);
+    }
+      
+  }
 
   Interaction_Interpolation():
-  Interaction_Base() {}
+    Interaction_Base() {}
 
  protected:
   /**
    *   @brief  Calculates the weight w(Sx,Sy,Sz)
-   *  
-   *   @param Sx,Sy,Sz: the cell 
-   *   @param v: the potential
-   *   @param dx: lattice spacing
-   *
    *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
    */        
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz);
@@ -435,154 +446,100 @@ class Interaction_Interpolation : public Interaction_Base
   vector<double> pt_; ///< Positions at which the potential must be evaluated
 };
 
-/**
-  *  @brief Calculates the weight array as the potential evaluated at the lattice points.
-  */  
-class Interaction_Interpolation_Zero : public Interaction_Interpolation
+class Interaction_Surfactant : public Interaction_Interpolation
 {
  public:
+  Interaction_Surfactant(FMT_Species_Extended *water, FMT_Species *surfactant, Potential1 *v, double kT, Interaction_Interpolation::Mode mode = Zero)
+    :   Interaction_Interpolation(water,surfactant,v,kT,mode) {}
+
+  // Over-ride bulk contributions since these are zero in the absence of gradients
+  virtual double Mu(const vector<double> &x, int species) {return 0.0;}
+  virtual double Fhelmholtz(const vector<double> &x) const {return 0.0;}
+
+
   /**
-   *   @brief  Constructor 
+   *   @brief  This executes the basic functionality of computing energies and forces
    *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
+   *   @returns The mean-field contribution to the (total) free energy divided by kT.
    */    
- Interaction_Interpolation_Zero(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT) { vv_.push_back(1.0); pt_.push_back(0.0); }
-
- Interaction_Interpolation_Zero() :
-   Interaction_Interpolation() {};
-
-  friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  virtual double getInteractionEnergyAndForces()
   {
-    ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
-    boost::serialization::void_cast_register<Interaction_Interpolation_Zero, Interaction_Interpolation>(static_cast<Interaction_Interpolation_Zero *>(NULL),static_cast<Interaction_Interpolation *>(NULL));                        
-  }
-};
+    // Species 1 is the **water** and species 2 is the surfactant.
 
-/**
-  *  @brief Calculates the weight array using linear interpolation of the potential and the "Energy route". 
-  */  
-class Interaction_Interpolation_LE : public Interaction_Interpolation
-{
- public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */      
- Interaction_Interpolation_LE(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT)
-    { vv_.push_back( 1.0); vv_.push_back(26.0); vv_.push_back(66.0); vv_.push_back(26.0); vv_.push_back(1.0);
-      pt_.push_back(-2.0); pt_.push_back(-1.0); pt_.push_back( 0.0); pt_.push_back( 1.0); pt_.push_back(2.0);
-      for(auto &x: vv_) x /= 120.0;
-    }
-
-  Interaction_Interpolation_LE() : 
-    Interaction_Interpolation(){}
-
-
-  friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive & ar, const unsigned int version)
-  {
-    ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
-    boost::serialization::void_cast_register<Interaction_Interpolation_LE, Interaction_Interpolation>(static_cast<Interaction_Interpolation_LE *>(NULL),static_cast<Interaction_Interpolation *>(NULL));                            
-  }
-};
-
-/**
- *  @brief Calculates the weight array using quadratic interpolation of the potential and the "Energy route". 
- */  
-class Interaction_Interpolation_QE : public Interaction_Interpolation
-{
- public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */      
- Interaction_Interpolation_QE(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT)
-    { vv_.push_back(-1.0); vv_.push_back(8.0);  vv_.push_back(18.0); vv_.push_back(112.0); vv_.push_back(86.0); vv_.push_back(112.0); vv_.push_back(18.0); vv_.push_back(8.0); vv_.push_back(-1.0);
-      pt_.push_back(-2.0); pt_.push_back(-1.5); pt_.push_back(-1.0); pt_.push_back(-0.5);  pt_.push_back(0.0);  pt_.push_back(0.5);   pt_.push_back(1.0);  pt_.push_back(1.5); pt_.push_back(2.0);
-      for(auto &x: vv_) x /= 360.0;
-    }
-
-  Interaction_Interpolation_QE() : 
-    Interaction_Interpolation(){}  
-
-  friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive & ar, const unsigned int version)
-  {
-    ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
-    boost::serialization::void_cast_register<Interaction_Interpolation_QE, Interaction_Interpolation>(static_cast<Interaction_Interpolation_QE *>(NULL),static_cast<Interaction_Interpolation *>(NULL));                            
-  }
-};
-
-/**
- *  @brief Calculates the weight array using linear interpolation of the potential and the "Force route". 
- */  
-class Interaction_Interpolation_LF : public Interaction_Interpolation
-{
- public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */      
- Interaction_Interpolation_LF(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT)
-    { vv_.push_back(1.0);  vv_.push_back(4.0); vv_.push_back(1.0);
-      pt_.push_back(-1.0); pt_.push_back(0.0); pt_.push_back(1.0);
-      for(auto &x: vv_) x /= 6;
-    }
-
-  Interaction_Interpolation_LF() : 
-    Interaction_Interpolation(){}
+    FMT_Species_Extended &water = *((FMT_Species_Extended*) s1_);
+    FMT_Species &surfactant = *((FMT_Species*) s2_);
   
-  friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive & ar, const unsigned int version)
-  {
-    ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
-    boost::serialization::void_cast_register<Interaction_Interpolation_LF, Interaction_Interpolation>(static_cast<Interaction_Interpolation_LF *>(NULL),static_cast<Interaction_Interpolation *>(NULL));
-  }
-};
+    const Density& surf_density = surfactant.getDensity();
 
-/**
- *  @brief Calculates the weight array using guadratic interpolation of the potential and the "Force route". 
- */  
-class Interaction_Interpolation_QF : public Interaction_Interpolation
-{
- public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */      
- Interaction_Interpolation_QF(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT)
-    { vv_.push_back(1.0/3);  vv_.push_back(1.0/3); vv_.push_back(1.0/3);
-      pt_.push_back(-0.5); pt_.push_back(0.0); pt_.push_back(0.5);
-    }  
-  Interaction_Interpolation_QF() : 
-    Interaction_Interpolation(){}
+    int Nx = surf_density.Nx();
+    int Ny = surf_density.Ny();
+    int Nz = surf_density.Nz();
+
+    long Ntot = Nx*Ny*Nz;
   
+    double dV = surf_density.dV();
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Construct v2(r) for the water & do fft
+
+    const DFT_Vec& vRealx = water.getV_Real(0);
+    const DFT_Vec& vRealy = water.getV_Real(1);
+    const DFT_Vec& vRealz = water.getV_Real(2);
+
+    DFT_FFT v2_water(Nx, Ny, Nz);      
+    for(long i=0;i<Ntot;i++)
+      v2_water.Real().set(i, vRealx.get(i)*vRealx.get(i)+vRealy.get(i)*vRealy.get(i)+vRealz.get(i)*vRealz.get(i));
+    v2_water.do_real_2_fourier();
+
+    //////////////////////////////////////////////////////////////////////////
+    // Surfactant force is just convoluton of the potential and v2_water
+    // Lets do this the dumb way first:
+    DFT_FFT dF(Nx, Ny, Nz);      
+
+    dF.Four().Schur(w_att_.Four(),v2_water.Four(),false); //true);
+    dF.Four().MultBy(1.0/dF.Real().size());  // FFTW's convention
+    dF.do_fourier_2_real();
+    dF.Real().MultBy(dV*dV); // this is d F/d rho_i and so the factors of dV survive
+
+    surfactant.addToForce(dF.Real());
+  
+    /////////////////////////////////////////////////////////////////////////////////
+    // Contribution to the free energy is this dotted with the surfactant density
+
+    double F = surf_density.getInteractionEnergy(dF.Real());
+    
+    ////////////////////////////////////////////////////////////////////////
+    // Now we need the derivative wrt the water density
+
+    for(int i=0;i<3;i++)
+      { 
+	dF.zeros();
+
+	dF.Four().Schur(surf_density.getDK(), w_att_.Four(),false);
+	dF.Four().MultBy(1.0/dF.Real().size());  // FFTW's convention
+	dF.do_fourier_2_real();  
+
+	dF.Real().Schur(dF.Real(),water.getV_Real(i));
+
+	dF.do_real_2_fourier();
+	dF.Four().Schur(dF.Four(),water.getVweight_Four(i),false); // this includes the FFTW scale factor already
+	dF.do_fourier_2_real();
+
+	dF.Real().MultBy(2*dV*dV);
+      
+	water.addToForce(dF.cReal());
+      }
+
+    return F;
+  }
+
+ protected:
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
     ar & boost::serialization::base_object<Interaction_Interpolation>(*this);
-    boost::serialization::void_cast_register<Interaction_Interpolation_QF, Interaction_Interpolation>(static_cast<Interaction_Interpolation_QF *>(NULL),static_cast<Interaction_Interpolation *>(NULL));    
-  }  
+    boost::serialization::void_cast_register<Interaction_Surfactant, Interaction_Interpolation>(static_cast<Interaction_Surfactant *>(NULL),static_cast<Interaction_Interpolation *>(NULL));    
+  }    
 };
 
 
