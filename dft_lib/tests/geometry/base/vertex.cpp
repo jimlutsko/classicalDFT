@@ -53,7 +53,7 @@ TEST(geometry_vertex, point_move_vec_cttor_test)
   for (auto tup : boost::combine(std::vector<double>{0, 1, 2}, p.coordinates()))
   {
     double y, z; boost::tie(y,z) = tup;
-    EXPECT_DOUBLE_EQ(z, y);
+    EXPECT_NEAR(z, y, 1E-10);
   }
 }
 
@@ -72,7 +72,7 @@ TEST(geometry_vertex, point_initializer_list_cttor_test)
   for (auto tup : boost::combine(std::vector<double>{0, 1, 2}, p.coordinates()))
   {
     double y, z; boost::tie(y,z) = tup;
-    EXPECT_DOUBLE_EQ(z, y);
+    EXPECT_NEAR(z, y, 1E-10);
   }
 }
 

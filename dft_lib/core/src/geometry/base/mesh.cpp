@@ -2,6 +2,7 @@
 
 #include <boost/range/combine.hpp>
 #include <numeric>
+#include <cmath> // std::abs
 
 namespace dft_core {
 namespace geometry {
