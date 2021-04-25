@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iterator>
 #include <stdexcept>
+#include <cmath>
 
 namespace dft_core {
 namespace geometry {

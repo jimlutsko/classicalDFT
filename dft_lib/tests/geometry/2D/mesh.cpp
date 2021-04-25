@@ -8,9 +8,11 @@ using namespace dft_core::geometry;
 
 TEST(geometry_2d_suqmesh, two_dim_suqmesh_default_cttor_test)
 {
-  auto m = two_dimensional::Lattice(0.25, {0, 0}, {1, 1});
+  auto origin = std::vector<double>{0, 0};
+  auto dimensions = std::vector<double>{1, 1};
+  auto m = two_dimensional::Lattice(1, dimensions, origin);
   ASSERT_DOUBLE_EQ(4, m.number_vertices());
-  ASSERT_DOUBLE_EQ(0.0625, m.volume());
+  ASSERT_DOUBLE_EQ(1, m.volume());
 }
 
 // endregion
