@@ -8,15 +8,6 @@ ENV APP_DIR=/usr/app
 ENV LIB_DIR=dft_lib
 ENV BUILD_SH=buildlib.sh
 
-WORKDIR ${APP_DIR}
-COPY ${LIB_DIR}/cmake ./${LIB_DIR}/cmake
-COPY ${LIB_DIR}/core ./${LIB_DIR}/core
-COPY ${LIB_DIR}/tests ./${LIB_DIR}/tests
-COPY ${LIB_DIR}/examples ./${LIB_DIR}/examples
-COPY ${LIB_DIR}/CMakeLists.txt ./${LIB_DIR}/CMakeLists.txt
-
-COPY ${BUILD_SH} .
-
 # Set up:
 RUN apt-get -qq -y update \
     && apt-get -qq -y install curl \
@@ -48,6 +39,15 @@ RUN cd /usr/src/googletest/googletest \
 RUN mkdir /usr/local/lib/googletest \
     && ln -s /usr/lib/libgtest.a /usr/local/lib/googletest/libgtest.a \
     && ln -s /usr/lib/libgtest_main.a /usr/local/lib/googletest/libgtest_main.a
+
+WORKDIR ${APP_DIR}
+COPY ${LIB_DIR}/cmake ./${LIB_DIR}/cmake
+COPY ${LIB_DIR}/core ./${LIB_DIR}/core
+COPY ${LIB_DIR}/tests ./${LIB_DIR}/tests
+COPY ${LIB_DIR}/examples ./${LIB_DIR}/examples
+COPY ${LIB_DIR}/CMakeLists.txt ./${LIB_DIR}/CMakeLists.txt
+
+COPY ${BUILD_SH} .
 
 # Testing:
 WORKDIR ${APP_DIR}

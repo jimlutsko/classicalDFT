@@ -285,7 +285,7 @@ void Interaction_Base::generateWeightsXYZSym()
 
 
 void Interaction_Base::generateWeights()
-{    
+{
   const Density &density = s1_->getDensity();
       
   // The lattice
@@ -316,7 +316,7 @@ void Interaction_Base::generateWeights()
   int Nz_lim = 2+int(Rc/dz);    
     
   // Add up the weights for each point.
-  long Nmax = Nx_lim*Ny_lim*Nz_lim;
+  long Nmax = (Nx_lim+1)*(Ny_lim+1)*(Nz_lim+1);
   int chunk = 1000; 
   size_t steps_completed = 0;
   size_t total_steps = Nmax/chunk;
@@ -347,15 +347,15 @@ void Interaction_Base::generateWeights()
           } 
         else 
           {
-            Sx =  p / (Ny_lim*Nz_lim);
-            Sy = (p % (Ny_lim*Nz_lim)) / Nz_lim;
-            Sz =  p %  Nz_lim;
+            Sx =  p / ((Ny_lim+1)*(Nz_lim+1));
+            Sy = (p % ((Ny_lim+1)*(Nz_lim+1))) / (Nz_lim+1);
+            Sz =  p %  (Nz_lim+1);
           }
         
         pold = p;
         
         // check
-        if(p != Sx*Ny_lim*Nz_lim + Sy*Nz_lim + Sz)
+        if(p != Sx*(Ny_lim+1)*(Nz_lim+1) + Sy*(Nz_lim+1) + Sz)
           throw std::runtime_error("Bad indices in generateWeights");
         
         w2[p] = global_factor*generateWeight(Sx, Sy, Sz, dx,dy,dz);
@@ -376,7 +376,7 @@ void Interaction_Base::generateWeights()
   }
   w_att_.Real().zeros();
   a_vdw_ = 0.0;
-
+  
   cout << endl;
   
   for(int ix = -Nx_lim;ix<=Nx_lim; ix++)
