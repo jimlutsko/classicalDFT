@@ -265,8 +265,12 @@ void FMT_Species_Analytic_2::generateWeights()
 	  counter++;
 	  if(counter%1000 == 0) {if(counter > 0) cout << '\r'; cout << "\t" << int(double(counter)*100.0/pmax) << "% finished: " << counter << " out of " << pmax; cout.flush();}
 
-	  double R2_min = (Sx-(Sx == 0 ? 0 : 1))*(Sx-(Sx == 0 ? 0 : 1))+(Sy-(Sy == 0 ? 0 : 1))*(Sy-(Sy == 0 ? 0 : 1))+(Sz-(Sz == 0 ? 0 : 1))*(Sz-(Sz == 0 ? 0 : 1));
-	  double R2_max = (Sx+1)*(Sx+1)+(Sy+1)*(Sy+1)+(Sz+1)*(Sz+1);
+	  double r2_min = (Sx-(Sx == 0 ? 0 : 1))*(Sx-(Sx == 0 ? 0 : 1))*dx*dx
+	                + (Sy-(Sy == 0 ? 0 : 1))*(Sy-(Sy == 0 ? 0 : 1))*dy*dy
+	                + (Sz-(Sz == 0 ? 0 : 1))*(Sz-(Sz == 0 ? 0 : 1))*dz*dz;
+	  double r2_max = (Sx+1)*(Sx+1)*dx*dx
+	                + (Sy+1)*(Sy+1)*dy*dy
+	                + (Sz+1)*(Sz+1)*dz*dz;
 	  
 	  double w_eta = 0.0;
 	  double w_s   = 0.0;
@@ -280,24 +284,22 @@ void FMT_Species_Analytic_2::generateWeights()
 	  // else, the nearest corner is Sx-1,Sy-1,Sz-1 (unless Sx, Sy or Sz = 0) and if this is less than hsr*hsr, then the boundary is between these limits and we must compute
 	  // else, all hsd boundary is less than the nearest corner and all weights are zero.
 
-	  double R = hsr/dx;
-
 	  //Note: Special cases of I-sums, e.g. when one or more components of S are zero, are handled in the called functions.
 	  
-	  if(R*R > R2_max) {w_eta = dV;}
-	  else if(R*R > R2_min)
+	  if(hsr*hsr > r2_max) {w_eta = dV;}
+	  else if(hsr*hsr > r2_min)
 	    for(int ax:I)
 	      {
 		int ix = ax;
 		double Tx = Sx+ix;
 		int px = (Tx < 0 ? -1 : 1);
-		if(Tx < 0) Tx = ix = 1;		   
+		if(Tx < 0) Tx = ix = 1;
 		for(int ay:I)
 		  {
 		    int iy = ay;
 		    double Ty = Sy+iy;
 		    int py = (Ty < 0 ? -1 : 1);
-		    if(Ty < 0) {Ty = 1; iy = 1;}	       		    
+		    if(Ty < 0) {Ty = 1; iy = 1;}
 		    for(int az:I)
 		      {
 			int iz = az;
@@ -325,47 +327,47 @@ void FMT_Species_Analytic_2::generateWeights()
 				if(jz == 1) sgn *= -1;
 			    
 				// test up to machine precision
-				if((R*R - (Vx*Vx+Vy*Vy+Vz*Vz)) < std::nextafter(0.d,1.d)) continue;
+				if((hsr*hsr - (Vx*Vx*dx*dx+Vy*Vy*dy*dy+Vz*Vz*dz*dz)) < std::nextafter(0.d,1.d)) continue;
 
-				w_eta += dV*sgn*(G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				w_s   += dS*sgn*(G_s(R,Vx,Vy,Vz,Tx,Ty,Tz)   - G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				w_eta += dV*sgn*(G_eta(hsr,dx*Vx,dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz) - G_eta(hsr,sqrt(hsr*hsr-dy*Vy*dy*Vy-dz*Vz*dz*Vz),dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz));
+				w_s   += dS*sgn*(G_s(hsr,dx*Vx,dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz)   - G_s(hsr,sqrt(hsr*hsr-dy*Vy*dy*Vy-dz*Vz*dz*Vz),dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz));
 
-				w_v[0] += px*(dS/R)*sgn*(G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				w_v[1] += py*(dS/R)*sgn*(G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				w_v[2] += pz*(dS/R)*sgn*(G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
+				w_v[0] += px*(dS/hsr)*sgn*(G_vx(hsr,dx*Vx,dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz) - G_vx(hsr,sqrt(hsr*hsr-dy*Vy*dy*Vy-dz*Vz*dz*Vz),dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz));
+				w_v[1] += py*(dS/hsr)*sgn*(G_vx(hsr,dy*Vy,dx*Vx,dz*Vz,dy*Ty,dx*Tx,dz*Tz) - G_vx(hsr,sqrt(hsr*hsr-dx*Vx*dx*Vx-dz*Vz*dz*Vz),dx*Vx,dz*Vz,dy*Ty,dx*Tx,dz*Tz));
+				w_v[2] += pz*(dS/hsr)*sgn*(G_vx(hsr,dz*Vz,dy*Vy,dx*Vx,dz*Tz,dy*Ty,dx*Tx) - G_vx(hsr,sqrt(hsr*hsr-dy*Vy*dy*Vy-dx*Vx*dx*Vx),dy*Vy,dx*Vx,dz*Tz,dy*Ty,dx*Tx));
 
-				w_T[0][0] += (dS/(R*R))*sgn*(G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				w_T[1][1] += (dS/(R*R))*sgn*(G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				w_T[2][2] += (dS/(R*R))*sgn*(G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
+				w_T[0][0] += (dS/(hsr*hsr))*sgn*(G_txx(hsr,dx*Vx,dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz) - G_txx(hsr,sqrt(hsr*hsr-dy*Vy*dy*Vy-dz*Vz*dz*Vz),dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz));
+				w_T[1][1] += (dS/(hsr*hsr))*sgn*(G_txx(hsr,dy*Vy,dx*Vx,dz*Vz,dy*Ty,dx*Tx,dz*Tz) - G_txx(hsr,sqrt(hsr*hsr-dx*Vx*dx*Vx-dz*Vz*dz*Vz),dx*Vx,dz*Vz,dy*Ty,dx*Tx,dz*Tz));
+				w_T[2][2] += (dS/(hsr*hsr))*sgn*(G_txx(hsr,dz*Vz,dy*Vy,dx*Vx,dz*Tz,dy*Ty,dx*Tx) - G_txx(hsr,sqrt(hsr*hsr-dy*Vy*dy*Vy-dx*Vx*dx*Vx),dy*Vy,dx*Vx,dz*Tz,dy*Ty,dx*Tx));			    
 
-				w_T[0][1] += px*py*(dS/(R*R))*sgn*(G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				w_T[0][2] += px*pz*(dS/(R*R))*sgn*(G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
-				w_T[1][2] += py*pz*(dS/(R*R))*sgn*(G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx) - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));			    			    			    
+				w_T[0][1] += px*py*(dS/(hsr*hsr))*sgn*(G_txy(hsr,dx*Vx,dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz) - G_txy(hsr,sqrt(hsr*hsr-dy*Vy*dy*Vy-dz*Vz*dz*Vz),dy*Vy,dz*Vz,dx*Tx,dy*Ty,dz*Tz));
+				w_T[0][2] += px*pz*(dS/(hsr*hsr))*sgn*(G_txy(hsr,dx*Vx,dz*Vz,dy*Vy,dx*Tx,dz*Tz,dy*Ty) - G_txy(hsr,sqrt(hsr*hsr-dy*Vy*dy*Vy-dz*Vz*dz*Vz),dz*Vz,dy*Vy,dx*Tx,dz*Tz,dy*Ty));
+				w_T[1][2] += py*pz*(dS/(hsr*hsr))*sgn*(G_txy(hsr,dy*Vy,dz*Vz,dx*Vx,dy*Ty,dz*Tz,dx*Tx) - G_txy(hsr,sqrt(hsr*hsr-dz*Vz*dz*Vz-dx*Vx*dx*Vx),dz*Vz,dx*Vx,dy*Ty,dz*Tz,dx*Tx));			    			    			    
 			      }
 		      }
 		  }
-	      }	
+	      }
 	  
 	  // Add in for all octants of the sphere: take account of parity of vector and tensor quantities
 	  for(int ix = 0; ix < (Sx == 0 ? 1 : 2); ix++)
 	    for(int iy = 0; iy < (Sy == 0 ? 1 : 2); iy++)
 	      for(int iz = 0; iz < (Sz == 0 ? 1 : 2); iz++)
-		{		  
+		{
 		  long pos = density_.get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
 		  d_[EI()].addToWeight(pos,w_eta);
 		  if(isnan(d_[EI()].getWeight(pos)))
 		    {
 		      cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
-		      throw std::runtime_error("FOund NAN");
+		      throw std::runtime_error("Found NAN");
 		    }
 		  d_[SI()].addToWeight(pos,w_s);
 		  for(int iv = 0;iv < 3;iv++)
 		    {
-		      d_[VI(iv)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*w_v[iv]);
+		      d_[VI(iv)].addToWeight(pos,(iv == 0 ? dx*(1-2*ix) : (iv == 1 ? dy*(1-2*iy) : dz*(1-2*iz)))*w_v[iv]);
 		      for(int it=iv;it<3;it++)
-			d_[TI(iv,it)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*(it == 0 ? (1-2*ix) : (it == 1 ? (1-2*iy) : (1-2*iz)))*w_T[iv][it]);
+			d_[TI(iv,it)].addToWeight(pos,(iv == 0 ? dx*(1-2*ix) : (iv == 1 ? dy*(1-2*iy) : dz*(1-2*iz)))*(it == 0 ? dx*(1-2*ix) : (it == 1 ? dy*(1-2*iy) : dz*(1-2*iz)))*w_T[iv][it]);
 		    }
-		}		  
+		}
 	}
 
   cout << endl;
