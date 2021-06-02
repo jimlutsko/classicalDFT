@@ -393,7 +393,7 @@ void Interaction_Base::generateWeights()
             int ny = abs(iy);
             int nz = abs(iz);
             
-            long p = nx*Ny_lim*Nz_lim + ny*Nz_lim + nz;
+            long p = nx*(Ny_lim+1)*(Nz_lim+1) + ny*(Nz_lim+1) + nz;
             
             if(p > Nmax) throw std::runtime_error("counter out of range in Interaction_Base::generateWeights");
             double w = w2[p];
