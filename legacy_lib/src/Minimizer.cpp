@@ -175,7 +175,7 @@ double fireMinimizer2::step()
       if(N_P_positive_ > N_delay_)
 	{
 	  dt_ = min(dt_*f_inc_,dt_max_);
-	  alpha_ =alpha_*f_alf_;
+	  if (alpha_*f_alf_>1e-20) alpha_ =alpha_*f_alf_; // do not allow alpha to become so small that it cannot be represented on the machine
 	}
     } else {
     N_P_positive_ = 0;
