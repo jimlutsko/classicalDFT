@@ -93,21 +93,13 @@ class Density : public Lattice
   */  
   void initialize_from_file(const char *filename);
 
-  /**
+    /**
   *   @brief Called to create initial density from a smaller geometry.
   *  
   *   @param  filename
   *   @return  none
   */  
   void initialize_from_smaller_density(const Density &density);
-  
-  /**
-  *   @brief Called to create initial density from a coarser grid.
-  *  
-  *   @param  filename
-  *   @return  none
-  */  
-  void initialize_from_coarser_grid(const Density &density);
 
   /**
   *   @brief Decendents of the Density object can implement this method to do graphical displays

@@ -67,63 +67,6 @@ void Density::initialize_from_smaller_density(const Density &density)
 	    }
 }
 
-
-void Density::initialize_from_coarser_grid(const Density &density)
-{
-	double dx1 = density.getDX();
-	double dy1 = density.getDY();
-	double dz1 = density.getDZ();
-	
-	long Nx1 = density.Nx();
-	long Ny1 = density.Ny();
-	long Nz1 = density.Nz();
-	
-	// Check that the boxes have the same lengths
-	if (abs(1-density.Lx()/Lx())>1e-8) throw runtime_error("The length of the box is changed from one density to the other (x direction)");
-	if (abs(1-density.Ly()/Ly())>1e-8) throw runtime_error("The length of the box is changed from one density to the other (y direction)");
-	if (abs(1-density.Ly()/Ly())>1e-8) throw runtime_error("The length of the box is changed from one density to the other (z direction)");
-	
-	for(int ix=0;ix<Nx_;ix++)
-	for(int iy=0;iy<Ny_;iy++)
-	for(int iz=0;iz<Nz_;iz++)
-	{
-		// Find the cube where the point is
-		int ix1 = int (getX(ix)/dx1);
-		int iy1 = int (getY(iy)/dy1);
-		int iz1 = int (getZ(iz)/dz1);
-		
-		// Position within the cube
-		double ddx = getX(ix) - ix1*dx1;
-		double ddy = getY(iy) - iy1*dy1;
-		double ddz = getZ(iz) - iz1*dz1;
-		
-		// Cube vertices
-		double d000  = density.getDensity(ix1+0,iy1+0,iz1+0);
-		double d001  = density.getDensity(ix1+0,iy1+0,iz1+1);
-		double d010  = density.getDensity(ix1+0,iy1+1,iz1+0);
-		double d011  = density.getDensity(ix1+0,iy1+1,iz1+1);
-		double d100  = density.getDensity(ix1+1,iy1+0,iz1+0);
-		double d101  = density.getDensity(ix1+1,iy1+0,iz1+1);
-		double d110  = density.getDensity(ix1+1,iy1+1,iz1+0);
-		double d111  = density.getDensity(ix1+1,iy1+1,iz1+1);
-		
-		// Trilinear interpolation (see https://en.wikipedia.org/wiki/Trilinear_interpolation)
-		
-		double d00 = d000 * (1-ddz) + d001 * ddz;
-		double d01 = d010 * (1-ddz) + d011 * ddz;
-		double d10 = d100 * (1-ddz) + d101 * ddz;
-		double d11 = d110 * (1-ddz) + d111 * ddz;
-		
-		double d0 = d00 * (1-ddy) + d01 * ddy;
-		double d1 = d10 * (1-ddy) + d11 * ddy;
-		
-		double d = d0 * (1-ddx) + d1 * ddx;
-		
-		set(ix,iy,iz,d);
-	}
-}
-
-
 void Density::detectClusters(double threshold, vector< vector<long> > &clusters)
 {
   /*
