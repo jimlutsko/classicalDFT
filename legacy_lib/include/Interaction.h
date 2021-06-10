@@ -466,8 +466,8 @@ class Interaction_Surfactant : public Interaction_Interpolation
   {
     // Species 1 is the **water** and species 2 is the surfactant.
 
-    FMT_Species_Extended &water = *((FMT_Species_Extended*) s1_);
-    FMT_Species &surfactant = *((FMT_Species*) s2_);
+    FMT_Species_Extended &water      = *((FMT_Species_Extended*) s1_);
+    FMT_Species          &surfactant = *((FMT_Species*) s2_);
   
     const Density& surf_density = surfactant.getDensity();
 
@@ -499,7 +499,8 @@ class Interaction_Surfactant : public Interaction_Interpolation
     dF.Four().Schur(w_att_.Four(),v2_water.Four(),false); //true);
     dF.Four().MultBy(1.0/dF.Real().size());  // FFTW's convention
     dF.do_fourier_2_real();
-    dF.Real().MultBy(dV*dV); // this is d F/d rho_i and so the factors of dV survive
+    //    dF.Real().MultBy(dV*dV); // this is d F/d rho_i and so the factors of dV survive
+    dF.Real().MultBy(dV); // this is d F/d rho_i and so the factors of dV survive
 
     surfactant.addToForce(dF.Real());
   
@@ -525,11 +526,12 @@ class Interaction_Surfactant : public Interaction_Interpolation
 	dF.Four().Schur(dF.Four(),water.getVweight_Four(i),false); // this includes the FFTW scale factor already
 	dF.do_fourier_2_real();
 
-	dF.Real().MultBy(2*dV*dV);
+	//	dF.Real().MultBy(-2*dV*dV);
+	dF.Real().MultBy(-2*dV);
       
 	water.addToForce(dF.cReal());
       }
-
+    cout << "Fsurf = " << F << endl;
     return F;
   }
 

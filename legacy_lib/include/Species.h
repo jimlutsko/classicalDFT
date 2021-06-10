@@ -28,7 +28,6 @@ class Species
   const Lattice& getLattice() const { return density_;}
   const Density& getDensity() const { return density_;}
 
-
   virtual void set_density_from_alias(const DFT_Vec &x);
   virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
@@ -43,7 +42,8 @@ class Species
   void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}
   void setForce(const DFT_Vec &f) {dF_.set(f);}
   void multForce(double f) {dF_.MultBy(f);}  
-
+  double getForce(long pos) const { return dF_.get(pos);}
+  
   // allows child classes to do more work if necessary
   virtual double free_energy_post_process(bool needsTensor) { return 0.0;}
   
@@ -54,7 +54,7 @@ class Species
 
   // This species is held as allSpecies_[index_]
   void setIndex(int i) { index_ = i;}
-  int  getIndex() const { return index_;}
+  int  getIndex() const {return index_;}
   
   /**
   *   @brief  This adds in the external field contribution (which is species dependent). Force calculation is optional
@@ -75,22 +75,13 @@ class Species
     return Fx;
   }
 
-  /**
-  *   @brief  Get the hard sphere diameter. This is a place-holder for the child objects that actually have a hsd.
-  *  
-  */  
+  // Get the hard sphere diameter. This is a place-holder for the child objects that actually have a hsd.
   virtual double getHSD() const { return 0.0;}
   
-  /**
-   *   @brief  Placeholder for FMT-specific processing: non-FMT classes do nothing
-   *  
-   */  
+  //Placeholder for FMT-specific processing: non-FMT classes do nothing
   virtual void set_fundamental_measure_derivatives(FundamentalMeasures &fm, long pos, bool needsTensor) {}
  
-  /**
-   *   @brief  Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
-   *  
-   */    
+  //Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
   void beginForceCalculation()
   {
     if(fixedMass_ > 0.0)
@@ -100,10 +91,7 @@ class Species
       }
   }
 
-  /**
-   *   @brief  Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
-   *  
-   */    
+  // Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
   double endForceCalculation()
   {
     if(fixedMass_ > 0.0)
@@ -189,12 +177,6 @@ public:
   virtual void set_density_from_alias(const DFT_Vec &x);
   virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
-
-
-  // Obsolete?
-  //  const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
-  //  FMT_Weighted_Density& getEta() { return fmt_weighted_densities[0];}
-
 
   /**
    *   @brief This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
@@ -572,11 +554,8 @@ public:
   
   const DFT_Vec &getV_Real(int J) const { return vsurf_[J].Real();}
   const DFT_Vec_Complex& getVweight_Four(int J) const { return vsurf_[J].wk();}  
+  const double getV_Extended(int j, long pos) const { return vsurf_[j].real(pos);}
 
-  
-  virtual double free_energy_post_process(bool needsTensor);  
-
-  //  double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
   
 protected:
   vector<FMT_Weighted_Density> vsurf_; ///< Extra measures for surfactant model
