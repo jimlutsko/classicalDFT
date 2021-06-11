@@ -139,6 +139,9 @@ class Interaction_Base
    *  
    */      
   virtual void generateWeights();  
+  
+  // faster version in the case where dx=dy=dz (original version)
+  virtual void generateWeightsXYZSym();
 
   /**
    *   @brief  Calculates the weight w(Sx,Sy,Sz)

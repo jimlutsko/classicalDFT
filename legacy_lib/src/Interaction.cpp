@@ -153,7 +153,8 @@ double Interaction_Base::second_derivative_brute_force(int I[3], int J[3], vecto
   return (s1_ == s2_ ? 1 : 0.5)*dV*w_att_.cReal().get(pos);
 }
 
-void Interaction_Base::generateWeights()
+
+void Interaction_Base::generateWeightsXYZSym()
 {    
   const Density &density = s1_->getDensity();
       
@@ -268,6 +269,139 @@ void Interaction_Base::generateWeights()
 	    w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
 	    a_vdw_ += w;
 	  }
+    }
+  cout << " - Finished!" << endl;
+  // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
+  // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
+  a_vdw_ /= (dx*dy*dz); 
+  cout << std::defaultfloat << std::setprecision(6);
+    
+  cout << myColor::GREEN;
+  cout << "/////  Finished.  " << endl;
+  cout << "///////////////////////////////////////////////////////////" << endl;
+  cout << myColor::RESET << endl;
+    
+}
+
+
+void Interaction_Base::generateWeights()
+{
+  const Density &density = s1_->getDensity();
+      
+  // The lattice
+  long Nx = density.Nx();
+  long Ny = density.Ny();
+  long Nz = density.Nz();
+
+  double dx = density.getDX();
+  double dy = density.getDY();
+  double dz = density.getDZ();
+  
+  // Exploit the symmetry in case dx=dy=dz (faster calculation)
+  if (abs(dx-dy)<1e-6*dx && abs(dx-dz)<1e-6*dx)
+  {
+    generateWeightsXYZSym();
+    return;
+  }
+  
+  // Set up the mean field potential
+  // We need to take into account the whole contribution of the potential out to its cutoff of Rc.
+  // This may mean going beyond nearest neighbors in certain conditions.
+  // We also compute the vdw parameter at the same time.
+      
+  double Rc = v_->getRcut();
+
+  int Nx_lim = 2+int(Rc/dx);
+  int Ny_lim = 2+int(Rc/dy);
+  int Nz_lim = 2+int(Rc/dz);    
+    
+  // Add up the weights for each point.
+  long Nmax = (Nx_lim+1)*(Ny_lim+1)*(Nz_lim+1);
+  int chunk = 1000; 
+  size_t steps_completed = 0;
+  size_t total_steps = Nmax/chunk;
+
+  vector<double> w2(Nmax+1,0.0);
+
+  cout << "Generating interpolated weights" << endl;
+  
+  long p = 0;
+  double global_factor = dx*dx*dy*dy*dz*dz;
+
+#pragma omp parallel shared( chunk, w2) private(p)
+  {
+    size_t local_count = 0;
+    long pold = -1;
+    int Sx,Sy,Sz;
+#pragma omp for  
+    for(p=0;p<=Nmax;p++)
+      {
+        if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
+          {
+            for(int i=0;i<p-pold;i++)
+              {
+                Sz++;
+                if(Sz > Nz_lim) {Sy++; Sz=0;}
+                if(Sy > Ny_lim) {Sx++; Sy=0;}
+              }
+          } 
+        else 
+          {
+            Sx =  p / ((Ny_lim+1)*(Nz_lim+1));
+            Sy = (p % ((Ny_lim+1)*(Nz_lim+1))) / (Nz_lim+1);
+            Sz =  p %  (Nz_lim+1);
+          }
+        
+        pold = p;
+        
+        // check
+        if(p != Sx*(Ny_lim+1)*(Nz_lim+1) + Sy*(Nz_lim+1) + Sz)
+          throw std::runtime_error("Bad indices in generateWeights");
+        
+        w2[p] = global_factor*generateWeight(Sx, Sy, Sz, dx,dy,dz);
+        
+        if(local_count++ % chunk == chunk-1)
+          {
+#pragma omp atomic
+            ++steps_completed;
+            if (steps_completed % 100 == 1)
+              {
+#pragma omp critical
+                cout << '\r';
+                std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
+                cout.flush();
+              }
+          }
+      }
+  }
+  w_att_.Real().zeros();
+  a_vdw_ = 0.0;
+  
+  cout << endl;
+  
+  for(int ix = -Nx_lim;ix<=Nx_lim; ix++)
+    {
+      cout << '\r';
+      std::cout << "\tProgress: " << ix+Nx_lim << " of " << 2*Nx_lim+1 << " (" << std::fixed << std::setprecision(1) << (100.0*(ix+Nx_lim)/(2*Nx_lim+1)) << "%)";
+      cout.flush();
+      
+      for(int iy = -Ny_lim;iy<=Ny_lim; iy++)
+        for(int iz = -Nz_lim;iz<=Nz_lim; iz++)
+          {	  
+            // get the value of the integrated potential at this point
+            int nx = abs(ix);
+            int ny = abs(iy);
+            int nz = abs(iz);
+            
+            long p = nx*(Ny_lim+1)*(Nz_lim+1) + ny*(Nz_lim+1) + nz;
+            
+            if(p > Nmax) throw std::runtime_error("counter out of range in Interaction_Base::generateWeights");
+            double w = w2[p];
+            // and get the point it contributes to
+            long pos = s1_->getDensity().get_PBC_Pos(ix,iy,iz);
+            w_att_.Real().IncrementBy(pos,w/(dx*dy*dz));
+            a_vdw_ += w;
+          }
     }
   cout << " - Finished!" << endl;
   // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
