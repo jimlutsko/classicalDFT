@@ -55,7 +55,7 @@ void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
 //    dmax = dmin + (eta-etamin)/dV
 // Note that the limits used here are really only valid for FMT_Species
 // but for now, those are really the only ones used.
-
+/*
 void FMT_Species::set_density_from_alias(const DFT_Vec &x)
 {
   //Species::set_density_from_alias(x);
@@ -121,7 +121,7 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
     }
   
 }
-
+*/
 FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Species(density,mu,seq), hsd_(hsd), fmt_weighted_densities(11)
 {
   long Nx = density_.Nx();
@@ -353,18 +353,15 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 
   double dV = dx*dy*dz;
 
-  
-  double dS = dx*dx;
-
-  double hsr = hsd/2; // the hard-sphere radius
+  double R = hsd/2; // the hard-sphere radius
   
   // This saves having to a code a useless special case
   if(hsd < min(min(dx,dy),dz))
     throw std::runtime_error("hsd is less than the lattice spacing ... aborting");
   
-  int Sx_max = 2+int(hsr/dx);
-  int Sy_max = 2+int(hsr/dy);
-  int Sz_max = 2+int(hsr/dz);
+  int Sx_max = 2+int(R/dx);
+  int Sy_max = 2+int(R/dy);
+  int Sz_max = 2+int(R/dz);
 
   long pmax = (Sx_max+1)*(Sy_max+1)*(Sz_max+1);
   
@@ -379,15 +376,6 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
   long counter = 0;
 
   int numWeights = fmt_weights.size();
-
-  //REGARDING dx,dy,dz: In the following, I allow for different spacings in the different directions. In order to preserve - exactly - the previous results, I essentially
-  // scale everything by dx. A more rationale implementation would involve changes as noted below in comments marked with !!!. 
-
-  //!!! do not scale by dx  
-  double R = hsr/dx; 
-  dy /= dx; 
-  dz /= dx;
-  dx = 1;
   
   for(int Sx = 0; Sx <= Sx_max; Sx++)
     for(int Sy = 0; Sy <= Sy_max; Sy++)
@@ -455,30 +443,70 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 			    
 				// test up to machine precision
 				if((R*R - (Vx*Vx+Vy*Vy+Vz*Vz)) < std::nextafter(0.d,1.d)) continue;
-
-				//!!! Replace dV and dS in the following by (1/dV) in all cases
 				
-				w_eta += dV*sgn*(G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				w_eta += (1/dV)*sgn*(G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
 				if(numWeights > 1)
 				  {
-				    w_s   += dS*sgn*(G_s(R,Vx,Vy,Vz,Tx,Ty,Tz)   - G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_s   += (1/dV)*sgn*(G_s(R,Vx,Vy,Vz,Tx,Ty,Tz)   - G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
 
-				    w_v[0] += dS*px*(1.0/R)*sgn*(G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_v[1] += dS*py*(1.0/R)*sgn*(G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				    w_v[2] += dS*pz*(1.0/R)*sgn*(G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
+				    w_v[0] += (1/dV)*px*(1.0/R)*sgn*(G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_v[1] += (1/dV)*py*(1.0/R)*sgn*(G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_v[2] += (1/dV)*pz*(1.0/R)*sgn*(G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
 
-				    w_T[0][0] += dS*(1.0/(R*R))*sgn*(G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_T[1][1] += dS*(1.0/(R*R))*sgn*(G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				    w_T[2][2] += dS*(1.0/(R*R))*sgn*(G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
+				    w_T[0][0] += (1/dV)*(1.0/(R*R))*sgn*(G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[1][1] += (1/dV)*(1.0/(R*R))*sgn*(G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_T[2][2] += (1/dV)*(1.0/(R*R))*sgn*(G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
 
-				    w_T[0][1] += dS*px*py*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_T[0][2] += dS*px*pz*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
-				    w_T[1][2] += dS*py*pz*(1.0/(R*R))*sgn*(G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx) - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
+				    w_T[0][1] += (1/dV)*px*py*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[0][2] += (1/dV)*px*pz*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
+				    w_T[1][2] += (1/dV)*py*pz*(1.0/(R*R))*sgn*(G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx) - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
 				  }
 			      }
 		      }
 		  }
 	      }	
+	  
+	  /*
+	  // Check weights and G functions (must set Sx,Sy,Sz manually)
+	  // This has been used to debug the dx!=dy!=dz scenario
+	  if ((Sx==10 && Sy==0  && Sz==0 ) ||
+	      (Sx==0  && Sy==0  && Sz==10))
+	  {
+		  for (int iii=0; iii<4; iii++)  cout << endl;
+		  cout << "Sx = " << Sx << " Sy = " << Sy << " Sz = " << Sz << endl;
+		  cout << endl;
+		  double Tx = dx*(Sx+1);
+		  double Ty = dy*(Sy+1);
+		  double Tz = dz*(Sz+1);
+		  if (Sx==10) Tx = dx*(Sx-1);
+		  if (Sz==10) Tz = dz*(Sz-1);
+		  double Vx = Tx;
+		  double Vy = Ty;
+		  double Vz = Tz;
+		  cout << "GG_eta = " << G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz) << endl;
+		  cout << "GG_s   = " <<   G_s(R,Vx,Vy,Vz,Tx,Ty,Tz) -   G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz) << endl;
+		  cout << "GG_vx  = " <<  G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) -  G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz) << endl;
+		  cout << "GG_vz  = " <<  G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) -  G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx) << endl;
+		  cout << "GG_txx = " << G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz) << endl;
+		  cout << "GG_tzz = " << G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx) << endl;
+		  cout << "GG_txy = " << G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz) << endl;
+		  cout << "GG_tzy = " << G_txy(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txy(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx) << endl;
+		  cout << endl;
+		  cout << "w_eta  = " << w_eta << endl;
+		  cout << "w_s    = " << w_s << endl;
+		  cout << "w_v[0] = " << w_v[0] << endl;
+		  cout << "w_v[1] = " << w_v[1] << endl;
+		  cout << "w_v[2] = " << w_v[2] << endl;
+		  cout << "w_T[0][0] = " << w_T[0][0] << endl;
+		  cout << "w_T[1][1] = " << w_T[1][1] << endl;
+		  cout << "w_T[2][2] = " << w_T[2][2] << endl;
+		  cout << "w_T[0][1] = " << w_T[0][1] << endl;
+		  cout << "w_T[0][2] = " << w_T[0][2] << endl;
+		  cout << "w_T[1][2] = " << w_T[1][2] << endl;
+		  for (int iii=0; iii<4; iii++)  cout << endl;
+	  }
+	  */
+	  
 	  // Add in for all octants of the sphere: take account of parity of vector and tensor quantities
 	  for(int ix = 0; ix < (Sx == 0 ? 1 : 2); ix++)
 	    for(int iy = 0; iy < (Sy == 0 ? 1 : 2); iy++)
