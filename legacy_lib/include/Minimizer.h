@@ -207,7 +207,7 @@ class DDFT : public Minimizer
     double dx = dft_->lattice().getDX();
     dt_ = 10*0.1*dx*dx;
     dt_ = 0.0001*dx*dx;
-    dtMax_ = 1*dx*dx;
+    dtMax_ = 1; //1*dx*dx;
   }
   ~DDFT() {}
 

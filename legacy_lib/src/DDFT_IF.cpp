@@ -81,12 +81,13 @@ double DDFT_IF::step()
   const Lattice &lattice = species->getLattice();
   const Density &density = species->getDensity();
   
-  DFT_Vec d0(density.getDensity());   
+  DFT_Vec d0(density.Ntot());
+  d0.set(density.getDensity());
   DFT_FFT RHS0(lattice.Nx(), lattice.Ny(), lattice.Nz());
   calcNonlinearTerm(lattice, d0, species->getDF(), RHS0.Real());  
   RHS0.do_real_2_fourier();
     
-  DFT_Vec d1(d0);
+  DFT_Vec d1(density.Ntot()); d1.set(d0);
   DFT_FFT RHS1(lattice.Nx(), lattice.Ny(), lattice.Nz());
 
   double deviation = 1;

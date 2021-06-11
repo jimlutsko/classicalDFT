@@ -34,7 +34,7 @@ class Species
   
   void doDisplay(string &title, string &file) const { density_.doDisplay(title,file, seq_num_);}
 
-  void set_density(DFT_Vec &x) {density_.set(x);}
+  void set_density(const DFT_Vec &x) {density_.set(x);}
   void set_density(long j, double x) {density_.set_Density_Elem(j,x);}
   void fft_density() {density_.doFFT();}
   
