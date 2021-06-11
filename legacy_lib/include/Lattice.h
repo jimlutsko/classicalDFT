@@ -256,6 +256,21 @@ class Lattice
     while(iz >= Nz_) iz -= Nz_; 
   }
 
+  /**
+  *   @brief  Translate coordinates ix,iy,iz into an index taking account of the periodic boundaries
+  *  
+  *   @param  ix: index of point in x-direction
+  *   @param  iy: index of point in y-direction
+  *   @param  iz: index of point in z-direction
+  *   @return index
+  */  
+  virtual long get_PBC_Pos(int ix, int iy, int iz) const
+  { 
+    putIntoBox(ix,iy,iz);
+    return pos(ix,iy,iz);
+  }
+
+  
   friend ostream &operator<<(ostream &of, const Lattice &l) 
   {    
     of.write((char*) &l.Nx_, sizeof(long));

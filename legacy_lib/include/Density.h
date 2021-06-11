@@ -249,21 +249,6 @@ class Density : public Lattice
   }
   virtual double get(int ix, int iy, int iz) const { return getDensity(ix,iy,iz);}
 
-  
-  /**
-  *   @brief  Translate coordinates ix,iy,iz into an index taking account of the periodic boundaries
-  *  
-  *   @param  ix: index of point in x-direction
-  *   @param  iy: index of point in y-direction
-  *   @param  iz: index of point in z-direction
-  *   @return index
-  */  
-  virtual long get_PBC_Pos(int ix, int iy, int iz) const
-  { 
-    putIntoBox(ix,iy,iz);
-    return pos(ix,iy,iz);
-  }
-
   /**
    *   @brief  Read-only accessor for entire real-space density array
    *  
@@ -290,7 +275,7 @@ class Density : public Lattice
   *  
   *   @return Density_.Four()[i]
   */  
-  //const complex<double> DensityK(long i) const { return Density_.cFour().get(i);}
+  const complex<double> get_fourier_value(long pos) const { return Density_.cFour().get(pos);}
 
   /**
   *   @brief  Accessor for array holding the wall potential

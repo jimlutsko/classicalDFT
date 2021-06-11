@@ -28,7 +28,6 @@ class Species
   const Lattice& getLattice() const { return density_;}
   const Density& getDensity() const { return density_;}
 
-
   virtual void set_density_from_alias(const DFT_Vec &x);
   virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
@@ -37,7 +36,8 @@ class Species
 
   void set_density(DFT_Vec &x) {density_.set(x);}
   void set_density(long j, double x) {density_.set_Density_Elem(j,x);}
-
+  void fft_density() {density_.doFFT();}
+  
   void zeroForce() {dF_.zeros();}
   void addToForce(long i, double v) {dF_.IncrementBy(i,v);}
   void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}

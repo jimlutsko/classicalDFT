@@ -197,14 +197,14 @@ class fireMinimizer2 : public Minimizer
   *  @brief Base class for a family of  finite elements ddft integrators. 
   *
   */  
-/*  TODO: Update
+//  TODO: Update
 class DDFT : public Minimizer
 {
  public:
- DDFT(DFT &dft, bool showGraphics = true)
+ DDFT(DFT *dft, bool showGraphics = true)
    : Minimizer(dft), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
   {
-    double dx = dft_.lattice().getDX();
+    double dx = dft_->lattice().getDX();
     dt_ = 10*0.1*dx*dx;
     dt_ = 0.0001*dx*dx;
     dtMax_ = 1*dx*dx;
@@ -224,11 +224,11 @@ class DDFT : public Minimizer
     
   double getTimeStep() const { return dt_;}
   
-  double F_string(Density &d, double *fmax = NULL);
-  void reverseForce(DFT_Vec *tangent);
+  //  double F_string(Density &d, double *fmax = NULL);
+  //  void reverseForce(DFT_Vec *tangent);
 
   virtual double step() = 0;
-  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true) = 0;
+  //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true) = 0;
 
  protected:
 
@@ -244,7 +244,7 @@ class DDFT : public Minimizer
   bool fixedBorder_;
   bool modified_; // for certain derived classes
 };
-*/
+
 
 /**
   *  @brief DDFT minimizer Class using integrating factor
@@ -252,11 +252,11 @@ class DDFT : public Minimizer
   *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
   *
   */  
-	  /* TODO : Update
+/* TODO : Update*/
 class DDFT_IF : public DDFT
 {
  public:
- DDFT_IF(DFT &dft, bool showGraphics = true)
+ DDFT_IF(DFT *dft, bool showGraphics = true)
    : DDFT(dft) {}
 
   ~DDFT_IF() {}
@@ -264,31 +264,34 @@ class DDFT_IF : public DDFT
   virtual void initialize();
 
   virtual double step();
+  void calcNonlinearTerm(const Lattice &lattice, const DFT_Vec &density, const DFT_Vec &dF, DFT_Vec &RHS1);
+  void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
+  double fftDiffusion(const Density& density, DFT_Vec &new_density, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
+  
+  
+  //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
 
-  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
 
-  double fftDiffusion(const Density &density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
-  void calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
-  void restore_values_on_border(DFT_Vec& d1, const DFT_Vec &d0);
 
-  virtual double get_convergence_monitor() const { return dft_.get_convergence_monitor();}
+
+  //  virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
 
  protected:
 
   double largest_change_on_border_; // for reporting effect of restore_values_on_border()
 };
-	  */
+	  
 
 /**
   *  @brief DDFT minimizer Class using integrating factor. This is for fixed density at the boundaries - a model for an open system.
   *
   *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
   */  
-		    /*TODO: Update
+/*TODO: Update */
 class DDFT_IF_Open : public DDFT
 {
  public:
- DDFT_IF_Open(DFT &dft, double background,  bool showGraphics = true)
+ DDFT_IF_Open(DFT *dft, double background,  bool showGraphics = true)
    : DDFT(dft), background_(background), sin_in_(NULL), sin_out_(NULL)
     {}
   ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
@@ -296,12 +299,12 @@ class DDFT_IF_Open : public DDFT
   virtual void initialize();
 
   virtual double step();
+  void calcNonlinearTerm(const Density &density, const DFT_Vec &dF, DFT_Vec &RHS1);
 
-  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
+  //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
 
   double fftDiffusion(const Density &density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1) {throw std::runtime_error("Need to adapt fftDiffusion for non-string application");}
   double fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform);
-  void   calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1);
 
   void pack_for_sin_transform(const double *x, double val);
   
@@ -321,7 +324,7 @@ class DDFT_IF_Open : public DDFT
   vector<double> Lamy;
   vector<double> Lamz;
 };
-		    */
+		    
 
 /* Currently not working
 class picardMinimizer : public Minimizer
