@@ -111,6 +111,29 @@ void Density::detectClusters(double threshold, vector< vector<long> > &clusters)
 
 }
 
+// Only tak the boundary at zero because of PBC
+double Density::get_background_density() const
+{
+  double d = 0.0;
+  long   n = 0;
+
+  for(int ix=0;ix<=Nx_-1; ix++, n++)
+    d += getDensity(ix,0,0); 
+
+  for(int iy=0;iy<=Ny_-1; iy++, n++)
+    d += getDensity(0,iy,0);
+
+  for(int iz=0;iz<=Nz_-1; iz++, n++)
+    d += getDensity(0,0,iz);   
+
+  d /= n;
+
+  return d;
+}
+
+
+
+
 void Density::write_VTK_File(string &filename)
 {
   // I don't understand why it has to be plus 1 ...

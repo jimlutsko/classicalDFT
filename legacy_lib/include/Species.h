@@ -25,8 +25,9 @@ class Species
   double getChemPotential() const {return mu_;}
   void setChemPotential(double m) {mu_ = m;}
 
-  const Lattice& getLattice() const { return density_;}
-  const Density& getDensity() const { return density_;}
+  const Lattice& getLattice()     const { return density_;}
+  const Density& getDensity()     const { return density_;}
+  const double*  getDensityData() const { return density_.getData();} //getDensity().memptr();}
 
   virtual void set_density_from_alias(const DFT_Vec &x);
   virtual void get_density_alias(DFT_Vec &x) const;

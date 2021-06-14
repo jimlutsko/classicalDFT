@@ -245,14 +245,12 @@ class DDFT : public Minimizer
   bool modified_; // for certain derived classes
 };
 
-
 /**
   *  @brief DDFT minimizer Class using integrating factor
   *
   *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
   *
   */  
-/* TODO : Update*/
 class DDFT_IF : public DDFT
 {
  public:
@@ -264,21 +262,45 @@ class DDFT_IF : public DDFT
   virtual void initialize();
 
   virtual double step();
+  
+protected:
+  vector<double> Lamx_;
+  vector<double> Lamy_;
+  vector<double> Lamz_;
+
+  int Nx_ = 0;
+  int Ny_ = 0;
+  int Nz_ = 0;
+
+  double dx_ = 0.0;
+  double dy_ = 0.0;
+  double dz_ = 0.0;
+
+};
+
+/**
+  *  @brief DDFT minimizer Class using integrating factor
+  *
+  *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
+  *
+  */  
+/* TODO : Update*/
+class DDFT_IF_CLOSED : public DDFT_IF
+{
+ public:
+ DDFT_IF_CLOSED(DFT *dft, bool showGraphics = true)
+   : DDFT_IF(dft,showGraphics) {}
+
+  ~DDFT_IF_CLOSED() {}
+
+  virtual void initialize();
+
+  virtual double step();
   void calcNonlinearTerm(const Lattice &lattice, const DFT_Vec &density, const DFT_Vec &dF, DFT_Vec &RHS1);
   void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
   double fftDiffusion(const Density& density, DFT_Vec &new_density, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
   
-  
-  //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
-
-
-
-
-  //  virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
-
  protected:
-
-  double largest_change_on_border_; // for reporting effect of restore_values_on_border()
 };
 	  
 
@@ -288,18 +310,19 @@ class DDFT_IF : public DDFT
   *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
   */  
 /*TODO: Update */
-class DDFT_IF_Open : public DDFT
+class DDFT_IF_Open : public DDFT_IF
 {
  public:
  DDFT_IF_Open(DFT *dft, double background,  bool showGraphics = true)
-   : DDFT(dft), background_(background), sin_in_(NULL), sin_out_(NULL)
+   : DDFT_IF(dft,showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
     {}
   ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
 
   virtual void initialize();
 
   virtual double step();
-  void calcNonlinearTerm(const Density &density, const DFT_Vec &dF, DFT_Vec &RHS1);
+  //  void calcNonlinearTerm(const Density &density, const DFT_Vec &dF, DFT_Vec &RHS1);
+  void calcNonlinearTerm(const DFT_Vec &d, const DFT_Vec &dF, DFT_Vec &RHS1);
 
   //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
 
@@ -319,10 +342,6 @@ class DDFT_IF_Open : public DDFT
   unsigned sin_Norm_;
   double *sin_in_;
   double *sin_out_;
-
-  vector<double> Lamx;
-  vector<double> Lamy;
-  vector<double> Lamz;
 };
 		    
 

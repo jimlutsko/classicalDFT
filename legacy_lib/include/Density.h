@@ -234,14 +234,6 @@ class Density : public Lattice
   virtual double getDensity(long i) const { return Density_.cReal().get(i);}
   virtual double get(long pos) const { return Density_.cReal().get(pos);} 
 
-  /**
-  *   @brief  Get density at coordinates ix,iy,iz
-  *  
-  *   @param  ix: index of point in x-direction
-  *   @param  iy: index of point in y-direction
-  *   @param  iz: index of point in z-direction
-  *   @return density of given point
-  */  
   virtual double getDensity(int ix, int iy, int iz) const
   { 
     putIntoBox(ix,iy,iz);
@@ -261,8 +253,8 @@ class Density : public Lattice
    *  
    *   @return double* array
    */  
-  //  double* getData() { return Density_.Real().memptr();}
-
+  const double* getData() { return Density_.Real().memptr();}
+  
   /**
    *   @brief  Read-only accessor for array holding fft of density;
    *  
@@ -341,6 +333,9 @@ class Density : public Lattice
   */  
   virtual double getFieldDeriv(int ix, int iy, int iz, int direction) const { return 0.0;}
 
+  // This function calculates the "background" density which is taken to be the average density on the borders of the cell.
+  double get_background_density() const;
+  
   /**
   *   @brief  Detects clusters: e.g. particles
   *  
