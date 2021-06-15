@@ -28,7 +28,13 @@ void DDFT_IF_Open::initialize()
 
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);  
-  
+
+  RHS0.zeros(species->getDensity().Ntot());
+  RHS1.zeros(species->getDensity().Ntot());
+
+  RHS0_sin_transform_ = new double[sin_Ntot_];
+  RHS1_sin_transform_ = new double[sin_Ntot_];
+    
   sin_Ntot_ = (Nx_-1)*(Ny_-1)*(Nz_-1);
   sin_Norm_ = 8*Nx_*Ny_*Nz_;
 
@@ -79,27 +85,18 @@ double DDFT_IF_Open::step()
 {
   DDFT_IF::step();
 
-
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);
   const Density &density = species->getDensity();
   
-  cout << "Initial F = " << F_ << " x = " << density.get(0,0,0) << endl;
-
   DFT_Vec d0(density.Ntot()); d0.set(density.getDensity());  
-  DFT_Vec RHS0(density.Ntot());
-  calcNonlinearTerm(d0, species->getDF(), RHS0);
-  double *RHS0_sin_transform = new double[sin_Ntot_];
-
+  DFT_Vec d1(density.Ntot()); d1.set(d0);
+  
+  calcNonlinearTerm(d0, species->getDF(), RHS0);  
   pack_for_sin_transform(RHS0.memptr(),0.0);
   fftw_execute(sin_plan_);
-  memcpy(RHS0_sin_transform,sin_out_,sin_Ntot_*sizeof(double));
-    
-  DFT_Vec d1(density.Ntot()); d1.set(d0);
-  DFT_Vec RHS1; RHS1.zeros(density.Ntot());  
-  double *RHS1_sin_transform = new double[sin_Ntot_];
-  memcpy(RHS1_sin_transform,RHS0_sin_transform,sin_Ntot_*sizeof(double));
-
+  memcpy(RHS0_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));
+   
   double deviation = 1;
 
   double dt = dt_;
@@ -118,12 +115,12 @@ double DDFT_IF_Open::step()
 	calcNonlinearTerm(d1, species->getDF(),RHS1);
 	pack_for_sin_transform(RHS1.memptr(),0.0);
 	fftw_execute(sin_plan_);
-	memcpy(RHS1_sin_transform,sin_out_,sin_Ntot_*sizeof(double));	  
+	memcpy(RHS1_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));	  
 
 	species->set_density(d0); // Unnecessary?
 	species->fft_density(); // Unnecessary?
 
-	deviation = fftDiffusion(d1,RHS0_sin_transform,RHS1_sin_transform);
+	deviation = fftDiffusion(d1);
 	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
@@ -144,16 +141,13 @@ double DDFT_IF_Open::step()
   species->fft_density();
   calls_++;
 
-  delete RHS0_sin_transform;
-  delete RHS1_sin_transform;
-
   return F_;
 }
 
 /**
  This function takes the input density and calculates a new density, d1, by propagating the density a time step dt. The nonlinear terms, RHS0 and RHS1, are treated explicitly.
 */
-double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform)
+double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1)
 {
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);
@@ -188,8 +182,8 @@ double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform,
 	  double x = sin_out_[pos];
 	  
 	  x *= fac;
-	  x += ((fac-1)/Lambda)*RHS0_sin_transform[pos];
-	  x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform[pos]-RHS0_sin_transform[pos]);
+	  x += ((fac-1)/Lambda)*RHS0_sin_transform_[pos];
+	  x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform_[pos]-RHS0_sin_transform_[pos]);
 
 	  sin_in_[pos] = x;
 	  pos++;
@@ -306,16 +300,8 @@ void DDFT_IF_Open::calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_V
 	  // factor 1/2 because of density average used in prev line
 	  // factor dV because f0, etc carries a dV
 	  RHS_F *= 1.0/(2*dV);
-
+	  
 	  RHS_F -= Dx*(rpx+rmx-2*r0)+Dy*(rpy+rmy-2*r0)+Dz*(rpz+rmz-2*r0);
-
-	  // N.B. getFieldDeriv returns the derivative at iz-0.5.
-
-	  // Attention: make sure the right density is used in this evaluation ....
-	  //	  int Nz = density_.Nz();
-	  //	  double dvpz = density_.getFieldDeriv(0,0,(iz+1 > Nz ? 0 : iz+1),2);
-	  //	  double dvmz = density_.getFieldDeriv(0,0,iz,2);
-	  //	  RHS_F += dz*Dz*((rpz+r0)*dvpz-(r0+rmz)*dvmz)/2;
 
 	  RHS1.set(i0,RHS_F);
 	}

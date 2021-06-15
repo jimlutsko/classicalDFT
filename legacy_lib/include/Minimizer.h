@@ -260,7 +260,6 @@ class DDFT_IF : public DDFT
   ~DDFT_IF() {}
 
   virtual void initialize();
-
   virtual double step();
   
 protected:
@@ -291,16 +290,18 @@ class DDFT_IF_CLOSED : public DDFT_IF
  DDFT_IF_CLOSED(DFT *dft, bool showGraphics = true)
    : DDFT_IF(dft,showGraphics) {}
 
-  ~DDFT_IF_CLOSED() {}
+  ~DDFT_IF_CLOSED(){}
 
   virtual void initialize();
 
   virtual double step();
-  void calcNonlinearTerm(const Lattice &lattice, const DFT_Vec &density, const DFT_Vec &dF, DFT_Vec &RHS1);
+  void calcNonlinearTerm(const DFT_Vec &density, const DFT_Vec &dF, DFT_Vec &RHS1);
   void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
   double fftDiffusion(const Density& density, DFT_Vec &new_density, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
   
  protected:
+  DFT_FFT RHS0;
+  DFT_FFT RHS1;
 };
 	  
 
@@ -316,25 +317,26 @@ class DDFT_IF_Open : public DDFT_IF
  DDFT_IF_Open(DFT *dft, double background,  bool showGraphics = true)
    : DDFT_IF(dft,showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
     {}
-  ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_;}
+  ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_; if(RHS0_sin_transform_) delete RHS0_sin_transform_; if(RHS1_sin_transform_) delete RHS1_sin_transform_;}
 
   virtual void initialize();
 
   virtual double step();
-  //  void calcNonlinearTerm(const Density &density, const DFT_Vec &dF, DFT_Vec &RHS1);
   void calcNonlinearTerm(const DFT_Vec &d, const DFT_Vec &dF, DFT_Vec &RHS1);
+  double fftDiffusion(DFT_Vec &d1);
 
-  //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true);
-
-  double fftDiffusion(const Density &density, DFT_Vec &d1, const DFT_FFT &RHS0, const DFT_FFT &RHS1) {throw std::runtime_error("Need to adapt fftDiffusion for non-string application");}
-  double fftDiffusion(DFT_Vec &d1, const double *RHS0_sin_transform, const double *RHS1_sin_transform);
-
-  void pack_for_sin_transform(const double *x, double val);
-  
+protected:  
+  void pack_for_sin_transform(const double *x, double val);  
   void unpack_after_transform(double *x, double val);
 
   
  protected:
+  DFT_Vec RHS0;
+  DFT_Vec RHS1;
+
+  double *RHS0_sin_transform_ = NULL;
+  double *RHS1_sin_transform_ = NULL;  
+  
   double background_;
   
   fftw_plan sin_plan_;
