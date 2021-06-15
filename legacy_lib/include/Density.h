@@ -251,20 +251,6 @@ class Density : public Lattice
 
   
   /**
-  *   @brief  Translate coordinates ix,iy,iz into an index taking account of the periodic boundaries
-  *  
-  *   @param  ix: index of point in x-direction
-  *   @param  iy: index of point in y-direction
-  *   @param  iz: index of point in z-direction
-  *   @return index
-  */  
-  virtual long get_PBC_Pos(int ix, int iy, int iz) const
-  { 
-    putIntoBox(ix,iy,iz);
-    return pos(ix,iy,iz);
-  }
-
-  /**
    *   @brief  Read-only accessor for entire real-space density array
    *  
    *   @return Density_.Real()
@@ -276,8 +262,9 @@ class Density : public Lattice
    *  
    *   @return double* array
    */  
-  //  double* getData() { return Density_.Real().memptr();}
+  const double* get_density_pointer() { return Density_.Real().memptr();}
 
+  complex<double> get_fourier_value(long pos) const {return Density_.cFour().get(pos);}
   /**
    *   @brief  Read-only accessor for array holding fft of density;
    *  
@@ -372,6 +359,8 @@ class Density : public Lattice
   *   @return none
   */  
   void write_VTK_File(string &filename);
+
+  double get_background_density() const;
 
 
   //  DFT_FFT& getFullVector() { return Density_;}

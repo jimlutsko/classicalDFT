@@ -33,6 +33,10 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/DFT_Coex.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT.cpp
   ${PROJECT_SOURCE_DIR}/src/Minimizer.cpp
+  ${PROJECT_SOURCE_DIR}/src/DDFT.cpp
+  ${PROJECT_SOURCE_DIR}/src/DDFT_IF.cpp
+  ${PROJECT_SOURCE_DIR}/src/DDFT_IF_Open.cpp
+  ${PROJECT_SOURCE_DIR}/src/DDFT_IF_Closed.cpp
   ${PROJECT_SOURCE_DIR}/src/Interaction.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT_Species.cpp
   ${PROJECT_SOURCE_DIR}/src/GitSHA1.cpp

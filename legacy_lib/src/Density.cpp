@@ -140,3 +140,24 @@ void Density::write_VTK_File(string &filename)
 		     centering, varnames, vars);
   delete density;
 }
+
+double Density::get_background_density() const
+{
+  double d = 0;
+  double n = 0;
+
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iy=0;iy<Ny_;iy++)
+      {d += get(ix,iy,0); n++;}
+
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iz=0;iz<Nz_;iz++)
+      {d += get(ix,0,iz); n++;}
+
+  for(int iy=0;iy<Ny_;iy++)
+    for(int iz=0;iz<Nz_;iz++)    
+      {d += get(0,iy,iz); n++;}  
+
+
+  return d/n;
+}
