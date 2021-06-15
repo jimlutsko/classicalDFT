@@ -133,7 +133,6 @@ class FundamentalMeasures
     calculate_derived_quantities();  
   }
   
-  //  void copy_to(double f[])
   vector<double> get_as_vector()
   {
     vector<double> f;

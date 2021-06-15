@@ -391,13 +391,9 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 //
 void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies)
 {
-  throw std::runtime_error("FMT::add_second_derivative needs to be reimplemented due to change in d2Phi interface");
-
-  /*
-  if(needsTensor()) throw std::runtime_error("Second derivatives not implemented for tensor densities");
   if(allSpecies.size() < 1)  throw std::runtime_error("No species for FMT::add_second_derivative to work with");
 
-  const int Nfmt = 10;  // number of fmt densities (tensor density not included)
+  const int Nfmt = 19;  // number of fmt densities (tensor density not included)
 
   // Construct psi
 
@@ -441,7 +437,15 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
 	  s2->convolute_v_weight_with(i, v[s], result, bConjugate);
 	  Psi[4+i].Real().IncrementBy_Scaled_Vector(result.Real(), 1.0/hsd);
 	  Psi[7+i].Real().IncrementBy(result.Real());
-	}      
+	}
+
+      // T
+      for(int i=0;i<3;i++)
+	for(int j=0;j<3;j++)
+	  {
+	    s2->convolute_T_weight_with(i, j, v[s], result, bConjugate);
+	    Psi[10+i*3+j].Real().IncrementBy_Scaled_Vector(result.Real(), 1.0/hsd);
+	  }            
     }
 
   // Get Lambda
@@ -450,13 +454,19 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
 
   for(long pos = 0; pos < Ntot; pos++)
     {
-      FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
-      vector<vector<double>> d2Phi(Nfmt,vector<double>(Nfmt,0.0));
-      calculate_d2Phi_dot_V(fm, d2Phi);
+      FundamentalMeasures fm    = getWeightedDensities(pos, allSpecies);
+
+      vector<double>  work(Nfmt);
+      for(int b=0;b<Nfmt;b++)	    
+	work[b] = Psi[b].cReal().get(pos);
+
+      FundamentalMeasures v(&work[0]);
+      FundamentalMeasures d2Phi;
+      calculate_d2Phi_dot_V(fm,v,d2Phi);
+      d2Phi.fill(&work[0]);
 
       for(int a=0;a<Nfmt;a++)
-	for(int b=0;b<Nfmt;b++)	    
-	  Lambda[a].Real().IncrementBy(pos,d2Phi[a][b]*Psi[b].cReal().get(pos));
+	Lambda[a].Real().IncrementBy(pos,work[a]);
     }
 
   // Do the last convolution to get d2F
@@ -497,27 +507,31 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
 	  s1->convolute_v_weight_with(i, Lambda[7+i], result, bConjugate);
 	  d2F[s].IncrementBy(result.Real());
 	}
+
+      // T
+      for(int i=0;i<3;i++)
+	for(int j=0;j<3;j++)
+	{
+	  s1->convolute_v_weight_with(i, Lambda[10+3*i+j], result, bConjugate);
+	  d2F[s].IncrementBy(result.Real());
+	}      
     }
 
   for(auto &f: d2F)
     f.MultBy(dV);
-  */
+  
 }
 
 // Brute-force evaluation of second derivatives
 double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies)
 {
-  throw std::runtime_error("FMT::d2Phi_dn_dn needs to be reimplemented due to change in d2Phi interface");
-  return 0;
-
-
-  /*  FMT_Species *s1 = dynamic_cast<FMT_Species*>(allSpecies[si]);
+  FMT_Species *s1 = dynamic_cast<FMT_Species*>(allSpecies[si]);
   if(!s1) return 0; // Not an FMT_Species
 
   FMT_Species *s2 = dynamic_cast<FMT_Species*>(allSpecies[sj]);
   if(!s2) return 0; // Not an FMT_Species  
 
-  const int Nfmt = 10;  // number of fmt densities (tensor density not included)
+  const int Nfmt = 19;
 
   // Construct psi
 
@@ -534,18 +548,118 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
     for(int iy = 0;iy<Ny;iy++)
       for(int iz = 0;iz<Nz;iz++)
 	{
-	  long K = density1.get_PBC_Pos(ix,iy,iz);
-	  long KI = density1.get_PBC_Pos(ix-I[0],iy-I[1],iz-I[2]);
-	  long KJ = density1.get_PBC_Pos(ix-J[0],iy-J[1],iz-J[2]);
+	  long pos  = density1.get_PBC_Pos(ix,iy,iz);
+	  long posI = density1.get_PBC_Pos(ix-I[0],iy-I[1],iz-I[2]);
+	  long posJ = density1.get_PBC_Pos(ix-J[0],iy-J[1],iz-J[2]);
 	  
-	  FundamentalMeasures fm = getWeightedDensities(K, allSpecies);
-	  vector<vector<double>> d2Phi(Nfmt,vector<double>(Nfmt,0.0));
-	  calculate_d2Phi_dot_V(fm, d2Phi);	      	      
+	  vector<double> work;
+	  for(int b=0;b<Nfmt;b++)
+	    work.push_back(s2->getExtendedWeight(posJ,b));
+
+	  FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);	  
+	  FundamentalMeasures v(&work[0]);	  
+	  FundamentalMeasures d2Phi;
+	  calculate_d2Phi_dot_V(fm,v,d2Phi);
+	  work = d2Phi.get_as_vector();
 	  
 	  for(int a=0;a<Nfmt;a++)
-	    for(int b=0;b<Nfmt;b++)
-	      f += d2Phi[a][b]*s1->getExtendedWeight(KI,a)*s2->getExtendedWeight(KJ,b);
+	      f += s1->getExtendedWeight(posI,a)*work[a];
 	}
-  return f*dV;
-  */
+  return f*dV;  
+}
+
+
+double FMT::BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
+{
+  FundamentalMeasures fm(0.0,1.0);
+
+  for(int s=0; s<allSpecies.size(); s++)
+    {
+      FMT_Species *sfmt = dynamic_cast<FMT_Species*>(allSpecies[s]);
+      if(sfmt)
+	{
+	  FundamentalMeasures fm1(x[s],sfmt->getHSD());
+	  fm.add(fm1);
+	}
+    }
+  FundamentalMeasures dPhi;
+  calculate_dPhi_wrt_fundamental_measures(fm, dPhi);
+  vector<double> dPhi_v = dPhi.get_as_vector();
+    
+  FundamentalMeasures weights(1.0, allSpecies[species]->getHSD()); // a non-fmt species gives zero hsd so OK.
+  vector<double> weights_v = weights.get_as_vector();
+
+  double mu = 0.0;
+  for(int i=0;i<dPhi_v.size();i++) mu += dPhi_v[i]*weights_v[i];
+
+  // I now assume there is only one species as I do not (now, yet) have the generalization
+  // of these expressions to the case of multiple species.
+  FMT_AO_Species *sao = dynamic_cast<FMT_AO_Species*>(allSpecies[0]);
+  if(sao)
+    {
+      double hsdp = sao->getHSDP();
+      double rhop = sao->getReservoirDensity();
+      FundamentalMeasures n(x[0],sao->getHSD());
+      FundamentalMeasures dPhi;  
+      calculate_dPhi_wrt_fundamental_measures(n,dPhi);
+      vector<double> v_dPhi = dPhi.get_as_vector();
+	
+      vector<double> v_wp = (FundamentalMeasures(1.0,hsdp)).get_as_vector();
+
+      FundamentalMeasures w(1.0,sao->getHSD());  
+      FundamentalMeasures d2Phi_V;	    
+      calculate_d2Phi_dot_V(n,w,d2Phi_V);
+      vector<double> result = d2Phi_V.get_as_vector();
+	
+      double arg  = 0;
+      double pref = 0;
+      for(int i=0;i<v_dPhi.size();i++)
+	{
+	  arg  += v_dPhi[i]*v_wp[i];
+	  pref += result[i]*v_wp[i];
+	}
+	    
+      mu += rhop*pref*exp(-arg);
+    }    
+
+  return mu;
+}
+
+double FMT::BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
+{
+  FundamentalMeasures fm(0.0,1.0);
+
+  for(int s=0; s<allSpecies.size(); s++)
+    {
+      FMT_Species *sfmt = dynamic_cast<FMT_Species*>(allSpecies[s]);
+      if(sfmt)
+	{
+	  FundamentalMeasures fm1(x[s],sfmt->getHSD());
+	  fm.add(fm1);
+	}
+    }
+  double f = calculate_Phi(fm);
+
+  // I now assume there is only one species as I do not (now, yet) have the generalization
+  // of these expressions to the case of multiple species.
+  FMT_AO_Species *sao = dynamic_cast<FMT_AO_Species*>(allSpecies[0]);
+  if(sao)
+    {
+      double hsdp = sao->getHSDP();
+      double rhop = sao->getReservoirDensity();
+      FundamentalMeasures n(x[0],sao->getHSD());
+      FundamentalMeasures dPhi;  
+      calculate_dPhi_wrt_fundamental_measures(n,dPhi);
+      vector<double> v_dPhi = dPhi.get_as_vector();
+       
+      vector<double> v_wp = (FundamentalMeasures(1.0,hsdp)).get_as_vector();
+	
+      double arg = 0;
+      for(int i=0;i<v_dPhi.size();i++) arg += v_dPhi[i]*v_wp[i];
+      f -= rhop*exp(-arg);
+
+      // This is the "standard" shift of the free energy density. 
+      f += rhop;	
+    }
+  return f;
 }
