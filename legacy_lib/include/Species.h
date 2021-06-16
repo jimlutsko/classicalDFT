@@ -72,22 +72,12 @@ class Species
     return Fx;
   }
 
-  /**
-  *   @brief  Get the hard sphere diameter. This is a place-holder for the child objects that actually have a hsd.
-  *  
-  */  
   virtual double getHSD() const { return 0.0;}
   
-  /**
-   *   @brief  Placeholder for FMT-specific processing: non-FMT classes do nothing
-   *  
-   */  
+  // Placeholder for FMT-specific processing: non-FMT classes do nothing
   virtual void set_fundamental_measure_derivatives(FundamentalMeasures &fm, long pos, bool needsTensor) {}
  
-  /**
-   *   @brief  Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
-   *  
-   */    
+  //Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
   void beginForceCalculation()
   {
     if(fixedMass_ > 0.0)
@@ -97,10 +87,7 @@ class Species
       }
   }
 
-  /**
-   *   @brief  Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
-   *  
-   */    
+  // Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
   double endForceCalculation()
   {
     if(fixedMass_ > 0.0)
@@ -159,58 +146,19 @@ public:
    *   @return nothing 
    */    
   FMT_Species(Density& density, double hsd, double mu = 0, int seq = -1);
-
   FMT_Species(const FMT_Species &) = delete;
-  
   ~FMT_Species(){}
 
-  /**
-   *   @brief  Accessor for hard sphere diameter
-   *  
-   *   @param  none
-   *   @return hsd_
-   */      
+
   virtual double getHSD() const { return hsd_;}
-
-  /**
-   *   @brief  get value of Eta at pos
-   *  
-   *   @param  pos is the mesh position
-   *   @return value of Eta at pos
-   */    
   double getEta(long pos) const { return fmt_weighted_densities[EI()].real(pos);}
-
-  /**
-   *   @brief  get value of S at pos
-   *  
-   *   @param  pos is the mesh position
-   *   @return value of S at pos
-   */      
   double getS(long pos) const { return fmt_weighted_densities[SI()].real(pos);}
-
-  /**
-   *   @brief  get value of component j of V at pos
-   *  
-   *   @param  j is index of V
-   *   @param  pos is the mesh position
-   *   @return value of V(j) at pos
-   */      
   double getV(int j, long pos)      const { return fmt_weighted_densities[VI(j)].real(pos);}
-
-  /**
-   *   @brief  get value of component j,k of T at pos
-   *  
-   *   @param  j is first index of T
-   *   @param  k is second index of T
-   *   @param  pos is the mesh position
-   *   @return value of T(j,k) at pos
-   */      
   double getT(int j,int k,long pos) const { return fmt_weighted_densities[TI(j,k)].real(pos);}
 
   virtual void set_density_from_alias(const DFT_Vec &x);
   virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
-
   
   const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
 
@@ -241,7 +189,10 @@ public:
   { convolute_weight_with(SI(),v,result,bConjugate);}
 
   void convolute_v_weight_with(int i, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
-  { convolute_weight_with(VI(i),v,result, bConjugate);}    
+  { convolute_weight_with(VI(i),v,result, bConjugate);}
+
+  void convolute_T_weight_with(int i, int j, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
+  { convolute_weight_with(TI(i,j),v,result, bConjugate);}    
 
   void convolute_weight_with(int pos, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
   {
@@ -294,26 +245,8 @@ public:
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeight");
   }
+
   
-  // FOr testing only: brute-force evaluation of weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
-  double getBruteForceWeightedDensity(int K[3], int a)
-  {
-    double d = 0.0;
-
-    int Nx = density_.Nx();
-    int Ny = density_.Ny();
-    int Nz = density_.Nz();    
-
-    for(int ix = 0;ix<Nx;ix++)
-      for(int iy = 0;iy<Ny;iy++)
-	for(int iz = 0;iz<Nz;iz++)
-	  {
-	    long KI = density_.get_PBC_Pos(K[0]-ix,K[1]-iy,K[2]-iz);
-	    d += getExtendedWeight(KI,a)*density_.getDensity(ix,iy,iz);
-	  }
-    return d;
-  }
-  /*
   // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getExtendedWeightedDensity(long K, int a)
   {
@@ -345,8 +278,28 @@ public:
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeightedDensity");
   }
-  */
+  
 
+
+  
+  // FOr testing only: brute-force evaluation of weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
+  double getBruteForceWeightedDensity(int K[3], int a)
+  {
+    double d = 0.0;
+
+    int Nx = density_.Nx();
+    int Ny = density_.Ny();
+    int Nz = density_.Nz();    
+
+    for(int ix = 0;ix<Nx;ix++)
+      for(int iy = 0;iy<Ny;iy++)
+	for(int iz = 0;iz<Nz;iz++)
+	  {
+	    long KI = density_.get_PBC_Pos(K[0]-ix,K[1]-iy,K[2]-iz);
+	    d += getExtendedWeight(KI,a)*density_.getDensity(ix,iy,iz);
+	  }
+    return d;
+  }
   // These return the weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   void getFundamentalMeasures(long K, FundamentalMeasures &fm) {getFundamentalMeasures_Helper(K,fm,fmt_weighted_densities, hsd_);}
   void getFundamentalMeasures_Helper(long K, FundamentalMeasures &fm, const vector<FMT_Weighted_Density>  &weighted_densities, double hsd) 

@@ -42,176 +42,36 @@ public:
    */  
   ~FMT(){}
 
-  /**
-   *   @brief  This function calculates total FMT contribution to the chemical potential of the requested species.
-   *           It allows for the complications of extended models (like AO model). 
+  // calculates total FMT contribution to the chemical potential of the requested species.
+  // x is an array giving density for each species
+  double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const;
 
-   *   @param  density is an array of densities (one for each species).
-   *   @param  allSpecies is the array of species (and obviously matching the density array).
-   *   @param  species is the species for which the chemical potential is returned. 
-   *   @return Total FMT contribution to excess beta times Helmholtz free energy per unit volume. 
-   */   
-  double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
-  {
-    FundamentalMeasures fm(0.0,1.0);
-
-    for(int s=0; s<allSpecies.size(); s++)
-      {
-	FMT_Species *sfmt = dynamic_cast<FMT_Species*>(allSpecies[s]);
-	if(sfmt)
-	  {
-	    FundamentalMeasures fm1(x[s],sfmt->getHSD());
-	    fm.add(fm1);
-	  }
-      }
-    FundamentalMeasures dPhi;
-    calculate_dPhi_wrt_fundamental_measures(fm, dPhi);
-    vector<double> dPhi_v = dPhi.get_as_vector();
-    
-    FundamentalMeasures weights(1.0, allSpecies[species]->getHSD()); // a non-fmt species gives zero hsd so OK.
-    vector<double> weights_v = weights.get_as_vector();
-
-    double mu = 0.0;
-    for(int i=0;i<dPhi_v.size();i++) mu += dPhi_v[i]*weights_v[i];
-
-    // I now assume there is only one species as I do not (now, yet) have the generalization
-    // of these expressions to the case of multiple species.
-    FMT_AO_Species *sao = dynamic_cast<FMT_AO_Species*>(allSpecies[0]);
-    if(sao)
-      {
-	double hsdp = sao->getHSDP();
-	double rhop = sao->getReservoirDensity();
-	FundamentalMeasures n(x[0],sao->getHSD());
-	FundamentalMeasures dPhi;  
-	calculate_dPhi_wrt_fundamental_measures(n,dPhi);
-	vector<double> v_dPhi = dPhi.get_as_vector();
-	
-	vector<double> v_wp = (FundamentalMeasures(1.0,hsdp)).get_as_vector();
-
-	FundamentalMeasures w(1.0,sao->getHSD());  
-	FundamentalMeasures d2Phi_V;	    
-	calculate_d2Phi_dot_V(n,w,d2Phi_V);
-	vector<double> result = d2Phi_V.get_as_vector();
-	
-	double arg  = 0;
-	double pref = 0;
-	for(int i=0;i<v_dPhi.size();i++)
-	  {
-	    arg  += v_dPhi[i]*v_wp[i];
-	    pref += result[i]*v_wp[i];
-	  }
-	    
-	mu += rhop*pref*exp(-arg);
-      }    
-
-    return mu;
-  }
-
-  /**
-   *   @brief  This function calculates total FMT contribution to the helmholtz free energy.
-   *           It allows for the complications of extended models (like AO model). 
-
-   *   @param  density is an array of densities (one for each species).
-   *   @param  allSpecies is the array of species (and obviously matching the density array).
-   *   @return Total FMT contribution to excess beta times Helmholtz free energy per unit volume. 
-   */      
-  double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
-  {
-    FundamentalMeasures fm(0.0,1.0);
-
-    for(int s=0; s<allSpecies.size(); s++)
-      {
-	FMT_Species *sfmt = dynamic_cast<FMT_Species*>(allSpecies[s]);
-	if(sfmt)
-	  {
-	    FundamentalMeasures fm1(x[s],sfmt->getHSD());
-	    fm.add(fm1);
-	  }
-      }
-    double f = calculate_Phi(fm);
-
-    // I now assume there is only one species as I do not (now, yet) have the generalization
-    // of these expressions to the case of multiple species.
-    FMT_AO_Species *sao = dynamic_cast<FMT_AO_Species*>(allSpecies[0]);
-    if(sao)
-      {
-	double hsdp = sao->getHSDP();
-	double rhop = sao->getReservoirDensity();
-	FundamentalMeasures n(x[0],sao->getHSD());
-	FundamentalMeasures dPhi;  
-	calculate_dPhi_wrt_fundamental_measures(n,dPhi);
-	vector<double> v_dPhi = dPhi.get_as_vector();
-       
-	vector<double> v_wp = (FundamentalMeasures(1.0,hsdp)).get_as_vector();
-	
-	double arg = 0;
-	for(int i=0;i<v_dPhi.size();i++) arg += v_dPhi[i]*v_wp[i];
-	f -= rhop*exp(-arg);
-
-	// This is the "standard" shift of the free energy density. 
-	f += rhop;	
-      }
-    return f;
-  }
+  //Total FMT contribution to excess beta times Helmholtz free energy per unit volume. 
+  double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const;
   
-  /**
-   *   @brief  Calculates total free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
-   *  
-   *   @param  density is current density
-   *   @param  mu is the chemical potential
-   *   @return total free energy of system
-   */  
+  // Calculates total free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
   double calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies);
 
-
-  /**
-   *   @brief  Calculates (d2F/dn_i dn_j)v_j
-   *  
-   *   @param  v: input vector
-   *   @param  d2F: vector to be filled
-   */    
+  // Given input vector v, calculates (d2F/dn_i dn_j)v_j
   void add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies);
 
   // Brute force calculation: for checking only!
   double d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies);
-
   
-  /**
-   *   @brief  Calculate phi(i) and some derivative information. 
-   *
-   *    This function assumes the weighted densities at each lattice site are available.
-   *           It calculates the function PHI(r) at lattice site i and also stores dPHI(i)/deta(i), dPHI/dv(i), etc. 
-   *  
-   *   @param  i is lattice position
-   *   @return phi(i)
-   */  
+  // Calculate phi(i) and some derivative information. 
+  //   This function assumes the weighted densities at each lattice site are available.
+  //   It calculates the function PHI(r) at lattice site i and also stores dPHI(i)/deta(i), dPHI/dv(i), etc. 
   double dPHI(long i, vector<Species*> &allSpecies);
 
-  /**
-   *   @brief  Calculate phi given a set of fundamental measures
-   *
-   *   @param  fm is a FundamentalMeasures structure
-   *   @return phi
-   */    
+   // Calculate phi given a set of fundamental measures
   double calculate_Phi(const FundamentalMeasures &fm) const;
 
-  /**
-   *   @brief  Calculate dphi/dn_a for all fundamental measures, n_a
-   *
-   *   @param  fm are the fundamental measures
-   *   @param  dPhi is the result
-   */      
+  // Calculate dphi/dn_a for all fundamental measures, n_a
   void calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const;
 
   void calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const;  
   
-  /**
-   *   @brief  Calculates the fundamental measures at lattice point i
-   *
-   *   @param  i is the lattice point
-   *   @param allSpecies is the array of FMT_Species
-   *   @return phi
-   */      
+  // Calculates the fundamental measures at lattice point i
   FundamentalMeasures getWeightedDensities(long i, vector<Species*> &allSpecies);
 
   // The FMT functional is coded as PHI1 = f1(eta)*Phi1(eta,s,v,T) etc.
