@@ -210,6 +210,7 @@ void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalM
       
       for(int j=0;j<3;j++)
 	{
+	  double fac = (i == j ? 1.0 : 0.5);
 	  // v2-v2
 	  result.v2[i] += dPhi3_dV2_dV2(i,j,n)*f3 * v.v2[j];
 
@@ -388,12 +389,14 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 // Define psi_b(K) = dV conv(w_b,v;K) = sum_J w_b(K-J)V(J) dV
 // Then we need sum_K (d2PHI(K)/dn_a(K) dn_b(K)) w_a(K-I) psi_b(K)
 // or conv((d2PHI(K)/dn_a(K) dn_b(K))psi_b(K), w; I)
+// or we define Lambda_a(K) = (d2PHI(K)/dn_a(K) dn_b(K))psi_b(K)
+// and then calculate conv(Lam_a, w; I)
 //
 void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies)
 {
   if(allSpecies.size() < 1)  throw std::runtime_error("No species for FMT::add_second_derivative to work with");
 
-  const int Nfmt = 19;  // number of fmt densities (tensor density not included)
+  const int Nfmt = FundamentalMeasures::NumberOfMeasures;  // number of fmt densities
 
   // Construct psi
 
@@ -409,24 +412,24 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
   // Some working space
   DFT_FFT result(Nx,Ny,Nz);
 
-  // Get Psi
+  // Get Psi: psi_b(K) = conv(w_b,v;K) = sum_J w_b(K-J)V(J)
   vector<DFT_FFT> Psi(Nfmt);
   for(auto &p: Psi) p.initialize(Nx,Ny,Nz);
 
   for(int s = 0;s<Nspecies;s++)
     {
-      FMT_Species *s2 = dynamic_cast<FMT_Species*>(allSpecies[s]);
-      if(!s2) continue; // Not an FMT_Species
+      FMT_Species *species = dynamic_cast<FMT_Species*>(allSpecies[s]);
+      if(!species) continue; // Not an FMT_Species
       
-      double hsd = s2->getHSD();
+      double hsd = species->getHSD();
       
       //the fmt weights have all necessary normalization factors built in, including dV
       bool bConjugate = false;
-      s2->convolute_eta_weight_with(v[s], result, bConjugate);
+      species->convolute_eta_weight_with(v[s], result, bConjugate);
       Psi[0].Real().IncrementBy(result.Real());
 
       // s0,s1,s2
-      s2->convolute_s_weight_with(v[s], result, bConjugate);
+      species->convolute_s_weight_with(v[s], result, bConjugate);
       Psi[1].Real().IncrementBy_Scaled_Vector(result.Real(), 1.0/(hsd*hsd));
       Psi[2].Real().IncrementBy_Scaled_Vector(result.Real(), 1.0/hsd);
       Psi[3].Real().IncrementBy(result.Real());
@@ -434,7 +437,7 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
       // v1,v2
       for(int i=0;i<3;i++)
 	{
-	  s2->convolute_v_weight_with(i, v[s], result, bConjugate);
+	  species->convolute_v_weight_with(i, v[s], result, bConjugate);
 	  Psi[4+i].Real().IncrementBy_Scaled_Vector(result.Real(), 1.0/hsd);
 	  Psi[7+i].Real().IncrementBy(result.Real());
 	}
@@ -443,68 +446,67 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
       for(int i=0;i<3;i++)
 	for(int j=0;j<3;j++)
 	  {
-	    s2->convolute_T_weight_with(i, j, v[s], result, bConjugate);
-	    Psi[10+i*3+j].Real().IncrementBy_Scaled_Vector(result.Real(), 1.0/hsd);
+	    species->convolute_T_weight_with(i, j, v[s], result, bConjugate);
+	    Psi[10+i*3+j].Real().IncrementBy(result.Real());
 	  }            
     }
 
-  // Get Lambda
+  // Get Lambda: Lambda_a(K) = (d2PHI(K)/dn_a(K) dn_b(K))psi_b(K)
+  
   vector<DFT_FFT> Lambda(Nfmt);
   for(auto &p: Lambda) p.initialize(Nx,Ny,Nz);
 
   for(long pos = 0; pos < Ntot; pos++)
     {
-      FundamentalMeasures fm    = getWeightedDensities(pos, allSpecies);
+      FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
 
-      vector<double>  work(Nfmt);
+      FundamentalMeasures Psi_K;
       for(int b=0;b<Nfmt;b++)	    
-	work[b] = Psi[b].cReal().get(pos);
-
-      FundamentalMeasures v(&work[0]);
-      FundamentalMeasures d2Phi;
-      calculate_d2Phi_dot_V(fm,v,d2Phi);
-      d2Phi.fill(&work[0]);
+	Psi_K.set(b, Psi[b].cReal().get(pos));
+            
+      FundamentalMeasures d2Phi_dot_Psi;
+      calculate_d2Phi_dot_V(fm,Psi_K,d2Phi_dot_Psi);
 
       for(int a=0;a<Nfmt;a++)
-	Lambda[a].Real().IncrementBy(pos,work[a]);
+	Lambda[a].Real().set(pos, d2Phi_dot_Psi.get(a));
     }
 
   // Do the last convolution to get d2F
   for(int a=0;a<Nfmt;a++)
     Lambda[a].do_real_2_fourier();
-  
+
   for(int s = 0;s<Nspecies;s++)
     {
-      FMT_Species *s1 = dynamic_cast<FMT_Species*>(allSpecies[s]);
-      if(!s1) continue; // Not an FMT_Species
+      FMT_Species *species = dynamic_cast<FMT_Species*>(allSpecies[s]);
+      if(!species) continue; // Not an FMT_Species
 
-      double hsd = s1->getHSD();      
+      double hsd = species->getHSD();      
             
       //the fmt weights have all necessary normalization factors built in, including dV
       bool bConjugate = true;
       
-      s1->convolute_eta_weight_with(Lambda[0], result, bConjugate);
+      species->convolute_eta_weight_with(Lambda[0], result, bConjugate);
       d2F[s].IncrementBy(result.Real());
 
       // s0
-      s1->convolute_s_weight_with(Lambda[1], result, bConjugate);
+      species->convolute_s_weight_with(Lambda[1], result, bConjugate);
       d2F[s].IncrementBy_Scaled_Vector(result.Real(), 1.0/(hsd*hsd));
 
       // s1
-      s1->convolute_s_weight_with(Lambda[2], result, bConjugate);
+      species->convolute_s_weight_with(Lambda[2], result, bConjugate);
       d2F[s].IncrementBy_Scaled_Vector(result.Real(), 1.0/hsd);
 
       //s2
-      s1->convolute_s_weight_with(Lambda[3], result, bConjugate);
+      species->convolute_s_weight_with(Lambda[3], result, bConjugate);
       d2F[s].IncrementBy(result.Real());
 
       // v1 and v2
       for(int i=0;i<3;i++)
 	{
-	  s1->convolute_v_weight_with(i, Lambda[4+i], result, bConjugate);
+	  species->convolute_v_weight_with(i, Lambda[4+i], result, bConjugate);
 	  d2F[s].IncrementBy_Scaled_Vector(result.Real(), 1.0/hsd);
 
-	  s1->convolute_v_weight_with(i, Lambda[7+i], result, bConjugate);
+	  species->convolute_v_weight_with(i, Lambda[7+i], result, bConjugate);
 	  d2F[s].IncrementBy(result.Real());
 	}
 
@@ -512,7 +514,7 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
       for(int i=0;i<3;i++)
 	for(int j=0;j<3;j++)
 	{
-	  s1->convolute_v_weight_with(i, Lambda[10+3*i+j], result, bConjugate);
+	  species->convolute_T_weight_with(i, j, Lambda[10+3*i+j], result, bConjugate);
 	  d2F[s].IncrementBy(result.Real());
 	}      
     }
@@ -523,6 +525,7 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
 }
 
 // Brute-force evaluation of second derivatives
+//        sum_J sum_K dV (d2PHI(K)/dn_a(K) dn_b(K)) w_a(K-I) w_b(K-J)v(J)
 double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies)
 {
   FMT_Species *s1 = dynamic_cast<FMT_Species*>(allSpecies[si]);
@@ -531,8 +534,8 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
   FMT_Species *s2 = dynamic_cast<FMT_Species*>(allSpecies[sj]);
   if(!s2) return 0; // Not an FMT_Species  
 
-  const int Nfmt = 19;
-
+  const int Nfmt = FundamentalMeasures::NumberOfMeasures;
+  //  cout << "Nfmt = " << Nfmt << endl;
   // Construct psi
 
   const Density &density1 = allSpecies[0]->getDensity();
@@ -552,18 +555,16 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
 	  long posI = density1.get_PBC_Pos(ix-I[0],iy-I[1],iz-I[2]);
 	  long posJ = density1.get_PBC_Pos(ix-J[0],iy-J[1],iz-J[2]);
 	  
-	  vector<double> work;
-	  for(int b=0;b<Nfmt;b++)
-	    work.push_back(s2->getExtendedWeight(posJ,b));
-
 	  FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);	  
-	  FundamentalMeasures v(&work[0]);	  
-	  FundamentalMeasures d2Phi;
-	  calculate_d2Phi_dot_V(fm,v,d2Phi);
-	  work = d2Phi.get_as_vector();
-	  
+	  FundamentalMeasures wb;	  
+	  for(int b=0;b<Nfmt;b++)
+	    wb.set(b, s2->getExtendedWeight(posJ,b));
+
+	  FundamentalMeasures d2Phi_dot_wb;
+	  calculate_d2Phi_dot_V(fm,wb,d2Phi_dot_wb);
+
 	  for(int a=0;a<Nfmt;a++)
-	      f += s1->getExtendedWeight(posI,a)*work[a];
+	    f += s1->getExtendedWeight(posI,a)*d2Phi_dot_wb.get(a);
 	}
   return f*dV;  
 }

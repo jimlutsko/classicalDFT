@@ -162,10 +162,57 @@ class FundamentalMeasures
     return f;
   }
 
-  //  void fillHomogeneousWeights(double d)
-  //  {
-  //  }
+  double get(int element)
+  {
+    if(element == 0) return eta;
 
+    if(element == 1) return s0;
+    if(element == 2) return s1;
+    if(element == 3) return s2;
+
+    if(element >= 4 && element <= 6)
+      return v1[element-4];
+    
+    if(element >= 7 && element <= 9)
+      return v2[element-7];
+
+    if(element >= 10 && element <= 18)
+      {
+	int a = int((element-10)/3);
+	int b = element - 10 - 3*a;
+	return T[a][b];
+      }
+
+    throw std::runtime_error("Requested element out of range in FundamentalMeasures::get(element)");
+  }
+
+  void set(int element, double val)
+  {
+    if(element == 0) eta = val;
+
+    if(element == 1) s0 = val;
+    if(element == 2) s1 = val;
+    if(element == 3) s2 = val;
+
+    if(element >= 4 && element <= 6)
+      v1[element-4] = val;
+    
+    if(element >= 7 && element <= 9)
+      v2[element-7] = val;
+
+    if(element >= 10 && element <= 18)
+      {
+	int a = int((element-10)/3);
+	int b = element -10 - 3*a;
+	T[a][b] = val;
+      }
+    if(element < 0 || element > 18)
+      throw std::runtime_error("Setting element out of range in FundamentalMeasures::get(element)");
+
+    return;
+  }  
+
+  static const int NumberOfMeasures = 19;
 
   // fundamental measures
   double eta = 0.0;
