@@ -804,6 +804,73 @@ class WhiteBearII : public esFMT //WhiteBearI
   
 };
 
+
+
+// lambda variant
+
+class WhiteBearII_lambda : public esFMT_lambda
+{
+ public:
+  WhiteBearII_lambda(double lambda) : esFMT_lambda(1,-1, lambda){};
+  
+  virtual double f2_(double x) const
+  {
+    if(x < 1e-12)
+      return 1+x*(1+x*((10.0/9)+(7.0/6)*x));
+    
+    return (1.0/3.0) + (4.0/3.0)*(1.0/(1.0-x)) + (2.0/(3.0*x))*log(1-x);
+  }
+
+  virtual double f2p_(double x) const 
+  {
+    if(x < 1e-12)
+      return 1+x*((20.0/9)+3.5*x);
+    
+    return (2*(3*x-1)/(3*x*(1-x)*(1-x)))-(2.0/(3.0*x*x))*log(1-x);
+  }
+
+  virtual double f2pp_(double x) const 
+  {
+    if(x < 1e-12)
+      return (20.0/9)+7*x;
+    return (2*(7*x*x-5*x+2)/(3*x*x*(1-x)*(1-x)*(1-x)))+(4.0/(3.0*x*x*x))*log(1-x);
+  }
+
+  virtual double f3_(double x) const
+  {
+    if(x < 1e-12)
+      return 1.5+(7.0/3)*x+3.25*x*x+4.2*x*x*x;
+    
+    return -((1.0-3*x+x*x)/(x*(1-x)*(1-x))) - (1.0/(x*x))*log(1-x);
+  }
+
+  virtual double f3p_(double x) const 
+  {
+    if(x < 1e-12)
+      return (7.0/3)+7.5*x+12.6*x*x;
+    
+    return ((2-5*x+6*x*x-x*x*x)/(x*x*(1-x)*(1-x)*(1-x)))+(2.0/(x*x*x))*log(1-x);
+  }
+  virtual double f3pp_(double x) const
+  {
+    if(x < 1e-12)
+      return 7.5+25.2*x;
+    
+    return (-(6-21*x+26*x*x-19*x*x*x+2*x*x*x*x)/(x*x*x*(1-x)*(1-x)*(1-x)*(1-x)))-(6.0/(x*x*x*x))*log(1-x);    
+  }
+  
+  virtual string Name() const { return string("WhiteBear II");}
+
+  friend class boost::serialization::access;
+  template<class Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & boost::serialization::base_object<WhiteBearI>(*this);
+    boost::serialization::void_cast_register<WhiteBearII, WhiteBearI>(static_cast<WhiteBearII *>(NULL),static_cast<WhiteBearI *>(NULL));    
+  }
+};
+
+
+
 /**
   *  @brief  Exception used to isolate eta(r) > 1 errors
   *
