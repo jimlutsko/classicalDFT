@@ -223,7 +223,8 @@ class Density : public Lattice
   *   @param  a: all densities are multiplied by a.
   *   @return none
   */  
-  void scale_to(double a) { Density_.Real().MultBy(a);} 
+  void scale_to(double a) { Density_.Real().MultBy(a);}
+  void shift(DFT_Vec &v) { Density_.Real().IncrementBy(v);} 
 
   /**
   *   @brief  Get density at point i

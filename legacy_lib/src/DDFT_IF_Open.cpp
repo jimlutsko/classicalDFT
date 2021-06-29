@@ -28,15 +28,16 @@ void DDFT_IF_Open::initialize()
 
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);  
-
+  
   RHS0.zeros(species->getDensity().Ntot());
   RHS1.zeros(species->getDensity().Ntot());
 
+  sin_Ntot_ = (Nx_-1)*(Ny_-1)*(Nz_-1);
+  sin_Norm_ = 8*Nx_*Ny_*Nz_;
+  
   RHS0_sin_transform_ = new double[sin_Ntot_];
   RHS1_sin_transform_ = new double[sin_Ntot_];
     
-  sin_Ntot_ = (Nx_-1)*(Ny_-1)*(Nz_-1);
-  sin_Norm_ = 8*Nx_*Ny_*Nz_;
 
   sin_in_  = new double[sin_Ntot_];
   sin_out_ = new double[sin_Ntot_];
