@@ -7,7 +7,7 @@
 #include <vector>
 #include <time.h>
 
-#include <mgl2/mgl.h>
+//#include <mgl2/mgl.h>
 
 #ifdef USE_OMP
 #include <omp.h>
