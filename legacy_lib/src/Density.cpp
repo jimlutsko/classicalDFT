@@ -141,10 +141,11 @@ void Density::write_VTK_File(string &filename)
   delete density;
 }
 
-double Density::get_background_density() const
+double Density::get_ave_background_density() const
 {
   double d = 0;
   double n = 0;
+  
 
   for(int ix=0;ix<Nx_;ix++)
     for(int iy=0;iy<Ny_;iy++)
@@ -161,3 +162,119 @@ double Density::get_background_density() const
 
   return d/n;
 }
+
+double Density::get_max_background_density() const
+{
+  double d = get(0,0,0);
+  
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iy=0;iy<Ny_;iy++)
+      d = std::max(d,get(ix,iy,0));
+
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iz=0;iz<Nz_;iz++)
+      d = std::max(d,get(ix,0,iz));
+
+  for(int iy=0;iy<Ny_;iy++)
+    for(int iz=0;iz<Nz_;iz++)
+      d = std::max(d,get(0,iy,iz));
+
+
+  return d;
+}
+
+double Density::get_min_background_density() const
+{
+  double d = get(0,0,0);
+  
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iy=0;iy<Ny_;iy++)
+      d = std::min(d,get(ix,iy,0));
+
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iz=0;iz<Nz_;iz++)
+      d = std::min(d,get(ix,0,iz));
+
+  for(int iy=0;iy<Ny_;iy++)
+    for(int iz=0;iz<Nz_;iz++)
+      d = std::min(d,get(0,iy,iz));
+
+
+  return d;
+}
+
+void Density::set_background_density(double val)
+{
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iy=0;iy<Ny_;iy++)
+      set(ix,iy,0, val);
+
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iz=0;iz<Nz_;iz++)
+      set(ix,0,iz,val); 
+
+  for(int iy=0;iy<Ny_;iy++)
+    for(int iz=0;iz<Nz_;iz++)    
+      set(0,iy,iz, val);
+}
+
+
+
+// No better place to stash this, for the moment. 
+void Lattice::test_boundary_coding()
+{
+  long pos = -1;
+
+  int ix,iy,iz;
+  iz = 0;
+  cout << Nx_ << " " << Ny_ << " " << Nz_ << endl;
+  for(ix = 0;ix < Nx_; ix++)
+    for(iy = 0; iy < Ny_; iy++)
+      {
+	pos++;
+
+	long p = boundary_pos(ix,iy,iz);
+	cout << ix << " " << iy << " " << iz << " " << pos << " " << p << endl;	
+	if(p != pos) throw std::runtime_error("p1");
+
+	int jx,jy,jz; jx = jy = jz = -1;
+	boundary_cartesian(pos,jx,jy,jz);
+	cout << ix << " " << iy << " " << iz << " " << pos << " " << jx << " " << jy << " " << jz << endl;
+	if(ix != ix || jy != iy || jz != iz) throw std::runtime_error("p2");
+      }
+
+  iy = 0;
+  for(ix = 0;ix < Nx_; ix++)
+    for(iz = 1; iz < Nz_; iz++)
+      {
+	pos++;
+
+	long p = boundary_pos(ix,iy,iz);
+	cout << ix << " " << iy << " " << iz << " " << pos << " " << p << endl;
+	if(p != pos) throw std::runtime_error("p3");
+
+	int jx,jy,jz; jx = jy = jz = -1;
+	boundary_cartesian(pos,jx,jy,jz);
+	cout << ix << " " << iy << " " << iz << " " << pos << " " << jx << " " << jy << " " << jz << endl;	
+	if(ix != ix || jy != iy || jz != iz) throw std::runtime_error("p4");
+      }
+
+  ix = 0;
+  for(iy = 1;iy < Ny_; iy++)
+    for(iz = 1; iz < Nz_; iz++)
+      {
+	pos++;
+
+	long p = boundary_pos(ix,iy,iz);
+	cout << ix << " " << iy << " " << iz << " " << pos << " " << p << endl;	
+	if(p != pos) throw std::runtime_error("p5");
+
+	int jx,jy,jz; jx = jy = jz = -1;
+	boundary_cartesian(pos,jx,jy,jz);
+	cout << ix << " " << iy << " " << iz << " " << pos << " " << jx << " " << jy << " " << jz << endl;	
+	if(ix != ix || jy != iy || jz != iz) throw std::runtime_error("p6");
+      }     
+  cout << "pos = " << pos << endl;
+  cout << "Test passed";
+}
+

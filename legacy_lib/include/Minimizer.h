@@ -259,8 +259,15 @@ class DDFT_IF : public DDFT
 
   ~DDFT_IF() {}
 
+  void set_is_open(bool val) {isOPEN_ = val;}
+  
   virtual void initialize();
   virtual double step();
+
+  virtual void calcNonlinearTerm(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
+  virtual void calcNonlinearTerm_old(const DFT_Vec &d, const DFT_Vec &dF, DFT_Vec &RHS1);
+  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
+  void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal = false);
   
 protected:
   vector<double> Lamx_;
@@ -275,6 +282,7 @@ protected:
   double dy_ = 0.0;
   double dz_ = 0.0;
 
+  bool isOPEN_ = true;
 };
 
 /**
@@ -295,10 +303,14 @@ class DDFT_IF_CLOSED : public DDFT_IF
   virtual void initialize();
 
   virtual double step();
-  void calcNonlinearTerm(const DFT_Vec &density, const DFT_Vec &dF, DFT_Vec &RHS1);
   void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
   double fftDiffusion(const Density& density, DFT_Vec &new_density, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
-  
+
+  //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
+  //  void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, bool boundary_only, const Density &density, double D[]);  
+  //  void boundary_cartesian(long pos,int &ix, int &iy, int &iz) const;
+  //  long boundary_pos(int ix, int iy, int iz) const;
+  //  void test();
  protected:
   DFT_FFT RHS0;
   DFT_FFT RHS1;
@@ -322,7 +334,6 @@ class DDFT_IF_Open : public DDFT_IF
   virtual void initialize();
 
   virtual double step();
-  void calcNonlinearTerm(const DFT_Vec &d, const DFT_Vec &dF, DFT_Vec &RHS1);
   double fftDiffusion(DFT_Vec &d1);
 
 protected:  

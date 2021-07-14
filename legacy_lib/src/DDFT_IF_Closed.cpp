@@ -41,6 +41,8 @@ using namespace std;
 
 void DDFT_IF_CLOSED::initialize()
 {
+  if(Lamx_.size() > 0) return; // avoid double initialization
+
   DDFT_IF::initialize();
 
   RHS0.initialize(Nx_,Ny_,Nz_);
@@ -100,10 +102,10 @@ double DDFT_IF_CLOSED::step()
   const Density &density = species->getDensity();
 
   // copy the current density
-  DFT_Vec d0(density.Ntot());   d0.set(density.getDensity());
+  DFT_Vec d0(density.Ntot()); d0.set(density.getDensity());
   DFT_Vec d1(density.Ntot()); d1.set(d0);
   
-  calcNonlinearTerm(d0, species->getDF(), RHS0.Real());  
+  calcNonlinearTerm(d0, species->getDF(), RHS0.Real());    
   RHS0.do_real_2_fourier();
 
   double deviation = 1;
@@ -120,8 +122,8 @@ double DDFT_IF_CLOSED::step()
     for(int i=0;i<100 && deviation > tolerence_fixed_point_ && !reStart;i++)
       {
 	species->set_density(d1);
-	F_ = dft_->calculateFreeEnergyAndDerivatives(false); //density_,0.0, dF_,false);
-	calcNonlinearTerm(d1, species->getDF(),RHS1.Real());
+	F_ = dft_->calculateFreeEnergyAndDerivatives(false);
+	calcNonlinearTerm(d1, species->getDF(),RHS1.Real());  
 	RHS1.do_real_2_fourier();
 
 	species->set_density(d0);       
@@ -151,16 +153,9 @@ double DDFT_IF_CLOSED::step()
   species->fft_density();
   calls_++;
 
-  F_ = dft_->calculateFreeEnergyAndDerivatives(false); //density_,0.0, dF_,false);  
+  F_ = dft_->calculateFreeEnergyAndDerivatives(false); 
 
   cout << "F = " << F_ << endl;
-    
-  //  if(grace_)
-  //    {
-  //      double d00 = dF_.min()/density_.dV();
-  //      double d11 = dF_.max()/density_.dV();   
-  //      Display(F_,d00,d11,density_.getNumberAtoms());
-  //    }
   
   return F_;
 }
@@ -251,81 +246,6 @@ double DDFT_IF_CLOSED::fftDiffusion(const Density& density, DFT_Vec &new_density
   new_density.set(work.Real());
   return maxdeviation; 
 }
-
-// Let D be the divergence operator (D = (d/dx, d/dy, d/dz)). Then the equation we are solving is
-// (d/dt) rho_{r,t} = D^2 rho_{r,t} + D cdot rho_{r,t} D (delta F_ex/ delta rho_{rt}) 
-// Here, we calculate the last term using finite differences
-
-void DDFT_IF_CLOSED::calcNonlinearTerm(const DFT_Vec &d_in, const DFT_Vec &dF, DFT_Vec &RHS1)
-{
-  int Jspecies = 0;
-  const Density &density = dft_->getSpecies(Jspecies)->getDensity();
-
-  double Dx = 1.0/(dx_*dx_);
-  double Dy = 1.0/(dy_*dy_);
-  double Dz = 1.0/(dz_*dz_);
-
-  double dV = dx_*dy_*dz_;
-  
-  int iy;
-
-#pragma omp parallel for  shared(dV) private(iy) schedule(static)			  
-  for(iy = 0;iy<Ny_;iy++)
-    for(int iz = 0;iz<Nz_;iz++)
-      for(int ix=0;ix<Nx_;ix++)
-	{
-	  long i0 = density.get_PBC_Pos(ix,iy,iz);
-
-	  long ipx = density.get_PBC_Pos(ix+1,iy,iz);
-	  long imx = density.get_PBC_Pos(ix-1,iy,iz);
-
-	  long ipy = density.get_PBC_Pos(ix,iy+1,iz);
-	  long imy = density.get_PBC_Pos(ix,iy-1,iz);
-
-	  long ipz = density.get_PBC_Pos(ix,iy,iz+1);
-	  long imz = density.get_PBC_Pos(ix,iy,iz-1);
-	    
-	  double r0  = d_in.get(i0);
-
-	  double rpx = d_in.get(ipx);
-	  double rmx = d_in.get(imx);
-
-	  double rpy = d_in.get(ipy);
-	  double rmy = d_in.get(imy);
-	    
-	  double rpz = d_in.get(ipz);
-	  double rmz = d_in.get(imz);
-
-	  double f0 = dF.get(i0);
-
-	  double fpx = dF.get(ipx);
-	  double fmx = dF.get(imx);
-
-	  double fpy = dF.get(ipy);
-	  double fmy = dF.get(imy);
-
-	  double fpz = dF.get(ipz);
-	  double fmz = dF.get(imz);
-
-	  double RHS_F = Dx*((rpx+r0)*(fpx-f0)-(r0+rmx)*(f0-fmx))
-	    +Dy*((rpy+r0)*(fpy-f0)-(r0+rmy)*(f0-fmy))
-	    +Dz*((rpz+r0)*(fpz-f0)-(r0+rmz)*(f0-fmz));
-
-	  // factor 1/2 because of density average used in prev line
-	  // factor dV because f0, etc carries a dV
-	  RHS_F *= 1.0/(2*dV);
-
-	  // eliminate the diffusive (e.g. ideal gas) contribution which is handled exactly in this algorithm
-	  RHS_F -= Dx*(rpx+rmx-2*r0)+Dy*(rpy+rmy-2*r0)+Dz*(rpz+rmz-2*r0);
-	  RHS1.set(i0,RHS_F);
-	}
-}
-
-
-
-
-
-
 
 
 /*

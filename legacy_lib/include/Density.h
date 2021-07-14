@@ -361,7 +361,10 @@ class Density : public Lattice
   */  
   void write_VTK_File(string &filename);
 
-  double get_background_density() const;
+  double get_ave_background_density() const;
+  double get_max_background_density() const;
+  double get_min_background_density() const;
+  void set_background_density(double val);
 
 
   //  DFT_FFT& getFullVector() { return Density_;}

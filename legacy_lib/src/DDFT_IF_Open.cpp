@@ -28,6 +28,9 @@ void DDFT_IF_Open::initialize()
 
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);  
+
+  //  if(species->is_background_fixed() != true)
+  //    throw std::runtime_error("DDFT_IF_OPEN requires that the species have fixed background set to true");
   
   RHS0.zeros(species->getDensity().Ntot());
   RHS1.zeros(species->getDensity().Ntot());
@@ -92,7 +95,7 @@ double DDFT_IF_Open::step()
   
   DFT_Vec d0(density.Ntot()); d0.set(density.getDensity());  
   DFT_Vec d1(density.Ntot()); d1.set(d0);
-  
+
   calcNonlinearTerm(d0, species->getDF(), RHS0);  
   pack_for_sin_transform(RHS0.memptr(),0.0);
   fftw_execute(sin_plan_);
@@ -112,8 +115,8 @@ double DDFT_IF_Open::step()
     for(int i=0;i<20 && deviation > tolerence_fixed_point_ && !reStart;i++)
       {
 	species->set_density(d1);
-	F_ = dft_->calculateFreeEnergyAndDerivatives(false); //density_,0.0, dF_,false);
-	calcNonlinearTerm(d1, species->getDF(),RHS1);
+	F_ = dft_->calculateFreeEnergyAndDerivatives(false); 
+	calcNonlinearTerm(d1, species->getDF(),RHS1); // we are counting on the species to set the force on the border points to zero
 	pack_for_sin_transform(RHS1.memptr(),0.0);
 	fftw_execute(sin_plan_);
 	memcpy(RHS1_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));	  
@@ -194,7 +197,8 @@ double DDFT_IF_Open::fftDiffusion(DFT_Vec &d1)
 
   double deviation = 0;
   double maxdeviation = 0;
-  
+
+  // Notice that sin_out is indexed using sign_out[1] as element 0 ... this differs from the closed case
   pos = 0;
   for(int ix=1;ix<Nx_;ix++)
     for(int iy=1;iy<Ny_;iy++)
@@ -243,70 +247,7 @@ void DDFT_IF_Open::unpack_after_transform(double *x, double val)
 	}
 }
 
-void DDFT_IF_Open::calcNonlinearTerm(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1)
-{
-  int Jspecies = 0;
-  const Density &density = dft_->getSpecies(Jspecies)->getDensity();
-  
-  double Dx = 1.0/(dx_*dx_);
-  double Dy = 1.0/(dy_*dy_);
-  double Dz = 1.0/(dz_*dz_);
 
-  double dV = dx_*dy_*dz_;
-
-  int iy;
-
-#pragma omp parallel for  shared(dV)  private(iy) schedule(static)			  
-  for(iy = 0;iy<Ny_;iy++)
-    for(int iz = 0;iz<Nz_;iz++)
-      for(int ix=0;ix<Nx_;ix++)
-	{
-	  long i0 = density.get_PBC_Pos(ix,iy,iz);
-
-	  long ipx = density.get_PBC_Pos(ix+1,iy,iz);
-	  long imx = density.get_PBC_Pos(ix-1,iy,iz);
-
-	  long ipy = density.get_PBC_Pos(ix,iy+1,iz);
-	  long imy = density.get_PBC_Pos(ix,iy-1,iz);
-
-	  long ipz = density.get_PBC_Pos(ix,iy,iz+1);
-	  long imz = density.get_PBC_Pos(ix,iy,iz-1);
-	    
-	  double r0 = d2.get(i0);
-
-	  double rpx = d2.get(ipx);
-	  double rmx = d2.get(imx);
-
-	  double rpy = d2.get(ipy);
-	  double rmy = d2.get(imy);
-	    
-	  double rpz = d2.get(ipz);
-	  double rmz = d2.get(imz);
-
-	  double f0 = dF.get(i0);
-
-	  double fpx = dF.get(ipx);
-	  double fmx = dF.get(imx);
-
-	  double fpy = dF.get(ipy);
-	  double fmy = dF.get(imy);
-
-	  double fpz = dF.get(ipz);
-	  double fmz = dF.get(imz);
-
-	  double RHS_F = Dx*((rpx+r0)*(fpx-f0)-(r0+rmx)*(f0-fmx))
-	    +Dy*((rpy+r0)*(fpy-f0)-(r0+rmy)*(f0-fmy))
-	    +Dz*((rpz+r0)*(fpz-f0)-(r0+rmz)*(f0-fmz));
-
-	  // factor 1/2 because of density average used in prev line
-	  // factor dV because f0, etc carries a dV
-	  RHS_F *= 1.0/(2*dV);
-	  
-	  RHS_F -= Dx*(rpx+rmx-2*r0)+Dy*(rpy+rmy-2*r0)+Dz*(rpz+rmz-2*r0);
-
-	  RHS1.set(i0,RHS_F);
-	}
-}
 
 
 /*

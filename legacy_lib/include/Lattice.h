@@ -108,18 +108,26 @@ void init(double L[])
 
 
   // Cartesian indices into vector index
-  inline long pos(long i, long j, long k) const
+  inline long pos(int v[]) const { return pos(v[0],v[1],v[2]);}
+  inline long pos(int i, int j, int k) const
   {
     if(i < 0 || i >= Nx_) throw std::runtime_error("ix out of bounds");
     if(j < 0 || j >= Ny_) throw std::runtime_error("iy out of bounds");
     if(k < 0 || k >= Nz_) throw std::runtime_error("iz out of bounds");
     return k + Nz_*(j +  Ny_*i);
-  }
-
+  }  
+  
   // Vector index to Cartesian indices
-  inline void cartesian(long pos, long &i, long &j, long &k) const { k = pos%(Nz_); pos = (pos-k)/Nz_; j = pos%Ny_; i = pos/Ny_;}
+  inline void cartesian(long pos, int v[]) const
+  {
+    int ix,iy,iz; cartesian(pos,ix,iy,iz);
+    v[0] = ix; v[1] = iy; v[2] = iz;
+  }
+  
+  inline void cartesian(long pos, int &i, int &j, int &k) const { k = pos%(Nz_); pos = (pos-k)/Nz_; j = pos%Ny_; i = pos/Ny_;}  
 
   // Get vector index taking account of PBC
+  virtual long get_PBC_Pos(int v[]) const {return get_PBC_Pos(v[0],v[1],v[2]);}  
   virtual long get_PBC_Pos(int ix, int iy, int iz) const
   { 
     putIntoBox(ix,iy,iz);
@@ -156,6 +164,80 @@ void init(double L[])
     
     return of;
   }
+
+  ////////// Characterizing boundary points:
+  // We map points on the boundary (ix or iy or iz = 0)
+  // to an array of NxNy+Nx(Nz-1)+(Ny-1)(Nz-1) points
+
+
+  long get_Nboundary() const { return Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;}
+  // cartesian coordinates to position
+  long boundary_pos(int v[]) const { return boundary_pos(v[0],v[1],v[2]);}
+
+  long boundary_pos(int ix, int iy, int iz) const    
+  {
+    long pos = -1;
+
+    while(ix < 0) ix += Nx_;
+    while(iy < 0) iy += Ny_;
+    while(iz < 0) iz += Nz_;
+
+    while(ix > Nx_-1) ix -= Nx_;
+    while(iy > Ny_-1) iy -= Ny_;
+    while(iz > Nz_-1) iz -= Nz_;
+
+    if(iz == 0)
+      pos = ix*Ny_+iy;
+    else {
+      pos = Nx_*Ny_;
+      if(iy == 0)
+	pos += ix*(Nz_-1)+iz-1;
+      else if(ix == 0) {
+	pos += Nx_*(Nz_-1) + (iy-1)*(Nz_-1)+(iz-1);
+      } else {
+	throw std::runtime_error("Non-boundary point given to Lattice::boundary_pos");
+      }
+    }
+    return pos;
+  }
+
+
+  void boundary_cartesian(long pos,int v[]) const
+  {
+    int ix,iy,iz;
+    boundary_cartesian(pos,ix,iy,iz);
+    v[0] = ix; v[1] = iy; v[2] = iz;
+  }
+  
+  void boundary_cartesian(long pos,int &ix, int &iy, int &iz) const
+  {
+    ix = iy = iz = 0;
+    
+    if(pos < Nx_*Ny_)
+      {
+	ix = int(pos/Ny_);
+	iy = pos-Ny_*ix;
+      } else {
+      pos -= Nx_*Ny_;
+      if(pos < Nx_*(Nz_-1))
+	{
+	  ix = int(pos/(Nz_-1));
+	  iz = 1+int(pos-ix*(Nz_-1));
+	} else {
+	pos -= Nx_*(Nz_-1);
+	if(pos < (Ny_-1)*(Nz_-1))
+	  {
+	    iy = 1+int(pos/(Nz_-1));
+	    iz = 1+int(pos - (iy-1)*(Nz_-1));
+	  } else {
+	  throw std::runtime_error("Non-boundary point given to Lattice::boundary_cartesian");
+	}
+      }      
+    }
+  }
+
+  // a function for testing the boundary stuff
+  void test_boundary_coding();
 
   friend istream &operator>>(istream  &in, Lattice &l )     
   {

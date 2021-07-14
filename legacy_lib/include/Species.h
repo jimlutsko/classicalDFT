@@ -21,7 +21,9 @@ class Species
   void doFFT(){ density_.doFFT();}
   
   void setFixedMass(double m) { fixedMass_ = m; if(m > 0.0) mu_ = 0.0;}
-
+  void setFixedBackground() { fixedBackground_ = true;}
+  bool is_background_fixed(){ return fixedBackground_;}
+  
   double getChemPotential() const {return mu_;}
   void setChemPotential(double m) {mu_ = m;}
 
@@ -82,26 +84,87 @@ class Species
   {
     if(fixedMass_ > 0.0)
       {
-	density_.scale_to(fixedMass_/density_.getNumberAtoms());
+	double background = 0;
+
+	double Mtarget = fixedMass_;
+	double Ntarget = density_.getNumberAtoms();
+	
+	if(fixedBackground_)
+	  {
+	    background = density_.get(0);
+
+	    // With correction for double counting
+	    double Mboarder = density_.Nx()*density_.Ny()+(density_.Nx()-1)*density_.Nz()+(density_.Ny()-1)*(density_.Nz()-1);
+	    Mboarder *= background*density_.dV();
+
+	    Mtarget -= Mboarder;
+	    Ntarget -= Mboarder;
+
+	  }
+	
+	density_.scale_to(Mtarget/Ntarget);
 	mu_ = 0.0;
+
+	if(fixedBackground_) // reset
+	  density_.set_background_density(background);
+
       }
   }
 
   // Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
   double endForceCalculation()
   {
+    if(fixedBackground_)
+      {
+	for(int ix = 0; ix < density_.Nx(); ix++)
+	  for(int iy = 0; iy < density_.Ny(); iy++)
+	    dF_.set(density_.pos(ix,iy,0),0.0);
+
+	for(int ix = 0; ix < density_.Nx(); ix++)
+	  for(int iz = 0; iz < density_.Nz(); iz++)
+	    dF_.set(density_.pos(ix,0,iz),0.0);
+
+	for(int iy = 0; iy < density_.Ny(); iy++)
+	  for(int iz = 0; iz < density_.Nz(); iz++)
+	    dF_.set(density_.pos(0,iy,iz),0.0);		
+      }
+
+    
     if(fixedMass_ > 0.0)
       {
 	mu_ = 0.0;
+
+	double Mtarget = fixedMass_;
+	if(fixedBackground_)
+	  {
+	    double background = density_.get(0);
+
+	    double Mboarder = density_.Nx()*density_.Ny()+(density_.Nx()-1)*density_.Nz()+(density_.Ny()-1)*(density_.Nz()-1);
+	    Mboarder *= background*density_.dV();
+
+	    Mtarget -= Mboarder;
+	  }
       
 	for(long p=0;p<density_.Ntot();p++)
 	  mu_ += dF_.get(p)*density_.getDensity(p);
-	mu_ /= fixedMass_;
-	  
-	for(long p=0;p<density_.Ntot();p++)
-	  dF_.set(p, dF_.get(p)-mu_*density_.dV());
-      }
+	mu_ /= Mtarget; //fixedMass_;
 
+	if(fixedBackground_)
+	  {
+	    for(int ix = 0; ix < density_.Nx(); ix++)
+	      for(int iy = 0; iy < density_.Ny(); iy++)
+		for(int iz = 0; iz < density_.Nz(); iz++)
+		  {
+		    long p = density_.pos(ix,iy,iz);
+		    if(ix > 0 && iy > 0 && iz > 0)
+		      dF_.set(p, dF_.get(p)-mu_*density_.dV());
+		    else dF_.set(p, 0.0);
+		  }
+	  } else {
+	  for(long p=0;p<density_.Ntot();p++)
+	    dF_.set(p, dF_.get(p)-mu_*density_.dV());
+	}
+      }
     return 0;
   }
 
@@ -122,6 +185,7 @@ protected:
   double mu_;
   int seq_num_;
   double fixedMass_; // if this is > 0, then the mass of this species is being held fixed at this value.
+  bool fixedBackground_ = false; // if true, forces are set to zero on the background
   int index_ = -1;
 };
 
