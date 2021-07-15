@@ -202,7 +202,7 @@ class DDFT : public Minimizer
 {
  public:
  DDFT(DFT *dft, bool showGraphics = true)
-   : Minimizer(dft), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false), modified_(false)
+   : Minimizer(dft), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false)
   {
     double dx = dft_->lattice().getDX();
     dt_ = 10*0.1*dx*dx;
@@ -217,10 +217,9 @@ class DDFT : public Minimizer
     
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
   void set_max_time_step(double t) { dtMax_ = t;}
- void setTimeStep(double dt) { dt_ = dt;}
+  void setTimeStep(double dt) { dt_ = dt;}
 
   void setFixedBoundary() {fixedBorder_ = true;}
-  void setModified() {modified_ = true;}
     
   double getTimeStep() const { return dt_;}
   
@@ -242,7 +241,6 @@ class DDFT : public Minimizer
   double dtMax_;
 
   bool fixedBorder_;
-  bool modified_; // for certain derived classes
 };
 
 /**
@@ -259,14 +257,19 @@ class DDFT_IF : public DDFT
 
   ~DDFT_IF() {}
 
-  void set_is_open(bool val) {isOPEN_ = val;}
-  
   virtual void initialize();
+  
+    void set_is_open(bool val) {isOPEN_ = val;}  
   virtual double step();
+  
+ protected:
+  virtual double fftDiffusion(DFT_Vec &d1) = 0;
+  virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0) = 0;
+  virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1) = 0;
+  
+  void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
 
-  virtual void calcNonlinearTerm(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
-  virtual void calcNonlinearTerm_old(const DFT_Vec &d, const DFT_Vec &dF, DFT_Vec &RHS1);
-  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
+  void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
   void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal = false);
   
 protected:
@@ -302,15 +305,14 @@ class DDFT_IF_CLOSED : public DDFT_IF
 
   virtual void initialize();
 
-  virtual double step();
-  void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
-  double fftDiffusion(const Density& density, DFT_Vec &new_density, const DFT_FFT &RHS0, const DFT_FFT &RHS1);
 
-  //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
-  //  void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, bool boundary_only, const Density &density, double D[]);  
-  //  void boundary_cartesian(long pos,int &ix, int &iy, int &iz) const;
-  //  long boundary_pos(int ix, int iy, int iz) const;
-  //  void test();
+ protected:
+  virtual double fftDiffusion(DFT_Vec &new_density);
+  virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0);
+  virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1);
+
+  void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
+
  protected:
   DFT_FFT RHS0;
   DFT_FFT RHS1;
@@ -332,11 +334,12 @@ class DDFT_IF_Open : public DDFT_IF
   ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_; if(RHS0_sin_transform_) delete RHS0_sin_transform_; if(RHS1_sin_transform_) delete RHS1_sin_transform_;}
 
   virtual void initialize();
-
-  virtual double step();
-  double fftDiffusion(DFT_Vec &d1);
-
-protected:  
+  
+protected:
+  virtual double fftDiffusion(DFT_Vec &d1);
+  virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0);  
+  virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1);
+  
   void pack_for_sin_transform(const double *x, double val);  
   void unpack_after_transform(double *x, double val);
 

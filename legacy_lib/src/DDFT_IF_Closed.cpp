@@ -2,13 +2,14 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <complex>
 #include <stdexcept>
 #include <vector>
 #include <time.h>
 
-#include <mgl2/mgl.h>
-#include <mgl2/fltk.h>
+//#include <mgl2/mgl.h>
+//#include <mgl2/fltk.h>
+
+#include <complex>
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -91,6 +92,19 @@ void DDFT_IF_CLOSED::initialize()
 
 // This presently only works for a single species!!!
 
+void DDFT_IF_CLOSED::calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0)
+{
+  if(use_R0)
+    {
+      DDFT_IF::calcNonlinearTerm_intern(density, species->getDF(), RHS0.Real());    
+      RHS0.do_real_2_fourier();
+    } else {
+    DDFT_IF::calcNonlinearTerm_intern(density, species->getDF(),RHS1.Real());  
+    RHS1.do_real_2_fourier();
+  }
+}
+
+/*
 double DDFT_IF_CLOSED::step()
 {
   DDFT_IF::step();
@@ -104,8 +118,10 @@ double DDFT_IF_CLOSED::step()
   // copy the current density
   DFT_Vec d0(density.Ntot()); d0.set(density.getDensity());
   DFT_Vec d1(density.Ntot()); d1.set(d0);
+
+  const bool USE_R0 = true;
   
-  calcNonlinearTerm(d0, species->getDF(), RHS0.Real());    
+  calcNonlinearTerm(d0, species, USE_R0);
   RHS0.do_real_2_fourier();
 
   double deviation = 1;
@@ -123,13 +139,12 @@ double DDFT_IF_CLOSED::step()
       {
 	species->set_density(d1);
 	F_ = dft_->calculateFreeEnergyAndDerivatives(false);
-	calcNonlinearTerm(d1, species->getDF(),RHS1.Real());  
-	RHS1.do_real_2_fourier();
+	calcNonlinearTerm(d1, species, !USE_R0);  
 
 	species->set_density(d0);       
 	species->fft_density();
 	
-	deviation = fftDiffusion(density,d1,RHS0,RHS1);
+	deviation = fftDiffusion(d1);
 	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
@@ -159,39 +174,53 @@ double DDFT_IF_CLOSED::step()
   
   return F_;
 }
+*/
 
-void DDFT_IF_CLOSED::restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density)
+void DDFT_IF_CLOSED::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
 {
-  int Nx = lattice.Nx();
-  int Ny = lattice.Ny();
-  int Nz = lattice.Nz();
-      
-  for(int ix=0;ix<Nx;ix++)
-    for(int iy=0;iy<Ny;iy++)
-      {
-	long i0 = lattice.pos(ix,iy,0);
-	density.set(i0,d0.get(i0));
-      }
+  int Jspecies = 0;
+  Species *species = dft_->getSpecies(Jspecies);  
+  const Lattice &lattice = species->getLattice();
 
-  for(int ix=0;ix<Nx;ix++)
-    for(int iz=0;iz<Nz;iz++)
-      {
-	long i0 = lattice.pos(ix,0,iz);
-	density.set(i0,d0.get(i0));
-      }
-  for(int iy=0;iy<Ny;iy++)
-    for(int iz=0;iz<Nz;iz++)
-      {
-	long i0 = lattice.pos(0,iy,iz);
-	density.set(i0,d0.get(i0));
-      }
+  if(fixedBorder_)
+    {
+      restore_values_on_border(lattice, d0, d1);
+
+      int Nx = lattice.Nx();
+      int Ny = lattice.Ny();
+      int Nz = lattice.Nz();
+      
+      for(int ix=0;ix<Nx;ix++)
+	for(int iy=0;iy<Ny;iy++)
+	  {
+	    long i0 = lattice.pos(ix,iy,0);
+	    d1.set(i0,d0.get(i0));
+	  }
+
+      for(int ix=0;ix<Nx;ix++)
+	for(int iz=0;iz<Nz;iz++)
+	  {
+	    long i0 = lattice.pos(ix,0,iz);
+	    d1.set(i0,d0.get(i0));
+	  }
+      for(int iy=0;iy<Ny;iy++)
+	for(int iz=0;iz<Nz;iz++)
+	  {
+	    long i0 = lattice.pos(0,iy,iz);
+	    d1.set(i0,d0.get(i0));
+	  }
+    }
 }
 
 /**
  This function takes the input density and calculates a new density, d1, by propagating the density a time step dt. The nonlinear terms, RHS0 and RHS1, are treated explicitly.
 */
-double DDFT_IF_CLOSED::fftDiffusion(const Density& density, DFT_Vec &new_density, const DFT_FFT &RHS0, const DFT_FFT &RHS1)
+double DDFT_IF_CLOSED::fftDiffusion(DFT_Vec &new_density)
 {
+  int Jspecies = 0;
+  Species *species = dft_->getSpecies(Jspecies);
+  const Density &density = species->getDensity();
+  
   DFT_FFT work(Nx_,Ny_,Nz_);
 
   DFT_Vec_Complex &cwork = work.Four();

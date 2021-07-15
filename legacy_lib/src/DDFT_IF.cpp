@@ -2,13 +2,12 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <complex>
 #include <stdexcept>
 #include <vector>
 #include <time.h>
 
-#include <mgl2/mgl.h>
-#include <mgl2/fltk.h>
+//#include <mgl2/mgl.h>
+//#include <mgl2/fltk.h>
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -16,6 +15,7 @@
 
 using namespace std;
 
+#include <complex>
 
 #include "Minimizer.h"
 
@@ -94,11 +94,72 @@ double DDFT_IF::step()
   }
   cout << "Initial F = " << F_ << endl;
 
-  return 0;
+  
+  int Jspecies = 0;
+  Species *species = dft_->getSpecies(Jspecies);
+  
+  const Lattice &lattice = species->getLattice();
+  const Density &density = species->getDensity();
+
+  // copy the current density
+  DFT_Vec d0(density.Ntot()); d0.set(density.getDensity());
+  DFT_Vec d1(density.Ntot()); d1.set(d0);
+
+  const bool USE_R0 = true;  
+
+  double deviation = 1;
+  double dt = dt_;
+  bool   reStart = false;
+  bool   decreased_time_step = false;
+
+  calcNonlinearTerm(d0, species, USE_R0);
+  
+  do {
+    reStart = false;
+    double old_error = 0;
+    
+    for(int i=0;i<100 && deviation > tolerence_fixed_point_ && !reStart;i++)
+      {
+	species->set_density(d1);
+	F_ = dft_->calculateFreeEnergyAndDerivatives(false);
+	calcNonlinearTerm(d1, species, !USE_R0);  
+
+	species->set_density(d0);       
+	species->fft_density();
+	
+	deviation = fftDiffusion(d1);
+	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
+
+	// decrease time step and restart if density goes negative or if error is larger than previous step
+	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+
+	old_error = deviation;	       	
+      }
+    if(!reStart && deviation > tolerence_fixed_point_)
+      {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+  } while(reStart);
+
+  // Adaptive time-step: try to increase time step if the present one works 5 times 
+  if(decreased_time_step) successes_ = 0;
+  else successes_++;
+  if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
+
+
+  finish_nonlinear_calc(d0,d1);
+  
+  species->set_density(d1);
+  species->fft_density();
+  calls_++;
+
+  F_ = dft_->calculateFreeEnergyAndDerivatives(false); 
+
+  cout << "F = " << F_ << endl;
+  
+  return F_;  
 }
 
 
-void DDFT_IF::calcNonlinearTerm(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &RHS1)
+void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &RHS1)
 {
   int Jspecies = 0;
   const Density &density = dft_->getSpecies(Jspecies)->getDensity();
@@ -211,15 +272,13 @@ void DDFT_IF::update_forces_fixed_background(const Density &density,const DFT_Ve
       x.set(pboundary, dF.get(density.get_PBC_Pos(cartesian)));
     }
 
-  const bool boundary_only = true;
+  //  const bool boundary_only = true;
 
   A_dot_x(dF,r,density,D); 
   r.MultBy(-1);
   p.set(r);
 
-  double error = sqrt(r.euclidean_norm()/r.size())/(dx_*dy_*dz_);
-  double error_old = error;
-  //  cout << "error = " << error << endl;
+  double error     = sqrt(r.euclidean_norm()/r.size())/(dx_*dy_*dz_);
 
   while(error > 1e-13)
     {
@@ -238,10 +297,9 @@ void DDFT_IF::update_forces_fixed_background(const Density &density,const DFT_Ve
       p.MultBy(beta);
       p.IncrementBy(r);
 
+      double error_old = error;
       error = sqrt(r.euclidean_norm()/r.size())/(dx_*dy_*dz_);
-      //      cout << "error = " << error << " pAp = " << pAp << " dError/error = : " << fabs(error-error_old)/error_old << endl;
       if(fabs(error-error_old) < 0.01*error_old) throw std::runtime_error("Convergence problem in DDFT_IF_CLOSED::update_forces_fixed_background");
-      error_old = error;
     }
 
     for(long pboundary = 0;pboundary<Nboundary;pboundary++)
@@ -249,18 +307,11 @@ void DDFT_IF::update_forces_fixed_background(const Density &density,const DFT_Ve
       int cartesian[3]; // working space      
       density.boundary_cartesian(pboundary,cartesian);
       dF.set(density.get_PBC_Pos(cartesian), x.get(pboundary));
-      if(pboundary == 64)
-	cout << "HERE: " << cartesian[0] << " " << cartesian[1] << " " << cartesian[2] << " " << density.get_PBC_Pos(cartesian) << " " << density.get_PBC_Pos(cartesian) << " " << x.get(pboundary) << endl;
-      
     }
-
 }
 
 
-
-
-
-
+/*
 void DDFT_IF::calcNonlinearTerm_old(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1)
 {
   int Jspecies = 0;
@@ -326,4 +377,4 @@ void DDFT_IF::calcNonlinearTerm_old(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Ve
 	}
 }
 
-
+*/

@@ -85,6 +85,25 @@ void DDFT_IF_Open::initialize()
     }
 }
 
+
+void DDFT_IF_Open::calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0)
+{
+  if(use_R0)
+    {
+      DDFT_IF::calcNonlinearTerm_intern(density, species->getDF(),RHS0);
+      pack_for_sin_transform(RHS0.memptr(),0.0);
+      fftw_execute(sin_plan_);
+      memcpy(RHS0_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));      
+    } else {
+    DDFT_IF::calcNonlinearTerm_intern(density, species->getDF(),RHS1); // we are counting on the species to set the force on the border points to zero
+	pack_for_sin_transform(RHS1.memptr(),0.0);
+	fftw_execute(sin_plan_);
+	memcpy(RHS1_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));	  
+  }
+}
+
+
+/*
 double DDFT_IF_Open::step()
 {
   DDFT_IF::step();
@@ -96,10 +115,9 @@ double DDFT_IF_Open::step()
   DFT_Vec d0(density.Ntot()); d0.set(density.getDensity());  
   DFT_Vec d1(density.Ntot()); d1.set(d0);
 
-  calcNonlinearTerm(d0, species->getDF(), RHS0);  
-  pack_for_sin_transform(RHS0.memptr(),0.0);
-  fftw_execute(sin_plan_);
-  memcpy(RHS0_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));
+  const bool USE_R0 = true;
+  
+  calcNonlinearTerm(d0,species,USE_R0);
    
   double deviation = 1;
 
@@ -115,11 +133,8 @@ double DDFT_IF_Open::step()
     for(int i=0;i<20 && deviation > tolerence_fixed_point_ && !reStart;i++)
       {
 	species->set_density(d1);
-	F_ = dft_->calculateFreeEnergyAndDerivatives(false); 
-	calcNonlinearTerm(d1, species->getDF(),RHS1); // we are counting on the species to set the force on the border points to zero
-	pack_for_sin_transform(RHS1.memptr(),0.0);
-	fftw_execute(sin_plan_);
-	memcpy(RHS1_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));	  
+	F_ = dft_->calculateFreeEnergyAndDerivatives(false);
+	calcNonlinearTerm(d1,species,!USE_R0);	
 
 	species->set_density(d0); // Unnecessary?
 	species->fft_density(); // Unnecessary?
@@ -147,6 +162,14 @@ double DDFT_IF_Open::step()
 
   return F_;
 }
+*/
+
+void DDFT_IF_Open::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
+{
+  // nothing to do in this case ...
+}
+
+
 
 /**
  This function takes the input density and calculates a new density, d1, by propagating the density a time step dt. The nonlinear terms, RHS0 and RHS1, are treated explicitly.

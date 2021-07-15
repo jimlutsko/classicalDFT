@@ -7,8 +7,8 @@
 #include <vector>
 #include <time.h>
 
-//#include <mgl2/mgl.h>
-//#include <mgl2/fltk.h>
+#include <mgl2/mgl.h>
+#include <mgl2/fltk.h>
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -24,15 +24,14 @@ void DDFT::initialize()
   successes_ = 0;
 }
 
-//void DDFT::reverseForce(DFT_Vec *tangent) 
-//{
-//  double prod = dF_.dotWith(*tangent);
-//  dF_.Increment_And_Scale(*tangent,-2*prod);
-//}
+void DDFT::reverseForce(DFT_Vec *tangent) 
+{
+  double prod = dF_.dotWith(*tangent);
+  dF_.Increment_And_Scale(*tangent,-2*prod);
+}
 
 void DDFT::Display(double F, double dFmin, double dFmax, double N)
 {
-  /*
   static int cc = 0;
   
   grace_->deleteDataSet(0);
@@ -63,20 +62,17 @@ void DDFT::Display(double F, double dFmin, double dFmax, double N)
   grace_->redraw(1,0);
   string s("string_graph.agr");
   grace_->store(s);
-  */
 }
 
-  /*
+
 double DDFT::F_string(Density &original_density, double *fmax)
 {
-  double F = 0;
-
   DFT_Vec dummy;
   double F =  dft_.calculateFreeEnergyAndDerivatives(original_density,0.0, dummy,false);
 
   if(fmax) *fmax = dummy.inf_norm()/original_density.dV();;
+  
   return F;
 }
-  */
 
 
