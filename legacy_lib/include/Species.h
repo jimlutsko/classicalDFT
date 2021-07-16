@@ -84,30 +84,8 @@ class Species
   {
     if(fixedMass_ > 0.0)
       {
-	double background = 0;
-
-	double Mtarget = fixedMass_;
-	double Ntarget = density_.getNumberAtoms();
-	
-	if(fixedBackground_)
-	  {
-	    background = density_.get(0);
-
-	    // With correction for double counting
-	    double Mboarder = density_.Nx()*density_.Ny()+(density_.Nx()-1)*density_.Nz()+(density_.Ny()-1)*(density_.Nz()-1);
-	    Mboarder *= background*density_.dV();
-
-	    Mtarget -= Mboarder;
-	    Ntarget -= Mboarder;
-
-	  }
-	
-	density_.scale_to(Mtarget/Ntarget);
+	density_.scale_to(fixedMass_/density_.getNumberAtoms());
 	mu_ = 0.0;
-
-	if(fixedBackground_) // reset
-	  density_.set_background_density(background);
-
       }
   }
 
@@ -116,17 +94,33 @@ class Species
   {
     if(fixedBackground_)
       {
+	double average_border_force = 0;
+
 	for(int ix = 0; ix < density_.Nx(); ix++)
 	  for(int iy = 0; iy < density_.Ny(); iy++)
-	    dF_.set(density_.pos(ix,iy,0),0.0);
+	    average_border_force += dF_.get(density_.pos(ix,iy,0));
 
 	for(int ix = 0; ix < density_.Nx(); ix++)
-	  for(int iz = 0; iz < density_.Nz(); iz++)
-	    dF_.set(density_.pos(ix,0,iz),0.0);
+	  for(int iz = 1; iz < density_.Nz(); iz++)
+	    average_border_force += dF_.get(density_.pos(ix,0,iz));
 
-	for(int iy = 0; iy < density_.Ny(); iy++)
-	  for(int iz = 0; iz < density_.Nz(); iz++)
-	    dF_.set(density_.pos(0,iy,iz),0.0);		
+	for(int iy = 1; iy < density_.Ny(); iy++)
+	  for(int iz = 1; iz < density_.Nz(); iz++)
+	    average_border_force += dF_.get(density_.pos(0,iy,iz));
+
+	average_border_force /= density_.get_Nboundary();
+	
+	for(int ix = 0; ix < density_.Nx(); ix++)
+	  for(int iy = 0; iy < density_.Ny(); iy++)
+	    dF_.set(density_.pos(ix,iy,0),average_border_force);
+
+	for(int ix = 0; ix < density_.Nx(); ix++)
+	  for(int iz = 1; iz < density_.Nz(); iz++)
+	    dF_.set(density_.pos(ix,0,iz),average_border_force);
+
+	for(int iy = 1; iy < density_.Ny(); iy++)
+	  for(int iz = 1; iz < density_.Nz(); iz++)
+	    dF_.set(density_.pos(0,iy,iz),average_border_force);		
       }
 
     
@@ -135,35 +129,12 @@ class Species
 	mu_ = 0.0;
 
 	double Mtarget = fixedMass_;
-	if(fixedBackground_)
-	  {
-	    double background = density_.get(0);
 
-	    double Mboarder = density_.Nx()*density_.Ny()+(density_.Nx()-1)*density_.Nz()+(density_.Ny()-1)*(density_.Nz()-1);
-	    Mboarder *= background*density_.dV();
-
-	    Mtarget -= Mboarder;
-	  }
-      
 	for(long p=0;p<density_.Ntot();p++)
 	  mu_ += dF_.get(p)*density_.getDensity(p);
 	mu_ /= Mtarget; //fixedMass_;
-
-	if(fixedBackground_)
-	  {
-	    for(int ix = 0; ix < density_.Nx(); ix++)
-	      for(int iy = 0; iy < density_.Ny(); iy++)
-		for(int iz = 0; iz < density_.Nz(); iz++)
-		  {
-		    long p = density_.pos(ix,iy,iz);
-		    if(ix > 0 && iy > 0 && iz > 0)
-		      dF_.set(p, dF_.get(p)-mu_*density_.dV());
-		    else dF_.set(p, 0.0);
-		  }
-	  } else {
-	  for(long p=0;p<density_.Ntot();p++)
-	    dF_.set(p, dF_.get(p)-mu_*density_.dV());
-	}
+	for(long p=0;p<density_.Ntot();p++)
+	  dF_.set(p, dF_.get(p)-mu_*density_.dV());
       }
     return 0;
   }
