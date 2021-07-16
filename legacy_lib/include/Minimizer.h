@@ -202,7 +202,7 @@ class DDFT : public Minimizer
 {
  public:
  DDFT(DFT *dft, bool showGraphics = true)
-   : Minimizer(dft), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), fixedBorder_(false)
+   : Minimizer(dft), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0)
   {
     double dx = dft_->lattice().getDX();
     dt_ = 10*0.1*dx*dx;
@@ -213,34 +213,30 @@ class DDFT : public Minimizer
 
   virtual void initialize();
 
-  void Display(double F, double dFmin, double dFmax, double N);
-    
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
   void set_max_time_step(double t) { dtMax_ = t;}
-  void setTimeStep(double dt) { dt_ = dt;}
 
-  void setFixedBoundary() {fixedBorder_ = true;}
-    
+  void   setTimeStep(double dt) { dt_ = dt;}    
   double getTimeStep() const { return dt_;}
-  
-  //  double F_string(Density &d, double *fmax = NULL);
-  //  void reverseForce(DFT_Vec *tangent);
 
   virtual double step() = 0;
+
+  void Display(double F, double dFmin, double dFmax, double N);
+      
+  //  double F_string(Density &d, double *fmax = NULL);
+  //  void reverseForce(DFT_Vec *tangent);
   //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true) = 0;
 
  protected:
 
-  bool show_;
+  bool show_ = true;
   
   double dt_;
-  double tolerence_fixed_point_;
+  double tolerence_fixed_point_ = 1e-4;
 
   // control of adaptive time step
-  int successes_;
-  double dtMax_;
-
-  bool fixedBorder_;
+  int successes_ = 0;
+  double dtMax_  = 1;
 };
 
 /**
@@ -258,8 +254,6 @@ class DDFT_IF : public DDFT
   ~DDFT_IF() {}
 
   virtual void initialize();
-  
-    void set_is_open(bool val) {isOPEN_ = val;}  
   virtual double step();
   
  protected:
@@ -268,7 +262,6 @@ class DDFT_IF : public DDFT
   virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1) = 0;
   
   void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
-
   void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
   void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal = false);
   
@@ -284,8 +277,6 @@ protected:
   double dx_ = 0.0;
   double dy_ = 0.0;
   double dz_ = 0.0;
-
-  bool isOPEN_ = true;
 };
 
 /**
@@ -295,13 +286,13 @@ protected:
   *
   */  
 /* TODO : Update*/
-class DDFT_IF_CLOSED : public DDFT_IF
+class DDFT_IF_Periodic : public DDFT_IF
 {
  public:
- DDFT_IF_CLOSED(DFT *dft, bool showGraphics = true)
+ DDFT_IF_Periodic(DFT *dft, bool showGraphics = true)
    : DDFT_IF(dft,showGraphics) {}
 
-  ~DDFT_IF_CLOSED(){}
+  ~DDFT_IF_Periodic(){}
 
   virtual void initialize();
 
@@ -325,13 +316,13 @@ class DDFT_IF_CLOSED : public DDFT_IF
   *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
   */  
 /*TODO: Update */
-class DDFT_IF_Open : public DDFT_IF
+class DDFT_IF_Fixed_Border : public DDFT_IF
 {
  public:
- DDFT_IF_Open(DFT *dft, double background,  bool showGraphics = true)
+ DDFT_IF_Fixed_Border(DFT *dft, double background,  bool showGraphics = true)
    : DDFT_IF(dft,showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
     {}
-  ~DDFT_IF_Open() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_; if(RHS0_sin_transform_) delete RHS0_sin_transform_; if(RHS1_sin_transform_) delete RHS1_sin_transform_;}
+  ~DDFT_IF_Fixed_Border() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_; if(RHS0_sin_transform_) delete RHS0_sin_transform_; if(RHS1_sin_transform_) delete RHS1_sin_transform_;}
 
   virtual void initialize();
   
@@ -354,10 +345,10 @@ protected:
   double background_;
   
   fftw_plan sin_plan_;
-  unsigned sin_Ntot_;
-  unsigned sin_Norm_;
-  double *sin_in_;
-  double *sin_out_;
+  unsigned  sin_Ntot_;
+  unsigned  sin_Norm_;
+  double   *sin_in_;
+  double   *sin_out_;
 };
 		    
 

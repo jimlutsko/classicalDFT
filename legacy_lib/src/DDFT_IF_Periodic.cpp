@@ -40,7 +40,7 @@ using namespace std;
 
 // This implementation presently only works for a single species!!!
 
-void DDFT_IF_CLOSED::initialize()
+void DDFT_IF_Periodic::initialize()
 {
   if(Lamx_.size() > 0) return; // avoid double initialization
 
@@ -92,7 +92,7 @@ void DDFT_IF_CLOSED::initialize()
 
 // This presently only works for a single species!!!
 
-void DDFT_IF_CLOSED::calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0)
+void DDFT_IF_Periodic::calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0)
 {
   if(use_R0)
     {
@@ -104,118 +104,17 @@ void DDFT_IF_CLOSED::calcNonlinearTerm(const DFT_Vec &density, Species *species,
   }
 }
 
-/*
-double DDFT_IF_CLOSED::step()
-{
-  DDFT_IF::step();
-  
-  int Jspecies = 0;
-  Species *species = dft_->getSpecies(Jspecies);
-  
-  const Lattice &lattice = species->getLattice();
-  const Density &density = species->getDensity();
-
-  // copy the current density
-  DFT_Vec d0(density.Ntot()); d0.set(density.getDensity());
-  DFT_Vec d1(density.Ntot()); d1.set(d0);
-
-  const bool USE_R0 = true;
-  
-  calcNonlinearTerm(d0, species, USE_R0);
-  RHS0.do_real_2_fourier();
-
-  double deviation = 1;
-
-  double dt = dt_;
-
-  bool reStart;
-  bool decreased_time_step = false;
-  
-  do {
-    reStart = false;
-    double old_error = 0;
-    
-    for(int i=0;i<100 && deviation > tolerence_fixed_point_ && !reStart;i++)
-      {
-	species->set_density(d1);
-	F_ = dft_->calculateFreeEnergyAndDerivatives(false);
-	calcNonlinearTerm(d1, species, !USE_R0);  
-
-	species->set_density(d0);       
-	species->fft_density();
-	
-	deviation = fftDiffusion(d1);
-	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
-
-	// decrease time step and restart if density goes negative or if error is larger than previous step
-	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
-
-	old_error = deviation;	       	
-      }
-    if(!reStart && deviation > tolerence_fixed_point_)
-      {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
-  } while(reStart);
-
-  // Adaptive time-step: try to increase time step if the present one works 5 times 
-  if(decreased_time_step) successes_ = 0;
-  else successes_++;
-  if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
-
-  if(fixedBorder_)
-    restore_values_on_border(lattice, d0, d1);
-  
-  species->set_density(d1);
-  species->fft_density();
-  calls_++;
-
-  F_ = dft_->calculateFreeEnergyAndDerivatives(false); 
-
-  cout << "F = " << F_ << endl;
-  
-  return F_;
-}
-*/
-
-void DDFT_IF_CLOSED::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
+void DDFT_IF_Periodic::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
 {
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);  
   const Lattice &lattice = species->getLattice();
-
-  if(fixedBorder_)
-    {
-      restore_values_on_border(lattice, d0, d1);
-
-      int Nx = lattice.Nx();
-      int Ny = lattice.Ny();
-      int Nz = lattice.Nz();
-      
-      for(int ix=0;ix<Nx;ix++)
-	for(int iy=0;iy<Ny;iy++)
-	  {
-	    long i0 = lattice.pos(ix,iy,0);
-	    d1.set(i0,d0.get(i0));
-	  }
-
-      for(int ix=0;ix<Nx;ix++)
-	for(int iz=0;iz<Nz;iz++)
-	  {
-	    long i0 = lattice.pos(ix,0,iz);
-	    d1.set(i0,d0.get(i0));
-	  }
-      for(int iy=0;iy<Ny;iy++)
-	for(int iz=0;iz<Nz;iz++)
-	  {
-	    long i0 = lattice.pos(0,iy,iz);
-	    d1.set(i0,d0.get(i0));
-	  }
-    }
 }
 
 /**
  This function takes the input density and calculates a new density, d1, by propagating the density a time step dt. The nonlinear terms, RHS0 and RHS1, are treated explicitly.
 */
-double DDFT_IF_CLOSED::fftDiffusion(DFT_Vec &new_density)
+double DDFT_IF_Periodic::fftDiffusion(DFT_Vec &new_density)
 {
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);
@@ -245,7 +144,7 @@ double DDFT_IF_CLOSED::fftDiffusion(DFT_Vec &new_density)
 	{
 	  complex<double> x = density.get_fourier_value(pos); 
 	  
-	  if(pos > 0)
+	  if(pos > 0) // corresponds to K=0 - and mass is conserved so ...
 	    {
 	      double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
 	      double fac    = fx[ix]*fy[iy]*fz[iz];
@@ -278,7 +177,7 @@ double DDFT_IF_CLOSED::fftDiffusion(DFT_Vec &new_density)
 
 
 /*
-double DDFT_IF_CLOSED::step_string(double &dt, Density &original_density, double self_consistency_threshold)
+double DDFT_IF_Periodic::step_string(double &dt, Density &original_density, double self_consistency_threshold)
 {
   int Nx = original_density.Nx();
   int Ny = original_density.Ny();

@@ -172,8 +172,7 @@ void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &
 
   double dV = dx_*dy_*dz_;
 
-  if(fixedBorder_ && !isOPEN_) update_forces_fixed_background(density,d2,dF,D);
-  cout << "fixedBorder_ = " << fixedBorder_ << " isOPEN_ = " << isOPEN_ << endl;
+  update_forces_fixed_background(density,d2,dF,D);
 
   A_dot_x(dF, RHS1, density, D, true);
 
