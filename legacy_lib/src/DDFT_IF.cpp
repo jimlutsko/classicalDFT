@@ -257,6 +257,9 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
 // using conjuage gradients
 void DDFT_IF::update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3])
 {
+  throw std::runtime_error("Hit DDFT_IF::update_forces_fixed_background");
+
+  
    long Nboundary = Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;
    double D[3] = {DD[0],DD[1],DD[2]};
   

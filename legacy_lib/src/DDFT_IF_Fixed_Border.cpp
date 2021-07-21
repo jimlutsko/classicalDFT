@@ -99,6 +99,17 @@ void DDFT_IF_Fixed_Border::calcNonlinearTerm(const DFT_Vec &density, Species *sp
 }
 
 
+void DDFT_IF_Fixed_Border::update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3])
+{
+   long Nboundary = Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;  
+  for(long pboundary = 0;pboundary<Nboundary;pboundary++)
+    {
+      int cartesian[3]; // working space      
+      density.boundary_cartesian(pboundary,cartesian);
+      dF.set(density.get_PBC_Pos(cartesian), border_forces_);
+    }
+}
+
 void DDFT_IF_Fixed_Border::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
 {
   // nothing to do in this case ...

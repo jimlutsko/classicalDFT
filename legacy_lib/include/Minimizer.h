@@ -262,7 +262,7 @@ class DDFT_IF : public DDFT
   virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1) = 0;
   
   void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
-  void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
+  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
   void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal = false);
   
 protected:
@@ -319,7 +319,7 @@ class DDFT_IF_Periodic : public DDFT_IF
 class DDFT_IF_Fixed_Border : public DDFT_IF
 {
  public:
- DDFT_IF_Fixed_Border(DFT *dft, double background,  bool showGraphics = true)
+ DDFT_IF_Fixed_Border(DFT *dft, double background,  double border_forces_, bool showGraphics = true)
    : DDFT_IF(dft,showGraphics), background_(background), sin_in_(NULL), sin_out_(NULL)
     {}
   ~DDFT_IF_Fixed_Border() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_; if(RHS0_sin_transform_) delete RHS0_sin_transform_; if(RHS1_sin_transform_) delete RHS1_sin_transform_;}
@@ -330,6 +330,8 @@ protected:
   virtual double fftDiffusion(DFT_Vec &d1);
   virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0);  
   virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1);
+
+  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
   
   void pack_for_sin_transform(const double *x, double val);  
   void unpack_after_transform(double *x, double val);
@@ -343,6 +345,8 @@ protected:
   double *RHS1_sin_transform_ = NULL;  
   
   double background_;
+  double border_forces_ = 0.0;
+      
   
   fftw_plan sin_plan_;
   unsigned  sin_Ntot_;
