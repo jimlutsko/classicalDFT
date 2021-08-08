@@ -124,11 +124,13 @@ double DDFT_IF::step()
 	F_ = dft_->calculateFreeEnergyAndDerivatives(false);
 	calcNonlinearTerm(d1, species, !USE_R0);  
 
+	double nn = species->getDensity().getNumberAtoms();
+	
 	species->set_density(d0);       
 	species->fft_density();
 	
 	deviation = fftDiffusion(d1);
-	cout << "\tdeviation = " << deviation << " dt = " << dt_ << endl;
+	cout << setprecision(12) << "\tdeviation = " << deviation << " dt = " << dt_ << " Natoms = " << nn << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
 	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
@@ -153,7 +155,7 @@ double DDFT_IF::step()
 
   F_ = dft_->calculateFreeEnergyAndDerivatives(false); 
 
-  cout << "F = " << F_ << endl;
+  cout << setprecision(12) << "F = " << F_ << " Natoms = " << species->getDensity().getNumberAtoms() << endl;
   
   return F_;  
 }
@@ -244,7 +246,6 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
 	  else sum_forces2 += RHS;
 
 	  sum_sq += RHS*RHS;
-	  
 	  RHS -= D[0]*(rpx+rmx-2*r0)+D[1]*(rpy+rmy-2*r0)+D[2]*(rpz+rmz-2*r0) ;
 	}
       Ax.set(pos,RHS);
@@ -257,9 +258,6 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
 // using conjuage gradients
 void DDFT_IF::update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3])
 {
-  throw std::runtime_error("Hit DDFT_IF::update_forces_fixed_background");
-
-  
    long Nboundary = Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;
    double D[3] = {DD[0],DD[1],DD[2]};
   
@@ -273,8 +271,6 @@ void DDFT_IF::update_forces_fixed_background(const Density &density,const DFT_Ve
       density.boundary_cartesian(pboundary,cartesian);
       x.set(pboundary, dF.get(density.get_PBC_Pos(cartesian)));
     }
-
-  //  const bool boundary_only = true;
 
   A_dot_x(dF,r,density,D); 
   r.MultBy(-1);
