@@ -38,7 +38,7 @@ class Species
   void doDisplay(string &title, string &file) const { density_.doDisplay(title,file, seq_num_);}
 
   void set_density(DFT_Vec &x) {density_.set(x);}
-  void set_density(long j, double x) {density_.set_Density_Elem(j,x);}
+  void set_density(long j, double x) {density_.set(j,x);}
   void fft_density() { density_.doFFT();}
   
   void zeroForce() {dF_.zeros();}
@@ -65,10 +65,10 @@ class Species
   double externalField(bool bCalcForces)
   {
     double dV = density_.dV();
-    double Fx = density_.getExternalFieldEnergy()*dV - density_.getNumberAtoms()*mu_;
+    double Fx = density_.get_field_dot_density()*dV - density_.getNumberAtoms()*mu_;
     if(bCalcForces)
       {
-	dF_.IncrementBy_Scaled_Vector(density_.getExternalField(),dV);
+	dF_.IncrementBy_Scaled_Vector(density_.get_external_field(),dV);
 	dF_.ShiftBy(mu_*dV);
       }
     return Fx;
@@ -131,7 +131,7 @@ class Species
 	double Mtarget = fixedMass_;
 
 	for(long p=0;p<density_.Ntot();p++)
-	  mu_ += dF_.get(p)*density_.getDensity(p);
+	  mu_ += dF_.get(p)*density_.get(p);
 	mu_ /= Mtarget; //fixedMass_;
 	for(long p=0;p<density_.Ntot();p++)
 	  dF_.set(p, dF_.get(p)-mu_*density_.dV());
@@ -209,7 +209,7 @@ public:
   {
     // reference to Fourier-space array of density
     density_.doFFT();
-    const DFT_Vec_Complex &rho_k = density_.getDK();
+    const DFT_Vec_Complex &rho_k = density_.get_density_fourier();
 
     int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
 
@@ -331,7 +331,7 @@ public:
 	for(int iz = 0;iz<Nz;iz++)
 	  {
 	    long KI = density_.get_PBC_Pos(K[0]-ix,K[1]-iy,K[2]-iz);
-	    d += getExtendedWeight(KI,a)*density_.getDensity(ix,iy,iz);
+	    d += getExtendedWeight(KI,a)*density_.get(ix,iy,iz);
 	  }
     return d;
   }
@@ -576,7 +576,7 @@ public:
   {
     FMT_Species::calculateFundamentalMeasures(needsTensor);
 
-    const DFT_Vec_Complex &rho_k = density_.getDK();    
+    const DFT_Vec_Complex &rho_k = density_.get_density_fourier();    
     eos_weighted_density_[0].convoluteWith(rho_k);          
   }
 

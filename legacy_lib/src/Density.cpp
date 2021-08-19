@@ -14,6 +14,27 @@ using namespace std;
 #include "Density.h"
 #include "visit_writer.h"
 
+
+Density::Density(double dx, double L[])
+  : Lattice(dx, L), Density_(), vWall_()
+{
+  Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
+  vWall_.zeros(Ntot_);
+}
+Density::Density(double dx, double dy, double dz, double L[])
+  : Lattice(dx, dy, dz, L), Density_(), vWall_()
+{
+  Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
+  vWall_.zeros(Ntot_);
+}  
+Density::Density(): Lattice(), Density_(), vWall_(){}
+Density::Density(const Density &dd)
+  : Lattice(dd), Density_(), vWall_()
+{
+  Density_.initialize(Nx_,Ny_,Nz_);      
+  vWall_ = dd.vWall_;
+}
+
 void Density::initialize_from_file(const char *filename)
 {
   readDensity(filename);
@@ -61,13 +82,13 @@ void Density::initialize_from_smaller_density(const Density &density)
 	      if(jz < 0) jz = 0;
 	      else if(jz > Nz1-1) jz = Nz1-1; 
 
-	      double d  = density.getDensity(jx,jy,jz);
+	      double d  = density.get(jx,jy,jz);
 	      
 	      set(ix,iy,iz,d);
 	    }
 }
 
-void Density::detectClusters(double threshold, vector< vector<long> > &clusters)
+void Density::get_particles(double threshold, vector< vector<long> > &clusters)
 {
   /*
   // Copy the density
@@ -111,6 +132,67 @@ void Density::detectClusters(double threshold, vector< vector<long> > &clusters)
 
 }
 
+double Density::getNumberAtoms() const //{ return Density_.cReal().accu()*dV();}
+{
+  Summation s;
+  for(long i=0;i<Ntot(); i++)
+    s.add(Density_.cReal().get(i));
+  return s*dV();  
+}
+
+double Density::get_dot_with(DFT_Vec &v) const
+{
+  Summation s;
+  for(long i=0;i<Ntot(); i++)
+    s.add(Density_.cReal().get(i)*v.get(i));
+  return s;
+}
+
+  // Center of mass
+void Density::get_center_of_mass(double &rx, double &ry, double &rz) const
+{
+  rx = ry = rz = 0.0;
+  double m = 0;
+  for(int i=0;i<Nx_;i++)
+    for(int j=0;j<Ny_;j++)
+      for(int k=0;k<Nz_;k++)
+	{
+	  double d = get(i,j,k);
+	  rx += d*i;
+	  ry += d*j;
+	  rz += d*k;
+	  m += d;
+	}
+  rx /= m;
+  ry /= m;
+  rz /= m;
+  return;
+}
+
+  // <R^2>
+double Density::get_msd() const 
+{
+  double r2 = 0;
+  double m = 0;
+  for(int i=0;i<Nx_;i++)
+    for(int j=0;j<Ny_;j++)
+      for(int k=0;k<Nz_;k++)
+	{
+	  double x = getX(i);
+	  double y = getY(j);
+	  double z = getZ(k);
+
+	  double d = get(i,j,k);
+	  if(x*x+y*y+z*z < (0.5*Nx_*dx_)*(0.5*Nx_*dx_)) //+(0.5*Ny_*dy_)*(0.5*Ny_*dy_)+(0.5*Nz_*dz_)*(0.5*Nz_*dz_))
+	    {
+	      r2 += d*(x*x+y*y+z*z);
+	      m += d;
+	    }
+	}
+  return r2/m;
+}
+
+
 void Density::write_VTK_File(string &filename)
 {
   // I don't understand why it has to be plus 1 ...
@@ -132,13 +214,32 @@ void Density::write_VTK_File(string &filename)
     for(int j = 0; j < Ny_; ++j)
       for(int i = 0; i < Nx_; ++i)
 	{
-	  density[pos] = getDensity(i,j,k);
+	  density[pos] = get(i,j,k);
 	  pos++;
 	}
   /* Use visit_writer to write a regular mesh with data. */
   write_regular_mesh(filename.c_str(), 0, dims, nvars, vardims,
 		     centering, varnames, vars);
   delete density;
+}
+
+void Density::writeDensity(string &filename) const
+{
+  ofstream of(filename.c_str(),ios::binary);
+  Density_.cReal().save(of);
+}
+
+void Density::readDensity(const char *filename) // read from binary file: obsolete
+{
+  ifstream in(filename,ios::binary);
+  if(! in.good())
+    {
+      stringstream s;
+      s << "Could not open input file " << filename << " ... aborting ... " << endl;
+      throw std::runtime_error(s.str());
+    }
+  // everything OK so read it. 
+  Density_.Real().load(in);
 }
 
 double Density::get_ave_background_density() const

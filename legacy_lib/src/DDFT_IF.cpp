@@ -102,7 +102,7 @@ double DDFT_IF::step()
   const Density &density = species->getDensity();
 
   // copy the current density
-  DFT_Vec d0(density.Ntot()); d0.set(density.getDensity());
+  DFT_Vec d0(density.Ntot()); d0.set(density.get_density_real());
   DFT_Vec d1(density.Ntot()); d1.set(d0);
 
   const bool USE_R0 = true;  

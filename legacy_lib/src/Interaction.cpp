@@ -68,27 +68,27 @@ double Interaction_Base::getInteractionEnergyAndForces()
     
   if(s1_ == s2_) //->getSequenceNumber() == s2_->getSequenceNumber())
     {
-      v.Four().Schur(density1.getDK(),w_att_.Four(),false);
+      v.Four().Schur(density1.get_density_fourier(),w_att_.Four(),false);
       v.do_fourier_2_real();
       v.Real().MultBy(dV/Ntot);
       s1_->addToForce(v.Real());
-      E = 0.5*density1.getInteractionEnergy(v.Real());
+      E = 0.5*density1.get_dot_with(v.Real());
     } else {
-    v.Four().Schur(density1.getDK(),w_att_.Four());
+    v.Four().Schur(density1.get_density_fourier(),w_att_.Four());
     v.Four().MultBy(0.5*dV/Ntot);
     v.do_fourier_2_real(); 
     s2_->addToForce(v.Real());
 
     const Density &density2 = s2_->getDensity();
 
-    v.Four().Schur(density2.getDK(),w_att_.Four());
+    v.Four().Schur(density2.get_density_fourier(),w_att_.Four());
     v.Four().MultBy(0.5*dV/Ntot);
     v.do_fourier_2_real(); 
     s1_->addToForce(v.Real());
 
     throw std::runtime_error("Must check");
     
-    E = 0.5*density1.getInteractionEnergy(v.Real());	
+    E = 0.5*density1.get_dot_with(v.Real());	
   }
   return E;
 }
@@ -533,7 +533,7 @@ double Interaction_Base::checkCalc(int jx, int jy, int jz)
 	  long si = density1.pos(ix,iy,iz);
 	  long sk = density1.pos(kx,ky,kz);
 		    
-	  dd += w_att_.Real().get(sk)*density1.getDensity(si);
+	  dd += w_att_.Real().get(sk)*density1.get(si);
 	}
   return dd*dV*dV;
 }

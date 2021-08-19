@@ -35,343 +35,68 @@ static const double SMALL_VALUE = 1e-18;
 class Density : public Lattice
 {
  public:
-  /**
-  *   @brief  Default  constructor for Density
-  *  
-  *   @param  dx is lattice spacing: assumed to be the same in all directions
-  *   @param  L[] are the dimensions of the physical region
-  *   @return nothing 
-  */  
- Density(double dx, double L[])
-   : Lattice(dx, L), Density_(), vWall_()
-    {
-      Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
-      vWall_.zeros(Ntot_);
-    }
 
-  Density(double dx, double dy, double dz, double L[])
-    : Lattice(dx, dy, dz, L), Density_(), vWall_()
-    {
-      Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
-      vWall_.zeros(Ntot_);
-    }  
-
-  /**
-  *   @brief  Do-nothing  constructor for Density : allows density to be constructed from string.
-  *  
-  *   @return nothing 
-  */  
-  Density()
-    : Lattice(), Density_(), vWall_(){}
+  //Constructors/Destructors
+  Density(double dx, double L[]);
+  Density(double dx, double dy, double dz, double L[]);
+  Density();
+  Density(const Density &dd);
   
-
-  /**
-  *   @brief  Copy constructor
-  *  
-  *   @param  dd Density object to copy
-  *   @return nothing 
-  */    
-  Density(const Density &dd)
-    : Lattice(dd), Density_(), vWall_()
-    {
-      Density_.initialize(Nx_,Ny_,Nz_);      
-      vWall_ = dd.vWall_;
-    }
-  
-  /**
-  *   @brief  Destructor for Density
-  *  
-  *   @return nothing 
-  */  
   ~Density(){}
 
-  /**
-  *   @brief Called to read initial density from file. This will fail if one attempts to read a density object of a different size. 
-  *  
-  *   @param  filename
-  *   @return  none
-  */  
+  // Initialize
   void initialize_from_file(const char *filename);
-
-    /**
-  *   @brief Called to create initial density from a smaller geometry.
-  *  
-  *   @param  filename
-  *   @return  none
-  */  
   void initialize_from_smaller_density(const Density &density);
 
-  /**
-  *   @brief Decendents of the Density object can implement this method to do graphical displays
-  *  
-  *   @param  title  the text information to display (e.g. as title) with image
-  *   @param  file the file to write to (if doing this)
-  *   @return  none
-  */  
+  //set/get density 
+  void set(int i, int j, int k, double val)   { set(pos(i,j,k),val);}
+  void set(unsigned pos, double val)  { Density_.Real().set(pos,val);}  
+  void set(const DFT_Vec &x) { Density_.Real().set(x);}
+  void set_background_density(double val);
+
+  virtual double  get(long pos) const { return Density_.cReal().get(pos);}   
+  virtual double  get(int ix, int iy, int iz) const {putIntoBox(ix,iy,iz); return Density_.cReal().get(pos(ix,iy,iz));}
+  complex<double> get_fourier_value(long pos) const {return Density_.cFour().get(pos);}
+  
+  //Decendents of the Density object can implement this method to do graphical displays
   virtual void doDisplay(string &title, string &file, int seq = 0) const {}
 
-  /**
-  *   @brief  Total number of particles
-  *  
-  *   @param  none
-  *   @return  Number of particles
-  */  
-  virtual double getNumberAtoms() const //{ return Density_.cReal().accu()*dV();}
-  {
-
-    double dV1 = dV();
-    Summation s;
-    for(long i=0;i<Ntot(); i++)
-      s.add(Density_.cReal().get(i));
-    return s*dV1;
-
-  }
-
-  double min() const { return Density_.cReal().min();}
-  double max() const { return Density_.cReal().max();}
-  
-  
-  /**
-  *   @brief  Center of mass
-  *  
-  *   @param  rx: cm in x direction
-  *   @param  ry: cm in y direction
-  *   @param  rz: cm in z direction
-  *   @return  cm
-  */  
-  void getCenterOfMass(double &rx, double &ry, double &rz) const
-  {
-    rx = ry = rz = 0.0;
-    double m = 0;
-    for(int i=0;i<Nx_;i++)
-      for(int j=0;j<Ny_;j++)
-	for(int k=0;k<Nz_;k++)
-	  {
-	    double d = getDensity(i,j,k);
-	    rx += d*i;
-	    ry += d*j;
-	    rz += d*k;
-	    m += d;
-	  }
-    rx /= m;
-    ry /= m;
-    rz /= m;
-    return;
-  }
-
-    /**
-  *   @brief  <R^2>
-  *  
-  *   @return R2 (for computing Lindemann parameter of uniform solid)
-  */  
-  double getRsquared() const 
-  {
-    double r2 = 0;
-    double m = 0;
-    for(int i=0;i<Nx_;i++)
-      for(int j=0;j<Ny_;j++)
-	for(int k=0;k<Nz_;k++)
-	  {
-	    double x = getX(i);
-	    double y = getY(j);
-	    double z = getZ(k);
-
-	    double d = getDensity(i,j,k);
-	    if(x*x+y*y+z*z < (0.5*Nx_*dx_)*(0.5*Nx_*dx_)) //+(0.5*Ny_*dy_)*(0.5*Ny_*dy_)+(0.5*Nz_*dz_)*(0.5*Nz_*dz_))
-	      {
-		r2 += d*(x*x+y*y+z*z);
-		m += d;
-	      }
-	  }
-    return r2/m;
-  }
-
-  /**
-  *   @brief  set density at a given lattice position
-  *  
-  *   @param  i: lattice position in x direction
-  *   @param  j: lattice position in y direction
-  *   @param  k: lattice position in z direction
-  *   @param  val: density of the given point
-  *   @return none
-  */  
-  void set_Density_Elem(int i, int j, int k, double val)   { set_Density_Elem(pos(i,j,k),val);}
-  void set(int i, int j, int k, double val)   { set_Density_Elem(pos(i,j,k),val);}
-
-  /**
-  *   @brief  set density at a given lattice position
-  *  
-  *   @param  i: multi-index lattice positionlattice position in x direction
-  *   @param  val: density of the given point
-  *   @return none
-  */    
-  void set_Density_Elem(unsigned i, double val)  { Density_.Real().set(i,val);}
-
-  void set(unsigned pos, double val)  { Density_.Real().set(pos,val);}  
-
-  /**
-  *   @brief  set density by copying given vector
-  *  
-  *   @param  x: density to copy
-  *   @return none
-  */  
-  void set(const DFT_Vec &x) { Density_.Real().set(x);}
-
-  /**
-  *   @brief  scale the density by a scalar
-  *  
-  *   @param  a: all densities are multiplied by a.
-  *   @return none
-  */  
-  void scale_to(double a) { Density_.Real().MultBy(a);}
-  void shift(DFT_Vec &v) { Density_.Real().IncrementBy(v);} 
-
-  /**
-  *   @brief  Get density at point i
-  *  
-  *   @param  i: index of element to be returned
-  *   @return Density_.Real[i]
-  */  
-  virtual double getDensity(long i) const { return Density_.cReal().get(i);}
-  virtual double get(long pos) const { return Density_.cReal().get(pos);} 
-
-  /**
-  *   @brief  Get density at coordinates ix,iy,iz
-  *  
-  *   @param  ix: index of point in x-direction
-  *   @param  iy: index of point in y-direction
-  *   @param  iz: index of point in z-direction
-  *   @return density of given point
-  */  
-  virtual double getDensity(int ix, int iy, int iz) const
-  { 
-    putIntoBox(ix,iy,iz);
-    return Density_.cReal().get(pos(ix,iy,iz));
-  }
-  virtual double get(int ix, int iy, int iz) const { return getDensity(ix,iy,iz);}
-
-  
-  /**
-   *   @brief  Read-only accessor for entire real-space density array
-   *  
-   *   @return Density_.Real()
-   */  
-  const DFT_Vec& getDensity() const { return Density_.cReal();}
-
-  /**
-   *   @brief  Directly access the data
-   *  
-   *   @return double* array
-   */  
-  const double* get_density_pointer() { return Density_.Real().memptr();}
-
-  complex<double> get_fourier_value(long pos) const {return Density_.cFour().get(pos);}
-  /**
-   *   @brief  Read-only accessor for array holding fft of density;
-   *  
-   *   @return Density_.Four()
-   */  
-  const DFT_Vec_Complex & getDK() const { return Density_.cFour();} 
-
-  /**
-  *   @brief  Density fft at wavevector i
-  *  
-  *   @return Density_.Four()[i]
-  */  
-  //const complex<double> DensityK(long i) const { return Density_.cFour().get(i);}
-
-  /**
-  *   @brief  Accessor for array holding the wall potential
-  *  
-  *   @return vWall_
-  */  
-  const DFT_Vec& getExternalField() const { return vWall_;}
-
-  /**
-  *   @brief  Perform fft of density (from real to fourier space)
-  *  
-  *   @return none
-  */  
-  void doFFT() {Density_.do_real_2_fourier();} 
-
-  /**
-   *  @brief  Returns true for lattice points for which the external potential is infinite and the density is therefore zero:
-   *  
-   *   @return boolean true/false
-   */  
-  //  virtual bool IsInUnphysicalRegion(int i, int j, int k) const {return false;}
-
-  /**
-  *   @brief  Get the value of the external (wall) field at point (ijk)
-  *  
-  *   @param  ijk are the positions
-  *   @return  
-  */  
-  virtual double getField(int i, int j, int k) const { return vWall_.get(pos(i,j,k));}
-
-  /**
-   *  @brief  Calculates the wall contribution to the energy (but without factors of dV)
-   *  
-   *   @return returns sum_i Density_.Real()[i] vwall_[i]
-   */  
-  double getExternalFieldEnergy() const { return vWall_.dotWith(Density_.cReal());} 
-
-  /**
-   *  @brief  Calculates the mean field contribution to the energy (but without factors of dV)
-   *
-   * @param vdr is meant to be the integral of the interaction potential, v, and the density (in real space)
-   *  
-   *   @return returns sum_i Density_.Real()[i] vdr[i]
-   */  
-  double getInteractionEnergy(DFT_Vec &vdr) const
-  {
-    Summation s;
-    for(long i=0;i<Ntot(); i++)
-      s.add(Density_.cReal().get(i)*vdr.get(i));
-    return s;
-    
-    //    return Density_.cReal().dotWith(vdr);
-  }
-
-  /**
-  *   @brief  Get the value of the derivative of the external field in a given direction. This is needed for DDFT calculations.
-  *  
-  *   @param  ix is the index of the desired point in the x-direction.
-  *   @param  iy is the index of the desired point in the y-direction.
-  *   @param  iz is the index of the desired point in the z-direction.
-  *   @param  direction can be 0,1 or 2 for the direction of the derivative.
-  *   @return Because of the needs of the DDFT code, this actually returns the derivative evaluated at iz-0.5.   
-  */  
-  virtual double getFieldDeriv(int ix, int iy, int iz, int direction) const { return 0.0;}
-
-  /**
-  *   @brief  Detects clusters: e.g. particles
-  *  
-  *   @param  threshold is min density - all points with density below this are treated as noise
-  *   @param  vector of clusters: each cluster is a vector of indices corresponding to density poitns
-  *   @return none
-  */  
-  void detectClusters(double threshold, vector< vector<long> > &clusters);
-
-  /**
-  *   @brief  Write the density into a vtk-readable file
-  *  
-  *   @param  filename: name of file (should end in .vtk).
-  *   @return none
-  */  
-  void write_VTK_File(string &filename);
-
+  //Some simple properties
+  double getNumberAtoms() const;
+  double get_min() const { return Density_.cReal().min();}
+  double get_max() const { return Density_.cReal().max();}
+  void   get_center_of_mass(double &rx, double &ry, double &rz) const;
+  double get_msd() const;
+  void   get_particles(double threshold, vector< vector<long> > &clusters); // detect particles
   double get_ave_background_density() const;
   double get_max_background_density() const;
   double get_min_background_density() const;
-  void set_background_density(double val);
+  double get_dot_with(DFT_Vec &v) const;
+  
+  // do stuff to the density
+  void   scale_to(double a) { Density_.Real().MultBy(a);}
+  void   shift(DFT_Vec &v)  { Density_.Real().IncrementBy(v);} 
+  void   doFFT()            {Density_.do_real_2_fourier();}
 
+  // access arrays  
+  const double*          get_density_pointer() { return Density_.Real().memptr();}
 
-  //  DFT_FFT& getFullVector() { return Density_;}
+  const DFT_Vec&         get_density_real()    const { return Density_.cReal();}
+  const DFT_Vec_Complex& get_density_fourier() const { return Density_.cFour();} 
+  const DFT_Vec&         get_external_field()  const { return vWall_;}
+
+  // external field (wall_)
+  virtual double get_field(int i, int j, int k) const { return vWall_.get(pos(i,j,k));}
+  virtual double get_field_deriv(int ix, int iy, int iz, int direction) const { return 0.0;}  
+  double         get_field_dot_density() const { return vWall_.dotWith(Density_.cReal());}   
+  
+  // Read/Write
+  void write_VTK_File(string &filename);
+  void writeDensity(string &filename) const; // write in binary format: obsolete
+  void readDensity(const char *filename);  // read from binary file: obsolete
 
   friend ostream &operator<<(ostream &of, const Density &d) {of << static_cast<const Lattice &>(d) << d.Density_ << d.vWall_; return of;}  
   friend istream &operator>>(istream  &in, Density &d )     {in >> static_cast<Lattice &>(d) >> d.Density_ >> d.vWall_; return in;}
-
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
@@ -379,43 +104,9 @@ class Density : public Lattice
     ar & Density_;
     ar & vWall_;
   }
-
-  
-  /**
-  *   @brief  Write the real-space array Density_ to a file in binary format. THIS IS A LEGACY FUNCTION THAT SHOULD BE REMOVED AT SOME POINT.
-  *  
-  *   @param  filename: name of the file to write to.
-  *   @return  
-  */  
-  void writeDensity(string &filename) const
-  {
-    ofstream of(filename.c_str(),ios::binary);
-    Density_.cReal().save(of);
-  }
-
-  /**
-  *   @brief  Read the real-space array Density_ from a file in binary format.  THIS IS A LEGACY FUNCTION THAT SHOULD BE REMOVED AT SOME POINT.
-  *  
-  *   @param  filename: name of the file to read from.
-  *   @return  
-  */  
-  void readDensity(const char *filename)
-  {
-      ifstream in(filename,ios::binary);
-      if(! in.good())
-        {
-	  stringstream s;
-	  s << "Could not open input file " << filename << " ... aborting ... " << endl;
-	  throw std::runtime_error(s.str());
-	}
-  // everything OK so read it. 
-      Density_.Real().load(in);
-  }
-  
 protected:
 
   DFT_FFT Density_;  // The arrays for the real and fourier components of the density
-
   DFT_Vec vWall_;            ///< Array holding wall potential at each lattice point: i = pos(ix,iy,iz)
 
 };
