@@ -63,6 +63,7 @@ class Density : public Lattice
 
   //Some simple properties
   double getNumberAtoms() const;
+  double get_number_of_atoms() const { return Density_.cReal().accu()*dV();}  
   double get_min() const { return Density_.cReal().min();}
   double get_max() const { return Density_.cReal().max();}
   void   get_center_of_mass(double &rx, double &ry, double &rz) const;

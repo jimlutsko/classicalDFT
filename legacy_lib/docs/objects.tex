@@ -1,0 +1,148 @@
+\documentclass[aps,preprint]{revtex4-1}%
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{graphicx}%
+\setcounter{MaxMatrixCols}{30}
+%TCIDATA{OutputFilter=latex2.dll}
+%TCIDATA{Version=5.50.0.2960}
+%TCIDATA{CSTFile=revtex4-1.cst}
+%TCIDATA{Created=Thursday, August 19, 2021 13:56:05}
+%TCIDATA{LastRevised=Thursday, August 19, 2021 14:34:02}
+%TCIDATA{<META NAME="GraphicsSave" CONTENT="32">}
+%TCIDATA{<META NAME="SaveForMode" CONTENT="1">}
+%TCIDATA{BibliographyScheme=Manual}
+%TCIDATA{<META NAME="DocumentShell" CONTENT="Articles\SW\REVTeX 4-1">}
+%BeginMSIPreambleData
+\providecommand{\U}[1]{\protect\rule{.1in}{.1in}}
+%EndMSIPreambleData
+\newtheorem{theorem}{Theorem}
+\newtheorem{acknowledgement}[theorem]{Acknowledgement}
+\newtheorem{algorithm}[theorem]{Algorithm}
+\newtheorem{axiom}[theorem]{Axiom}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{conclusion}[theorem]{Conclusion}
+\newtheorem{condition}[theorem]{Condition}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{criterion}[theorem]{Criterion}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{exercise}[theorem]{Exercise}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{notation}[theorem]{Notation}
+\newtheorem{problem}[theorem]{Problem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{solution}[theorem]{Solution}
+\newtheorem{summary}[theorem]{Summary}
+\newenvironment{proof}[1][Proof]{\noindent\textbf{#1.} }{\ \rule{0.5em}{0.5em}}
+\begin{document}
+\preprint{HEP/123-qed}
+\title[Short title for running header]{REV\TeX 4-1}
+\author{First Author}
+\affiliation{My Institution}
+\author{Second Author}
+\affiliation{My Institution}
+\author{Third Author}
+\affiliation{Other Institution}
+\keywords{one two three}
+\pacs{PACS number}
+
+\begin{abstract}
+Shell document for REV\TeX\ 4-1.
+
+\end{abstract}
+\volumeyear{year}
+\volumenumber{number}
+\issuenumber{number}
+\eid{identifier}
+\date[Date text]{date}
+\received[Received text]{date}
+
+\revised[Revised text]{date}
+
+\accepted[Accepted text]{date}
+
+\published[Published text]{date}
+
+\startpage{101}
+\endpage{102}
+\maketitle
+
+
+\section{Lattice}
+
+The lattice class encodes geometric information and provides geometric transformations.
+
+\subsection{Data Members}
+
+$%
+\begin{array}
+[c]{ccc}%
+\text{long} & \text{\textbf{Nx\_,Ny\_,Nz\_}} & \text{number of points in each
+direction}\\
+\text{long} & \text{\textbf{Ntot\_,Nout\_}} & \text{total number of points in
+real and in Fourier space*}\\
+\text{double} & \text{\textbf{dx\_,dy\_,dz\_}} & \text{spacing in each
+direction}\\
+\text{double} & \text{\textbf{L\_[3]}} & \text{dimension of total cell in each
+direction}%
+\end{array}
+$
+
+*In Fourier space, there are (about) half as many points as in real space
+since each entry is complex and so has two degrees of freedom. This is
+calculated as $\ N_{x}\times N_{y}\times\left(  \left[  \frac{N_{z}}%
+{2}\right]  +1\right)  $ in accord with FFTW. 
+
+\subsection{Accessors}
+
+$%
+\begin{array}
+[c]{ccc}%
+\text{double} & \text{\textbf{getDX()},...} & \text{accessors for dx\_,...}\\
+\text{long} & \text{\textbf{Nx()},...} & \text{accessors for Nx\_,...}\\
+\text{double} & \text{\textbf{Lx()},...} & \text{accessors for L\_[0],...}\\
+\text{long} & \text{\textbf{Ntot()},\textbf{Nout}()} & \text{accessors for
+Ntot\_,Nout\_}\\
+\text{long} & \text{\textbf{size()}} & \text{same as \textbf{Ntot()}}\\
+\text{double} & \text{\textbf{dV}(),\textbf{getVolume}()} & dx\_dy\_dz\_\text{
+and }L\_[0]L\_[1]L\_[2]\\
+\text{double} & \text{\textbf{getX(}int pos\textbf{)},...} & dx\_\times\left(
+pos-\frac{Nx\_-1}{2}\right)  \text{,...}%
+\end{array}
+$
+
+\subsection{Conversions}
+
+$%
+\begin{array}
+[c]{cc}%
+\text{long \textbf{pos(}int v[]\textbf{)},\textbf{pos(}int ix, int iy, int
+iz)} & \text{convert cartesian indices into serial index}\\
+\text{void \textbf{cartesian(}long pos, int ix, int iy, int iz\textbf{)}} &
+\text{convert serial index to cartesian indices}\\%
+\begin{array}
+[c]{c}%
+\text{long \textbf{get\_PBC\_Pos(}int v[]\textbf{)}}\\
+\text{long \textbf{get\_PBC\_Pos(}int ix, int iy, int iz\textbf{)}}%
+\end{array}
+& \text{cartesian--%
+%TCIMACRO{\TEXTsymbol{>}}%
+%BeginExpansion
+$>$%
+%EndExpansion
+serial after applying PBCs }\\
+\text{void \textbf{putIntoBox}(int \&ix, int \&iy, int\ \&iz)} & \text{apply
+PBC to give }0\leq ix<N_{x}\text{,...}\\
+\text{long \textbf{size()}} & \text{same as \textbf{Ntot()}}\\
+\text{double \textbf{dV}(),\textbf{getVolume}()} & dx\_dy\_dz\_\text{ and
+}L\_[0]L\_[1]L\_[2]\\
+\text{double \textbf{getX(}int pos\textbf{)},...} & dx\_\times\left(
+pos-\frac{Nx\_-1}{2}\right)  \text{,...}%
+\end{array}
+$
+
+
+\end{document}

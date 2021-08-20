@@ -25,7 +25,7 @@ class Species
   bool is_background_fixed(){ return fixedBackground_;}
   
   double getChemPotential() const {return mu_;}
-  void setChemPotential(double m) {mu_ = m;}
+  void   setChemPotential(double m) {mu_ = m;}
 
   const Lattice& getLattice() const { return density_;}
   const Density& getDensity() const { return density_;}
@@ -173,17 +173,9 @@ protected:
 class FMT_Species : public Species
 {
 public:
-  /**
-   *   @brief  Default  constructor for FMT_Species 
-   *  
-   *   @param  hsd is the hard-sphere diameter
-   *   @param  lattice describes the mesh
-   *   @return nothing 
-   */    
   FMT_Species(Density& density, double hsd, double mu = 0, int seq = -1);
   FMT_Species(const FMT_Species &) = delete;
   ~FMT_Species(){}
-
 
   virtual double getHSD() const { return hsd_;}
   double getEta(long pos) const { return fmt_weighted_densities[EI()].real(pos);}
@@ -197,14 +189,12 @@ public:
   
   const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
 
-
   /**
    *   @brief This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
    *          ( so this computes the weighted densities n(r) = int w(r-r')rho(r')dr'). The results are all stored in parts of FMT_Weighted_Density
    *  
    *   @return none
    */        
-  //  virtual void convoluteDensities(bool needsTensor)
   virtual void calculateFundamentalMeasures(bool needsTensor)
   {
     // reference to Fourier-space array of density
@@ -419,26 +409,10 @@ public:
 
   
 protected:
-  /**
-   *   @brief  Get the index of the "eta" partial weighted density in the array of weighted densities, fmt_weighted_densities
-   *   @returns  the index.
-   */        
+  // Indices of eta, scaler, vector and tensor weighted densities
   int EI() const {return 0;}
-
-  /**
-   *   @brief  Get the index of the scalar partial weighted density in the array of weighted densities, fmt_weighted_densities
-   *   @returns  the index.
-   */          
   int SI() const {return 1;}
-  /**
-   *   @brief  Get the index of the vector partial weighted density in the array of weighted densities, fmt_weighted_densities
-   *   @returns  the index.
-   */          
   int VI(int j) const {return 2+j;}
-  /**
-   *   @brief  Get the index of the tensor partial weighted density in the array of weighted densities, fmt_weighted_densities
-   *   @returns  the index.
-   */          
   int TI(int j, int k) const
   {
     if(j > k) swap(j,k);
