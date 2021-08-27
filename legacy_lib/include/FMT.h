@@ -395,7 +395,7 @@ class esFMT : public Rosenfeld
     double c1 = eta*eta*(2*(4*A_+B_)-9)*pow(1-eta,-3);
     double c2 = 0.5*eta*eta*eta*(2*(4*A_+B_)-9)*pow(1-eta,-4);    
 
-    return c0*r*(2*(r*r-1)*(A_+B_)-2*A_+3) - c1*(1-r) - c2*(1-r)*(1-r)*(2+r) + Rosenfeld::get_dcf(r,eta);
+    return -c0*r*(2*(r*r-1)*(A_+B_)-2*A_+3) - c1*(1-r) - c2*(1-r)*(1-r)*(2+r) + Rosenfeld::get_dcf(r,eta);
   }
   
   virtual bool needsTensor() const { return true;}
