@@ -147,14 +147,13 @@ void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalM
   double f2pp = f2pp_(eta);
   double f3pp = f3pp_(eta);  
   
-// Now, construct the derivatives
+  // Now, construct the derivatives
   double s0 = n.s0;
   double s1 = n.s1;
   double s2 = n.s2;
   double v1_v2 = n.v1_v2;
 
   result.fillUniform(0);
-  
   //eta-eta
   result.eta += ( -(1/M_PI)*s0*f1pp 
   		  +(1/(2*M_PI))*(s1*s2-v1_v2)*f2pp
@@ -267,7 +266,6 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
     {
       FMT_Species *f = dynamic_cast<FMT_Species*>(s);
       if(f) f->calculateFundamentalMeasures(needsTensor());
-	//	f->convoluteDensities(needsTensor());
     }
   
   // Now compute the free energy. Here we loop over all lattice sites and compute Phi(r_i) for each one. This presupposes that we did the convolution above. 
@@ -403,11 +401,11 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
   const Density &density1 = allSpecies[0]->getDensity();
 
   int Nspecies = allSpecies.size();
-  long Ntot = density1.Ntot();
-  int Nx    = density1.Nx();
-  int Ny    = density1.Ny();
-  int Nz    = density1.Nz();
-  double dV = density1.dV();
+  long Ntot    = density1.Ntot();
+  int Nx       = density1.Nx();
+  int Ny       = density1.Ny();
+  int Nz       = density1.Nz();
+  double dV    = density1.dV();
 
   // Some working space
   DFT_FFT result(Nx,Ny,Nz);
@@ -461,11 +459,12 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
       FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
 
       FundamentalMeasures Psi_K;
-      for(int b=0;b<Nfmt;b++)	    
+      for(int b=0;b<Nfmt;b++)
 	Psi_K.set(b, Psi[b].cReal().get(pos));
             
       FundamentalMeasures d2Phi_dot_Psi;
       calculate_d2Phi_dot_V(fm,Psi_K,d2Phi_dot_Psi);
+      //d2Phi_dot_Psi.set(0,Psi_K.get(1));
 
       for(int a=0;a<Nfmt;a++)
 	Lambda[a].Real().set(pos, d2Phi_dot_Psi.get(a));
@@ -487,7 +486,7 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
       
       species->convolute_eta_weight_with(Lambda[0], result, bConjugate);
       d2F[s].IncrementBy(result.Real());
-
+      
       // s0
       species->convolute_s_weight_with(Lambda[1], result, bConjugate);
       d2F[s].IncrementBy_Scaled_Vector(result.Real(), 1.0/(hsd*hsd));
@@ -499,7 +498,7 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
       //s2
       species->convolute_s_weight_with(Lambda[3], result, bConjugate);
       d2F[s].IncrementBy(result.Real());
-
+      
       // v1 and v2
       for(int i=0;i<3;i++)
 	{
@@ -516,7 +515,8 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
 	{
 	  species->convolute_T_weight_with(i, j, Lambda[10+3*i+j], result, bConjugate);
 	  d2F[s].IncrementBy(result.Real());
-	}      
+	} 
+           
     }
 
   for(auto &f: d2F)
@@ -535,9 +535,8 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
   if(!s2) return 0; // Not an FMT_Species  
 
   const int Nfmt = FundamentalMeasures::NumberOfMeasures;
-  //  cout << "Nfmt = " << Nfmt << endl;
-  // Construct psi
 
+  // Construct psi
   const Density &density1 = allSpecies[0]->getDensity();
 
   int Nx    = density1.Nx();

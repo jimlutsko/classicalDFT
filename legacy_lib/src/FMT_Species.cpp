@@ -135,12 +135,6 @@ FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Spec
 
   for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.transformWeights();
-
-  //  if(hsd > 0.99)
-  //    for(int i=2;i<fmt_weighted_densities.size();i++)
-  //      fmt_weighted_densities[i].zero();
-
-  
 }
 
 
@@ -465,12 +459,11 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 		      }
 		  }
 	      }	
-	  
 	  /*
 	  // Check weights and G functions (must set Sx,Sy,Sz manually)
 	  // This has been used to debug the dx!=dy!=dz scenario
-	  if ((Sx==10 && Sy==0  && Sz==0 ) ||
-	      (Sx==0  && Sy==0  && Sz==10))
+	  //	  if ((Sx==10 && Sy==0  && Sz==0 ) ||
+	  //	      (Sx==0  && Sy==0  && Sz==10))
 	  {
 		  for (int iii=0; iii<4; iii++)  cout << endl;
 		  cout << "Sx = " << Sx << " Sy = " << Sy << " Sz = " << Sz << endl;
