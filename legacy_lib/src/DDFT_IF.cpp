@@ -174,7 +174,7 @@ void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &
 
   double dV = dx_*dy_*dz_;
 
-  update_forces_fixed_background(density,d2,dF,D);
+  //  update_forces_fixed_background(density,d2,dF,D);
 
   A_dot_x(dF, RHS1, density, D, true);
 
@@ -189,7 +189,7 @@ double  static get(DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Densi
     r = x.get(density.boundary_pos(ix,iy,iz));
   return r;
 }
-
+// This calculates (del_IJ rho_J del_JK) x_K so matrix A is discretized (del rho del) operator. 
 void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal) 
 {
   const bool Ax_is_full = (Ax.size() == density.Ntot());
@@ -203,7 +203,6 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
   double sum_forces2 = 0.0;
   double sum_sq = 0.0;
     
-  
 #pragma omp parallel for  private(pos) schedule(static) reduction(+:sum_forces) reduction(+:sum_forces2) reduction(+:sum_sq)
   for(pos = 0;pos<Ax.size();pos++)
     {
@@ -214,14 +213,14 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
 
       double x0  = get(x,ix,iy,iz,x_is_full, density);
 
-      double xpx = get(x,ix+2,iy,iz,x_is_full, density);
-      double xmx = get(x,ix-2,iy,iz,x_is_full, density);
+      double xpx = get(x,ix+1,iy,iz,x_is_full, density);
+      double xmx = get(x,ix-1,iy,iz,x_is_full, density);
 
-      double xpy = get(x,ix,iy+2,iz,x_is_full, density);
-      double xmy = get(x,ix,iy-2,iz,x_is_full, density);
+      double xpy = get(x,ix,iy+1,iz,x_is_full, density);
+      double xmy = get(x,ix,iy-1,iz,x_is_full, density);
 
-      double xpz = get(x,ix,iy,iz+2,x_is_full, density);
-      double xmz = get(x,ix,iy,iz-2,x_is_full, density);
+      double xpz = get(x,ix,iy,iz+1,x_is_full, density);
+      double xmz = get(x,ix,iy,iz-1,x_is_full, density);
 
       double r0  = density.get(ix,iy,iz);
 
@@ -238,7 +237,8 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
 	+D[1]*(rpy*xpy+rmy*xmy-(rpy+rmy)*x0)
 	+D[2]*(rpz*xpz+rmz*xmz-(rpz+rmz)*x0);
 
-      RHS /= (4*dV);
+      // Factor of 2 because of averaging the density over two points
+      RHS /= (2*dV);
 
       if(do_subtract_ideal)
 	{
@@ -253,7 +253,7 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
     }
   if(do_subtract_ideal) cout << "sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
 }
-
+/*
 // This function corrects the forces on the border for the case of fixed background
 // using conjuage gradients
 void DDFT_IF::update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3])
@@ -307,7 +307,7 @@ void DDFT_IF::update_forces_fixed_background(const Density &density,const DFT_Ve
       dF.set(density.get_PBC_Pos(cartesian), x.get(pboundary));
     }
 }
-
+*/
 
 /*
 void DDFT_IF::calcNonlinearTerm_old(const DFT_Vec &d2, const DFT_Vec &dF, DFT_Vec &RHS1)

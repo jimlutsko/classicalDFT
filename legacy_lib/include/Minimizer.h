@@ -264,7 +264,7 @@ class DDFT_IF : public DDFT
   virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1) = 0;
   
   void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
-  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
+  //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
   void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal = false);
   
 protected:
