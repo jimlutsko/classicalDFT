@@ -27,14 +27,28 @@ static vector<double> xv(1);
 static double pressure(double x, const DFT* dft)
 {
   xv[0] = x;
-  return -dft->Omega(xv);
+  return -dft->omega_times_beta_over_volume(xv);
 }
 
 static double chempot(double x, const DFT* dft)
 {
   xv[0] = x;
-  return dft->Mu(xv,0);
+  return dft->mu_times_beta(xv,0);
 }
+
+void DFT::getCriticalPoint(Potential1& p, double &xc, double &Tc, double HSD) const
+{
+
+  double T1 = Tc;
+    
+  do{
+    T1 = Tc;
+    double hsd = (HSD < 0 ? p.getHSD(Tc) : HSD);
+    xc = 0.13044*(6.0/M_PI)*pow(hsd,-3.0);
+    Tc = -0.090082*2*p.getVDW_Parameter(Tc)*pow(hsd,-3.0)*Tc;
+  } while(fabs(T1-Tc) > 1e-8*(T1+Tc));
+}
+
 
 void DFT::findSpinodal(double xmax, double dx, double &xs1, double &xs2, double tol) const
 {

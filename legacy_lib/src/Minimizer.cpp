@@ -34,7 +34,7 @@ void Minimizer::resume(long maxSteps)
     step_counter_++;
 
     double Ntotal = dft_->getNumberAtoms(0);
-    double Volume = dft_->lattice().getVolume();
+    double Volume = dft_->get_lattice().getVolume();
 
     f_abs_max_ = get_convergence_monitor();
 
@@ -99,7 +99,7 @@ double Minimizer::getDF_DX()
 fireMinimizer2::fireMinimizer2(DFT *dft) :  Minimizer(dft)
 {
   v_.resize(dft_->getNumberOfSpecies());
-  for(auto &v: v_) v.resize(dft_->lattice().Ntot());
+  for(auto &v: v_) v.resize(dft_->get_lattice().Ntot());
 
   dt_ = 1e-3; // my guess
   dt_max_ = 10*dt_;

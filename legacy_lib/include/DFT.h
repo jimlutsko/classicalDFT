@@ -44,191 +44,48 @@
 class DFT
 {
  public:
-  /**
-   *   @brief  Default  constructor for DFT 
-   *  
-   *   @param s: the first species. It makes no sense to create a DFT object without at least one species.
-   */  
+  // Xtors
   DFT(Species *s = NULL) : fmt_(NULL) {if(s) addSpecies(s);}
-  /**
-   *   @brief  Default  destructor for DFT
-   *  
-   *   @return nothing 
-   */  
   ~DFT(){}
 
-  /**
-   *   @brief  Tells the DFT that there is another species
-   *  
-   *   @param  s is the Species object
-   */ 
+  // Add pieces
   void addSpecies(Species* s) {if(s == NULL) return; allSpecies_.push_back(s); s->setIndex(allSpecies_.size()-1);}
-
-  /**
-   *   @brief  Tells the DFT that there is another interaction
-   *  
-   *   @param  I is the Interction object
-   */ 
   void addInteraction(Interaction_Base* Interaction) {Interactions_.push_back(Interaction);}
-
-  /**
-   *   @brief  Specify a hard-sphere free energy functional
-   *  
-   *   @param  fmt is the FMT object
-   */ 
   void addHardCoreContribution(FMT *fmt) {fmt_ = fmt;}  
 
-  /**
-   *   @brief  Requests the number of species
-   *  
-   *   @returns the size of allSpecies_
-   */ 
-  int getNumberOfSpecies() const {return allSpecies_.size();}
-
+  // Accessors
+  const Lattice& get_lattice() const {return allSpecies_.front()->getLattice();}
+  const Density& getDensity(int species) const {return allSpecies_[species]->getDensity();}
   Species *getSpecies(int s) const { return allSpecies_[s];}
   
-  /**
-   *   @brief  Requests the number of atoms of species s
-   *  
-   *   @param  species 
-   *   @returns the Density-object's calculation of the mass
-   */ 
-  double getNumberAtoms(int species) const {return allSpecies_[species]->getDensity().getNumberAtoms();}
-
-  /**
-   *   @brief  Requests a read-only access to the Lattice object
-   *  
-   *   @returns a read-only reference to the Lattice object
-   */ 
-  const Lattice& lattice() const {return allSpecies_.front()->getLattice();}
-  const Lattice& get_lattice() const {return allSpecies_.front()->getLattice();}
-
-  /**
-   *   @brief  Requests the value of the convergence criterion for free energy minimization
-   *  
-   *   @returns the value of the convergence criterion for free energy minimization
-   */   
+  int getNumberOfSpecies() const {return allSpecies_.size();}
+  double getNumberAtoms(int species) const {return allSpecies_[species]->getDensity().getNumberAtoms();}  
   double get_convergence_monitor() const { double d = 0; for(auto& s: allSpecies_) d += s->get_convergence_monitor(); return d;}
-
-  /**
-   *   @brief  Requests the Density object associated with one of the species
-   *  
-   *   @param   species: the species
-   *   @returns a read-only reference to the density object
-   */     
-  const Density& getDensity(int species) const {return allSpecies_[species]->getDensity();}
-
   
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
+
+  // Set
   void setDF(int i, DFT_Vec &df) {return allSpecies_[i]->setDF(df);}
-
-  
-  void doDisplay(string &title, string &file)
-  {
-    for(auto &x: allSpecies_) x->doDisplay(title,file);
-  }
-
   void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
   void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
 
+  // A few actions  
+  void doDisplay(string &title, string &file) { for(auto &x: allSpecies_) x->doDisplay(title,file);}
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
-
-  /**
-   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions. 
-   *            This is just a wrapper that calls calculateFreeEnergyAndDerivatives_internal_ which does the real work. 
-   *  
-   *   @param  onlyFex : if true, the ideal and external contributions are not added: IS THIS PARAMETER NEEDED???
-   *   @return total free energy of system
-   */  
   double calculateFreeEnergyAndDerivatives(bool onlyFex);
 
-  /**
-   *   @brief  Compute chemical potential/kT for a uniform system with the given density
-   *  
-   *   @param  x is the array of densities
-   *   @param  species is the species for which we calculate the chemical potential
-   *   @return mu/kT
-   */   
-  virtual double Mu(const vector<double> &x, int species) const;
+  // Bulk Thermodynamics
 
-  /**
-   *   @Brief  Compute grand potenial/kT/V for a uniform system with the given density: note that this is minus the pressure
-   *  
-   *   @param  x is the array of densities
-   *   @return Omega/(kT * V)
-   */   
-  virtual double Omega(const vector<double> &x) const;
-
-  /**
-   *   @brief  Compute Helmholtz free energy/kT/V for a uniform system with the given density
-   *  
-   *   @param  x is the array of densities
-   *   @return F/(kT * V)
-   */   
-  virtual double Fhelmholtz(const vector<double> &x) const;
-
-  /**
-   *   @brief  Returns the name of the DFT object - i.e. identifies the model being used.
-   *   @return the name as a string object.
-   */     
-  virtual string Name() const { return string("DFT_Ideal_Gas");}
-
-  /**
-   *   @brief  This conveys information to the FMT object for models that use it.
-   */     
-  //  virtual void setEtaMax(double etaMax) {}
-
-  /**
-   *   @brief  Only implemented for single species and one interaction
-   */     
-  //  virtual double XLiq_From_Mu(double mu, double high_density) const;
-
-  /**
-   *   @brief  Brute-force search for liq-vap spinodal for one-component system
-   */     
+  virtual double mu_times_beta(const vector<double> &densities, int species) const;
+  virtual double omega_times_beta_over_volume(const vector<double> &x) const;
+  virtual double fhelmholtz_times_beta_over_volume(const vector<double> &x) const;
   void   findSpinodal(double xmax, double dx, double &xs1, double &xs2, double tol) const;
   double find_density_from_mu(double mu, double xmin, double xmax, double tol) const;
-  /**
-   *   @brief  Brute-force search for liq-vap coexistence for one-component system
-   */       
-  void findCoex(double xmax, double dx, double &x1, double &x2, double tol) const;  
-  
-  /**
-   *   @brief  Only implemented for single species and one interaction
-   */     
-  //  virtual double XVap_From_Mu(double mu, double high_density) const;
+  void findCoex(double xmax, double dx, double &x1, double &x2, double tol) const;
+  virtual void getCriticalPoint(Potential1& p, double &xc, double &Tc, double HSD = -1) const;
 
-  /**
-   *   @brief  Determines xliq (largest value less than close packing) from beta P. Only implemented for single species and one interaction
-   */     
-  //  virtual double XLiq_from_P(double P) const;
   
-  /**
-   *   @brief  Only implemented for single species and one interaction
-   */     
-  //  virtual void spinodal(double &xs1, double &xs2) const;
-
-  /**
-   *   @brief  Only implemented for single species and one interaction
-   */     
-  //  virtual void liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const;
-
-  /**
-   *   @brief  Only implemented for single species and one interaction
-   */
-  
-  virtual void getCriticalPoint(Potential1& p, double &xc, double &Tc, double HSD = -1)
-  {
-    //    if(Interactions_.size() != 1 || allSpecies_.size() != 1) throw std::runtime_error("DFT::getCriticalPoint only implemented for exactly 1 species and 1 interaction");
-    double T1 = Tc;
-    
-    do{
-      T1 = Tc;
-      double hsd = (HSD < 0 ? p.getHSD(Tc) : HSD);
-      xc = 0.13044*(6.0/M_PI)*pow(hsd,-3.0);
-      Tc = -0.090082*2*p.getVDW_Parameter(Tc)*pow(hsd,-3.0)*Tc;
-    } while(fabs(T1-Tc) > 1e-8*(T1+Tc));
-  }
+  virtual string Name() const { return string("DFT_Ideal_Gas");}
 
   // protected:
   

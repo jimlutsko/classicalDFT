@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 #include <time.h>
+#include <random>
 
 //#include <mgl2/mgl.h>
 //#include <mgl2/fltk.h>
@@ -190,7 +191,7 @@ double  static get(DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Densi
   return r;
 }
 // This calculates (del_IJ rho_J del_JK) x_K so matrix A is discretized (del rho del) operator. 
-void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal) 
+void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal) const
 {
   const bool Ax_is_full = (Ax.size() == density.Ntot());
   const bool x_is_full  = ( x.size() == density.Ntot());
@@ -253,6 +254,80 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
     }
   if(do_subtract_ideal) cout << "sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
 }
+
+
+void DDFT_IF::Hessian_dot_v(vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F) const
+{
+  d2F[0].zeros();
+  dft_->second_derivative(eigen_vector, d2F);
+
+  int Jspecies = 0;
+  const Density &density = dft_->getSpecies(Jspecies)->getDensity();
+  
+  double Dx = 1.0/(dx_*dx_);
+  double Dy = 1.0/(dy_*dy_);
+  double Dz = 1.0/(dz_*dz_);
+
+  double D[] = {Dx,Dy,Dz};
+
+  double dV = dx_*dy_*dz_;
+
+  DFT_Vec result(eigen_vector[0].Real().size());
+  
+  A_dot_x(eigen_vector[0].Real(), result, density, D, false);
+
+  eigen_vector[0].Real().set(result);
+  
+  
+}
+
+			    
+void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, double shift) const
+{
+  int species = 0;
+  
+  const Density& density = dft_->getDensity(species);
+  const long Ntot       = density.Ntot();
+  //  long Nx = density.Nx();
+  //  long Ny = density.Ny();
+  //  long Nz = density.Nz();
+  
+  mt19937 rng;
+  uniform_real_distribution<double> urd;
+  for(long s = 0;s<Ntot;s++)
+    eigen_vector[species].Real().set(s,2*urd(rng)-1); // random number in (-1,1)
+
+  eigen_value = 0;
+  vector<DFT_Vec> d2F(1);
+  d2F[0].zeros(Ntot);
+  double rel = 1;
+  double tol = 1e-8;
+  for(int i=0;i<500 && rel > tol;i++)
+    {
+      double eigen_value1 = eigen_value;
+
+      // Normalize
+      eigen_vector[species].Real().normalise();
+      eigen_vector[species].do_real_2_fourier();
+
+      // v => H dot v, lam = v dot H dot v
+      Hessian_dot_v(eigen_vector,d2F);
+      d2F[0].IncrementBy_Scaled_Vector(eigen_vector[species].Real(),shift);
+      eigen_value = eigen_vector[species].Real().dotWith(d2F[species]);
+      eigen_vector[species].Real().set(d2F[species]);
+
+      rel = fabs((eigen_value-eigen_value1)/(eigen_value+eigen_value1));
+
+      cout << '\r'; cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel; cout.flush();
+    }
+  cout << endl;
+  
+  eigen_value -= shift;
+}
+
+
+
+
 /*
 // This function corrects the forces on the border for the case of fixed background
 // using conjuage gradients

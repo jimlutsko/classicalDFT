@@ -19,7 +19,7 @@ using namespace std;
 
 #include "DFT.h"
 
-double DFT::Mu(const vector<double> &x, int species) const
+double DFT::mu_times_beta(const vector<double> &x, int species) const
 {
   Summation mu;
 
@@ -34,16 +34,16 @@ double DFT::Mu(const vector<double> &x, int species) const
   return mu.sum();
 }
 
-double DFT::Omega(const vector<double> &x) const
+double DFT::omega_times_beta_over_volume(const vector<double> &x) const
 {
-  double omega = Fhelmholtz(x);
+  double omega = fhelmholtz_times_beta_over_volume(x);
   for(int i=0;i<allSpecies_.size();i++)
-    omega -= x[i]*Mu(x,i);
+    omega -= x[i]*mu_times_beta(x,i);
 
   return omega;
 }
 
-double DFT::Fhelmholtz(const vector<double> &x) const
+double DFT::fhelmholtz_times_beta_over_volume(const vector<double> &x) const
 {
   double F = 0.0;
 
@@ -384,13 +384,15 @@ void DFT::second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID
     
   // ideal gas contribution: v_i/n_i
   if(noFID == false)
-    for(int s=0;s<allSpecies_.size();s++)
-      for(unsigned i=0;i<v[s].cReal().size();i++)
-	d2F[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().get(i));
-
+    {
+      for(int s=0;s<allSpecies_.size();s++)
+      	for(unsigned i=0;i<v[s].cReal().size();i++)
+      	  d2F[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().get(i));
+    }
+  
   for(auto &x : v)
     x.do_real_2_fourier();
-  
+
   // Hard-sphere
   if(fmt_)
     {    
@@ -407,8 +409,8 @@ void DFT::second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID
   
   // Mean field
   for(auto &interaction: DFT::Interactions_)    
-    interaction->add_second_derivative(v,d2F);  
-  
+    interaction->add_second_derivative(v,d2F);
+
 }
 
 

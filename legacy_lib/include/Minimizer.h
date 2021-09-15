@@ -21,7 +21,6 @@ class Minimizer
 
     for(auto &x: x_) x.resize(dft_->get_lattice().Ntot()); 
   }
-
   Minimizer() {}
   
   void setFrozenBoundaryFlag(bool f) {bFrozenBoundary_ = f;}
@@ -204,7 +203,7 @@ class DDFT : public Minimizer
  DDFT(DFT *dft, bool showGraphics = true)
    : Minimizer(dft), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0)
   {
-    double dx = dft_->lattice().getDX();
+    double dx = dft_->get_lattice().getDX();
     dt_ = 10*0.1*dx*dx;
     dt_ = 0.0001*dx*dx;
     dtMax_ = 1; //1*dx*dx;
@@ -222,7 +221,10 @@ class DDFT : public Minimizer
   virtual double step() = 0;
 
   void Display(double F, double dFmin, double dFmax, double N);
-      
+
+
+
+  
   //  double F_string(Density &d, double *fmax = NULL);
   //  void reverseForce(DFT_Vec *tangent);
   //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true) = 0;
@@ -257,6 +259,9 @@ class DDFT_IF : public DDFT
   virtual double step();
 
   void set_is_closed(bool val) { is_closed_ = val;}
+
+  void determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, double shift = 0.0) const;
+  void Hessian_dot_v(vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F) const;  
   
  protected:
   virtual double fftDiffusion(DFT_Vec &d1) = 0;
@@ -265,7 +270,7 @@ class DDFT_IF : public DDFT
   
   void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
   //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
-  void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal = false);
+  void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal = false) const; 
   
 protected:
   vector<double> Lamx_;

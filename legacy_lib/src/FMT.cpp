@@ -485,28 +485,28 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
       bool bConjugate = true;
       
       species->convolute_eta_weight_with(Lambda[0], result, bConjugate);
-      d2F[s].IncrementBy(result.Real());
+      d2F[s].IncrementBy_Scaled_Vector(result.Real(),dV);
       
       // s0
       species->convolute_s_weight_with(Lambda[1], result, bConjugate);
-      d2F[s].IncrementBy_Scaled_Vector(result.Real(), 1.0/(hsd*hsd));
+      d2F[s].IncrementBy_Scaled_Vector(result.Real(), dV/(hsd*hsd));
 
       // s1
       species->convolute_s_weight_with(Lambda[2], result, bConjugate);
-      d2F[s].IncrementBy_Scaled_Vector(result.Real(), 1.0/hsd);
+      d2F[s].IncrementBy_Scaled_Vector(result.Real(), dV/hsd);
 
       //s2
       species->convolute_s_weight_with(Lambda[3], result, bConjugate);
-      d2F[s].IncrementBy(result.Real());
+      d2F[s].IncrementBy_Scaled_Vector(result.Real(),dV);
       
       // v1 and v2
       for(int i=0;i<3;i++)
 	{
 	  species->convolute_v_weight_with(i, Lambda[4+i], result, bConjugate);
-	  d2F[s].IncrementBy_Scaled_Vector(result.Real(), 1.0/hsd);
+	  d2F[s].IncrementBy_Scaled_Vector(result.Real(), dV/hsd);
 
 	  species->convolute_v_weight_with(i, Lambda[7+i], result, bConjugate);
-	  d2F[s].IncrementBy(result.Real());
+	  d2F[s].IncrementBy_Scaled_Vector(result.Real(),dV);
 	}
 
       // T
@@ -514,14 +514,11 @@ void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector
 	for(int j=0;j<3;j++)
 	{
 	  species->convolute_T_weight_with(i, j, Lambda[10+3*i+j], result, bConjugate);
-	  d2F[s].IncrementBy(result.Real());
+	  d2F[s].IncrementBy_Scaled_Vector(result.Real(),dV);
 	} 
            
     }
 
-  for(auto &f: d2F)
-    f.MultBy(dV);
-  
 }
 
 // Brute-force evaluation of second derivatives

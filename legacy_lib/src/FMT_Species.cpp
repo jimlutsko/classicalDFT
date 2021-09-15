@@ -339,8 +339,6 @@ double G_txy(double R, double X, double Vy, double Vz, double Tx, double Ty, dou
 
 void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights)
 {
-  cout << "OK: Generating weights" << endl;
-  
   double dx = density_.getDX();
   double dy = density_.getDY();
   double dz = density_.getDZ();

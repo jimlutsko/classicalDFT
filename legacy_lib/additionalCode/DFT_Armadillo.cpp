@@ -122,6 +122,7 @@ void DFT_Vec_Complex::zeros(long N)  {cDATA.zeros(N);}
 void DFT_Vec_Complex::zeros()        {cDATA.zeros();}
 
 complex<double> DFT_Vec_Complex::max() const { return cDATA.max();}
+complex<double> DFT_Vec_Complex::min() const { return cDATA.min();}
 
 complex<double> *DFT_Vec_Complex::memptr() { return cDATA.memptr();}
  

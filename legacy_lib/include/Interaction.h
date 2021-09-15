@@ -32,126 +32,34 @@
 class Interaction_Base
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */  
   Interaction_Base(Species *s1, Species *s2, Potential1 *v, double kT);
 
   Interaction_Base() {}
 
-  /**
-   *   @brief  Initialization function: must be called before using the object.
-   *  
-   */  
   virtual void initialize();
 
-  /**
-   *   @brief  Scale the attractive interaction: i.e. same as multiplying the potential by a factor.
-   *  
-   *   @param scale_fac is the scale factor
-   */    
-  void scale_interaction(double scale_fac)
-  {
-    a_vdw_ *= scale_fac;
-    w_att_.MultBy(scale_fac);  
-  }
+  double getW(long s)  { return w_att_.Real().get(s);}
   
-  /**
-   *   @brief  This executes the basic functionality of computing energies and forces
-   *  
-   *   @returns The mean-field contribution to the (total) free energy divided by kT.
-   */    
+  void scale_interaction(double scale_fac);
+  
   virtual double getInteractionEnergyAndForces();
-
-
-  /**
-  *   @brief  Calculates (d2F/dn_i dn_j)v_j
-  *  
-  *   @param  v: input vector
-  *   @param  d2F: vector to be filled
-  */    
   void add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F);
 
   // This is only used for testing add_second_derivative.
   double second_derivative_brute_force(int I[3], int J[3], vector<DFT_FFT> &v);
-
-  /**
-   *   @brief  An internal, debugging function. It should be suppressed at some point.
-   *  
-   *   @returns 
-   */        
   double checkCalc(int jx, int jy, int jz);
 
-  /**
-   *   @brief  Returns the requested entry in the array of weights
-   *  
-   *   @param  s: position of entry requested
-   *
-   *   @returns  w(s)
-   */        
-  double getW(long s)  { return w_att_.Real().get(s);}
-
-  /**
-   *   @brief  Calculates the mean-field contribution (divided by kT) to the bulk chemical potential for a given species
-   *  
-   *   @param  x: array holding the density of each species
-   *   @param  species: the species whose chemical potential is being calculated
-   *
-   *   @return the chemical potential divided by kT
-   */        
-  double Mu(const vector<double> &x, int species) const
-  {
-    double mu = 0.0;
-
-    if(s1_->getSequenceNumber() == species)
-      mu += 0.5*a_vdw_*x[s2_->getSequenceNumber()];
-
-    if(s2_->getSequenceNumber() == species)
-      mu += 0.5*a_vdw_*x[s1_->getSequenceNumber()];
-
-    return mu;
-  }
-
-  /**
-   *   @brief  Calculates the mean-field contribution (divided by kT) to the bulk free energy per unit volume for this object
-   *  
-   *   @param  x: array holding the density of each species
-   *
-   *   @return the mean-field contribution to the free energy per unit volume divided by kT
-   */  
+  double Mu(const vector<double> &x, int species) const;
   double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_->getSequenceNumber()]*x[s2_->getSequenceNumber()];}  
 
-  /**
-   *   @brief  Returns the vDW parameter calculated from the weights
-   *
-   *   @return sum_{\mathbf R} w({\mathbf R})/kT
-   */    
   double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_vdw_;}
   
- protected:
-  
-  /**
-   *   @brief  This calculates the array w. 
-   *  
-   */      
-  virtual void generateWeights();  
-  
+ protected:  
+  virtual void generateWeights();    
   // faster version in the case where dx=dy=dz (original version)
   virtual void generateWeightsXYZSym();
-
-  /**
-   *   @brief  Calculates the weight w(Sx,Sy,Sz)
-   *  
-   *   @param Sx,Sy,Sz: the cell 
-   *   @param v: the potential
-   *   @param dx: lattice spacing
-   *
-   *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
-   */          
+  //Calculates the weight w(Sx,Sy,Sz)
+  //returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz) = 0;
 
   friend class boost::serialization::access;
@@ -187,48 +95,15 @@ class Interaction_Base
 class Interaction : public Interaction_Base
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   *   @param pointsFile: the name of the file from which the spherical integration points are to be read.
-   */  
  Interaction(Species *s1, Species *s2, Potential1 *v, double kT, string pointsFile) :
   Interaction_Base(s1,s2,v,kT), pointsFile_(pointsFile) {};
+  Interaction() : Interaction_Base(){};
 
-  Interaction() :
-    Interaction_Base(){};
-
-  /**
-   *   @brief  Initialization function: must be called before using the object.
-   *  
-   */  
   virtual void initialize();
-
   
  protected:
-  /**
-   *   @brief  Reads the weights fromt the file with the supplied name prefix (plus stuff added in this function)
-   *  
-   *   @returns  true, if successful
-   */        
   bool readWeights();
-
-  /**
-   *   @brief  Checks whether the input file corresponds to this object or not.
-   *  
-   *   @param in: the ifstream attached to the weight file
-   *  
-   *   @returns false if the file cannot be used.
-   */      
   virtual bool checkWeightsFile(ifstream &in);
-
-  /**
-   *   @brief  This calculates the array w. 
-   *  
-   */        
   virtual void generateWeights();
 
   friend class boost::serialization::access;
@@ -253,14 +128,6 @@ class Interaction : public Interaction_Base
 class Interaction_Gauss : public Interaction_Base
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   *   @param Ngauss: number of gauss-lengendre points in each direction
-   */    
  Interaction_Gauss(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss) :
   Interaction_Base(s1,s2,v,kT)
   {
@@ -273,29 +140,10 @@ class Interaction_Gauss : public Interaction_Base
       }
   }
 
-  Interaction_Gauss():
-    Interaction_Base() {}  
+  Interaction_Gauss(): Interaction_Base() {}  
 
  protected:
-  /**
-   *   @brief  Calculates the weight w(Sx,Sy,Sz)
-   *  
-   *   @param Sx,Sy,Sz: the cell 
-   *   @param v: the potential
-   *   @param dx: lattice spacing
-   *
-   *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
-   */        
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz);
-  /**
-   *   @brief  Returns the kernel of the integral being evaluated
-   *  
-   *   @param Sx,Sy,Sz: the cell 
-   *   @param v: the potential
-   *   @param x,y,z: the position within the cell
-   *
-   *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
-   */        
   virtual double getKernel(int Sx, int Sy, int Sz, double dx, double dy, double dz, double x, double y, double z) = 0;
 
   friend class boost::serialization::access;
@@ -304,8 +152,7 @@ class Interaction_Gauss : public Interaction_Base
     ar & boost::serialization::base_object<Interaction_Base>(*this);
     ar & gauss_p;
     ar & gauss_w;
-
-    boost::serialization::void_cast_register<Interaction_Gauss, Interaction_Base>(static_cast<Interaction_Gauss *>(NULL),static_cast<Interaction_Base *>(NULL));            
+    boost::serialization::void_cast_register<Interaction_Gauss, Interaction_Base>(static_cast<Interaction_Gauss *>(NULL),static_cast<Interaction_Base *>(NULL));      
   }
   
  protected:

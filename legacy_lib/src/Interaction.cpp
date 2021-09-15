@@ -49,7 +49,28 @@ void Interaction_Base::initialize()
   w_att_.do_real_2_fourier();
 
   initialized_ = true;
-}    
+}
+
+void Interaction_Base::scale_interaction(double scale_fac)
+{
+  a_vdw_ *= scale_fac;
+  w_att_.MultBy(scale_fac);
+  w_att_.do_real_2_fourier();  
+}
+
+double Interaction_Base::Mu(const vector<double> &x, int species) const
+{
+  double mu = 0.0;
+  
+  if(s1_->getSequenceNumber() == species)
+    mu += 0.5*a_vdw_*x[s2_->getSequenceNumber()];
+  
+  if(s2_->getSequenceNumber() == species)
+    mu += 0.5*a_vdw_*x[s1_->getSequenceNumber()];
+  
+  return mu;
+}
+
 
   // Note that the matrix w already contains a factor of dV
 double Interaction_Base::getInteractionEnergyAndForces()

@@ -119,6 +119,7 @@ class DFT_Vec_Complex
   void zeros();
 
   complex<double> max() const;
+  complex<double> min() const;
   
   complex<double> *memptr();
  

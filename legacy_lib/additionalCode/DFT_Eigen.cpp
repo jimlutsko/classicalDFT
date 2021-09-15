@@ -134,6 +134,7 @@ void DFT_Vec_Complex::resize(long N) {cDATA.resize(N);}
 void DFT_Vec_Complex::zeros(long N)  {cDATA = Eigen::VectorXcd::Zero(N);}
 void DFT_Vec_Complex::zeros()        {cDATA = Eigen::VectorXcd::Zero(cDATA.size());}
 
+//complex<double> DFT_Vec_Complex::min() const { return cDATA.minCoeff();}
 //complex<double> DFT_Vec_Complex::max() const { return cDATA.maxCoeff();}
   
 complex<double> *DFT_Vec_Complex::memptr() { return cDATA.data();}
