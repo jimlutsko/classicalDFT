@@ -53,7 +53,7 @@ public:
   double calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies);
 
   // Given input vector v, calculates (d2F/dn_i dn_j)v_j
-  void add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies);
+  void add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies);
 
   // Brute force calculation: for checking only!
   double d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies);

@@ -260,8 +260,8 @@ class DDFT_IF : public DDFT
 
   void set_is_closed(bool val) { is_closed_ = val;}
 
-  void determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, double shift = 0.0) const;
-  void Hessian_dot_v(vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F) const;  
+  void determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, double shift = 0.0, bool full = false) const;
+  void Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool) const;  
   
  protected:
   virtual double fftDiffusion(DFT_Vec &d1) = 0;
@@ -270,7 +270,7 @@ class DDFT_IF : public DDFT
   
   void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
   //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
-  void A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal = false) const; 
+  void A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, const double D[], bool do_subtract_ideal = false) const; 
   
 protected:
   vector<double> Lamx_;
@@ -328,10 +328,8 @@ class DDFT_IF_Periodic : public DDFT_IF
 class DDFT_IF_Fixed_Border : public DDFT_IF
 {
  public:
-  DDFT_IF_Fixed_Border(DFT *dft, double background,  double border_forces, bool showGraphics = true)
-    : DDFT_IF(dft,showGraphics), background_(background), border_forces_(border_forces), sin_in_(NULL), sin_out_(NULL)
-    {}
-  ~DDFT_IF_Fixed_Border() {if(sin_in_) delete sin_in_; if(sin_out_) delete sin_out_; if(RHS0_sin_transform_) delete RHS0_sin_transform_; if(RHS1_sin_transform_) delete RHS1_sin_transform_;}
+  DDFT_IF_Fixed_Border(DFT *dft, double background,  double border_forces, bool showGraphics = true);
+  ~DDFT_IF_Fixed_Border();
 
   virtual void initialize();
   

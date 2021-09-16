@@ -7,20 +7,25 @@
 #include <vector>
 #include <time.h>
 
-//#include <mgl2/mgl.h>
-
 #ifdef USE_OMP
 #include <omp.h>
 #endif
 
-
-
 using namespace std;
 
-// required MPI include file  
-//#include <mpi.h>
-
 #include "Minimizer.h"
+
+DDFT_IF_Fixed_Border::DDFT_IF_Fixed_Border(DFT *dft, double background,  double border_forces, bool showGraphics)
+  : DDFT_IF(dft,showGraphics), background_(background), border_forces_(border_forces), sin_in_(NULL), sin_out_(NULL)
+{}
+
+DDFT_IF_Fixed_Border::~DDFT_IF_Fixed_Border()
+{
+  if(sin_in_) delete sin_in_;
+  if(sin_out_) delete sin_out_;
+  if(RHS0_sin_transform_) delete RHS0_sin_transform_;
+  if(RHS1_sin_transform_) delete RHS1_sin_transform_;
+}
 
 void DDFT_IF_Fixed_Border::initialize()
 {
