@@ -274,9 +274,9 @@ void DDFT_IF::Hessian_dot_v(vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F)
 
   DFT_Vec result(eigen_vector[0].Real().size());
   
-  A_dot_x(eigen_vector[0].Real(), result, density, D, false);
+  //  A_dot_x(eigen_vector[0].Real(), result, density, D, false);
 
-  eigen_vector[0].Real().set(result);
+  //  eigen_vector[0].Real().set(result);
   
   
 }
