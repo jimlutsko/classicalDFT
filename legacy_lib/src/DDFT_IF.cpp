@@ -296,7 +296,7 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
   d2F[0].zeros(Ntot);
   double rel = 1;
   double tol = 1e-8;
-  for(int i=0;i<500 && rel > tol;i++)
+  for(int i=0;i<5000 && rel > tol;i++)
     {
       double eigen_value1 = eigen_value;
 
