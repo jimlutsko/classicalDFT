@@ -1,9 +1,15 @@
-\documentclass[aps,preprint]{revtex4-1}%
-\usepackage{amssymb}
-\usepackage{amsfonts}
+%% LyX 2.2.4 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[aps,preprint,notitlepage]{revtex4-1}
+\usepackage[latin9]{inputenc}
+\setcounter{secnumdepth}{3}
 \usepackage{amsmath}
-\usepackage{graphicx}%
-\setcounter{MaxMatrixCols}{30}
+\usepackage{amssymb}
+
+\makeatletter
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\usepackage{amsfonts}
+\usepackage{graphicx}\setcounter{MaxMatrixCols}{30}
 %TCIDATA{OutputFilter=latex2.dll}
 %TCIDATA{Version=5.50.0.2960}
 %TCIDATA{CSTFile=revtex4-1.cst}
@@ -16,133 +22,82 @@
 %BeginMSIPreambleData
 \providecommand{\U}[1]{\protect\rule{.1in}{.1in}}
 %EndMSIPreambleData
-\newtheorem{theorem}{Theorem}
-\newtheorem{acknowledgement}[theorem]{Acknowledgement}
-\newtheorem{algorithm}[theorem]{Algorithm}
-\newtheorem{axiom}[theorem]{Axiom}
-\newtheorem{claim}[theorem]{Claim}
-\newtheorem{conclusion}[theorem]{Conclusion}
-\newtheorem{condition}[theorem]{Condition}
-\newtheorem{conjecture}[theorem]{Conjecture}
-\newtheorem{corollary}[theorem]{Corollary}
-\newtheorem{criterion}[theorem]{Criterion}
-\newtheorem{definition}[theorem]{Definition}
-\newtheorem{example}[theorem]{Example}
-\newtheorem{exercise}[theorem]{Exercise}
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{notation}[theorem]{Notation}
-\newtheorem{problem}[theorem]{Problem}
-\newtheorem{proposition}[theorem]{Proposition}
-\newtheorem{remark}[theorem]{Remark}
-\newtheorem{solution}[theorem]{Solution}
-\newtheorem{summary}[theorem]{Summary}
-\newenvironment{proof}[1][Proof]{\noindent\textbf{#1.} }{\ \rule{0.5em}{0.5em}}
+\newtheorem{theorem}{Theorem}\newtheorem{acknowledgement}[theorem]{Acknowledgement}\newtheorem{algorithm}[theorem]{Algorithm}\newtheorem{axiom}[theorem]{Axiom}\newtheorem{claim}[theorem]{Claim}\newtheorem{conclusion}[theorem]{Conclusion}\newtheorem{condition}[theorem]{Condition}\newtheorem{conjecture}[theorem]{Conjecture}\newtheorem{corollary}[theorem]{Corollary}\newtheorem{criterion}[theorem]{Criterion}\newtheorem{definition}[theorem]{Definition}\newtheorem{example}[theorem]{Example}\newtheorem{exercise}[theorem]{Exercise}\newtheorem{lemma}[theorem]{Lemma}\newtheorem{notation}[theorem]{Notation}\newtheorem{problem}[theorem]{Problem}\newtheorem{proposition}[theorem]{Proposition}\newtheorem{remark}[theorem]{Remark}\newtheorem{solution}[theorem]{Solution}\newtheorem{summary}[theorem]{Summary}\newenvironment{proof}[1][Proof]{\noindent\textbf{#1.} }{\ \rule{0.5em}{0.5em}}
+
+
+\makeatother
+
 \begin{document}
-\preprint{HEP/123-qed}
-\title[Short title for running header]{REV\TeX 4-1}
-\author{First Author}
-\affiliation{My Institution}
-\author{Second Author}
-\affiliation{My Institution}
-\author{Third Author}
-\affiliation{Other Institution}
-\keywords{one two three}
-\pacs{PACS number}
 
-\begin{abstract}
-Shell document for REV\TeX\ 4-1.
+\title{Object Library}
 
-\end{abstract}
-\volumeyear{year}
-\volumenumber{number}
-\issuenumber{number}
-\eid{identifier}
-\date[Date text]{date}
-\received[Received text]{date}
-
-\revised[Revised text]{date}
-
-\accepted[Accepted text]{date}
-
-\published[Published text]{date}
-
-\startpage{101}
-\endpage{102}
+\author{JFL}
 \maketitle
-
 
 \section{Lattice}
 
-The lattice class encodes geometric information and provides geometric transformations.
+The lattice class encodes geometric information and provides geometric
+transformations.
 
-\subsection{Data Members}
+\begin{table}
+\begin{minipage}{350pt}
+\caption{Lattice: Data members}
+\label{table1}
+\addtolength\tabcolsep{2pt}
+\begin{tabular}[c]{ccc}
+  \hline \hline
+long & \textbf{Nx\_,Ny\_,Nz\_} & number of points in each direction\\
+long & \textbf{Ntot\_,Nout\_} & total number of points in real and in Fourier space*\\
+double & \textbf{dx\_,dy\_,dz\_} & spacing in each direction\\
+double & \textbf{L\_[3]} & dimension of total cell in each direction \\
+\hline \hline
+\end{tabular}
+\end{minipage}
+\end{table}
 
-$%
-\begin{array}
-[c]{ccc}%
-\text{long} & \text{\textbf{Nx\_,Ny\_,Nz\_}} & \text{number of points in each
-direction}\\
-\text{long} & \text{\textbf{Ntot\_,Nout\_}} & \text{total number of points in
-real and in Fourier space*}\\
-\text{double} & \text{\textbf{dx\_,dy\_,dz\_}} & \text{spacing in each
-direction}\\
-\text{double} & \text{\textbf{L\_[3]}} & \text{dimension of total cell in each
-direction}%
-\end{array}
-$
+{*}In Fourier space, there are (about) half as many points as in real
+space since each entry is complex and so has two degrees of freedom.
+This is calculated as $\ N_{x}\times N_{y}\times\left(\left[\frac{N_{z}}{2}\right]+1\right)$
+in accord with FFTW.
 
-*In Fourier space, there are (about) half as many points as in real space
-since each entry is complex and so has two degrees of freedom. This is
-calculated as $\ N_{x}\times N_{y}\times\left(  \left[  \frac{N_{z}}%
-{2}\right]  +1\right)  $ in accord with FFTW. 
+\begin{table}
+\begin{minipage}{350pt}
+\caption{Lattice: Get}
+\label{table1}
+\addtolength\tabcolsep{2pt}
+\begin{tabular}[c]{ccc}
+  \hline \hline
+{double} & {\textbf{getDX()},...} & {accessors for dx\_,...}\\
+{long} & {\textbf{Nx()},...} & {accessors for Nx\_,...}\\
+{double} & {\textbf{Lx()},...} & {accessors for L\_[0],...}\\
+{long} & {\textbf{Ntot()},\textbf{Nout()}} & {accessors for Ntot\_,Nout\_}\\
+{long} & {\textbf{size()}} & {same as \textbf{Ntot()}}\\
+{double} & {\textbf{dV}(),\textbf{getVolume}()} & dx\_dy\_dz\_{ and }L\_[0]L\_[1]L\_[2]\\
+{double} & {\textbf{getX(}int pos\textbf{)},...} & $dx\_\times\left(pos-\frac{Nx\_-1}{2}\right)${,...} \\
+\hline \hline
+\end{tabular}
+\end{minipage}
+\end{table}
 
-\subsection{Accessors}
-
-$%
-\begin{array}
-[c]{ccc}%
-\text{double} & \text{\textbf{getDX()},...} & \text{accessors for dx\_,...}\\
-\text{long} & \text{\textbf{Nx()},...} & \text{accessors for Nx\_,...}\\
-\text{double} & \text{\textbf{Lx()},...} & \text{accessors for L\_[0],...}\\
-\text{long} & \text{\textbf{Ntot()},\textbf{Nout}()} & \text{accessors for
-Ntot\_,Nout\_}\\
-\text{long} & \text{\textbf{size()}} & \text{same as \textbf{Ntot()}}\\
-\text{double} & \text{\textbf{dV}(),\textbf{getVolume}()} & dx\_dy\_dz\_\text{
-and }L\_[0]L\_[1]L\_[2]\\
-\text{double} & \text{\textbf{getX(}int pos\textbf{)},...} & dx\_\times\left(
-pos-\frac{Nx\_-1}{2}\right)  \text{,...}%
-\end{array}
-$
-
-\subsection{Conversions}
-
-$%
-\begin{array}
-[c]{cc}%
-\text{long \textbf{pos(}int v[]\textbf{)},\textbf{pos(}int ix, int iy, int
-iz)} & \text{convert cartesian indices into serial index}\\
-\text{void \textbf{cartesian(}long pos, int ix, int iy, int iz\textbf{)}} &
-\text{convert serial index to cartesian indices}\\%
-\begin{array}
-[c]{c}%
-\text{long \textbf{get\_PBC\_Pos(}int v[]\textbf{)}}\\
-\text{long \textbf{get\_PBC\_Pos(}int ix, int iy, int iz\textbf{)}}%
-\end{array}
-& \text{cartesian--%
-%TCIMACRO{\TEXTsymbol{>}}%
-%BeginExpansion
-$>$%
-%EndExpansion
-serial after applying PBCs }\\
-\text{void \textbf{putIntoBox}(int \&ix, int \&iy, int\ \&iz)} & \text{apply
-PBC to give }0\leq ix<N_{x}\text{,...}\\
-\text{long \textbf{size()}} & \text{same as \textbf{Ntot()}}\\
-\text{double \textbf{dV}(),\textbf{getVolume}()} & dx\_dy\_dz\_\text{ and
-}L\_[0]L\_[1]L\_[2]\\
-\text{double \textbf{getX(}int pos\textbf{)},...} & dx\_\times\left(
-pos-\frac{Nx\_-1}{2}\right)  \text{,...}%
-\end{array}
-$
-
-
+\begin{table}
+\begin{minipage}{350pt}
+\caption{Lattice: Get}
+\label{table1}
+\addtolength\tabcolsep{2pt}
+\begin{tabular}[c]{ccc}
+  \hline \hline
+{\text{long } \textbf{pos(}int v[]\textbf{)},\textbf{pos(}int ix, int iy, int iz)} & {convert cartesian indices into serial index}\\
+{void \textbf{cartesian(}long pos, int ix, int iy, int iz\textbf{)}} & {convert serial index to cartesian indices}\\
+${\begin{array}{c}
+{\text{long } \textbf{get\_PBC\_Pos(}\text{int }v[]\textbf{)}}\\
+{\text{long } \textbf{get\_PBC\_Pos(}\text{int }ix, \text{int }iy, \text{int }iz\textbf{)}}\\
+\end{array}} & {cartesian after applying PBCs }\\
+{void \textbf{putIntoBox}(int \&ix, int \&iy, int\ \&iz)} & {apply PBC to give }$0\leq ix<N_{x}${,...}\\
+{long \textbf{size()}} & {same as \textbf{Ntot()}}\\
+{double \textbf{dV}(),\textbf{getVolume}()} & dx\_dy\_dz\_{ and }L\_[0]L\_[1]L\_[2]\\
+{double \textbf{getX(}int pos\textbf{)},...} & $dx\_\times\left(pos-\frac{Nx\_-1}{2}\right)${,...} \\
+\hline \hline
+\end{tabular}
+\end{minipage}
+\end{table}
 \end{document}

@@ -378,7 +378,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
    *  
    *   @return nothing
    */  
-void DFT::second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID)
+void DFT::second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID)
 {
   double dV = allSpecies_[0]->getDensity().dV();
     
@@ -390,8 +390,8 @@ void DFT::second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID
       	  d2F[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().get(i));
     }
   
-  for(auto &x : v)
-    x.do_real_2_fourier();
+  //  for(auto &x : v)
+  //    x.do_real_2_fourier();
 
   // Hard-sphere
   if(fmt_)

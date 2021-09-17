@@ -43,7 +43,7 @@ class Interaction_Base
   void scale_interaction(double scale_fac);
   
   virtual double getInteractionEnergyAndForces();
-  void add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F);
+  void add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F);
 
   // This is only used for testing add_second_derivative.
   double second_derivative_brute_force(int I[3], int J[3], vector<DFT_FFT> &v);

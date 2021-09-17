@@ -181,7 +181,7 @@ void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &
 
 }
 
-double  static get(DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Density& density)
+double  static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Density& density)
 {
   double r = 0;
   if(is_full)
@@ -191,7 +191,7 @@ double  static get(DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Densi
   return r;
 }
 // This calculates (del_IJ rho_J del_JK) x_K so matrix A is discretized (del rho del) operator. 
-void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[], bool do_subtract_ideal) const
+void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, const double D[], bool do_subtract_ideal) const
 {
   const bool Ax_is_full = (Ax.size() == density.Ntot());
   const bool x_is_full  = ( x.size() == density.Ntot());
@@ -234,9 +234,9 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
       double rpz = density.get(ix,iy,iz+1);
       double rmz = density.get(ix,iy,iz-1);
 
-      double RHS = D[0]*(rpx*xpx+rmx*xmx-(rpx+rmx)*x0)
-	+D[1]*(rpy*xpy+rmy*xmy-(rpy+rmy)*x0)
-	+D[2]*(rpz*xpz+rmz*xmz-(rpz+rmz)*x0);
+      double RHS = D[0]*((rpx+r0)*xpx+(r0+rmx)*xmx-(rpx+rmx+2*r0)*x0)
+	+D[1]*((rpy+r0)*xpy+(rmy+r0)*xmy-(rpy+rmy+2*r0)*x0)
+	+D[2]*((rpz+r0)*xpz+(rmz+r0)*xmz-(rpz+rmz+2*r0)*x0);
 
       // Factor of 2 because of averaging the density over two points
       RHS /= (2*dV);
@@ -256,41 +256,35 @@ void DDFT_IF::A_dot_x(DFT_Vec& x, DFT_Vec& Ax, const Density &density, double D[
 }
 
 
-void DDFT_IF::Hessian_dot_v(vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F) const
+void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool full) const
 {
-  d2F[0].zeros();
+  int Jspecies = 0;
+
+  d2F[Jspecies].zeros();
   dft_->second_derivative(eigen_vector, d2F);
 
-  int Jspecies = 0;
-  const Density &density = dft_->getSpecies(Jspecies)->getDensity();
-  
-  double Dx = 1.0/(dx_*dx_);
-  double Dy = 1.0/(dy_*dy_);
-  double Dz = 1.0/(dz_*dz_);
+  if(full)
+    {
+      const Density &density = dft_->getSpecies(Jspecies)->getDensity();
 
-  double D[] = {Dx,Dy,Dz};
+      // Extra factors to get rid of a dV in A_dot_x
+      double D[] = {dx_*dy_*dz_/(dx_*dx_), dx_*dy_*dz_/(dy_*dy_), dx_*dy_*dz_/(dz_*dz_)};
 
-  double dV = dx_*dy_*dz_;
+      DFT_Vec result(d2F[0].size());
+  
+      A_dot_x(d2F[Jspecies], result, density, D, false);
 
-  DFT_Vec result(eigen_vector[0].Real().size());
-  
-  //  A_dot_x(eigen_vector[0].Real(), result, density, D, false);
-
-  //  eigen_vector[0].Real().set(result);
-  
-  
+      d2F[Jspecies].set(result);
+    }
 }
 
 			    
-void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, double shift) const
+void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, double shift, bool full) const
 {
   int species = 0;
   
   const Density& density = dft_->getDensity(species);
   const long Ntot       = density.Ntot();
-  //  long Nx = density.Nx();
-  //  long Ny = density.Ny();
-  //  long Nz = density.Nz();
   
   mt19937 rng;
   uniform_real_distribution<double> urd;
@@ -311,14 +305,15 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
       eigen_vector[species].do_real_2_fourier();
 
       // v => H dot v, lam = v dot H dot v
-      Hessian_dot_v(eigen_vector,d2F);
+      Hessian_dot_v(eigen_vector,d2F,full);
       d2F[0].IncrementBy_Scaled_Vector(eigen_vector[species].Real(),shift);
       eigen_value = eigen_vector[species].Real().dotWith(d2F[species]);
       eigen_vector[species].Real().set(d2F[species]);
 
       rel = fabs((eigen_value-eigen_value1)/(eigen_value+eigen_value1));
 
-      cout << '\r'; cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel; cout.flush();
+      cout << '\r'; cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
+      //cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << endl;
     }
   cout << endl;
   

@@ -116,7 +116,7 @@ double Interaction_Base::getInteractionEnergyAndForces()
 
 // This is just a convolution: w(I-J)v(J)dVdV - the same as the forces
 // Note that the vector w_att(I) = w(I)dV so we need w(I-J)v(J)dVdV = w_att(I-J)*v(J)dV
-void Interaction_Base::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F)
+void Interaction_Base::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F)
 {
   if(!initialized_)
     initialize();
@@ -138,14 +138,14 @@ void Interaction_Base::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec>
   double fac = (s1_ == s2_ ? 1.0 : 0.5)*dV/Ntot;
 
   // convolution
-  result.Four().Schur(v[n1].Four(),w_att_.Four(),false);
+  result.Four().Schur(v[n1].cFour(),w_att_.Four(),false);
   result.do_fourier_2_real();
   result.Real().MultBy(fac); 
   d2F[n1].IncrementBy(result.cReal());
 
   if(s1_ != s2_)
     {
-      result.Four().Schur(v[n2].Four(),w_att_.Four(),false);
+      result.Four().Schur(v[n2].cFour(),w_att_.Four(),false);
       result.do_fourier_2_real();
       result.Real().MultBy(fac);
       d2F[n2].IncrementBy(result.cReal());

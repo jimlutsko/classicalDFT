@@ -390,7 +390,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 // or we define Lambda_a(K) = (d2PHI(K)/dn_a(K) dn_b(K))psi_b(K)
 // and then calculate conv(Lam_a, w; I)
 //
-void FMT::add_second_derivative(vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies)
+void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies)
 {
   if(allSpecies.size() < 1)  throw std::runtime_error("No species for FMT::add_second_derivative to work with");
 
