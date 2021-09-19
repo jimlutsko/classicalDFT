@@ -189,6 +189,39 @@ void Grace::setTicks(double dx, double dy, int Graph)
     }
 }
 
+void Grace::setNumberXMinorTicks(int n, int Graph)
+{
+  std::stringstream s;
+
+  if(Graph >= 0) 
+    {
+      s << "FOCUS G" << Graph;
+      sendCommand(s.str());
+      s.str(std::string());
+    }
+
+  s << "xaxis  tick minor ticks " << n;
+  sendCommand(s.str());
+  s.str(std::string());
+}
+
+
+void Grace::setNumberYMinorTicks(int n, int Graph)
+{
+  std::stringstream s;
+
+  if(Graph >= 0) 
+    {
+      s << "FOCUS G" << Graph;
+      sendCommand(s.str());
+      s.str(std::string());
+    }
+
+  s << "yaxis  tick minor ticks " << n;
+  sendCommand(s.str());
+}
+
+
 
 
 
@@ -238,6 +271,34 @@ void Grace::setXAxisLabel(const char *s, int Graph)
   ss << "XAXIS LABEL \"" << s << "\"";
   sendCommand(ss.str());
 }
+
+void Grace::setCharSize(double s, int Graph)
+{ 
+  std::stringstream ss;
+
+  if(Graph >= 0) 
+    {
+      ss << "FOCUS G" << Graph;
+      sendCommand(ss.str());
+      ss.str(std::string());
+    }
+
+  ss << "XAXIS LABEL CHAR SIZE " << s;
+  sendCommand(ss.str());
+
+  ss.str(std::string());
+  ss << "YAXIS LABEL CHAR SIZE " << s;
+  sendCommand(ss.str());
+
+  ss.str(std::string());
+  ss << "XAXIS TICKLABEL CHAR SIZE " << s;
+  sendCommand(ss.str());
+
+  ss.str(std::string());
+  ss << "YAXIS TICKLABEL CHAR SIZE " << s;
+  sendCommand(ss.str());      
+}
+
 
 void Grace::setYAxisLabel(const char *s, int Graph)
 { 

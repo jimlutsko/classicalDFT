@@ -86,7 +86,17 @@ class DFT
 
   
   virtual string Name() const { return string("DFT_Ideal_Gas");}
-
+  string get_fmt_name() const
+  {
+    if(fmt_ == NULL) return string("none");
+    return fmt_->get_name();
+  }
+  string get_potential_name(int which = 0) const
+  {
+    if(Interactions_.size() < which+1) return string("none");
+    return Interactions_[which]->get_name();
+  }
+  
   // protected:
   
   /**

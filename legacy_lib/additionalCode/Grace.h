@@ -35,6 +35,8 @@ class Grace
   void setXAxisLabel(const char *s, int Graph = -1);
   void setYAxisLabel(const char *s, int Graph = -1);
 
+  void setCharSize(double s, int Graph = -1);
+
   void setTitle(const char *s);
   void setSubTitle(const char *s);
 
@@ -43,7 +45,9 @@ class Grace
   void setLimits(double xmin, double xmax, double ymin, double ymax, int Graph = -1);
 
   void setTicks(double dx, double dy, int Graph = -1);
-
+  void setNumberXMinorTicks(int n, int Graph = -1);
+  void setNumberYMinorTicks(int n, int Graph = -1);
+    
   void setSymbol(int set, int symbol, int Graph = -1);
   void setSymbolFill(int set, int color, int Graph =-1);
 

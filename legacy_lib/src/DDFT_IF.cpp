@@ -19,7 +19,7 @@ using namespace std;
 #include <complex>
 
 #include "Minimizer.h"
-
+#include "myColor.h"
 
 // Let D be the divergence operator (D = (d/dx, d/dy, d/dz)).
 
@@ -45,7 +45,6 @@ void DDFT_IF::initialize()
   DDFT::initialize();
   
   F_ = dft_->calculateFreeEnergyAndDerivatives(false); //density_, 0.0, dF_,true);   
-  cout << "Initial value of F = " << F_ << endl;
 
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);  
@@ -203,7 +202,7 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
   double sum_forces = 0.0;
   double sum_forces2 = 0.0;
   double sum_sq = 0.0;
-    
+
 #pragma omp parallel for  private(pos) schedule(static) reduction(+:sum_forces) reduction(+:sum_forces2) reduction(+:sum_sq)
   for(pos = 0;pos<Ax.size();pos++)
     {
@@ -211,12 +210,12 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
 
       if(Ax_is_full) density.cartesian(pos,ix,iy,iz);
       else density.boundary_cartesian(pos,ix,iy,iz);
-
+      
       double x0  = get(x,ix,iy,iz,x_is_full, density);
 
       double xpx = get(x,ix+1,iy,iz,x_is_full, density);
       double xmx = get(x,ix-1,iy,iz,x_is_full, density);
-
+	  
       double xpy = get(x,ix,iy+1,iz,x_is_full, density);
       double xmy = get(x,ix,iy-1,iz,x_is_full, density);
 
@@ -224,7 +223,7 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
       double xmz = get(x,ix,iy,iz-1,x_is_full, density);
 
       double r0  = density.get(ix,iy,iz);
-
+	  
       double rpx = density.get(ix+1,iy,iz);
       double rmx = density.get(ix-1,iy,iz);
 
@@ -245,18 +244,17 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
 	{
 	  if(ix != 0 && iy != 0 && iz != 0) sum_forces += RHS;
 	  else sum_forces2 += RHS;
-
+	      
 	  sum_sq += RHS*RHS;
 	  RHS -= D[0]*(rpx+rmx-2*r0)+D[1]*(rpy+rmy-2*r0)+D[2]*(rpz+rmz-2*r0) ;
 	}
-      Ax.set(pos,RHS);
-
-    }
+      Ax.set(pos,RHS);	  
+    }      
   if(do_subtract_ideal) cout << "sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
 }
 
 
-void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool full) const
+void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool fixed_boundary, bool full) const
 {
   int Jspecies = 0;
 
@@ -270,6 +268,10 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
       // Extra factors to get rid of a dV in A_dot_x
       double D[] = {dx_*dy_*dz_/(dx_*dx_), dx_*dy_*dz_/(dy_*dy_), dx_*dy_*dz_/(dz_*dz_)};
 
+      if(fixed_boundary)      
+	for(long p=0;p<density.get_Nboundary();p++)
+	  d2F[Jspecies].set(density.boundary_pos_2_pos(p),0.0);
+
       DFT_Vec result(d2F[0].size());
   
       A_dot_x(d2F[Jspecies], result, density, D, false);
@@ -279,7 +281,7 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
 }
 
 			    
-void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, double shift, bool full) const
+void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, bool fixed_boundary, double shift, bool full) const
 {
   int species = 0;
   
@@ -290,6 +292,16 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
   uniform_real_distribution<double> urd;
   for(long s = 0;s<Ntot;s++)
     eigen_vector[species].Real().set(s,2*urd(rng)-1); // random number in (-1,1)
+
+  cout << endl;
+  cout << myColor::YELLOW;
+  cout << "/////////// Fixed boundary = " << fixed_boundary << " full = " << full << endl;
+  cout << myColor::RESET;    
+  cout << endl;
+  
+  if(fixed_boundary)
+    for(long p=0;p<density.get_Nboundary();p++)
+      eigen_vector[species].Real().set(density.boundary_pos_2_pos(p),0.0);      
 
   eigen_value = 0;
   vector<DFT_Vec> d2F(1);
@@ -305,10 +317,14 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
       eigen_vector[species].do_real_2_fourier();
 
       // v => H dot v, lam = v dot H dot v
-      Hessian_dot_v(eigen_vector,d2F,full);
+      Hessian_dot_v(eigen_vector,d2F,fixed_boundary,full);
       d2F[0].IncrementBy_Scaled_Vector(eigen_vector[species].Real(),shift);
       eigen_value = eigen_vector[species].Real().dotWith(d2F[species]);
       eigen_vector[species].Real().set(d2F[species]);
+
+      if(fixed_boundary)      
+	for(long p=0;p<density.get_Nboundary();p++)
+	  eigen_vector[species].Real().set(density.boundary_pos_2_pos(p),0.0);      
 
       rel = fabs((eigen_value-eigen_value1)/(eigen_value+eigen_value1));
 

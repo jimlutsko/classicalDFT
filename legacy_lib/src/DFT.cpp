@@ -381,7 +381,8 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 void DFT::second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID)
 {
   double dV = allSpecies_[0]->getDensity().dV();
-    
+
+
   // ideal gas contribution: v_i/n_i
   if(noFID == false)
     {

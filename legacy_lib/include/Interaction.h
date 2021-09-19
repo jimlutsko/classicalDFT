@@ -53,6 +53,8 @@ class Interaction_Base
   double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_->getSequenceNumber()]*x[s2_->getSequenceNumber()];}  
 
   double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_vdw_;}
+
+  string get_name() const { return (v_ == NULL ? string("none") : v_->getIdentifier());}
   
  protected:  
   virtual void generateWeights();    
@@ -61,7 +63,7 @@ class Interaction_Base
   //Calculates the weight w(Sx,Sy,Sz)
   //returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz) = 0;
-
+  
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {

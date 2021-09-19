@@ -110,6 +110,8 @@ public:
 
   // the homogeneous dcf
   virtual double get_dcf(double r, double eta) const { return 0.0;}
+
+  string get_name() const { return Name();}
   
 protected:
   

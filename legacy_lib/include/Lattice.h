@@ -209,6 +209,12 @@ void init(double L[])
     return pos;
   }
 
+  long boundary_pos_2_pos(long p) const
+  {
+    int ix,iy,iz;
+    boundary_cartesian(p,ix,iy,iz);
+    return pos(ix,iy,iz);
+  }
 
   void boundary_cartesian(long pos,int v[]) const
   {

@@ -207,7 +207,9 @@ void Interaction_Base::generateWeightsXYZSym()
 
   vector<double> w2(Nmax+1,0.0);
 
-  cout << "Generating interpolated weights" << endl;
+  cout << myColor::YELLOW;
+  cout << "/////  Generating interpolated weights using Interaction_Base::generateWeightsXYZSym" << endl;
+  cout << myColor::RESET;
   
   long p = 0;
   double global_factor = dx*dx*dy*dy*dz*dz;
@@ -261,12 +263,10 @@ void Interaction_Base::generateWeightsXYZSym()
   }
   w_att_.Real().zeros();
   a_vdw_ = 0.0;
-
-  cout << endl;
   
   for(int ix = -Nx_lim-1;ix<=Nx_lim+1; ix++)
     {
-      cout << '\r';
+      cout << " " << '\r';
       std::cout << "\tProgress: " << ix+Nx_lim+1 << " of " << 2*(Nx_lim+1) << " (" << std::fixed << std::setprecision(1) << (100.0*(ix+Nx_lim+1)/(2*(Nx_lim+1))) << "%)";
       cout.flush();
       
@@ -291,16 +291,18 @@ void Interaction_Base::generateWeightsXYZSym()
 	    a_vdw_ += w;
 	  }
     }
-  cout << " - Finished!" << endl;
+  //  cout << " - Finished!" << endl;
   // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
   // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
   a_vdw_ /= (dx*dy*dz); 
   cout << std::defaultfloat << std::setprecision(6);
     
-  cout << myColor::GREEN;
-  cout << "/////  Finished.  " << endl;
-  cout << "///////////////////////////////////////////////////////////" << endl;
-  cout << myColor::RESET << endl;
+  //  cout << myColor::GREEN;
+  //  cout << "/////  Finished.  " << endl;
+  //  cout << "///////////////////////////////////////////////////////////" << endl;
+  //  cout << myColor::RESET << endl;
+  cout << "                                                                                         ";
+  std::cout << '\r';  cout.flush();  
     
 }
 
@@ -344,7 +346,9 @@ void Interaction_Base::generateWeights()
 
   vector<double> w2(Nmax+1,0.0);
 
-  cout << "Generating interpolated weights" << endl;
+  cout << myColor::YELLOW;
+  cout << "/////  Generating interpolated weights using Interaction_Base::generateWeights" << endl;
+  cout << myColor::RESET << endl;  
   
   long p = 0;
   double global_factor = dx*dx*dy*dy*dz*dz;
@@ -398,8 +402,6 @@ void Interaction_Base::generateWeights()
   w_att_.Real().zeros();
   a_vdw_ = 0.0;
   
-  cout << endl;
-  
   for(int ix = -Nx_lim;ix<=Nx_lim; ix++)
     {
       cout << '\r';
@@ -424,16 +426,17 @@ void Interaction_Base::generateWeights()
             a_vdw_ += w;
           }
     }
-  cout << " - Finished!" << endl;
+  //  cout << " - Finished!" << endl;
   // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
   // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
   a_vdw_ /= (dx*dy*dz); 
   cout << std::defaultfloat << std::setprecision(6);
     
-  cout << myColor::GREEN;
-  cout << "/////  Finished.  " << endl;
-  cout << "///////////////////////////////////////////////////////////" << endl;
-  cout << myColor::RESET << endl;
+  //  cout << myColor::GREEN;
+  //  cout << "/////  Finished.  " << endl;
+  //  cout << "///////////////////////////////////////////////////////////" << endl;
+  //  cout << myColor::RESET << endl;
+  std::cout << " " << 'r' << " ";  cout.flush();    
     
 }
 
@@ -606,7 +609,6 @@ bool Interaction::readWeights()
     {
       readWeights = false;
       cout << myColor::GREEN << endl;
-      cout << "///////////////////////////////////////////////////////////" << endl;
       cout << myColor::GREEN  << "\n" <<  "Could not open file with potential kernal: it will be generated" << myColor::RESET << endl;
     } else {
     string buf;
@@ -859,11 +861,12 @@ void Interaction::generateWeights()
 	    }
 	}
     }
-  cout << myColor::GREEN;
-  cout << "/////  Finished.  " << endl;
-  cout << "///////////////////////////////////////////////////////////" << endl;
-  cout << myColor::RESET << endl;
-   
+  //  cout << myColor::GREEN;
+  //  cout << "/////  Finished.  " << endl;
+  //  cout << "///////////////////////////////////////////////////////////" << endl;
+  //  cout << myColor::RESET << endl;
+  std::cout << 'r' << " ";  cout.flush();  
+  
   /// Dump the weights
   ofstream of(weightsFile_.str().c_str(), ios::binary | ios::app);  
   of << pointsFile_ << endl;
