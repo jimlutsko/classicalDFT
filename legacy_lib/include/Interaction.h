@@ -301,7 +301,7 @@ class Interaction_Interpolation_Zero : public Interaction_Interpolation
    *   @param kT: the temperature
    */    
  Interaction_Interpolation_Zero(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT) { vv_.push_back(1.0); pt_.push_back(0.0); }
+  Interaction_Interpolation(s1,s2,v,kT) { vv_.push_back(1.0); pt_.push_back(0.0); initialize();}
 
  Interaction_Interpolation_Zero() :
    Interaction_Interpolation() {};
@@ -332,11 +332,11 @@ class Interaction_Interpolation_LE : public Interaction_Interpolation
     { vv_.push_back( 1.0); vv_.push_back(26.0); vv_.push_back(66.0); vv_.push_back(26.0); vv_.push_back(1.0);
       pt_.push_back(-2.0); pt_.push_back(-1.0); pt_.push_back( 0.0); pt_.push_back( 1.0); pt_.push_back(2.0);
       for(auto &x: vv_) x /= 120.0;
+      initialize();
     }
 
   Interaction_Interpolation_LE() : 
     Interaction_Interpolation(){}
-
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -364,6 +364,7 @@ class Interaction_Interpolation_QE : public Interaction_Interpolation
     { vv_.push_back(-1.0); vv_.push_back(8.0);  vv_.push_back(18.0); vv_.push_back(112.0); vv_.push_back(86.0); vv_.push_back(112.0); vv_.push_back(18.0); vv_.push_back(8.0); vv_.push_back(-1.0);
       pt_.push_back(-2.0); pt_.push_back(-1.5); pt_.push_back(-1.0); pt_.push_back(-0.5);  pt_.push_back(0.0);  pt_.push_back(0.5);   pt_.push_back(1.0);  pt_.push_back(1.5); pt_.push_back(2.0);
       for(auto &x: vv_) x /= 360.0;
+      initialize();
     }
 
   Interaction_Interpolation_QE() : 
@@ -395,6 +396,7 @@ class Interaction_Interpolation_LF : public Interaction_Interpolation
     { vv_.push_back(1.0);  vv_.push_back(4.0); vv_.push_back(1.0);
       pt_.push_back(-1.0); pt_.push_back(0.0); pt_.push_back(1.0);
       for(auto &x: vv_) x /= 6;
+      initialize();
     }
 
   Interaction_Interpolation_LF() : 
@@ -425,6 +427,7 @@ class Interaction_Interpolation_QF : public Interaction_Interpolation
   Interaction_Interpolation(s1,s2,v,kT)
     { vv_.push_back(1.0/3);  vv_.push_back(1.0/3); vv_.push_back(1.0/3);
       pt_.push_back(-0.5); pt_.push_back(0.0); pt_.push_back(0.5);
+      initialize();
     }  
   Interaction_Interpolation_QF() : 
     Interaction_Interpolation(){}

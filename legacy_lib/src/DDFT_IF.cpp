@@ -277,6 +277,10 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
       A_dot_x(d2F[Jspecies], result, density, D, false);
 
       d2F[Jspecies].set(result);
+
+      if(fixed_boundary)      
+	for(long p=0;p<density.get_Nboundary();p++)
+	  d2F[Jspecies].set(density.boundary_pos_2_pos(p),0.0);      
     }
 }
 
@@ -308,7 +312,12 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
   d2F[0].zeros(Ntot);
   double rel = 1;
   double tol = 1e-8;
-  for(int i=0;i<5000 && rel > tol;i++)
+
+  tol = 0;
+  
+  ofstream debug("debug.dat");
+  
+  for(int i=0;i<10000 && rel > tol;i++)
     {
       double eigen_value1 = eigen_value;
 
@@ -326,11 +335,13 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
 	for(long p=0;p<density.get_Nboundary();p++)
 	  eigen_vector[species].Real().set(density.boundary_pos_2_pos(p),0.0);      
 
-      rel = fabs((eigen_value-eigen_value1)/(eigen_value+eigen_value1));
+      rel = fabs((eigen_value-eigen_value1)/(eigen_value+eigen_value1 -2*shift));
 
       cout << '\r'; cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
+      debug  << i << " " << eigen_value-shift << " " << rel << endl;
       //cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << endl;
     }
+  debug.close();
   cout << endl;
   
   eigen_value -= shift;
