@@ -317,7 +317,7 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
   
   ofstream debug("debug.dat");
   
-  for(int i=0;i<10000 && rel > tol;i++)
+  for(int i=0;i<1000000 && rel > tol;i++)
     {
       double eigen_value1 = eigen_value;
 
@@ -338,7 +338,7 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
       rel = fabs((eigen_value-eigen_value1)/(eigen_value+eigen_value1 -2*shift));
 
       cout << '\r'; cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
-      debug  << i << " " << eigen_value-shift << " " << rel << endl;
+      debug  << i << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value1) << endl;
       //cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << endl;
     }
   debug.close();

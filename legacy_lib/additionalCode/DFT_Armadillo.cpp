@@ -17,7 +17,7 @@ using namespace std;
 #define v2_DATA (*(static_cast<arma::vec*>(v2.data_)))
 
 DFT_Vec::DFT_Vec(unsigned N) : data_(new arma::vec(N)){}
-DFT_Vec::DFT_Vec(const DFT_Vec& v) { DATA = v_DATA;}
+DFT_Vec::DFT_Vec(const DFT_Vec& v) : data_(new arma::vec(v.size())) {DATA = v_DATA;}
 DFT_Vec::DFT_Vec(): data_(new arma::vec(1)) {}
 
 DFT_Vec::~DFT_Vec() { if(data_) delete static_cast<arma::vec*>(data_);}
@@ -92,7 +92,7 @@ void DFT_Vec::load(ifstream &in) {DATA.load(in);}
 #define v2_cDATA (*(static_cast<arma::cx_vec*>(v2.data_)))
 
 DFT_Vec_Complex::DFT_Vec_Complex(unsigned N) : data_(new arma::cx_vec(N)){}
-DFT_Vec_Complex::DFT_Vec_Complex(const DFT_Vec_Complex& v) { cDATA = v_cDATA;}
+DFT_Vec_Complex::DFT_Vec_Complex(const DFT_Vec_Complex& v) : data_(new arma::cx_vec(v.size())) {cDATA = v_cDATA;}
 DFT_Vec_Complex::DFT_Vec_Complex() : data_(new arma::cx_vec(1)) {}
 
 DFT_Vec_Complex::~DFT_Vec_Complex() { if(data_) delete static_cast<arma::cx_vec*>(data_);}

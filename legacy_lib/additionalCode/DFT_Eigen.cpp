@@ -22,7 +22,7 @@ using namespace Eigen;
 
 
 DFT_Vec::DFT_Vec(unsigned N) : data_(new Eigen::VectorXd(N)){}
-DFT_Vec::DFT_Vec(const DFT_Vec& v) { DATA = v_DATA;}
+DFT_Vec::DFT_Vec(const DFT_Vec& v) : data_(new Eigen::VectorXd(v.size())) { DATA = v_DATA;}
 DFT_Vec::DFT_Vec(): data_(new Eigen::VectorXd(1)) {}
 
 DFT_Vec::~DFT_Vec() { if(data_) delete static_cast<Eigen::VectorXd*>(data_);}
@@ -107,7 +107,7 @@ template<class Archive>  void DFT_Vec::load(Archive & ar, const unsigned int ver
 #define v2_cDATA (*(static_cast<Eigen::VectorXcd*>(v2.data_)))
 
 DFT_Vec_Complex::DFT_Vec_Complex(unsigned N) : data_(new Eigen::VectorXcd(N)){}
-DFT_Vec_Complex::DFT_Vec_Complex(const DFT_Vec_Complex& v) { cDATA = v_cDATA;}
+DFT_Vec_Complex::DFT_Vec_Complex(const DFT_Vec_Complex& v) : data_(new Eigen::VectorXcd(v.size())) { cDATA = v_cDATA;}
 DFT_Vec_Complex::DFT_Vec_Complex() : data_(new Eigen::VectorXcd(1)) {}
 
 DFT_Vec_Complex::~DFT_Vec_Complex() { if(data_) delete static_cast<Eigen::VectorXcd*>(data_);}
