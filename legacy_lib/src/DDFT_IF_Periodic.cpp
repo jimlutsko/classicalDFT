@@ -106,9 +106,9 @@ void DDFT_IF_Periodic::calcNonlinearTerm(const DFT_Vec &density, Species *specie
 
 void DDFT_IF_Periodic::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
 {
-  int Jspecies = 0;
-  Species *species = dft_->getSpecies(Jspecies);  
-  const Lattice &lattice = species->getLattice();
+  //  int Jspecies = 0;
+  //  Species *species = dft_->getSpecies(Jspecies);  
+  //  const Lattice &lattice = species->getLattice();
 }
 
 /**
@@ -147,10 +147,10 @@ double DDFT_IF_Periodic::fftDiffusion(DFT_Vec &new_density)
 	  if(pos > 0) // corresponds to K=0 - and mass is conserved so ...
 	    {
 	      double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
-	      double fac    = fx[ix]*fy[iy]*fz[iz];
-	      x *= fac;
-	      x += ((fac-1)/Lambda)*RHS0.cFour().get(pos);
-	      x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1.cFour().get(pos)-RHS0.cFour().get(pos));
+	      double exp_dt = fx[ix]*fy[iy]*fz[iz];
+	      x *= exp_dt;
+	      x += ((exp_dt-1)/Lambda)*RHS0.cFour().get(pos);
+	      x += ((exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1.cFour().get(pos)-RHS0.cFour().get(pos));
 	    }
 	  cwork.set(pos,x);
 	  pos++;	  
