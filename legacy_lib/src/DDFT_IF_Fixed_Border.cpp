@@ -231,7 +231,7 @@ double DDFT_IF_Fixed_Border::fftDiffusion(DFT_Vec &d1)
 	  double x = sin_out_[pos]; 
 	  
 	  x *= fac;
-	  x += ((fac-1)/Lambda)*(RHS0_sin_transform_[pos] + 0*RHS_Boundary_.get(pos));
+	  x += ((fac-1)/Lambda)*(RHS0_sin_transform_[pos] + RHS_Boundary_.get(pos));
 	  x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform_[pos]-RHS0_sin_transform_[pos]);
 
 	  sin_in_[pos] = x;
