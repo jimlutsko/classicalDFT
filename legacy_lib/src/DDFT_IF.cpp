@@ -40,10 +40,9 @@ using namespace std;
 
 // This implementation presently only works for a single species!!!
 
-void DDFT_IF::initialize()
+
+DDFT_IF::DDFT_IF(DFT *dft, bool showGraphics): DDFT(dft)
 {
-  DDFT::initialize();
-  
   F_ = dft_->calculateFreeEnergyAndDerivatives(false); //density_, 0.0, dF_,true);   
 
   int Jspecies = 0;
@@ -58,11 +57,8 @@ void DDFT_IF::initialize()
   dy_ = lattice.getDY();
   dz_ = lattice.getDZ();
 
-  double Dx = 1.0/(dx_*dx_);
-  double Dy = 1.0/(dy_*dy_);
-  double Dz = 1.0/(dz_*dz_);
-
 }
+
 
 // Here we solve the nonlinear equation
 // rho_[k,t+dt] = exp(L_{k} dt) rho_{k,t} - ((exp(L_{k} dt)-1)/L_{k}) R_{k}[rho_t] +((exp(L_{k} dt) - 1 - L dt))/L_{k}^2) R_{k}[rho_{t+dt}]
@@ -172,7 +168,7 @@ void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &
 
   double D[] = {Dx,Dy,Dz};
 
-  double dV = dx_*dy_*dz_;
+  //  double dV = dx_*dy_*dz_;
 
   //  update_forces_fixed_background(density,d2,dF,D);
 
@@ -250,18 +246,18 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
 	}
       Ax.set(pos,RHS);	  
     }      
-  if(do_subtract_ideal) cout << "sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
+  if(do_subtract_ideal) cout << "Ax_is_full = " << Ax_is_full << " sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
 }
 
 
-void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool fixed_boundary, bool full) const
+void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool fixed_boundary, bool dynamic) const
 {
   int Jspecies = 0;
 
   d2F[Jspecies].zeros();
   dft_->second_derivative(eigen_vector, d2F);
 
-  if(full)
+  if(dynamic)
     {
       const Density &density = dft_->getSpecies(Jspecies)->getDensity();
 
@@ -285,7 +281,7 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
 }
 
 			    
-void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, bool fixed_boundary, double shift, bool full) const
+void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, bool fixed_boundary, double shift, bool dynamic) const
 {
   int species = 0;
   
@@ -299,7 +295,7 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
 
   cout << endl;
   cout << myColor::YELLOW;
-  cout << "/////////// Fixed boundary = " << fixed_boundary << " full = " << full << endl;
+  cout << "/////////// Fixed boundary = " << fixed_boundary << " dynamic = " << dynamic << endl;
   cout << myColor::RESET;    
   cout << endl;
   
@@ -308,8 +304,8 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
       eigen_vector[species].Real().set(density.boundary_pos_2_pos(p),0.0);      
 
   eigen_value = 0;
-  vector<DFT_Vec> d2F(1);
-  d2F[0].zeros(Ntot);
+  vector<DFT_Vec> H_dot_eigen_vector(1);
+  H_dot_eigen_vector[species].zeros(Ntot);
   double rel = 1;
   double tol = 1e-8;
 
@@ -326,10 +322,10 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
       eigen_vector[species].do_real_2_fourier();
 
       // v => H dot v, lam = v dot H dot v
-      Hessian_dot_v(eigen_vector,d2F,fixed_boundary,full);
-      d2F[0].IncrementBy_Scaled_Vector(eigen_vector[species].Real(),shift);
-      eigen_value = eigen_vector[species].Real().dotWith(d2F[species]);
-      eigen_vector[species].Real().set(d2F[species]);
+      Hessian_dot_v(eigen_vector,H_dot_eigen_vector,fixed_boundary,dynamic);
+      H_dot_eigen_vector[species].IncrementBy_Scaled_Vector(eigen_vector[species].Real(),shift);
+      eigen_value = eigen_vector[species].Real().dotWith(H_dot_eigen_vector[species]);
+      eigen_vector[species].Real().set(H_dot_eigen_vector[species]);
 
       if(fixed_boundary)      
 	for(long p=0;p<density.get_Nboundary();p++)

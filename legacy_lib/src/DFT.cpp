@@ -19,6 +19,11 @@ using namespace std;
 
 #include "DFT.h"
 
+double DFT::mu_times_beta(double density) const
+{
+  return mu_times_beta(vector<double>(1,density),0);
+}
+
 double DFT::mu_times_beta(const vector<double> &x, int species) const
 {
   Summation mu;
@@ -34,6 +39,11 @@ double DFT::mu_times_beta(const vector<double> &x, int species) const
   return mu.sum();
 }
 
+double DFT::omega_times_beta_over_volume(double density) const
+{
+  return omega_times_beta_over_volume(vector<double>(1,density));
+}
+
 double DFT::omega_times_beta_over_volume(const vector<double> &x) const
 {
   double omega = fhelmholtz_times_beta_over_volume(x);
@@ -41,6 +51,11 @@ double DFT::omega_times_beta_over_volume(const vector<double> &x) const
     omega -= x[i]*mu_times_beta(x,i);
 
   return omega;
+}
+
+double DFT::fhelmholtz_times_beta_over_volume(double density) const
+{
+  return fhelmholtz_times_beta_over_volume(vector<double>(1,density));
 }
 
 double DFT::fhelmholtz_times_beta_over_volume(const vector<double> &x) const

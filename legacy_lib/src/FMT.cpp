@@ -454,7 +454,9 @@ void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, 
   vector<DFT_FFT> Lambda(Nfmt);
   for(auto &p: Lambda) p.initialize(Nx,Ny,Nz);
 
-  for(long pos = 0; pos < Ntot; pos++)
+  long pos;
+#pragma omp parallel for  private(pos) schedule(static)
+  for(pos = 0; pos < Ntot; pos++)
     {
       FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
 
@@ -464,7 +466,6 @@ void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, 
             
       FundamentalMeasures d2Phi_dot_Psi;
       calculate_d2Phi_dot_V(fm,Psi_K,d2Phi_dot_Psi);
-      //d2Phi_dot_Psi.set(0,Psi_K.get(1));
 
       for(int a=0;a<Nfmt;a++)
 	Lambda[a].Real().set(pos, d2Phi_dot_Psi.get(a));

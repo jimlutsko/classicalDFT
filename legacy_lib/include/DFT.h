@@ -79,6 +79,11 @@ class DFT
   virtual double mu_times_beta(const vector<double> &densities, int species) const;
   virtual double omega_times_beta_over_volume(const vector<double> &x) const;
   virtual double fhelmholtz_times_beta_over_volume(const vector<double> &x) const;
+
+  virtual double mu_times_beta(double densities) const;
+  virtual double omega_times_beta_over_volume(double density) const;
+  virtual double fhelmholtz_times_beta_over_volume(double density) const;  
+
   void   findSpinodal(double xmax, double dx, double &xs1, double &xs2, double tol) const;
   double find_density_from_mu(double mu, double xmin, double xmax, double tol) const;
   void findCoex(double xmax, double dx, double &x1, double &x2, double tol) const;

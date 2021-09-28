@@ -92,35 +92,26 @@ class Species
   // Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
   double endForceCalculation()
   {
+    if(fixedBackground_ && fixedMass_ > 0.0)
+      throw std::runtime_error("Cannot have both fixed background and fixed mass .... aborting");
+    
+    
     if(fixedBackground_)
       {
+	/*
 	double average_border_force = 0;
 
-	for(int ix = 0; ix < density_.Nx(); ix++)
-	  for(int iy = 0; iy < density_.Ny(); iy++)
-	    average_border_force += dF_.get(density_.pos(ix,iy,0));
-
-	for(int ix = 0; ix < density_.Nx(); ix++)
-	  for(int iz = 1; iz < density_.Nz(); iz++)
-	    average_border_force += dF_.get(density_.pos(ix,0,iz));
-
-	for(int iy = 1; iy < density_.Ny(); iy++)
-	  for(int iz = 1; iz < density_.Nz(); iz++)
-	    average_border_force += dF_.get(density_.pos(0,iy,iz));
+	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
+	  average_border_force += dF_.get(density_.boundary_pos_2_pos(pos));
 
 	average_border_force /= density_.get_Nboundary();
-	
-	for(int ix = 0; ix < density_.Nx(); ix++)
-	  for(int iy = 0; iy < density_.Ny(); iy++)
-	    dF_.set(density_.pos(ix,iy,0),average_border_force);
 
-	for(int ix = 0; ix < density_.Nx(); ix++)
-	  for(int iz = 1; iz < density_.Nz(); iz++)
-	    dF_.set(density_.pos(ix,0,iz),average_border_force);
+	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
+	  dF_.set(density_.boundary_pos_2_pos(pos),average_border_force);
+	*/
 
-	for(int iy = 1; iy < density_.Ny(); iy++)
-	  for(int iz = 1; iz < density_.Nz(); iz++)
-	    dF_.set(density_.pos(0,iy,iz),average_border_force);		
+	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
+	  dF_.set(density_.boundary_pos_2_pos(pos),0.0);	
       }
 
     

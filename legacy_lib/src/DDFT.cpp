@@ -18,11 +18,6 @@ using namespace std;
 
 #include "Minimizer.h"
 
-void DDFT::initialize()
-{
-  Minimizer::initialize();
-  successes_ = 0;
-}
 
 //void DDFT::reverseForce(DFT_Vec *tangent) 
 //{

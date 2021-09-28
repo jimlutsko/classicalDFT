@@ -17,22 +17,7 @@ using namespace std;
 
 DDFT_IF_Fixed_Border::DDFT_IF_Fixed_Border(DFT *dft,  bool showGraphics)
   : DDFT_IF(dft,showGraphics),  sin_in_(NULL), sin_out_(NULL)
-{}
-
-DDFT_IF_Fixed_Border::~DDFT_IF_Fixed_Border()
 {
-  if(sin_in_) delete sin_in_;
-  if(sin_out_) delete sin_out_;
-  if(RHS0_sin_transform_) delete RHS0_sin_transform_;
-  if(RHS1_sin_transform_) delete RHS1_sin_transform_;
-
-  fftw_destroy_plan(sin_plan_);
-}
-
-void DDFT_IF_Fixed_Border::initialize()
-{
-  DDFT_IF::initialize();
-
   int Jspecies = 0;
   Density density = dft_->getSpecies(Jspecies)->getDensity();  
 
@@ -55,6 +40,11 @@ void DDFT_IF_Fixed_Border::initialize()
 
   ////////////////////////////////////////////////////////////////////
   // Create the 2D FFT of the fixed borders
+  // Note that in the expressions below, there is an extra factor of 2
+  // multiplying the factors Dx, Dy, Dz as compared to my notes. This is
+  // because FFTW puts an extra factor of 2 in the sine-transform 
+  // so we must do the same here. 
+
   RHS_Boundary_.zeros(sin_Ntot_);
 
   double *rho_x = new double [(Ny_-1)*(Nz_-1)];
@@ -62,18 +52,22 @@ void DDFT_IF_Fixed_Border::initialize()
   fftw_plan plan_x = fftw_plan_r2r_2d(Ny_-1, Nz_-1,
 			       sin_in_, rho_x,FFTW_RODFT00, FFTW_RODFT00,FFTW_MEASURE);
   long pos = 0;
+  double sum = 0.0;
   for(int iy=1;iy<Ny_; iy++)
     for(int iz=1;iz<Nz_;iz++)
-      sin_in_[pos++] = density.get(0,iy,iz);
+      {
+	sin_in_[pos++] = density.get(0,iy,iz);
+	sum += sin(iy*M_PI/Ny_)*sin(iz*M_PI/Nz_);
+      }
   fftw_execute(plan_x);
   fftw_destroy_plan(plan_x);
-
+  
   double Dx = 1.0/(dx_*dx_);
   pos = 0;
   for(int ix=1;ix<Nx_;ix++)
     for(int iy=1;iy<Ny_; iy++)
       for(int iz=1;iz<Nz_;iz++)
-	RHS_Boundary_.IncrementBy(pos++, Dx*sin((M_PI*ix)/Nx_)*(1-cos(ix*M_PI))*rho_x[iy*(Nz_-1)+iz]);
+	RHS_Boundary_.IncrementBy(pos++, 2*Dx*sin((M_PI*ix)/Nx_)*(1-cos(ix*M_PI))*rho_x[(iy-1)*(Nz_-1)+iz-1]);
   delete rho_x;
 
   double *rho_y = new double [(Nx_-1)*(Nz_-1)];
@@ -92,7 +86,7 @@ void DDFT_IF_Fixed_Border::initialize()
   for(int ix=1;ix<Nx_;ix++)
     for(int iy=1;iy<Ny_; iy++)
       for(int iz=1;iz<Nz_;iz++)
-	RHS_Boundary_.IncrementBy(pos++, Dy*sin((M_PI*iy)/Ny_)*(1-cos(iy*M_PI))*rho_y[ix*(Nz_-1)+iz]);
+	RHS_Boundary_.IncrementBy(pos++, 2*Dy*sin((M_PI*iy)/Ny_)*(1-cos(iy*M_PI))*rho_y[(ix-1)*(Nz_-1)+iz-1]);
   delete rho_y;
 
   double *rho_z = new double [(Nx_-1)*(Ny_-1)];
@@ -111,7 +105,7 @@ void DDFT_IF_Fixed_Border::initialize()
   for(int ix=1;ix<Nx_;ix++)
     for(int iy=1;iy<Ny_; iy++)
       for(int iz=1;iz<Nz_;iz++)
-	RHS_Boundary_.IncrementBy(pos++, Dy*sin((M_PI*iz)/Nz_)*(1-cos(iz*M_PI))*rho_z[ix*(Ny_-1)+iy]);
+	RHS_Boundary_.IncrementBy(pos++, 2*Dz*sin((M_PI*iz)/Nz_)*(1-cos(iz*M_PI))*rho_z[(ix-1)*(Ny_-1)+iy-1]);
   delete rho_z;
 
   
@@ -150,6 +144,16 @@ void DDFT_IF_Fixed_Border::initialize()
 
       Lamz_.push_back(facz);
     }
+}
+
+DDFT_IF_Fixed_Border::~DDFT_IF_Fixed_Border()
+{
+  if(sin_in_) delete sin_in_;
+  if(sin_out_) delete sin_out_;
+  if(RHS0_sin_transform_) delete RHS0_sin_transform_;
+  if(RHS1_sin_transform_) delete RHS1_sin_transform_;
+
+  fftw_destroy_plan(sin_plan_);
 }
 
 
@@ -227,7 +231,7 @@ double DDFT_IF_Fixed_Border::fftDiffusion(DFT_Vec &d1)
 	  double x = sin_out_[pos]; 
 	  
 	  x *= fac;
-	  x += ((fac-1)/Lambda)*RHS0_sin_transform_[pos];
+	  x += ((fac-1)/Lambda)*(RHS0_sin_transform_[pos] + 0*RHS_Boundary_.get(pos));
 	  x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform_[pos]-RHS0_sin_transform_[pos]);
 
 	  sin_in_[pos] = x;

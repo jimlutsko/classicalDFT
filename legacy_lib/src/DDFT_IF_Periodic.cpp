@@ -40,12 +40,10 @@ using namespace std;
 
 // This implementation presently only works for a single species!!!
 
-void DDFT_IF_Periodic::initialize()
+
+DDFT_IF_Periodic::DDFT_IF_Periodic(DFT *dft, bool showGraphics)
+  : DDFT_IF(dft,showGraphics)
 {
-  if(Lamx_.size() > 0) return; // avoid double initialization
-
-  DDFT_IF::initialize();
-
   RHS0.initialize(Nx_,Ny_,Nz_);
   RHS1.initialize(Nx_,Ny_,Nz_);
   
@@ -75,7 +73,8 @@ void DDFT_IF_Periodic::initialize()
       double facz = 2*Dz*(cos(kz)-1);
       
       Lamz_.push_back(facz);
-    }  
+    }    
+  
 }
 
 // Here we solve the nonlinear equation

@@ -89,7 +89,7 @@ class Density : public Lattice
   // external field (wall_)
   virtual double get_field(int i, int j, int k) const { return vWall_.get(pos(i,j,k));}
   virtual double get_field_deriv(int ix, int iy, int iz, int direction) const { return 0.0;}  
-  double         get_field_dot_density() const { return vWall_.dotWith(Density_.cReal());}   
+  double         get_field_dot_density() const { return (vWall_.size() == 0 ? 0.0 : vWall_.dotWith(Density_.cReal()));}   
   
   // Read/Write
   void write_VTK_File(string &filename);

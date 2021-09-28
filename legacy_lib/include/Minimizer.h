@@ -15,27 +15,17 @@ using namespace std;
 class Minimizer
 {
  public:
-  Minimizer(DFT *dft) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false)
-  {
-    x_.resize(dft->getNumberOfSpecies());
-
-    for(auto &x: x_) x.resize(dft_->get_lattice().Ntot()); 
-  }
+  Minimizer(DFT *dft);
   Minimizer() {}
   
   void setFrozenBoundaryFlag(bool f) {bFrozenBoundary_ = f;}
   
-  virtual void initialize();
-
   void run(long maxSteps = -1);
   void resume(long maxSteps = -1);
 
   virtual double step() = 0;
-
   virtual void draw_after() {};  // Display something after the minimization
-
   virtual void reportMessage(string message){}
-
   
   int getCalls() const { return calls_;}
   double getF() const { return F_;}
@@ -100,7 +90,6 @@ class fireMinimizer2 : public Minimizer
   fireMinimizer2(DFT *dft);
   fireMinimizer2(): Minimizer(){}
 
-  virtual void   initialize();
   virtual double step();
 
   double getRMS_Force() const { return rms_force_;}
@@ -210,8 +199,6 @@ class DDFT : public Minimizer
   }
   ~DDFT() {}
 
-  virtual void initialize();
-
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
   void set_max_time_step(double t) { dtMax_ = t;}
 
@@ -250,12 +237,9 @@ class DDFT : public Minimizer
 class DDFT_IF : public DDFT
 {
  public:
- DDFT_IF(DFT *dft, bool showGraphics = true)
-   : DDFT(dft) {}
-
+  DDFT_IF(DFT *dft, bool showGraphics = true);
   ~DDFT_IF() {}
 
-  virtual void initialize();
   virtual double step();
 
   void set_is_closed(bool val) { is_closed_ = val;}
@@ -298,10 +282,8 @@ protected:
 class DDFT_IF_Periodic : public DDFT_IF
 {
  public:
- DDFT_IF_Periodic(DFT *dft, bool showGraphics = true)
-   : DDFT_IF(dft,showGraphics) {}
+  DDFT_IF_Periodic(DFT *dft, bool showGraphics = true);
   ~DDFT_IF_Periodic(){}
-  virtual void initialize();
 
  protected:
   virtual double fftDiffusion(DFT_Vec &new_density);
@@ -328,8 +310,6 @@ class DDFT_IF_Fixed_Border : public DDFT_IF
   DDFT_IF_Fixed_Border(DFT *dft,  bool showGraphics = true);
   ~DDFT_IF_Fixed_Border();
 
-  virtual void initialize();
-  
 protected:
   virtual double fftDiffusion(DFT_Vec &d1);
   virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0);  
