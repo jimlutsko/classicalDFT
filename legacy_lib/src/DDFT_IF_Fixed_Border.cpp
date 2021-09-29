@@ -172,23 +172,17 @@ void DDFT_IF_Fixed_Border::calcNonlinearTerm(const DFT_Vec &density, Species *sp
 }
 
 
-void DDFT_IF_Fixed_Border::update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3])
-{
-  cout << "IN UPDATE" << endl;
-  long Nboundary = Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;  
-  for(long pboundary = 0;pboundary<Nboundary;pboundary++)
-    {
-      int cartesian[3]; // working space      
-      density.boundary_cartesian(pboundary,cartesian);
-      dF.set(density.get_PBC_Pos(cartesian));
-    }
-}
-
-void DDFT_IF_Fixed_Border::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
-{
-  // nothing to do in this case ...
-}
-
+//void DDFT_IF_Fixed_Border::update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3])
+//{
+//  cout << "IN UPDATE" << endl;
+//  long Nboundary = Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;  
+//  for(long pboundary = 0;pboundary<Nboundary;pboundary++)
+//    {
+//      int cartesian[3]; // working space      
+//      density.boundary_cartesian(pboundary,cartesian);
+//      dF.set(density.get_PBC_Pos(cartesian));
+//    }
+//}
 
 
 /**
@@ -225,14 +219,13 @@ double DDFT_IF_Fixed_Border::fftDiffusion(DFT_Vec &d1)
     for(int iy=0;iy<Lamy_.size();iy++)
       for(int iz=0;iz<Lamz_.size();iz++)
 	{
-	  double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
-	  double fac    = fx[ix]*fy[iy]*fz[iz];
-	  
 	  double x = sin_out_[pos]; 
-	  
-	  x *= fac;
-	  x += ((fac-1)/Lambda)*(RHS0_sin_transform_[pos] + RHS_Boundary_.get(pos));
-	  x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform_[pos]-RHS0_sin_transform_[pos]);
+
+	  double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
+	  double exp_dt = fx[ix]*fy[iy]*fz[iz];	  
+	  x *= exp_dt;
+	  x += ((exp_dt-1)/Lambda)*(RHS0_sin_transform_[pos] + RHS_Boundary_.get(pos));
+	  x += ((exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform_[pos]-RHS0_sin_transform_[pos]);
 
 	  sin_in_[pos] = x;
 	  pos++;

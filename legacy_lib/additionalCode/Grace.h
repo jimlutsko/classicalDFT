@@ -35,6 +35,9 @@ class Grace
   void setXAxisLabel(const char *s, int Graph = -1);
   void setYAxisLabel(const char *s, int Graph = -1);
 
+  void setXAxisScale(int scale, int Graph=-1);
+  void setYAxisScale(int scale, int Graph=-1);
+  
   void setCharSize(double s, int Graph = -1);
 
   void setTitle(const char *s);
@@ -64,6 +67,9 @@ class Grace
   static int SQUARE;
 
 
+  static int NORMAL_SCALE;
+  static int LOG_SCALE;
+  
   static int JPG;
   static int PNG;
   static int EPS1;

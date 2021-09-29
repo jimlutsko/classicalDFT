@@ -53,7 +53,7 @@ class Density : public Lattice
   void set(unsigned pos, double val)  { Density_.Real().set(pos,val);}  
   void set(const DFT_Vec &x) { Density_.Real().set(x);}
   void set_background_density(double val);
-
+  
   virtual double  get(long pos) const { return Density_.cReal().get(pos);}   
   virtual double  get(int ix, int iy, int iz) const {putIntoBox(ix,iy,iz); return Density_.cReal().get(pos(ix,iy,iz));}
   complex<double> get_fourier_value(long pos) const {return Density_.cFour().get(pos);}
@@ -77,6 +77,7 @@ class Density : public Lattice
   // do stuff to the density
   void   scale_to(double a) { Density_.Real().MultBy(a);}
   void   shift(DFT_Vec &v)  { Density_.Real().IncrementBy(v);} 
+  void   increment(unsigned pos, double val) { Density_.Real().IncrementBy(pos,val);}
   void   doFFT()            {Density_.do_real_2_fourier();}
 
   // access arrays  

@@ -15,7 +15,7 @@ using namespace std;
 #include "myColor.h"
 
 
-Minimizer::Minimizer(DFT *dft) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false)
+Minimizer::Minimizer(DFT *dft) : dft_(dft), forceLimit_(0.1)
 {
   x_.resize(dft->getNumberOfSpecies());
   

@@ -143,8 +143,6 @@ double DDFT_IF::step()
   if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
 
 
-  finish_nonlinear_calc(d0,d1);
-  
   species->set_density(d1);
   species->fft_density();
   calls_++;
@@ -161,19 +159,11 @@ void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &
 {
   int Jspecies = 0;
   const Density &density = dft_->getSpecies(Jspecies)->getDensity();
-  
-  double Dx = 1.0/(dx_*dx_);
-  double Dy = 1.0/(dy_*dy_);
-  double Dz = 1.0/(dz_*dz_);
 
-  double D[] = {Dx,Dy,Dz};
-
-  //  double dV = dx_*dy_*dz_;
-
-  //  update_forces_fixed_background(density,d2,dF,D);
+  double D[] = {1.0/(dx_*dx_),1.0/(dy_*dy_),1.0/(dz_*dz_)};
 
   A_dot_x(dF, RHS1, density, D, true);
-
+  
 }
 
 double  static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Density& density)
@@ -246,7 +236,8 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
 	}
       Ax.set(pos,RHS);	  
     }      
-  if(do_subtract_ideal) cout << "Ax_is_full = " << Ax_is_full << " sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
+    if(do_subtract_ideal) cout << "Ax_is_full = " << Ax_is_full << " sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
+    cout << "Fmax = " << x.max() << " Fmin = " << x.min() << endl;
 }
 
 

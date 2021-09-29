@@ -18,8 +18,6 @@ class Minimizer
   Minimizer(DFT *dft);
   Minimizer() {}
   
-  void setFrozenBoundaryFlag(bool f) {bFrozenBoundary_ = f;}
-  
   void run(long maxSteps = -1);
   void resume(long maxSteps = -1);
 
@@ -49,7 +47,6 @@ class Minimizer
 
   double forceLimit_;
   double f_abs_max_; // max absolute value of dF_
-  bool bFrozenBoundary_;
 
   double vv_ = 0;
 
@@ -69,7 +66,6 @@ class Minimizer
     ar & F_;
     ar & forceLimit_;
     ar & f_abs_max_;
-    ar & bFrozenBoundary_;
     ar & vv_;
     ar & minDensity_;
   }
@@ -250,7 +246,6 @@ class DDFT_IF : public DDFT
  protected:
   virtual double fftDiffusion(DFT_Vec &d1) = 0;
   virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0) = 0;
-  virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1) = 0;
   
   void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
   //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
@@ -288,7 +283,6 @@ class DDFT_IF_Periodic : public DDFT_IF
  protected:
   virtual double fftDiffusion(DFT_Vec &new_density);
   virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0);
-  virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1);
 
   void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
 
@@ -313,9 +307,8 @@ class DDFT_IF_Fixed_Border : public DDFT_IF
 protected:
   virtual double fftDiffusion(DFT_Vec &d1);
   virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0);  
-  virtual void   finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1);
 
-  void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3]);
+  //  void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3]);
   
   void pack_for_sin_transform(const double *x);  
   void unpack_after_transform(double *x);

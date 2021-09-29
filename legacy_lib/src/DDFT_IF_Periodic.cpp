@@ -103,13 +103,6 @@ void DDFT_IF_Periodic::calcNonlinearTerm(const DFT_Vec &density, Species *specie
   }
 }
 
-void DDFT_IF_Periodic::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
-{
-  //  int Jspecies = 0;
-  //  Species *species = dft_->getSpecies(Jspecies);  
-  //  const Lattice &lattice = species->getLattice();
-}
-
 /**
  This function takes the input density and calculates a new density, d1, by propagating the density a time step dt. The nonlinear terms, RHS0 and RHS1, are treated explicitly.
 */
@@ -118,11 +111,9 @@ double DDFT_IF_Periodic::fftDiffusion(DFT_Vec &new_density)
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);
   const Density &density = species->getDensity();
+
+  species->doFFT();
   
-  DFT_FFT work(Nx_,Ny_,Nz_);
-
-  DFT_Vec_Complex &cwork = work.Four();
-
   // save some evaluations of the exponent
   vector<double> fx;
   for(int ix=0;ix<Lamx_.size();ix++)
@@ -136,6 +127,9 @@ double DDFT_IF_Periodic::fftDiffusion(DFT_Vec &new_density)
   for(int iz=0;iz<Lamz_.size();iz++)
     fz.push_back(exp(Lamz_[iz]*dt_));  
 
+  DFT_FFT work(Nx_,Ny_,Nz_);
+  DFT_Vec_Complex &cwork = work.Four();
+  
   unsigned pos = 0;
   for(int ix = 0;ix<Lamx_.size();ix++)
     for(int iy=0;iy<Lamy_.size();iy++)
@@ -143,7 +137,7 @@ double DDFT_IF_Periodic::fftDiffusion(DFT_Vec &new_density)
 	{
 	  complex<double> x = density.get_fourier_value(pos); 
 	  
-	  if(pos > 0) // corresponds to K=0 - and mass is conserved so ...
+	  if(pos > 0) // pos == 0 corresponds to K=0 - and mass is conserved so nothing to do ...
 	    {
 	      double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
 	      double exp_dt = fx[ix]*fy[iy]*fz[iz];
