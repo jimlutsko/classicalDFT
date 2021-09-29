@@ -201,6 +201,8 @@ class DDFT : public Minimizer
   void   setTimeStep(double dt) { dt_ = dt;}    
   double getTimeStep() const { return dt_;}
 
+  double get_time() const { return time_;}
+  
   virtual double step() = 0;
 
   void Display(double F, double dFmin, double dFmax, double N);
@@ -217,6 +219,7 @@ class DDFT : public Minimizer
   bool show_ = true;
   
   double dt_;
+  double time_ = 0;
   double tolerence_fixed_point_ = 1e-4;
 
   // control of adaptive time step

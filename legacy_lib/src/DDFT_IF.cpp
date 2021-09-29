@@ -137,6 +137,8 @@ double DDFT_IF::step()
       {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
   } while(reStart);
 
+  time_ += dt_;
+  
   // Adaptive time-step: try to increase time step if the present one works 5 times 
   if(decreased_time_step) successes_ = 0;
   else successes_++;
