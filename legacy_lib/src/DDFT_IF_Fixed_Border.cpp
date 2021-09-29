@@ -214,11 +214,14 @@ double DDFT_IF_Fixed_Border::fftDiffusion(DFT_Vec &d1)
 
   // Note that the following is correct: Lamx[ix,iy,iz] corresponds to
   // spatial point (ix+1),(iy+1),(iz+1) so the 1-offset is accounted for.   
-  unsigned pos = 0;
-  for(int ix=0;ix<Lamx_.size();ix++)
+  int ix;
+#pragma omp parallel for  private(ix) schedule(static) 
+  for(ix=0;ix<Lamx_.size();ix++)
     for(int iy=0;iy<Lamy_.size();iy++)
       for(int iz=0;iz<Lamz_.size();iz++)
 	{
+	  unsigned pos = iz + Lamz_.size()*(iy +  Lamy_.size()*ix);
+
 	  double x = sin_out_[pos]; 
 
 	  double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
@@ -228,7 +231,6 @@ double DDFT_IF_Fixed_Border::fftDiffusion(DFT_Vec &d1)
 	  x += ((exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform_[pos]-RHS0_sin_transform_[pos]);
 
 	  sin_in_[pos] = x;
-	  pos++;
 	}
 
   fftw_execute(sin_plan_);
@@ -237,12 +239,16 @@ double DDFT_IF_Fixed_Border::fftDiffusion(DFT_Vec &d1)
   double maxdeviation = 0;
 
   // Notice that sin_out is indexed using sign_out[1] as element 0 ... this differs from the periodic case
-  pos = 0;
-  for(int ix=1;ix<Nx_;ix++)
+
+
+#pragma omp parallel for  private(ix) schedule(static) reduction(+:deviation) reduction(+:maxdeviation)
+  for(ix=1;ix<Nx_;ix++)
     for(int iy=1;iy<Ny_;iy++)
       for(int iz=1;iz<Nz_;iz++)
 	{
-	  double d     = (sin_out_[pos++] /= sin_Norm_);
+	  unsigned pos = (iz-1) + (Nz_-1)*(iy-1 +  (Ny_-1)*(ix-1));
+	  
+	  double d     = (sin_out_[pos] /= sin_Norm_);
 	  double d1val = d1.get(lattice.pos(ix,iy,iz));
 	  double u     = fabs(d1val-d);
 	  
@@ -258,11 +264,15 @@ void DDFT_IF_Fixed_Border::pack_for_sin_transform(const double *x)
   int Jspecies = 0;
   const Density &density = dft_->getSpecies(Jspecies)->getDensity();
   
-  unsigned pos = 0;
-  for(int ix=1;ix<Nx_;ix++)
+  int ix;  
+#pragma omp parallel for  private(ix) schedule(static)
+  for(ix=1;ix<Nx_;ix++)
     for(int iy=1;iy<Ny_;iy++)
       for(int iz=1;iz<Nz_;iz++)
-	  sin_in_[pos++] = x[density.pos(ix,iy,iz)];
+	{
+	  unsigned pos = (iz-1) + (Nz_-1)*(iy-1 +  (Ny_-1)*(ix-1));  
+	  sin_in_[pos] = x[density.pos(ix,iy,iz)];
+	}
 }
 
 void DDFT_IF_Fixed_Border::unpack_after_transform(double *x)
@@ -270,15 +280,14 @@ void DDFT_IF_Fixed_Border::unpack_after_transform(double *x)
   int Jspecies = 0;
   const Density &density = dft_->getSpecies(Jspecies)->getDensity();
   
-  unsigned pos = 0;
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iy=0;iy<Ny_;iy++)
-      for(int iz=0;iz<Nz_;iz++)
+  int ix;
+#pragma omp parallel for  private(ix) schedule(static)
+  for(ix=1;ix<Nx_;ix++)
+    for(int iy=1;iy<Ny_;iy++)
+      for(int iz=1;iz<Nz_;iz++)
 	{
-	  if(ix == 0 || iy == 0 || iz == 0)
-	    ; // do nothing ...x[density.pos(ix,iy,iz)] = val;
-	  else
-	    x[density.pos(ix,iy,iz)] = sin_out_[pos++];
+	  unsigned pos = (iz-1) + (Nz_-1)*(iy-1 +  (Ny_-1)*(ix-1));    
+	    x[density.pos(ix,iy,iz)] = sin_out_[pos];
 	}
 }
 

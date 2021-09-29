@@ -76,7 +76,7 @@ DDFT_IF::DDFT_IF(DFT *dft, bool showGraphics): DDFT(dft)
 
 double DDFT_IF::step()
 {
-  cout << "===================================================================================================================" << endl;
+  //  cout << "===================================================================================================================" << endl;
 
 
   if(dft_->getNumberOfSpecies() > 1)
@@ -88,7 +88,7 @@ double DDFT_IF::step()
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  cout << "Initial F = " << F_ << endl;
+  //  cout << "Initial F = " << F_ << endl;
 
   
   int Jspecies = 0;
@@ -126,7 +126,7 @@ double DDFT_IF::step()
 	species->fft_density();
 	
 	deviation = fftDiffusion(d1);
-	cout << setprecision(12) << "\tdeviation = " << deviation << " dt = " << dt_ << " Natoms = " << nn << endl;
+	//	cout << setprecision(12) << "\tdeviation = " << deviation << " dt = " << dt_ << " Natoms = " << nn << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
 	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
@@ -149,7 +149,7 @@ double DDFT_IF::step()
 
   F_ = dft_->calculateFreeEnergyAndDerivatives(false); 
 
-  cout << setprecision(12) << "F = " << F_ << " Natoms = " << species->getDensity().getNumberAtoms() << endl;
+  //  cout << setprecision(12) << "F = " << F_ << " Natoms = " << species->getDensity().getNumberAtoms() << endl;
   
   return F_;  
 }
@@ -236,8 +236,8 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
 	}
       Ax.set(pos,RHS);	  
     }      
-    if(do_subtract_ideal) cout << "Ax_is_full = " << Ax_is_full << " sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
-    cout << "Fmax = " << x.max() << " Fmin = " << x.min() << endl;
+  //    if(do_subtract_ideal) cout << "Ax_is_full = " << Ax_is_full << " sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
+  //    cout << "Fmax = " << x.max() << " Fmin = " << x.min() << endl;
 }
 
 
