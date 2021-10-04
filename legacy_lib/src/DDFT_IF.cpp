@@ -333,7 +333,7 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
 	  debug  << iteration << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value1) << endl;
 	  debug.close();
 
-	  ofstream of(Filename);
+	  ofstream of(Filename, (iteration == 0 ? ios::trunc : ios::app));
 	  of <<  eigen_value << iteration << rel << eigen_vector[species].Real();
 	  of.close();
 	}
