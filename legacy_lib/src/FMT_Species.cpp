@@ -361,7 +361,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 
   cout << endl;
   cout << myColor::YELLOW;
-  cout << "/////  Generating weights using analytic formulae" << endl;
+  cout << "/////  Generating FMT weights using analytic formulae" << endl;
   cout << myColor::RESET;
 
   long counter = 0;
@@ -523,12 +523,6 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 	}
 
   cout << '\r'; cout << ""; cout.flush();
-
-  //  cout << endl;
-  //  cout << myColor::YELLOW;
-  //  cout << "/////  Finished.  " << endl;
-  //  cout << "///////////////////////////////////////////////////////////" << endl;
-  //  cout << myColor::RESET << endl;
 }
 
 
@@ -553,7 +547,7 @@ FMT_Species_EOS::FMT_Species_EOS(double D_EOS, Density& density, double hsd, dou
 
 void FMT_Species_EOS::generate_additional_Weight()
 {
-  cout << "Generating additional eos weight" << endl;
+  cout << "Generating additional FMT eos weight" << endl;
   
   double dx = density_.getDX();
   double dy = density_.getDY();
@@ -579,7 +573,7 @@ void FMT_Species_EOS::generate_additional_Weight()
   cout << endl;
   cout << myColor::YELLOW;
   cout << "///////////////////////////////////////////////////////////" << endl;
-  cout << "/////  Generating eos weight using analytic formulae" << endl;
+  cout << "/////  Generating FMT eos weight using analytic formulae" << endl;
   cout << myColor::RESET << endl;
 
   long counter = 0;

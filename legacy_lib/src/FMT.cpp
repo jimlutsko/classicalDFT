@@ -277,11 +277,7 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 
   Summation F;
   long i;
-#pragma omp parallel for \
-  shared(allSpecies )	 \
-  private(i)		 \
-  schedule(static)	 \
-  reduction(SummationPlus:F)
+#pragma omp parallel for shared(allSpecies ) private(i) schedule(static) reduction(SummationPlus:F)
   for(i=0;i<Ntot;i++)
     {
       try {
@@ -543,8 +539,10 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
   double dV = density1.dV();
 
   double f = 0;
-  
-  for(int ix = 0;ix<Nx;ix++)
+
+  int ix;
+#pragma omp parallel for  private(ix) schedule(static)  reduction(+:f)
+  for(ix = 0;ix<Nx;ix++)
     for(int iy = 0;iy<Ny;iy++)
       for(int iz = 0;iz<Nz;iz++)
 	{
