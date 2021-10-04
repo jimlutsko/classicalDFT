@@ -276,7 +276,7 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
 }
 
 			    
-void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol)const
+double DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol)const
 {
   int species = 0;
   
@@ -297,11 +297,11 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
     for(long p=0;p<density.get_Nboundary();p++)
       eigen_vector[species].Real().set(density.boundary_pos_2_pos(p),0.0);      
 
-  eigen_value = 0;
+  double eigen_value = 0;
   vector<DFT_Vec> H_dot_eigen_vector(1);
   H_dot_eigen_vector[species].zeros(Ntot);
-  double rel = 1;
 
+  double rel = 1;
   long iteration;
   for(iteration=0; (maxSteps < 0 || iteration<maxSteps) && rel > tol;iteration++)
     {
@@ -334,12 +334,12 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
 	  debug.close();
 
 	  ofstream of(Filename);
-	  of <<  eigen_value << iteration << rel << eigen_vector[species].Real();
+	  of <<  eigen_vector[species].Real();
 	  of.close();
 	}
     }
   ofstream of(Filename);
-  of <<  eigen_value << iteration << rel << eigen_vector[species].Real();
+  of <<  eigen_vector[species].Real();
   of.close();
 
   
@@ -348,6 +348,8 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
   cout << myColor::RESET;  
   
   eigen_value -= shift;
+
+  return eigen_value;
 }
 
 
