@@ -329,11 +329,11 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
 	  cout << '\r'; cout << "\t" << "iteration = " << iteration << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
 	  cout << myColor::RESET;
 
-	  ofstream debug("debug.dat");	  
+	  ofstream debug("debug.dat", (iteration == 0 ? ios::trunc : ios::app));
 	  debug  << iteration << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value1) << endl;
 	  debug.close();
 
-	  ofstream of(Filename, (iteration == 0 ? ios::trunc : ios::app));
+	  ofstream of(Filename);
 	  of <<  eigen_value << iteration << rel << eigen_vector[species].Real();
 	  of.close();
 	}
