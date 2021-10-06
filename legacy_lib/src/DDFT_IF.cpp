@@ -43,10 +43,9 @@ using namespace std;
 
 // This implementation presently only works for a single species!!!
 
-void DDFT_IF::initialize()
+
+DDFT_IF::DDFT_IF(DFT *dft, bool showGraphics): DDFT(dft)
 {
-  DDFT::initialize();
-  
   F_ = dft_->calculateFreeEnergyAndDerivatives(false); //density_, 0.0, dF_,true);   
 
   int Jspecies = 0;
@@ -61,11 +60,8 @@ void DDFT_IF::initialize()
   dy_ = lattice.getDY();
   dz_ = lattice.getDZ();
 
-  double Dx = 1.0/(dx_*dx_);
-  double Dy = 1.0/(dy_*dy_);
-  double Dz = 1.0/(dz_*dz_);
-
 }
+
 
 // Here we solve the nonlinear equation
 // rho_[k,t+dt] = exp(L_{k} dt) rho_{k,t} - ((exp(L_{k} dt)-1)/L_{k}) R_{k}[rho_t] +((exp(L_{k} dt) - 1 - L dt))/L_{k}^2) R_{k}[rho_{t+dt}]
@@ -83,7 +79,7 @@ void DDFT_IF::initialize()
 
 double DDFT_IF::step()
 {
-  cout << "===================================================================================================================" << endl;
+  //  cout << "===================================================================================================================" << endl;
 
 
   if(dft_->getNumberOfSpecies() > 1)
@@ -95,7 +91,7 @@ double DDFT_IF::step()
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  cout << "Initial F = " << F_ << endl;
+  //  cout << "Initial F = " << F_ << endl;
 
   
   int Jspecies = 0;
@@ -133,7 +129,7 @@ double DDFT_IF::step()
 	species->fft_density();
 	
 	deviation = fftDiffusion(d1);
-	cout << setprecision(12) << "\tdeviation = " << deviation << " dt = " << dt_ << " Natoms = " << nn << endl;
+	//	cout << setprecision(12) << "\tdeviation = " << deviation << " dt = " << dt_ << " Natoms = " << nn << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
 	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
@@ -144,21 +140,21 @@ double DDFT_IF::step()
       {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
   } while(reStart);
 
+  time_ += dt_;
+  
   // Adaptive time-step: try to increase time step if the present one works 5 times 
   if(decreased_time_step) successes_ = 0;
   else successes_++;
   if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
 
 
-  finish_nonlinear_calc(d0,d1);
-  
   species->set_density(d1);
   species->fft_density();
   calls_++;
 
   F_ = dft_->calculateFreeEnergyAndDerivatives(false); 
 
-  cout << setprecision(12) << "F = " << F_ << " Natoms = " << species->getDensity().getNumberAtoms() << endl;
+  //  cout << setprecision(12) << "F = " << F_ << " Natoms = " << species->getDensity().getNumberAtoms() << endl;
   
   return F_;  
 }
@@ -168,19 +164,11 @@ void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &
 {
   int Jspecies = 0;
   const Density &density = dft_->getSpecies(Jspecies)->getDensity();
-  
-  double Dx = 1.0/(dx_*dx_);
-  double Dy = 1.0/(dy_*dy_);
-  double Dz = 1.0/(dz_*dz_);
 
-  double D[] = {Dx,Dy,Dz};
-
-  double dV = dx_*dy_*dz_;
-
-  //  update_forces_fixed_background(density,d2,dF,D);
+  double D[] = {1.0/(dx_*dx_),1.0/(dy_*dy_),1.0/(dz_*dz_)};
 
   A_dot_x(dF, RHS1, density, D, true);
-
+  
 }
 
 double  static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Density& density)
@@ -253,18 +241,21 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
 	}
       Ax.set(pos,RHS);	  
     }      
-  if(do_subtract_ideal) cout << "sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
+  //    if(do_subtract_ideal) cout << "Ax_is_full = " << Ax_is_full << " sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
+  //    cout << "Fmax = " << x.max() << " Fmin = " << x.min() << endl;
 }
 
 
-void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool fixed_boundary, bool full) const
+// NOTE:
+// For the static case, we include a minus sign to keep the signs of the eigenvalues the same in the two cases.
+void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool fixed_boundary, bool dynamic) const
 {
   int Jspecies = 0;
 
   d2F[Jspecies].zeros();
   dft_->second_derivative(eigen_vector, d2F);
 
-  if(full)
+  if(dynamic)
     {
       const Density &density = dft_->getSpecies(Jspecies)->getDensity();
 
@@ -284,11 +275,11 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
       if(fixed_boundary)      
 	for(long p=0;p<density.get_Nboundary();p++)
 	  d2F[Jspecies].set(density.boundary_pos_2_pos(p),0.0);      
-    }
+    } else d2F[Jspecies].MultBy(-1);
 }
 
 			    
-void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double& eigen_value, bool fixed_boundary, double shift, bool full) const
+double DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol)const
 {
   int species = 0;
   
@@ -300,9 +291,8 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
   for(long s = 0;s<Ntot;s++)
     eigen_vector[species].Real().set(s,2*urd(rng)-1); // random number in (-1,1)
 
-  cout << endl;
   cout << myColor::YELLOW;
-  cout << "/////////// Fixed boundary = " << fixed_boundary << " full = " << full << endl;
+  cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
   cout << myColor::RESET;    
   cout << endl;
   
@@ -310,17 +300,13 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
     for(long p=0;p<density.get_Nboundary();p++)
       eigen_vector[species].Real().set(density.boundary_pos_2_pos(p),0.0);      
 
-  eigen_value = 0;
-  vector<DFT_Vec> d2F(1);
-  d2F[0].zeros(Ntot);
-  double rel = 1;
-  double tol = 1e-8;
+  double eigen_value = 0;
+  vector<DFT_Vec> H_dot_eigen_vector(1);
+  H_dot_eigen_vector[species].zeros(Ntot);
 
-  tol = 0;
-  
-  ofstream debug("debug.dat");
-  
-  for(int i=0;i<10000 && rel > tol;i++)
+  double rel = 1;
+  long iteration;
+  for(iteration=0; (maxSteps < 0 || iteration<maxSteps) && rel > tol;iteration++)
     {
       double eigen_value1 = eigen_value;
 
@@ -329,10 +315,10 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
       eigen_vector[species].do_real_2_fourier();
 
       // v => H dot v, lam = v dot H dot v
-      Hessian_dot_v(eigen_vector,d2F,fixed_boundary,full);
-      d2F[0].IncrementBy_Scaled_Vector(eigen_vector[species].Real(),shift);
-      eigen_value = eigen_vector[species].Real().dotWith(d2F[species]);
-      eigen_vector[species].Real().set(d2F[species]);
+      Hessian_dot_v(eigen_vector,H_dot_eigen_vector,fixed_boundary,dynamic);
+      H_dot_eigen_vector[species].IncrementBy_Scaled_Vector(eigen_vector[species].Real(),shift);
+      eigen_value = eigen_vector[species].Real().dotWith(H_dot_eigen_vector[species]);
+      eigen_vector[species].Real().set(H_dot_eigen_vector[species]);
 
       if(fixed_boundary)      
 	for(long p=0;p<density.get_Nboundary();p++)
@@ -340,25 +326,43 @@ void DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, doub
 
       rel = fabs((eigen_value-eigen_value1)/(eigen_value+eigen_value1 -2*shift));
 
-      cout << '\r'; cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
-      debug  << i << " " << eigen_value-shift << " " << rel << endl;
-      //cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << endl;
+      if(iteration%20 == 0)
+	{
+	  cout << myColor::YELLOW;
+	  cout << '\r'; cout << "\t" << "iteration = " << iteration << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
+	  cout << myColor::RESET;
+
+	  ofstream debug("debug.dat", (iteration == 0 ? ios::trunc : ios::app));
+	  debug  << iteration << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value1) << endl;
+	  debug.close();
+
+	  ofstream of(Filename);
+	  of <<  eigen_vector[species].Real();
+	  of.close();
+	}
     }
-  debug.close();
+  ofstream of(Filename);
+  of <<  eigen_vector[species].Real();
+  of.close();
+
+  
+  cout << myColor::YELLOW;  
   cout << endl;
+  cout << myColor::RESET;  
   
   eigen_value -= shift;
+
+  return eigen_value;
 }
 
 
-
-
-void DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, double& eigen_value, bool fixed_boundary, double shift, bool full, int dimension_Krylov) const
+//void DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, double& eigen_value, bool fixed_boundary, double shift, bool full, int dimension_Krylov) const
+double determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic = true, long maxSteps, double tol, int dimension_Krylov) const
 {
   cout << endl;
   cout << myColor::YELLOW;
-  cout << "/////////// Fixed boundary = " << fixed_boundary << " full = " << full << endl;
-  cout << myColor::RESET;
+  cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << ", dimension_Krylov = " << dimension_Krylov << endl;
+  cout << myColor::RESET;    
   cout << endl;
   
   int species = 0;
@@ -398,26 +402,23 @@ void DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vect
   
   // record of scalar products between old and new Arnoldi vectors 
   // this is the Krylov matrix in the orthogonal basis of the Krylov subspace
+  // TODO change name because it can be confused with the hessian
   arma::mat H(dimension_Krylov+1,dimension_Krylov);
   
-  eigen_value = 0;
-  vector<DFT_Vec> d2F(1);
-  d2F[0].zeros(Ntot);
+  double eigen_value = 0;
+  vector<DFT_Vec> new_Arnoldi_vector(1);
+  new_Arnoldi_vector[0].zeros(Ntot);
+  
   double rel = 1;
-  double tol = 1e-8;
-
-  tol = 0;
+  long iteration;
   
-  ofstream debug("debug.dat");
-  
-  for(int i=0;i<10000 && rel > tol;i++)
+  for(int iteration=0; (maxSteps<0 || iteration<maxSteps) && rel>tol; iteration++)
     {
       double eigen_value_old = eigen_value;
       
       cout << endl;
       cout << "Checking whether the following copy is a hard copy:" << endl;
       cout << "Arnoldi_vectors[0][species].Real().get(0) = " << Arnoldi_vectors[0][species].Real().get(0) << endl;
-      
       
       // Shift the list of Arnoldi vectors to make room for the new one
       for (int j=0; j<dimension_Krylov-1; j++)
@@ -427,16 +428,16 @@ void DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vect
       
       // Shift the columns of the H-matrix to make room for the new one
       for (int j=0; j<dimension_Krylov+1; j++)
-      for (int k=0; k<dimension_Krylov-1; k++) 
+      for (int k=0; k<dimension_Krylov-1; k++)
         H(j,k) = H(j,k+1);
 
       // Compute new Krylov vector (H dot v, stored in d2F)
-      Hessian_dot_v(last_Arnoldi_vector,d2F,fixed_boundary,full);
+      Hessian_dot_v(last_Arnoldi_vector,d2F,fixed_boundary,dynamic);
       d2F[0].IncrementBy_Scaled_Vector(last_Arnoldi_vector[species].Real(),shift);
       
       if(fixed_boundary)   
         for(long p=0;p<density.get_Nboundary();p++)
-          d2F[0].set(density.boundary_pos_2_pos(p),0.0);  
+          d2F[0].set(density.boundary_pos_2_pos(p),0.0);
       
       // Turn the new Krylov vector into an Arnoldi vector
       // through a modified Gram-Schmidt process so that
@@ -486,14 +487,36 @@ void DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vect
       
       rel = fabs((eigen_value-eigen_value_old)/(eigen_value+eigen_value_old -2*shift));
       
+      if(iteration%20 == 0)
+      {
+        cout << myColor::YELLOW;
+        cout << '\r'; cout << "\t" << "iteration = " << iteration << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
+        cout << myColor::RESET;
+        
+        ofstream debug("debug.dat", (iteration == 0 ? ios::trunc : ios::app));
+        debug  << iteration << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value1) << endl;
+        debug.close();
+        
+        ofstream of(Filename);
+        of <<  eigen_vector[species].Real();
+        of.close();
+      }
+      
       cout << '\r'; cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
       debug  << i << " " << eigen_value-shift << " " << rel << endl;
       //cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << endl;
     }
-  debug.close();
+  
+  ofstream of(Filename);
+  of <<  eigen_vector[species].Real();
+  of.close();
+  
+  cout << myColor::YELLOW;
   cout << endl;
+  cout << myColor::RESET;
   
   eigen_value -= shift;
+  return eigen_value;
 }
 
 

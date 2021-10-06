@@ -14,10 +14,22 @@ using namespace std;
 #include "DFT.h"
 #include "myColor.h"
 
+
+Minimizer::Minimizer(DFT *dft) : dft_(dft), forceLimit_(0.1)
+{
+  x_.resize(dft->getNumberOfSpecies());
+  
+  for(auto &x: x_) x.resize(dft_->get_lattice().Ntot());
+  
+  step_counter_ = 0;
+  calls_ = 0;
+  
+  for(int Jspecies=0;Jspecies<dft_->getNumberOfSpecies();Jspecies++)
+    dft_->getSpecies(Jspecies)->get_density_alias(x_[Jspecies]);        
+}
+
 void Minimizer::run(long maxSteps)
 {
-  initialize();
-
   resume(maxSteps);
 }
 
@@ -66,16 +78,6 @@ void Minimizer::resume(long maxSteps)
 }
 
 
-void Minimizer::initialize()
-{
-  step_counter_ = 0;
-  calls_ = 0;
-
-  for(int Jspecies=0;Jspecies<dft_->getNumberOfSpecies();Jspecies++)
-    dft_->getSpecies(Jspecies)->get_density_alias(x_[Jspecies]);    
-}
-
-
 double Minimizer::getDF_DX()
 {
   calls_++;
@@ -109,15 +111,8 @@ fireMinimizer2::fireMinimizer2(DFT *dft) :  Minimizer(dft)
   alpha_start_ = 0.1;
   f_dec_ = 0.5;
   f_inc_ = 1.1;
-  f_alf_ = 0.99;  
-}
+  f_alf_ = 0.99;
 
-void fireMinimizer2::initialize()
-{
-  //  fireMinimizer_Mu::initialize();
-
-  Minimizer::initialize();
-  
   it_    = 0;
   cut_   = 0;
   alpha_ = alpha_start_;
@@ -132,8 +127,7 @@ void fireMinimizer2::initialize()
   F_ = getDF_DX();
   
   for(auto &v: v_)
-    v.zeros();
-
+    v.zeros();  
 }
 
 double fireMinimizer2::step()

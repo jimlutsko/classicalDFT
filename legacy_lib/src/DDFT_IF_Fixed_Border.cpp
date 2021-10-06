@@ -15,27 +15,14 @@ using namespace std;
 
 #include "Minimizer.h"
 
-DDFT_IF_Fixed_Border::DDFT_IF_Fixed_Border(DFT *dft, double background,  double border_forces, bool showGraphics)
-  : DDFT_IF(dft,showGraphics), background_(background), border_forces_(border_forces), sin_in_(NULL), sin_out_(NULL)
-{}
-
-DDFT_IF_Fixed_Border::~DDFT_IF_Fixed_Border()
+DDFT_IF_Fixed_Border::DDFT_IF_Fixed_Border(DFT *dft,  bool showGraphics)
+  : DDFT_IF(dft,showGraphics),  sin_in_(NULL), sin_out_(NULL)
 {
-  if(sin_in_) delete sin_in_;
-  if(sin_out_) delete sin_out_;
-  if(RHS0_sin_transform_) delete RHS0_sin_transform_;
-  if(RHS1_sin_transform_) delete RHS1_sin_transform_;
-}
-
-void DDFT_IF_Fixed_Border::initialize()
-{
-  DDFT_IF::initialize();
-
   int Jspecies = 0;
-  Species *species = dft_->getSpecies(Jspecies);  
+  Density density = dft_->getSpecies(Jspecies)->getDensity();  
 
-  RHS0.zeros(species->getDensity().Ntot());
-  RHS1.zeros(species->getDensity().Ntot());
+  //  /  RHS0.zeros(species->getDensity().Ntot());
+  //  RHS1.zeros(species->getDensity().Ntot());
 
   sin_Ntot_ = (Nx_-1)*(Ny_-1)*(Nz_-1);
   sin_Norm_ = 8*Nx_*Ny_*Nz_;
@@ -49,17 +36,90 @@ void DDFT_IF_Fixed_Border::initialize()
   sin_plan_ = fftw_plan_r2r_3d(Nx_-1, Ny_-1, Nz_-1,
 			       sin_in_, sin_out_,
 			       FFTW_RODFT00, FFTW_RODFT00, FFTW_RODFT00,
-			       FFTW_MEASURE);			       
+			       FFTW_MEASURE);
 
-  pack_for_sin_transform(species->get_density_data(),background_);
-  fftw_execute(sin_plan_);
-  memcpy(sin_in_, sin_out_, sin_Ntot_*sizeof(double));
-  fftw_execute(sin_plan_);
-  for(unsigned k=0;k<sin_Ntot_;k++) sin_out_[k] /= sin_Norm_;
+  ////////////////////////////////////////////////////////////////////
+  // Create the 2D FFT of the fixed borders
+  // Note that in the expressions below, there is an extra factor of 2
+  // multiplying the factors Dx, Dy, Dz as compared to my notes. This is
+  // because FFTW puts an extra factor of 2 in the sine-transform 
+  // so we must do the same here. 
 
+  RHS_Boundary_.zeros(sin_Ntot_);
+
+  double *rho_x = new double [(Ny_-1)*(Nz_-1)];
+
+  fftw_plan plan_x = fftw_plan_r2r_2d(Ny_-1, Nz_-1,
+			       sin_in_, rho_x,FFTW_RODFT00, FFTW_RODFT00,FFTW_MEASURE);
+  long pos = 0;
+  double sum = 0.0;
+  for(int iy=1;iy<Ny_; iy++)
+    for(int iz=1;iz<Nz_;iz++)
+      {
+	sin_in_[pos++] = density.get(0,iy,iz);
+	sum += sin(iy*M_PI/Ny_)*sin(iz*M_PI/Nz_);
+      }
+  fftw_execute(plan_x);
+  fftw_destroy_plan(plan_x);
+  
   double Dx = 1.0/(dx_*dx_);
+  pos = 0;
+  for(int ix=1;ix<Nx_;ix++)
+    for(int iy=1;iy<Ny_; iy++)
+      for(int iz=1;iz<Nz_;iz++)
+	RHS_Boundary_.IncrementBy(pos++, 2*Dx*sin((M_PI*ix)/Nx_)*(1-cos(ix*M_PI))*rho_x[(iy-1)*(Nz_-1)+iz-1]);
+  delete rho_x;
+
+  double *rho_y = new double [(Nx_-1)*(Nz_-1)];
+
+  fftw_plan plan_y = fftw_plan_r2r_2d(Nx_-1, Nz_-1,
+			       sin_in_, rho_y,FFTW_RODFT00, FFTW_RODFT00,FFTW_MEASURE);
+  pos = 0;
+  for(int ix=1;ix<Nx_; ix++)
+    for(int iz=1;iz<Nz_;iz++)
+      sin_in_[pos++] = density.get(ix,0,iz);
+  fftw_execute(plan_y);
+  fftw_destroy_plan(plan_y);
+
   double Dy = 1.0/(dy_*dy_);
+  pos = 0;
+  for(int ix=1;ix<Nx_;ix++)
+    for(int iy=1;iy<Ny_; iy++)
+      for(int iz=1;iz<Nz_;iz++)
+	RHS_Boundary_.IncrementBy(pos++, 2*Dy*sin((M_PI*iy)/Ny_)*(1-cos(iy*M_PI))*rho_y[(ix-1)*(Nz_-1)+iz-1]);
+  delete rho_y;
+
+  double *rho_z = new double [(Nx_-1)*(Ny_-1)];
+
+  fftw_plan plan_z = fftw_plan_r2r_2d(Nx_-1, Ny_-1,
+			       sin_in_, rho_z, FFTW_RODFT00, FFTW_RODFT00,FFTW_MEASURE);
+  pos = 0;
+  for(int ix=1;ix<Nx_; ix++)
+    for(int iy=1;iy<Ny_;iy++)
+      sin_in_[pos++] = density.get(ix,iy,0);
+  fftw_execute(plan_z);
+  fftw_destroy_plan(plan_z);    
+
   double Dz = 1.0/(dz_*dz_);
+  pos = 0;
+  for(int ix=1;ix<Nx_;ix++)
+    for(int iy=1;iy<Ny_; iy++)
+      for(int iz=1;iz<Nz_;iz++)
+	RHS_Boundary_.IncrementBy(pos++, 2*Dz*sin((M_PI*iz)/Nz_)*(1-cos(iz*M_PI))*rho_z[(ix-1)*(Ny_-1)+iy-1]);
+  delete rho_z;
+
+  
+  ///////////////////// From HERE
+  // Why is this done ???? Was it just a test???
+  //  pack_for_sin_transform(species->get_density_data(),background_);
+  //  fftw_execute(sin_plan_);
+  //  memcpy(sin_in_, sin_out_, sin_Ntot_*sizeof(double));
+  //  fftw_execute(sin_plan_);
+  //  for(unsigned k=0;k<sin_Ntot_;k++) sin_out_[k] /= sin_Norm_;
+  ///////////////////// To HERE
+
+  ////////////////////////////////////////////////////////////////////////////////
+  /// Cache some stuff to save calculations later
   
   for(int ix=0;ix<Nx_-1;ix++)
     {
@@ -86,41 +146,43 @@ void DDFT_IF_Fixed_Border::initialize()
     }
 }
 
+DDFT_IF_Fixed_Border::~DDFT_IF_Fixed_Border()
+{
+  if(sin_in_) delete sin_in_;
+  if(sin_out_) delete sin_out_;
+  if(RHS0_sin_transform_) delete RHS0_sin_transform_;
+  if(RHS1_sin_transform_) delete RHS1_sin_transform_;
+
+  fftw_destroy_plan(sin_plan_);
+}
+
 
 void DDFT_IF_Fixed_Border::calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0)
 {
+  DFT_Vec work(species->getDensity().Ntot());
+
+  DDFT_IF::calcNonlinearTerm_intern(density, species->getDF(),work);
+  pack_for_sin_transform(work.memptr());
+  fftw_execute(sin_plan_);
+  
   if(use_R0)
-    {
-      DDFT_IF::calcNonlinearTerm_intern(density, species->getDF(),RHS0);
-      pack_for_sin_transform(RHS0.memptr(),0.0);
-      fftw_execute(sin_plan_);
-      memcpy(RHS0_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));      
-    } else {
-    DDFT_IF::calcNonlinearTerm_intern(density, species->getDF(),RHS1); // we are counting on the species to set the force on the border points to zero
-	pack_for_sin_transform(RHS1.memptr(),0.0);
-	fftw_execute(sin_plan_);
-	memcpy(RHS1_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));	  
-  }
+    memcpy(RHS0_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));
+  else
+    memcpy(RHS1_sin_transform_,sin_out_,sin_Ntot_*sizeof(double));	  
 }
 
 
-void DDFT_IF_Fixed_Border::update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3])
-{
-  cout << "IN UPDATE" << endl;
-  long Nboundary = Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;  
-  for(long pboundary = 0;pboundary<Nboundary;pboundary++)
-    {
-      int cartesian[3]; // working space      
-      density.boundary_cartesian(pboundary,cartesian);
-      dF.set(density.get_PBC_Pos(cartesian), border_forces_);
-    }
-}
-
-void DDFT_IF_Fixed_Border::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
-{
-  // nothing to do in this case ...
-}
-
+//void DDFT_IF_Fixed_Border::update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3])
+//{
+//  cout << "IN UPDATE" << endl;
+//  long Nboundary = Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;  
+//  for(long pboundary = 0;pboundary<Nboundary;pboundary++)
+//    {
+//      int cartesian[3]; // working space      
+//      density.boundary_cartesian(pboundary,cartesian);
+//      dF.set(density.get_PBC_Pos(cartesian));
+//    }
+//}
 
 
 /**
@@ -132,7 +194,7 @@ double DDFT_IF_Fixed_Border::fftDiffusion(DFT_Vec &d1)
   Species *species = dft_->getSpecies(Jspecies);
   const Lattice &lattice = species->getLattice();
   
-  pack_for_sin_transform(species->get_density_data(),background_);
+  pack_for_sin_transform(species->get_density_data());
   fftw_execute(sin_plan_);
   
   // fft of density is now in sin_out_;
@@ -152,22 +214,23 @@ double DDFT_IF_Fixed_Border::fftDiffusion(DFT_Vec &d1)
 
   // Note that the following is correct: Lamx[ix,iy,iz] corresponds to
   // spatial point (ix+1),(iy+1),(iz+1) so the 1-offset is accounted for.   
-  unsigned pos = 0;
-  for(int ix=0;ix<Lamx_.size();ix++)
+  int ix;
+#pragma omp parallel for  private(ix) schedule(static) 
+  for(ix=0;ix<Lamx_.size();ix++)
     for(int iy=0;iy<Lamy_.size();iy++)
       for(int iz=0;iz<Lamz_.size();iz++)
 	{
-	  double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
-	  double fac    = fx[ix]*fy[iy]*fz[iz];
-	  
+	  unsigned pos = iz + Lamz_.size()*(iy +  Lamy_.size()*ix);
+
 	  double x = sin_out_[pos]; 
-	  
-	  x *= fac;
-	  x += ((fac-1)/Lambda)*RHS0_sin_transform_[pos];
-	  x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform_[pos]-RHS0_sin_transform_[pos]);
+
+	  double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
+	  double exp_dt = fx[ix]*fy[iy]*fz[iz];	  
+	  x *= exp_dt;
+	  x += ((exp_dt-1)/Lambda)*(RHS0_sin_transform_[pos] + RHS_Boundary_.get(pos));
+	  x += ((exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_sin_transform_[pos]-RHS0_sin_transform_[pos]);
 
 	  sin_in_[pos] = x;
-	  pos++;
 	}
 
   fftw_execute(sin_plan_);
@@ -176,48 +239,55 @@ double DDFT_IF_Fixed_Border::fftDiffusion(DFT_Vec &d1)
   double maxdeviation = 0;
 
   // Notice that sin_out is indexed using sign_out[1] as element 0 ... this differs from the periodic case
-  pos = 0;
-  for(int ix=1;ix<Nx_;ix++)
+
+
+#pragma omp parallel for  private(ix) schedule(static) reduction(+:deviation) reduction(+:maxdeviation)
+  for(ix=1;ix<Nx_;ix++)
     for(int iy=1;iy<Ny_;iy++)
       for(int iz=1;iz<Nz_;iz++)
 	{
-	  double d     = (sin_out_[pos++] /= sin_Norm_)+background_;
+	  unsigned pos = (iz-1) + (Nz_-1)*(iy-1 +  (Ny_-1)*(ix-1));
+	  
+	  double d     = (sin_out_[pos] /= sin_Norm_);
 	  double d1val = d1.get(lattice.pos(ix,iy,iz));
 	  double u     = fabs(d1val-d);
 	  
 	  deviation += u*u;
 	  if(u > maxdeviation) maxdeviation = u;	  
 	}
-  unpack_after_transform(d1.memptr(), background_);
+  unpack_after_transform(d1.memptr());
   return maxdeviation; 
 }
 
-void DDFT_IF_Fixed_Border::pack_for_sin_transform(const double *x, double val)
+void DDFT_IF_Fixed_Border::pack_for_sin_transform(const double *x)
 {
   int Jspecies = 0;
   const Density &density = dft_->getSpecies(Jspecies)->getDensity();
   
-  unsigned pos = 0;
-  for(int ix=1;ix<Nx_;ix++)
+  int ix;  
+#pragma omp parallel for  private(ix) schedule(static)
+  for(ix=1;ix<Nx_;ix++)
     for(int iy=1;iy<Ny_;iy++)
       for(int iz=1;iz<Nz_;iz++)
-	  sin_in_[pos++] = x[density.pos(ix,iy,iz)] - val;
+	{
+	  unsigned pos = (iz-1) + (Nz_-1)*(iy-1 +  (Ny_-1)*(ix-1));  
+	  sin_in_[pos] = x[density.pos(ix,iy,iz)];
+	}
 }
 
-void DDFT_IF_Fixed_Border::unpack_after_transform(double *x, double val)
+void DDFT_IF_Fixed_Border::unpack_after_transform(double *x)
 {
   int Jspecies = 0;
   const Density &density = dft_->getSpecies(Jspecies)->getDensity();
   
-  unsigned pos = 0;
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iy=0;iy<Ny_;iy++)
-      for(int iz=0;iz<Nz_;iz++)
+  int ix;
+#pragma omp parallel for  private(ix) schedule(static)
+  for(ix=1;ix<Nx_;ix++)
+    for(int iy=1;iy<Ny_;iy++)
+      for(int iz=1;iz<Nz_;iz++)
 	{
-	  if(ix == 0 || iy == 0 || iz == 0)
-	    x[density.pos(ix,iy,iz)] = val;
-	  else
-	    x[density.pos(ix,iy,iz)] = val + sin_out_[pos++];
+	  unsigned pos = (iz-1) + (Nz_-1)*(iy-1 +  (Ny_-1)*(ix-1));    
+	    x[density.pos(ix,iy,iz)] = sin_out_[pos];
 	}
 }
 

@@ -11,13 +11,14 @@ int Grace::SQUARE = 2;
 
 
 
-int Grace::JPG = 1;
-int Grace::PNG = 2;
+int Grace::JPG  = 1;
+int Grace::PNG  = 2;
 int Grace::EPS1 = 3;
-int Grace::PS  = 4;
-int Grace::PDF = 5;
+int Grace::PS   = 4;
+int Grace::PDF  = 5;
 
-
+int Grace::NORMAL_SCALE = 1;
+int Grace::LOG_SCALE    = 2;
 
 void Grace::printToFile(std::string &filename, int format)
 {
@@ -271,6 +272,46 @@ void Grace::setXAxisLabel(const char *s, int Graph)
   ss << "XAXIS LABEL \"" << s << "\"";
   sendCommand(ss.str());
 }
+
+void Grace::setXAxisScale(const int scale, int Graph)
+{ 
+  std::stringstream ss;
+
+  if(Graph >= 0) 
+    {
+      ss << "FOCUS G" << Graph;
+      sendCommand(ss.str());
+      ss.str(std::string());
+    }
+
+  ss << "XAXES SCALE ";
+  if(scale == Grace::NORMAL_SCALE) ss << "Normal";
+  else if(scale == Grace::LOG_SCALE) ss << "Logarithmic";
+  else throw std::runtime_error("Unknown scale request in Grace::setXAxisScale");
+
+  sendCommand(ss.str());
+}
+
+void Grace::setYAxisScale(const int scale, int Graph)
+{ 
+  std::stringstream ss;
+
+  if(Graph >= 0) 
+    {
+      ss << "FOCUS G" << Graph;
+      sendCommand(ss.str());
+      ss.str(std::string());
+    }
+
+  ss << "YAXES SCALE "; 
+  if(scale == Grace::NORMAL_SCALE) ss << "Normal";
+  else if(scale == Grace::LOG_SCALE) ss << "Logarithmic";
+  else throw std::runtime_error("Unknown scale request in Grace::setYAxisScale");
+
+  sendCommand(ss.str());
+}
+
+
 
 void Grace::setCharSize(double s, int Graph)
 { 

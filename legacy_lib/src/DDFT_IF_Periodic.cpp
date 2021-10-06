@@ -40,12 +40,10 @@ using namespace std;
 
 // This implementation presently only works for a single species!!!
 
-void DDFT_IF_Periodic::initialize()
+
+DDFT_IF_Periodic::DDFT_IF_Periodic(DFT *dft, bool showGraphics)
+  : DDFT_IF(dft,showGraphics)
 {
-  if(Lamx_.size() > 0) return; // avoid double initialization
-
-  DDFT_IF::initialize();
-
   RHS0.initialize(Nx_,Ny_,Nz_);
   RHS1.initialize(Nx_,Ny_,Nz_);
   
@@ -75,7 +73,8 @@ void DDFT_IF_Periodic::initialize()
       double facz = 2*Dz*(cos(kz)-1);
       
       Lamz_.push_back(facz);
-    }  
+    }    
+  
 }
 
 // Here we solve the nonlinear equation
@@ -104,13 +103,6 @@ void DDFT_IF_Periodic::calcNonlinearTerm(const DFT_Vec &density, Species *specie
   }
 }
 
-void DDFT_IF_Periodic::finish_nonlinear_calc(DFT_Vec& d0, DFT_Vec& d1)
-{
-  int Jspecies = 0;
-  Species *species = dft_->getSpecies(Jspecies);  
-  const Lattice &lattice = species->getLattice();
-}
-
 /**
  This function takes the input density and calculates a new density, d1, by propagating the density a time step dt. The nonlinear terms, RHS0 and RHS1, are treated explicitly.
 */
@@ -119,11 +111,9 @@ double DDFT_IF_Periodic::fftDiffusion(DFT_Vec &new_density)
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);
   const Density &density = species->getDensity();
+
+  species->doFFT();
   
-  DFT_FFT work(Nx_,Ny_,Nz_);
-
-  DFT_Vec_Complex &cwork = work.Four();
-
   // save some evaluations of the exponent
   vector<double> fx;
   for(int ix=0;ix<Lamx_.size();ix++)
@@ -137,6 +127,9 @@ double DDFT_IF_Periodic::fftDiffusion(DFT_Vec &new_density)
   for(int iz=0;iz<Lamz_.size();iz++)
     fz.push_back(exp(Lamz_[iz]*dt_));  
 
+  DFT_FFT work(Nx_,Ny_,Nz_);
+  DFT_Vec_Complex &cwork = work.Four();
+  
   unsigned pos = 0;
   for(int ix = 0;ix<Lamx_.size();ix++)
     for(int iy=0;iy<Lamy_.size();iy++)
@@ -144,13 +137,13 @@ double DDFT_IF_Periodic::fftDiffusion(DFT_Vec &new_density)
 	{
 	  complex<double> x = density.get_fourier_value(pos); 
 	  
-	  if(pos > 0) // corresponds to K=0 - and mass is conserved so ...
+	  if(pos > 0) // pos == 0 corresponds to K=0 - and mass is conserved so nothing to do ...
 	    {
 	      double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
-	      double fac    = fx[ix]*fy[iy]*fz[iz];
-	      x *= fac;
-	      x += ((fac-1)/Lambda)*RHS0.cFour().get(pos);
-	      x += ((fac-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1.cFour().get(pos)-RHS0.cFour().get(pos));
+	      double exp_dt = fx[ix]*fy[iy]*fz[iz];
+	      x *= exp_dt;
+	      x += ((exp_dt-1)/Lambda)*RHS0.cFour().get(pos);
+	      x += ((exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1.cFour().get(pos)-RHS0.cFour().get(pos));
 	    }
 	  cwork.set(pos,x);
 	  pos++;	  

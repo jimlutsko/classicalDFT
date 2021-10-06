@@ -83,8 +83,8 @@ class DFT_Vec
   template<class Archive>  void load(Archive & ar, const unsigned int version);
   BOOST_SERIALIZATION_SPLIT_MEMBER()  
 
-    // These are legacy functions that should be removed at some point. 
-    void save(ofstream &of) const;
+  // These are legacy functions that should be removed at some point. 
+  void save(ofstream &of) const;
   void load(ifstream &in);
   
  protected:
