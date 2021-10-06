@@ -357,7 +357,7 @@ double DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, bo
 
 
 //void DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, double& eigen_value, bool fixed_boundary, double shift, bool full, int dimension_Krylov) const
-double determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic = true, long maxSteps, double tol, int dimension_Krylov) const
+double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol, int dimension_Krylov) const
 {
   cout << endl;
   cout << myColor::YELLOW;
@@ -431,28 +431,28 @@ double determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, boo
       for (int k=0; k<dimension_Krylov-1; k++)
         H(j,k) = H(j,k+1);
 
-      // Compute new Krylov vector (H dot v, stored in d2F)
-      Hessian_dot_v(last_Arnoldi_vector,d2F,fixed_boundary,dynamic);
-      d2F[0].IncrementBy_Scaled_Vector(last_Arnoldi_vector[species].Real(),shift);
+      // Compute new Arnoldi vector
+      Hessian_dot_v(last_Arnoldi_vector,new_Arnoldi_vector,fixed_boundary,dynamic);
+      new_Arnoldi_vector[0].IncrementBy_Scaled_Vector(last_Arnoldi_vector[species].Real(),shift);
       
       if(fixed_boundary)   
         for(long p=0;p<density.get_Nboundary();p++)
-          d2F[0].set(density.boundary_pos_2_pos(p),0.0);
+          new_Arnoldi_vector[0].set(density.boundary_pos_2_pos(p),0.0);
       
       // Turn the new Krylov vector into an Arnoldi vector
       // through a modified Gram-Schmidt process so that
       // it is orthogonal to existing Arnoldi vectors
-      int n = (i<dimension_Krylov)?i:dimension_Krylov;
+      int n = (iteration<dimension_Krylov)?iteration:dimension_Krylov;
       arma::vec h; h.zeros(dimension_Krylov+1); // new row of H
       for (int j=0; j<n-1; j++)
       {
-        h(j) = Arnoldi_vectors[j][species].Real().dotWith(d2F[0]);
-        d2F[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), -h(j));
+        h(j) = Arnoldi_vectors[j][species].Real().dotWith(new_Arnoldi_vector[0]);
+        new_Arnoldi_vector[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), -h(j));
       }
       
-      // Save d2F as the newest Arnoldi vector and normalise
-      h(n) = d2F[0].dotWith(d2F[0]);
-      last_Arnoldi_vector[species].Real().set(d2F[0]);
+      // Save new_Arnoldi_vector as the newest Arnoldi vector and normalise
+      h(n) = new_Arnoldi_vector[0].dotWith(new_Arnoldi_vector[0]);
+      last_Arnoldi_vector[species].Real().set(new_Arnoldi_vector[0]);
       last_Arnoldi_vector[species].Real().normalise();
       last_Arnoldi_vector[species].do_real_2_fourier();
       
@@ -494,17 +494,13 @@ double determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, boo
         cout << myColor::RESET;
         
         ofstream debug("debug.dat", (iteration == 0 ? ios::trunc : ios::app));
-        debug  << iteration << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value1) << endl;
+        debug  << iteration << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value_old) << endl;
         debug.close();
         
         ofstream of(Filename);
         of <<  eigen_vector[species].Real();
         of.close();
       }
-      
-      cout << '\r'; cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
-      debug  << i << " " << eigen_value-shift << " " << rel << endl;
-      //cout << "\t" << "i = " << i << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << endl;
     }
   
   ofstream of(Filename);
