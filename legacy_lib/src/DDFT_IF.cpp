@@ -459,27 +459,6 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
       arma::mat Hnn(n,n);
       for (int j=0; j<n; j++) for (int k=0; k<n; k++) Hnn(j,k) = H(j,k);
       
-      /*
-      cout << endl;
-      cout << "Matrix H is: " << endl;
-      for (int j=0; j<max_dimension_Krylov+1; j++)
-      {
-        for (int k=0; k<max_dimension_Krylov; k++) cout << setw(10) << setprecision(2) << H(j,k);
-        cout << endl;
-      }
-      cout << endl;
-      */
-      /*
-      cout << endl;
-      cout << "Matrix Hnn is: " << endl;
-      for (int j=0; j<n; j++)
-      {
-        for (int k=0; k<n; k++) cout << setw(10) << setprecision(2) << Hnn(j,k);
-        cout << endl;
-      }
-      cout << endl;
-      */
-      
       // Record H matrix
       ofile_Hmatrix << endl;
       for (int j=0; j<n; j++)
@@ -493,14 +472,6 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
       arma::cx_mat eigvec;
       arma::eig_gen(eigval, eigvec, Hnn);
       
-      /*
-      cout << endl;
-      cout << "Eigenvalues of Hnn are: " << endl;
-      arma::cx_vec eigval_sorted = arma::sort(eigval, "descend");
-      for (int j=0; j<n; j++) cout << setw(16) << setprecision(6) << eigval_sorted[j].real();
-      cout << endl;
-      */
-      
       // Record eigenvalues
       arma::cx_vec eigval_sorted = arma::sort(eigval, "descend");
       for (int k=0; k<n; k++) ofile_eigvals << setw(12) << setprecision(4) << eigval_sorted[k].real()-shift;
@@ -510,6 +481,10 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
       eigen_value = eigval.max().real();
       eigen_vector[species].zeros();
       
+      // TODO: can eigvec have non zero imaginary part?? It does not seem like so.
+      // In any case it is an approximation of a real vector so taking the real part
+      // only is the right thing to do.
+      
       /*
       cout << endl;
       cout << "Checking imaginary parts of Hnn eigenvector:" << endl;
@@ -517,11 +492,12 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
       cout << endl;
       */
       
-      for (int j=0; j<n; j++) // TODO: can eigvec have non zero imaginary part?? It does not seem so
+      for (int j=0; j<n; j++)
         eigen_vector[species].Real().IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), eigvec(j,eigval.index_max()).real());
       
-      eigen_vector[species].Real().normalise();  // TODO: useless??
-      eigen_vector[species].do_real_2_fourier(); // TODO: useless??
+      // Just to be sure
+      eigen_vector[species].Real().normalise();
+      eigen_vector[species].do_real_2_fourier();
       
       rel = fabs((eigen_value-eigen_value_old)/(eigen_value+eigen_value_old -2*shift));
       
@@ -556,187 +532,6 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
   eigen_value -= shift;
   return eigen_value;
 }
-
-
-/*
-//void DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, double& eigen_value, bool fixed_boundary, double shift, bool full, int dimension_Krylov) const
-double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol, int dimension_Krylov) const
-{
-  cout << endl;
-  cout << myColor::YELLOW;
-  cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << ", dimension_Krylov = " << dimension_Krylov << endl;
-  cout << myColor::RESET;    
-  cout << endl;
-  
-  int species = 0;
-  
-  unsigned Nx = eigen_vector[species].getNx();
-  unsigned Ny = eigen_vector[species].getNy();
-  unsigned Nz = eigen_vector[species].getNz();
-  
-  const Density& density = dft_->getDensity(species);
-  const long Ntot = density.Ntot();
-  
-  // Prepare initial Krylov vector
-  // TODO: rename as 'Krylov' instead of 'Arnoldi'?
-  
-  vector<DFT_FFT> last_Arnoldi_vector(1);
-  //last_Arnoldi_vector[species].set(eigen_vector[species]);
-  last_Arnoldi_vector[species].initialize(Nx,Ny,Nz);
-  
-  mt19937 rng;
-  uniform_real_distribution<double> urd;
-  for(long s = 0;s<Ntot;s++)
-    last_Arnoldi_vector[species].Real().set(s,2*urd(rng)-1); // random number in (-1,1)
-  
-  if(fixed_boundary)
-    for(long p=0;p<density.get_Nboundary();p++)
-      last_Arnoldi_vector[species].Real().set(density.boundary_pos_2_pos(p),0.0);      
-  
-  // Normalize
-  last_Arnoldi_vector[species].Real().normalise();
-  last_Arnoldi_vector[species].do_real_2_fourier();
-  
-  // Record Arnoldi vectors which together form an orthogonal basis 
-  // of the Krylov subspace
-  vector<vector<DFT_FFT>> Arnoldi_vectors(dimension_Krylov+1, last_Arnoldi_vector);
-  for (int i=0; i<dimension_Krylov+1; i++) Arnoldi_vectors[i][species].initialize(Nx,Ny,Nz);
-  
-  Arnoldi_vectors[dimension_Krylov][species].Real().set( last_Arnoldi_vector[species].Real() );
-  Arnoldi_vectors[dimension_Krylov][species].do_real_2_fourier(); // TODO: copy fourier space with .set()
-  
-  // Record of scalar products between old and new Arnoldi vectors 
-  // this is the Krylov matrix in the orthogonal basis of the Krylov subspace
-  // TODO change name because it can be confused with the hessian
-  arma::mat H; H.zeros(dimension_Krylov+1,dimension_Krylov);
-  
-  double eigen_value = 0;
-  vector<DFT_Vec> new_Arnoldi_vector(1);
-  new_Arnoldi_vector[0].zeros(Ntot);
-  
-  double rel = 1;
-  long iteration;
-  
-  for(int iteration=0; (maxSteps<0 || iteration<maxSteps) && (rel>tol || iteration<dimension_Krylov); iteration++)
-    {
-      double eigen_value_old = eigen_value;
-      
-      // Shift the list of Arnoldi vectors to make room for the new one
-      for (int j=0; j<dimension_Krylov; j++)
-      {
-        Arnoldi_vectors[j][species].Real().set( Arnoldi_vectors[j+1][species].Real() );
-        Arnoldi_vectors[j][species].do_real_2_fourier(); // TODO: copy fourier space with .set()
-      }
-      
-      // Shift the columns (and rows) of the H-matrix to make room for the new one
-      for (int j=0; j<dimension_Krylov; j++)
-      for (int k=0; k<dimension_Krylov-1; k++)
-        H(j,k) = H(j+1,k+1);
-
-      // Compute new Arnoldi vector
-      last_Arnoldi_vector[species].do_real_2_fourier(); // TODO: useless ??
-      Hessian_dot_v(last_Arnoldi_vector,new_Arnoldi_vector,fixed_boundary,dynamic);
-      new_Arnoldi_vector[0].IncrementBy_Scaled_Vector(last_Arnoldi_vector[species].Real(),shift);
-      
-      if(fixed_boundary)   
-        for(long p=0;p<density.get_Nboundary();p++)
-          new_Arnoldi_vector[0].set(density.boundary_pos_2_pos(p),0.0);
-      
-      // Make the new vector orthogonal to the existing Arnoldi vectors
-      // Record the projections in a new row "h" of the H-matrix
-      int n = (iteration+1<dimension_Krylov)?iteration+1:dimension_Krylov;
-      arma::vec h; h.zeros(dimension_Krylov+1);
-      for (int j=dimension_Krylov-n; j<dimension_Krylov; j++)
-      {
-        h(j) = Arnoldi_vectors[j][species].Real().dotWith(new_Arnoldi_vector[0]);
-        new_Arnoldi_vector[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), -h(j));
-      }
-      
-      // Save new_Arnoldi_vector as the newest Arnoldi vector and normalise
-      h(dimension_Krylov) = new_Arnoldi_vector[0].dotWith(new_Arnoldi_vector[0]);
-      last_Arnoldi_vector[species].Real().set(new_Arnoldi_vector[0]);
-      last_Arnoldi_vector[species].Real().normalise();
-      last_Arnoldi_vector[species].do_real_2_fourier();
-      
-      // Add the new vector to the back of the list
-      Arnoldi_vectors[dimension_Krylov][species].Real().set( last_Arnoldi_vector[species].Real() ); // TODO: Hard copy??
-      Arnoldi_vectors[dimension_Krylov][species].do_real_2_fourier(); // TODO: copy fourier space with .set()
-      
-      // Add new row h of new arnoldi components at the back of the H-matrix
-      for (int j=0; j<dimension_Krylov+1; j++)
-        H(j,dimension_Krylov-1) = h(j);
-      
-      // Compute eigenvalues of the Hessian projected in the Krylov subspace
-      arma::mat Hnn(n,n); 
-      for (int j=0; j<n; j++) for (int k=0; k<n; k++) Hnn(j,k) = H(dimension_Krylov-n+j,dimension_Krylov-n+k);
-      
-      cout << endl;
-      cout << "Matrix H is: " << endl;
-      for (int j=0; j<dimension_Krylov+1; j++)
-      {
-        for (int k=0; k<dimension_Krylov; k++) cout << setw(10) << setprecision(2) << H(j,k);
-        cout << endl;
-      }
-      
-      cout << endl;
-      cout << "Matrix Hnn is: " << endl;
-      for (int j=0; j<n; j++)
-      {
-        for (int k=0; k<n; k++) cout << setw(10) << setprecision(2) << Hnn(j,k);
-        cout << endl;
-      }
-      
-      
-      arma::cx_vec eigval;
-      arma::cx_mat eigvec;
-      arma::eig_gen(eigval, eigvec, Hnn);
-      
-      // Find max eigenpair
-      eigen_value = eigval.max().real();
-      eigen_vector[species].zeros();
-      
-      cout << endl;
-      cout << "Checking imaginary parts of Hnn eigenvector:" << endl;
-      for (int j=0; j<n; j++) cout << eigvec(j,eigval.index_max()).imag() << endl;
-      
-      for (int j=0; j<n; j++) // TODO: can eigvec have non zero imaginary part??
-        eigen_vector[species].Real().IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), eigvec(j,eigval.index_max()).real());
-      
-      eigen_vector[species].Real().normalise();  // TODO: useless??
-      eigen_vector[species].do_real_2_fourier(); // TODO: useless??
-      
-      rel = fabs((eigen_value-eigen_value_old)/(eigen_value+eigen_value_old -2*shift));
-      
-      //if(iteration%20 == 0)
-      {
-        cout << myColor::YELLOW;
-        cout << setprecision(6);
-        cout << '\r'; cout << "\t" << "iteration = " << iteration << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
-        cout << myColor::RESET;
-        
-        ofstream debug("debug.dat", (iteration == 0 ? ios::trunc : ios::app));
-        debug  << iteration << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value_old) << endl;
-        debug.close();
-        
-        ofstream of(Filename);
-        of <<  eigen_vector[species].Real();
-        of.close();
-      }
-    }
-  
-  ofstream of(Filename);
-  of <<  eigen_vector[species].Real();
-  of.close();
-  
-  cout << myColor::YELLOW;
-  cout << endl;
-  cout << myColor::RESET;
-  
-  eigen_value -= shift;
-  return eigen_value;
-}
-*/
-
 
 
 
