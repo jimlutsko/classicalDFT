@@ -356,13 +356,16 @@ double DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, bo
 }
 
 
-double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol, int dimension_Krylov) const
+double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol) const
 {
   cout << endl;
   cout << myColor::YELLOW;
-  cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << ", dimension_Krylov = " << dimension_Krylov << endl;
+  cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
   cout << myColor::RESET;    
   cout << endl;
+  
+  ofstream ofile_Hmatrix("arnoldi_Hmatrix.dat");
+  ofstream ofile_eigvals("arnoldi_eigvals.dat");
   
   int species = 0;
   
@@ -382,8 +385,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
   vector<vector<DFT_FFT>> Arnoldi_vectors(max_dimension_Krylov+1, eigen_vector);
   for (int i=0; i<max_dimension_Krylov+1; i++) Arnoldi_vectors[i][species].initialize(Nx,Ny,Nz);
   
-  // Prepare initial Krylov vector
-  // TODO: rename as 'Krylov' instead of 'Arnoldi'?
+  // Prepare initial Arnoldi vector
   
   mt19937 rng;
   uniform_real_distribution<double> urd;
@@ -410,7 +412,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
   double rel = 1;
   long iteration;
   
-  for(int iteration=0; (maxSteps<0 || iteration<maxSteps) && rel>tol; iteration++)
+  for(iteration=0; (maxSteps<0 || iteration<maxSteps) && rel>tol; iteration++)
     {
       double eigen_value_old = eigen_value;
       
@@ -447,7 +449,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
       }
       
       // Save new_Arnoldi_vector and normalise
-      H(iteration+1,iteration) = new_Arnoldi_vector[0].dotWith(new_Arnoldi_vector[0]);
+      H(iteration+1,iteration) = sqrt( new_Arnoldi_vector[0].dotWith(new_Arnoldi_vector[0]) );
       Arnoldi_vectors[iteration+1][species].Real().set(new_Arnoldi_vector[0]);
       Arnoldi_vectors[iteration+1][species].Real().normalise();
       Arnoldi_vectors[iteration+1][species].do_real_2_fourier();
@@ -460,12 +462,14 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
       /*
       cout << endl;
       cout << "Matrix H is: " << endl;
-      for (int j=0; j<maxSteps+1; j++)
+      for (int j=0; j<max_dimension_Krylov+1; j++)
       {
-        for (int k=0; k<maxSteps; k++) cout << setw(10) << setprecision(2) << H(j,k);
+        for (int k=0; k<max_dimension_Krylov; k++) cout << setw(10) << setprecision(2) << H(j,k);
         cout << endl;
       }
-      
+      cout << endl;
+      */
+      /*
       cout << endl;
       cout << "Matrix Hnn is: " << endl;
       for (int j=0; j<n; j++)
@@ -473,11 +477,34 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
         for (int k=0; k<n; k++) cout << setw(10) << setprecision(2) << Hnn(j,k);
         cout << endl;
       }
+      cout << endl;
       */
+      
+      // Record H matrix
+      ofile_Hmatrix << endl;
+      for (int j=0; j<n; j++)
+      {
+        for (int k=0; k<n; k++) ofile_Hmatrix << setw(10) << setprecision(2) << Hnn(j,k);
+        ofile_Hmatrix << endl;
+      }
+      ofile_Hmatrix << endl;
       
       arma::cx_vec eigval;
       arma::cx_mat eigvec;
       arma::eig_gen(eigval, eigvec, Hnn);
+      
+      /*
+      cout << endl;
+      cout << "Eigenvalues of Hnn are: " << endl;
+      arma::cx_vec eigval_sorted = arma::sort(eigval, "descend");
+      for (int j=0; j<n; j++) cout << setw(16) << setprecision(6) << eigval_sorted[j].real();
+      cout << endl;
+      */
+      
+      // Record eigenvalues
+      arma::cx_vec eigval_sorted = arma::sort(eigval, "descend");
+      for (int k=0; k<n; k++) ofile_eigvals << setw(12) << setprecision(4) << eigval_sorted[k].real()-shift;
+      ofile_eigvals << endl;
       
       // Find max eigenpair
       eigen_value = eigval.max().real();
@@ -487,6 +514,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
       cout << endl;
       cout << "Checking imaginary parts of Hnn eigenvector:" << endl;
       for (int j=0; j<n; j++) cout << eigvec(j,eigval.index_max()).imag() << endl;
+      cout << endl;
       */
       
       for (int j=0; j<n; j++) // TODO: can eigvec have non zero imaginary part?? It does not seem so
@@ -517,6 +545,9 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
   ofstream of(Filename);
   of <<  eigen_vector[species].Real();
   of.close();
+  
+  ofile_Hmatrix.close();
+  ofile_eigvals.close();
   
   cout << myColor::YELLOW;
   cout << endl;
