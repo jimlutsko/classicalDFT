@@ -448,6 +448,14 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
         new_Arnoldi_vector[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), -H(j,iteration));
       }
       
+      // Orthogonalise a second time to be sure
+      for (int j=0; j<iteration+1; j++)
+      {
+        double c = Arnoldi_vectors[j][species].Real().dotWith(new_Arnoldi_vector[0]);
+        new_Arnoldi_vector[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), -c);
+        H(j,iteration) += c;
+      }
+      
       // Save new_Arnoldi_vector and normalise
       H(iteration+1,iteration) = sqrt( new_Arnoldi_vector[0].dotWith(new_Arnoldi_vector[0]) );
       Arnoldi_vectors[iteration+1][species].Real().set(new_Arnoldi_vector[0]);
