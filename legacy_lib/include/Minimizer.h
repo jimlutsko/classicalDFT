@@ -244,6 +244,7 @@ class DDFT_IF : public DDFT
   void set_is_closed(bool val) { is_closed_ = val;}
 
   double determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic = true, long maxSteps = 1000, double tol = 1e-8) const;
+  double determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol) const;
   double determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic = true, long maxSteps = 1000, double tol = 1e-8) const;
   
   void Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool fixed_boundary, bool full) const;  

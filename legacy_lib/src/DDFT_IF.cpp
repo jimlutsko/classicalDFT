@@ -356,13 +356,14 @@ double DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, bo
 }
 
 
-double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol) const
+double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol) const
 {
-  cout << endl;
+  /*cout << endl;
   cout << myColor::YELLOW;
-  cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
+  cout << "\tRestarting Arnoldi iterations from current best estimate of the eigen_vector" << endl;
+  cout << "\tMaxIterations (Loop) = " << maxSteps  << endl;
   cout << myColor::RESET;    
-  cout << endl;
+  cout << endl;*/
   
   ofstream ofile_Hmatrix("arnoldi_Hmatrix.dat");
   ofstream ofile_eigvals("arnoldi_eigvals.dat");
@@ -379,26 +380,10 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
   // more iterations at once.
   double max_dimension_Krylov = 127;
   
-  // Record Arnoldi vectors which together form an orthogonal basis 
-  // of the Krylov subspace. 
-  eigen_vector[species].zeros();
+  // Arnoldi vectors which together form an orthogonal basis of the Krylov subspace. 
+  // Keep eigen_vector as the first guess (i=0), set the other to zero
   vector<vector<DFT_FFT>> Arnoldi_vectors(max_dimension_Krylov+1, eigen_vector);
-  for (int i=0; i<max_dimension_Krylov+1; i++) Arnoldi_vectors[i][species].initialize(Nx,Ny,Nz);
-  
-  // Prepare initial Arnoldi vector
-  
-  mt19937 rng;
-  uniform_real_distribution<double> urd;
-  for(long s = 0;s<Ntot;s++)
-    Arnoldi_vectors[0][species].Real().set(s,2*urd(rng)-1); // random number in (-1,1)
-  
-  if(fixed_boundary)
-    for(long p=0;p<density.get_Nboundary();p++)
-      Arnoldi_vectors[0][species].Real().set(density.boundary_pos_2_pos(p),0.0);
-  
-  // Normalize
-  Arnoldi_vectors[0][species].Real().normalise();
-  Arnoldi_vectors[0][species].do_real_2_fourier();
+  for (int i=1; i<max_dimension_Krylov+1; i++) Arnoldi_vectors[i][species].initialize(Nx,Ny,Nz);
   
   // Record of scalar products between old and new Arnoldi vectors 
   // this is the Krylov matrix in the orthogonal basis of the Krylov subspace
@@ -513,7 +498,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
       {
         cout << myColor::YELLOW;
         cout << setprecision(6);
-        cout << '\r'; cout << "\t" << "iteration = " << iteration << " shift = " << shift << " eigen_value = " << eigen_value-shift << " rel = " << rel << " "; cout.flush();
+        cout << '\r'; cout << "\t" << "iteration = " << iteration << " shift = " << shift << " eigen_value = " << setw(12) << eigen_value-shift << " rel = " << setw(12) << rel << " "; cout.flush();
         cout << myColor::RESET;
         
         ofstream debug("debug.dat", (iteration == 0 ? ios::trunc : ios::app));
@@ -539,6 +524,64 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
   
   eigen_value -= shift;
   return eigen_value;
+}
+
+// TODO: do something if we exceed max number of iterations
+//  e.g. throw a runtime_error --> if you do this, remove numStepsLoop stuff
+
+double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol) const
+{
+	cout << endl;
+	cout << myColor::YELLOW;
+	cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
+	cout << myColor::RESET;    
+	cout << endl;
+
+	int species = 0;
+
+	const Density& density = dft_->getDensity(species);
+	const long Ntot = density.Ntot();
+	
+	// Prepare initial guess (random vector)
+	
+	eigen_vector[species].zeros();
+	
+	mt19937 rng;
+	uniform_real_distribution<double> urd;
+	for(long s = 0;s<Ntot;s++)
+		eigen_vector[species].Real().set(s,2*urd(rng)-1); // random number in (-1,1)
+
+	if(fixed_boundary)
+	for(long p=0;p<density.get_Nboundary();p++)
+		eigen_vector[species].Real().set(density.boundary_pos_2_pos(p),0.0);
+	
+	eigen_vector[species].Real().normalise();
+	eigen_vector[species].do_real_2_fourier();
+	
+	// Loops
+	
+	int maxStepsLoop = 100;
+	int numSteps = 0;
+	
+	double eigen_value = 0.0;
+	
+	while (numSteps<maxSteps)
+	{
+		int remSteps = maxSteps-numSteps;
+		int numStepsLoop = (remSteps<maxStepsLoop)?remSteps:maxStepsLoop;
+		
+		cout << endl;
+		cout << myColor::YELLOW;
+		cout << "\tRestarting Arnoldi iterations from current best estimate of the eigen_vector" << endl;
+		cout << "\tIterations (Total) = " << numSteps << "/" << maxSteps << ",  MaxIterations (Next Loop) = " << numStepsLoop  << endl;
+		cout << myColor::RESET;
+		cout << endl;
+		
+		eigen_value = determine_unstable_eigenvector_Arnoldi_loop_(eigen_vector, fixed_boundary, shift, Filename, dynamic, numStepsLoop, tol);
+		numSteps += numStepsLoop;
+	}
+	
+	return eigen_value;
 }
 
 
