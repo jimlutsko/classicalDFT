@@ -577,6 +577,10 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
 		cout << myColor::RESET;
 		cout << endl;
 		
+		ofstream debug("debug2.dat", (numSteps == 0 ? ios::trunc : ios::app));
+        debug  << numSteps << " " << eigen_value << endl;
+        debug.close();
+		
 		eigen_value = determine_unstable_eigenvector_Arnoldi_loop_(eigen_vector, fixed_boundary, shift, Filename, dynamic, numStepsLoop, tol);
 		numSteps += numStepsLoop;
 	}
