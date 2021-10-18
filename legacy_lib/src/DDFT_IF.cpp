@@ -493,7 +493,8 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &ei
       eigen_vector[species].Real().normalise();
       eigen_vector[species].do_real_2_fourier();
       
-      rel = fabs((eigen_value-eigen_value_old)/(eigen_value+eigen_value_old -2*shift));
+      // Test convergence (have memory to avoid stopping after a randomly-occurring very small value)
+      rel = rel*0.9 + 0.1*fabs((eigen_value-eigen_value_old)/(eigen_value+eigen_value_old -2*shift));
       if (rel<=tol) converged = true;
       
       //if(iteration%20 == 0)
