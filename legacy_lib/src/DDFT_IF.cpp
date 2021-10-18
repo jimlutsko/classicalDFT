@@ -356,7 +356,7 @@ double DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, bo
 }
 
 
-double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol) const
+double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol, bool &converged) const
 {
   /*cout << endl;
   cout << myColor::YELLOW;
@@ -396,6 +396,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &ei
   
   double rel = 1;
   long iteration;
+  converged = false;
   
   for(iteration=0; (maxSteps<0 || iteration<maxSteps) && rel>tol; iteration++)
     {
@@ -493,6 +494,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &ei
       eigen_vector[species].do_real_2_fourier();
       
       rel = fabs((eigen_value-eigen_value_old)/(eigen_value+eigen_value_old -2*shift));
+      if (rel<=tol) converged = true;
       
       //if(iteration%20 == 0)
       {
@@ -560,12 +562,13 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
 	
 	// Loops
 	
-	int maxStepsLoop = 100;
+	int maxStepsLoop = 500;
 	int numSteps = 0;
 	
 	double eigen_value = 0.0;
+	bool converged = false;
 	
-	while (numSteps<maxSteps)
+	while (numSteps<maxSteps && !converged)
 	{
 		int remSteps = maxSteps-numSteps;
 		int numStepsLoop = (remSteps<maxStepsLoop)?remSteps:maxStepsLoop;
@@ -578,10 +581,10 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
 		cout << endl;
 		
 		ofstream debug("debug2.dat", (numSteps == 0 ? ios::trunc : ios::app));
-        debug  << numSteps << " " << eigen_value << endl;
-        debug.close();
+		debug  << numSteps << " " << eigen_value << endl;
+		debug.close();
 		
-		eigen_value = determine_unstable_eigenvector_Arnoldi_loop_(eigen_vector, fixed_boundary, shift, Filename, dynamic, numStepsLoop, tol);
+		eigen_value = determine_unstable_eigenvector_Arnoldi_loop_(eigen_vector, fixed_boundary, shift, Filename, dynamic, numStepsLoop, tol, converged);
 		numSteps += numStepsLoop;
 	}
 	
