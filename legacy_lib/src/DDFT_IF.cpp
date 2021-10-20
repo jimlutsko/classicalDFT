@@ -494,7 +494,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &ei
       eigen_vector[species].do_real_2_fourier();
       
       // Test convergence (have memory to avoid stopping after a randomly-occurring very small value)
-      rel = rel*0.9 + 0.1*fabs((eigen_value-eigen_value_old)/(eigen_value+eigen_value_old -2*shift));
+      rel = rel*0.5 + 0.5*fabs((eigen_value-eigen_value_old)/(eigen_value+eigen_value_old -2*shift));
       if (rel<=tol) converged = true;
       
       //if(iteration%20 == 0)
@@ -563,7 +563,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
 	
 	// Loops
 	
-	int maxStepsLoop = 500;
+	int maxStepsLoop = 100;
 	int numSteps = 0;
 	
 	double eigen_value = 0.0;
@@ -581,9 +581,24 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
 		cout << myColor::RESET;
 		cout << endl;
 		
+		// Test how close the result is to a true eigenvector
+		
+		vector<DFT_Vec> residuals_vector(1); residuals_vector[0].zeros(Ntot);
+		
+		Hessian_dot_v(eigen_vector,residuals_vector,fixed_boundary,dynamic);
+		if(fixed_boundary) for(long p=0;p<density.get_Nboundary();p++)
+			residuals_vector[0].set(density.boundary_pos_2_pos(p),0.0);
+		
+		residuals_vector[0].IncrementBy_Scaled_Vector(eigen_vector[0].Real(), -eigen_value);
+		double res = residuals_vector[0].euclidean_norm();
+		
+		// Record in file
+		
 		ofstream debug("debug2.dat", (numSteps == 0 ? ios::trunc : ios::app));
-		debug  << numSteps << " " << eigen_value << endl;
+		debug  << numSteps << " " << eigen_value << " " << res << endl;
 		debug.close();
+		
+		// Next loop
 		
 		eigen_value = determine_unstable_eigenvector_Arnoldi_loop_(eigen_vector, fixed_boundary, shift, Filename, dynamic, numStepsLoop, tol, converged);
 		numSteps += numStepsLoop;
