@@ -443,7 +443,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &ei
       }
       
       // Save new_Arnoldi_vector and normalise
-      H(iteration+1,iteration) = sqrt( new_Arnoldi_vector[0].dotWith(new_Arnoldi_vector[0]) );
+      H(iteration+1,iteration) = new_Arnoldi_vector[0].euclidean_norm();
       Arnoldi_vectors[iteration+1][species].Real().set(new_Arnoldi_vector[0]);
       Arnoldi_vectors[iteration+1][species].Real().normalise();
       Arnoldi_vectors[iteration+1][species].do_real_2_fourier();
@@ -464,7 +464,13 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &ei
       
       arma::cx_vec eigval;
       arma::cx_mat eigvec;
-      arma::eig_gen(eigval, eigvec, Hnn);
+      arma::eig_gen(eigval, eigvec, Hnn, "balance");
+      
+      // Compute residuals of Hnn eigenproblem
+      arma::cx_mat resmat(n,n);
+      resmat = Hnn*eigvec - eigvec*arma::diagmat(eigval);
+      arma::cx_vec resvec(n); for (int j=0; j<n; j++) resvec(j) = resmat(0,j);
+      double resHnn = arma::norm(resvec);
       
       // Record eigenvalues
       arma::cx_vec eigval_sorted = arma::sort(eigval, "descend");
@@ -501,11 +507,11 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &ei
       {
         cout << myColor::YELLOW;
         cout << setprecision(6);
-        cout << '\r'; cout << "\t" << "iteration = " << iteration << " shift = " << shift << " eigen_value = " << setw(12) << eigen_value-shift << " rel = " << setw(12) << rel << " "; cout.flush();
+        cout << '\r'; cout << "\t" << "iteration = " << iteration << " shift = " << shift << " eigen_value = " << setw(12) << eigen_value-shift << " rel = " << setw(12) << rel << " " << " resHnn = " << setw(12) << resHnn; cout.flush();
         cout << myColor::RESET;
         
         ofstream debug("debug.dat", (iteration == 0 ? ios::trunc : ios::app));
-        debug  << iteration << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value_old) << endl;
+        debug  << iteration << " " << eigen_value-shift << " " << rel << " " << fabs(eigen_value - eigen_value_old) << " " << resHnn << endl;
         debug.close();
         
         ofstream of(Filename);
@@ -605,6 +611,268 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_ve
 	}
 	
 	return eigen_value;
+}
+
+
+
+double DDFT_IF::determine_unstable_eigenvector_Arnoldi_mES(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol) const
+{
+	cout << endl;
+	cout << myColor::YELLOW;
+	cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
+	cout << myColor::RESET;    
+	cout << endl;
+	
+	ofstream debug("debug.dat", ios::trunc);
+	debug << "#      iteration    eigen_value1    eigen_value2   residual_full   residual_proj" << endl;
+	debug.close();
+	
+	int species = 0;
+	
+	const Density& density = dft_->getDensity(species);
+	const long Ntot = density.Ntot();
+	const int Nx = density.Nx();
+	const int Ny = density.Ny();
+	const int Nz = density.Nz();
+	
+	int max_dimension_Krylov = 127;
+	int iteration = 0;
+	
+	double eigen_value1 = 0.0;
+	double eigen_value2 = 0.0;
+	double residual_full = 1.0;
+	double residual_proj = 1.0;
+	
+	// Arnoldi vectors which together form an orthogonal basis of the Krylov subspace.
+	vector<vector<DFT_FFT>> Arnoldi_vectors(max_dimension_Krylov+1, eigen_vector);
+	for (int i=0; i<max_dimension_Krylov+1; i++) Arnoldi_vectors[i][species].initialize(Nx,Ny,Nz);
+	
+	// Hessian matrix projected in the Krylov subspace
+	arma::mat H; H.zeros(max_dimension_Krylov+1,max_dimension_Krylov);
+	
+	// Prepare initial guess (random vector)
+	
+	mt19937 rng;
+	uniform_real_distribution<double> urd;
+	for(long s=0; s<Ntot; s++)
+		Arnoldi_vectors[0][species].Real().set(s,2*urd(rng)-1); // random number in (-1,1)
+	
+	if(fixed_boundary) for(long p=0; p<density.get_Nboundary(); p++)
+		Arnoldi_vectors[0][species].Real().set(density.boundary_pos_2_pos(p),0.0);
+	
+	Arnoldi_vectors[0][species].Real().normalise();
+	Arnoldi_vectors[0][species].do_real_2_fourier();
+	
+	//TODO: temp
+	bool first_start = true;
+	
+	// Restarted Arnoldi iterations
+	
+	while (iteration<maxSteps || maxSteps<0)
+	{
+		cout << endl;
+		cout << myColor::YELLOW;
+		cout << "\tRestarting Arnoldi iterations from current best estimate of the eigen_vector" << endl;
+		cout << "\tIterations (Total) = " << iteration << "/" << maxSteps << ",  Max dimension Krylov = " << max_dimension_Krylov  << endl;
+		cout << myColor::RESET;
+		cout << endl;
+		
+		vector<DFT_Vec> new_Arnoldi_vector(1);
+		new_Arnoldi_vector[0].zeros(Ntot);
+		
+		vector<DFT_Vec> eigen_vector_2(1);
+		eigen_vector_2[0].zeros(Ntot);
+		
+		for(int i=0; i<max_dimension_Krylov; i++) // TODO: temp i=1 for saving second max eigen vector
+		{
+			// TODO: temp
+			if (!first_start && i==0) i=1;
+			else first_start = false;
+			
+			// Compute new Arnoldi vector
+			//cout << "Compute new Arnoldi vector" << endl;
+			
+			Hessian_dot_v(Arnoldi_vectors[i],new_Arnoldi_vector,fixed_boundary,dynamic);
+			new_Arnoldi_vector[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[i][species].Real(),shift);
+			
+			if(fixed_boundary) for(long p=0; p<density.get_Nboundary(); p++)
+				new_Arnoldi_vector[0].set(density.boundary_pos_2_pos(p),0.0);
+			
+			// Make the new vector orthogonal to the existing Arnoldi vectors
+			//cout << "Make the new vector orthogonal to the existing Arnoldi vectors" << endl;
+			
+			for (int j=0; j<i+1; j++)
+			{
+				H(j,i) = Arnoldi_vectors[j][species].Real().dotWith(new_Arnoldi_vector[0]);
+				new_Arnoldi_vector[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), -H(j,i));
+			}
+			
+			// Orthogonalise a second time to be sure
+			//cout << "Orthogonalise a second time to be sure" << endl;
+			
+			for (int j=0; j<i+1; j++)
+			{
+				double c = Arnoldi_vectors[j][species].Real().dotWith(new_Arnoldi_vector[0]);
+				new_Arnoldi_vector[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), -c);
+				H(j,i) += c;
+			}
+			
+			// Save new_Arnoldi_vector and normalise
+			//cout << "Save new_Arnoldi_vector and normalise" << endl;
+			
+			H(i+1,i) = new_Arnoldi_vector[0].euclidean_norm();
+			Arnoldi_vectors[i+1][species].Real().set(new_Arnoldi_vector[0]);
+			Arnoldi_vectors[i+1][species].Real().normalise();
+			Arnoldi_vectors[i+1][species].do_real_2_fourier();
+			
+			// Compute eigenvalues of the Hessian projected in the current-sized Krylov subspace
+			//cout << "Compute eigenvalues of the Hessian projected in the current-sized Krylov subspace" << endl;
+			
+			int n = i+1;
+			arma::mat Hnn(n,n);
+			for (int j=0; j<n; j++) for (int k=0; k<n; k++) Hnn(j,k) = H(j,k);
+			
+			/*cout << "Hnn:" << endl;
+			for (int j=0; j<n; j++)
+			{
+				for (int k=0; k<n; k++) cout << setw(10) << setprecision(2) << Hnn(j,k);
+				cout << endl;
+			}*/
+			
+			arma::cx_vec eigval_unsorted;
+			arma::cx_mat eigvec_unsorted;
+			arma::eig_gen(eigval_unsorted, eigvec_unsorted, Hnn, "balance");
+			
+			arma::uvec idx = arma::sort_index(arma::real(eigval_unsorted),"descend");
+			arma::vec eigval(n);
+			arma::mat eigvec(n,n);
+			
+			for (int j=0; j<n; j++)
+			{
+				eigval(j) = eigval_unsorted(idx(j)).real();
+				for (int k=0; k<n; k++)
+				{
+					complex<double> z = eigvec_unsorted(k,idx(j));
+					eigvec(k,j) = z.real();
+				}
+			}
+			
+			eigen_value1 = eigval(0);
+			if (n>1) eigen_value2 = eigval(1);
+			
+			// Compute residuals of eigenproblem in the Krylov subspace
+			//cout << "Compute residuals of eigenproblem in the Krylov subspace" << endl;
+			
+			arma::vec resvec(n);
+			arma::mat resmat(n,n);
+			resmat = Hnn*eigvec - eigvec*arma::diagmat(eigval);
+			for (int j=0; j<n; j++) resvec(j) = resmat(0,j);
+			double residual_proj = arma::norm(resvec);
+			
+			// Compute the current best approx of eigen_vector
+			//cout << "Compute the current best approx of eigen_vector" << endl;
+			
+			eigen_vector[species].zeros();
+			
+			for (int j=0; j<n; j++)
+				eigen_vector[species].Real().IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), eigvec(j,0));
+			
+			eigen_vector[species].Real().normalise();
+			eigen_vector[species].do_real_2_fourier();
+			
+			// Compute residuals of the full eigenproblem
+			//cout << "Compute residuals of the full eigenproblem" << endl;
+			
+			vector<DFT_Vec> residuals_vector(1); residuals_vector[0].zeros(Ntot);
+			
+			Hessian_dot_v(eigen_vector,residuals_vector,fixed_boundary,dynamic);
+			if(fixed_boundary) for(long p=0;p<density.get_Nboundary();p++)
+				residuals_vector[0].set(density.boundary_pos_2_pos(p),0.0);
+			
+			residuals_vector[0].IncrementBy_Scaled_Vector(eigen_vector[species].Real(), -eigen_value1+shift);
+			double residual_full = residuals_vector[0].euclidean_norm();
+			
+			// Record in file + message in console
+			//cout << "Record in file + message in console" << endl;
+			
+			//if(iteration%20 == 0)
+			{
+				debug.open("debug.dat", ios::app);
+				debug << setprecision(6);
+				debug << setw(16) << iteration          << setw(16) << eigen_value1-shift 
+				      << setw(16) << eigen_value2-shift << setw(16) << residual_full 
+				      << setw(16) << residual_proj << endl;
+				debug.close();
+			
+				cout << myColor::YELLOW;
+				cout << setprecision(6);
+				cout << "\r";
+				cout << "\t iteration = " << iteration 
+				     << "\t eig_val1 = " << eigen_value1-shift 
+				     << "\t eig_val2 = " << eigen_value2-shift 
+				     << "\t res_full = " << residual_full 
+				     << "\t res_proj = " << residual_proj;
+				cout.flush();
+				cout << myColor::RESET;
+				
+				ofstream of(Filename);
+				of <<  eigen_vector[species].Real();
+				of.close();
+			}
+			
+			ofstream of(Filename);
+			of << eigen_vector[species].Real();
+			of.close();
+			
+			// Test convergence
+			//cout << "Test convergence" << endl;
+			
+			if (residual_full<=tol) return eigen_value1-shift;
+			
+			iteration++;
+			
+			//TODO/ temp
+			eigen_vector_2[0].zeros(Ntot);
+			
+			if (n>1) for (int j=0; j<n; j++)
+				eigen_vector_2[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), eigvec(j,1));
+			
+			eigen_vector_2[0].normalise();
+		}
+		
+		//////////////////// TODO: temp
+		// Keep best approx of second eigen vector
+		// Do not forget to update the H-matrix
+		
+		for (int j=0; j<1; j++)
+		{
+			H(j,0) = Arnoldi_vectors[j][species].Real().dotWith(eigen_vector_2[0]);
+			eigen_vector_2[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), -H(j,0));
+		}
+		
+		for (int j=0; j<1; j++)
+		{
+			double c = Arnoldi_vectors[j][species].Real().dotWith(eigen_vector_2[0]);
+			eigen_vector_2[0].IncrementBy_Scaled_Vector(Arnoldi_vectors[j][species].Real(), -c);
+			H(j,0) += c;
+		}
+		
+		H(1,0) = eigen_vector_2[0].euclidean_norm();
+		Arnoldi_vectors[1][species].Real().set(eigen_vector_2[0]);
+		Arnoldi_vectors[1][species].Real().normalise();
+		Arnoldi_vectors[1][species].do_real_2_fourier();
+		
+		///////////////////////
+		
+		// Use the current best approx for eigen_vector to start next iterations
+		//cout << "Use the current best approx for eigen_vector to start next iterations" << endl;
+		
+		Arnoldi_vectors[0][species].Real().set(eigen_vector[species].Real());
+		Arnoldi_vectors[0][species].do_real_2_fourier();
+	}
+	
+	throw runtime_error("Arnoldi: Exceeded maxSteps");
+	return eigen_value1-shift;
 }
 
 
