@@ -141,6 +141,10 @@ class DFT
    *   @return total free energy of system
    */  
   double calculateFreeEnergyAndDerivatives(bool onlyFex);
+  
+  
+  double calculateLocalFreeEnergy(long pos);
+  
 
   /**
    *   @brief  Compute chemical potential/kT for a uniform system with the given density
