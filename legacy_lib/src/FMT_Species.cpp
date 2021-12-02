@@ -166,7 +166,7 @@ static void getJ(double X, double V, double R, double J[])
   J[3] = 0.25*(X*X*X*X-R*R*R*R)*aV+(M_PI/8)*R*R*R*R-(V/12.0)*(5*R*R+X*X-2*V*V)*b;
   J[4] = 0.025*X*V*(3*V*V-2*X*X-7*R*R)*b+0.025*V*(3*V*V*V*V-10*V*V*R*R+15*R*R*R*R)*aX+0.2*X*X*X*X*X*aV-0.2*R*R*R*R*R*aVX;
 
-  if(isnan(J[1]) || isnan(J[2]) || isnan(J[3]) || isnan(J[4]))
+  if(std::isnan(J[1]) || std::isnan(J[2]) || std::isnan(J[3]) || std::isnan(J[4]))
     {
       cout << X << " " << V << " " << R << " | " << b << " " << R*R-V*V << " " << R*R-X*X << " " << R*R - V*V -X*X << endl;
       throw std::runtime_error("done");
@@ -200,20 +200,20 @@ double G_eta(double R, double X, double Vy, double Vz, double Tx, double Ty, dou
   double g = Tx*A*X-0.5*A*X*X-(1.0/3)*B*Tx*X*X*X+0.25*X*X*X*X*B
     +0.025*Tx*X*X*X*X*X-(1.0/48)*X*X*X*X*X*X;
 
-  if(isnan(g))
+  if(std::isnan(g))
     throw std::runtime_error("Here 1");
   
   g -= 0.5*Ty*Tz*(Tx*R*R*Jy[0]-R*R*Jy[1]-Tx*Jy[2]+Jy[3]);
-  if(isnan(g))
+  if(std::isnan(g))
     throw std::runtime_error("Here 2");  
   g -= 0.5*Ty*Tz*(Tx*R*R*Jz[0]-R*R*Jz[1]-Tx*Jz[2]+Jz[3]);
-  if(isnan(g))
+  if(std::isnan(g))
     {
       cout << Jz[0] << " " << Jz[1] << " " << Jz[2] << " " << Jz[3] << endl;
       throw std::runtime_error("Here 3");
     }
   g -= (Tx*Tz*C*Iy[0]-Tz*C*Iy[1]-(1.0/3)*Tx*Tz*Iy[2]+(1.0/3)*Tz*Iy[3]);
-  if(isnan(g))
+  if(std::isnan(g))
     throw std::runtime_error("Here 4");  
   g -= (Tx*Ty*D*Iz[0]-Ty*D*Iz[1]-(1.0/3)*Tx*Ty*Iz[2]+(1.0/3)*Ty*Iz[3]);
 
@@ -504,7 +504,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 		{		  
 		  long pos = density_.get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
 		  fmt_weights[EI()].addToWeight(pos,w_eta);
-		  if(isnan(fmt_weights[EI()].getWeight(pos)))
+		  if(std::isnan(fmt_weights[EI()].getWeight(pos)))
 		    {
 		      cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
 		      throw std::runtime_error("Found NAN");
@@ -655,7 +655,7 @@ void FMT_Species_EOS::generate_additional_Weight()
 		{		  
 		  long pos = density_.get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
 		  eos_weighted_density_.addToWeight(pos,w_eta);
-		  if(isnan(eos_weighted_density_.getWeight(pos)))
+		  if(std::isnan(eos_weighted_density_.getWeight(pos)))
 		    {
 		      cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
 		      throw std::runtime_error("Found NAN");
@@ -742,7 +742,6 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   long i;
   
 #pragma omp parallel for \
-  shared( PSI_ )  \
   private(i)		 \
   schedule(static)	 \
   reduction(+:F)
