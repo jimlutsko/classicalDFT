@@ -109,7 +109,22 @@ public:
   virtual bool needsTensor() const  = 0;
 
   // the homogeneous dcf
-  virtual double get_dcf(double r, double eta) const { return 0.0;}
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const = 0;  
+  virtual double get_dcf(double r, double eta) const  {return 0.0;}
+
+  double get_dcf1(double r, double eta) const
+  {
+    double dcf = 0.0;
+    if(r < 1)
+      {
+	double a0,a1,a3;
+	get_dcf_coeffs(eta,a0,a1,a3);
+	dcf = a0+a1*r+a3*r*r*r;
+      }
+    return dcf; 
+  }
+
+  
 
   string get_name() const { return Name();}
   
@@ -157,6 +172,13 @@ class Rosenfeld: public FMT
     double a1 = -1.5*eta*pow(2+eta,2)*pow(1-eta,-4);
     double a2 = 0.5*eta*a0;
     return -(a0+a1*r+a2*r*r*r);
+  }
+
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
+  {
+    a0 = -pow(1+2*eta,2)*pow(1-eta,-4);
+    a1 = 1.5*eta*pow(2+eta,2)*pow(1-eta,-4);
+    a3 = 0.5*eta*a0;
   }
   
   virtual bool needsTensor() const { return false;}
@@ -389,6 +411,19 @@ class esFMT : public Rosenfeld
  public:
   esFMT(double A = 1, double B = 0) : Rosenfeld(), A_(A), B_(B){};
 
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
+  {
+    Rosenfeld::get_dcf_coeffs(eta,a0,a1,a3);
+
+    double c0 = -0.5*eta*pow(1-eta,-2);
+    double c1 = eta*eta*(2*(4*A_+B_)-9)*pow(1-eta,-3);
+    double c3 = 0.5*eta*eta*eta*(2*(4*A_+B_)-9)*pow(1-eta,-4);
+    
+    a0 -= c1+2*c3;
+    a1 += c1+3*c3+c0*(4*A_+2*B_-3);
+    a3 -= (c3+2*c0*(A_+B_));    
+  }
+  
   virtual double get_dcf(double r, double eta) const
   {
     if(r > 1.0) return 0.0;
@@ -528,6 +563,13 @@ class WhiteBearI : public esFMT
 
     return -(b0+b1*r+b2*r*r*r);
   }
+
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
+  {
+    a0 = -(1+4*eta+3*eta*eta-2*eta*eta*eta)*pow(1-eta,-4);
+    a1 =  (2-eta+14*eta*eta-6*eta*eta*eta)*pow(1-eta,-4) + 2*log(1-eta)/eta;
+    a3 = -(3-10*eta+15*eta*eta-5*eta*eta*eta)*pow(1-eta,-4) - 3*log(1-eta)/eta;          
+  }  
   
   virtual double f2_(double eta) const
   {
@@ -596,6 +638,11 @@ class WhiteBearII : public esFMT //WhiteBearI
   virtual double get_dcf(double r, double eta) const
   {
     throw std::runtime_error("WhiteBearII::get_dcf not implemented");
+  }
+
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
+  {
+    throw std::runtime_error("WhiteBearII::get_dcf_coeffs not implemented");    
   }
   
   virtual double f2_(double x) const
