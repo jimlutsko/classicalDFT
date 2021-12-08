@@ -26,6 +26,27 @@ using namespace std;
 
 ostringstream Eta_Too_Large_Exception::cnvt;
 
+// This is only correct for a single species
+double FMT::get_real_space_dcf(double r, double eta) const
+{
+  double dcf = 0.0;
+  if(r < 1)
+    {
+      double a0,a1,a3;
+      get_dcf_coeffs(eta,a0,a1,a3);
+      dcf = a0+a1*r+a3*r*r*r;
+    }
+  return dcf; 
+}
+
+// This is only correct for a single species
+double FMT::get_fourier_space_dcf(double k, double eta) const
+{
+  double dcf = 0.0;
+
+  return dcf; 
+}
+
 
 FundamentalMeasures FMT::getWeightedDensities(long i, vector<Species*> &allSpecies)
 {
