@@ -100,8 +100,8 @@ public:
 
   // the homogeneous dcf
   virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const = 0;  
-  double get_real_space_dcf(double r, double eta) const;
-  double get_fourier_space_dcf(double r, double eta) const;
+  double get_real_space_dcf(double r, double rho, double d) const;
+  double get_fourier_space_dcf(double r, double rho, double d) const;
   
   string get_name() const { return Name();}
   

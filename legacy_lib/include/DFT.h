@@ -89,7 +89,12 @@ class DFT
   void findCoex(double xmax, double dx, double &x1, double &x2, double tol) const;
   virtual void getCriticalPoint(Potential1& p, double &xc, double &Tc, double HSD = -1) const;
 
+  // Bulk structural properties
+  double real_space_dcf(double r, double x) const;
+  double fourier_space_dcf(double k, double x) const;
   
+  
+  // Identifiers
   virtual string Name() const { return string("DFT_Ideal_Gas");}
   string get_fmt_name() const
   {

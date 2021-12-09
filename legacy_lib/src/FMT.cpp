@@ -27,8 +27,12 @@ using namespace std;
 ostringstream Eta_Too_Large_Exception::cnvt;
 
 // This is only correct for a single species
-double FMT::get_real_space_dcf(double r, double eta) const
+double FMT::get_real_space_dcf(double r, double rho, double d) const
 {
+  double d3 = d*d*d;
+  double eta = M_PI*rho*d3/6;
+  r /= d;
+  
   double dcf = 0.0;
   if(r < 1)
     {
@@ -40,11 +44,34 @@ double FMT::get_real_space_dcf(double r, double eta) const
 }
 
 // This is only correct for a single species
-double FMT::get_fourier_space_dcf(double k, double eta) const
+double FMT::get_fourier_space_dcf(double k, double rho, double d) const
 {
-  double dcf = 0.0;
+  double d3 = d*d*d;
+  double eta = M_PI*rho*d3/6;
+  k *= d;
 
-  return dcf; 
+
+  double a0,a1,a3;
+  get_dcf_coeffs(eta,a0,a1,a3);
+
+  double f0,f1,f3;
+  double k2 = k*k;
+  double k3 = k*k2;
+  double k4 = k3*k;
+  if(k > 0.01)
+    {
+      double s = sin(k);
+      double c = cos(k);
+      f0 = (s-k*c)/k3;
+      f1 = ((2-k2)*c+2*k*s-2)/k3;
+      f3 =((-k4+12*k2-24)*c+4*k*(k2-6)*s+24)/k3;
+    } else {
+    f0 = (1-0.1*k2)/3;
+    f1 = (9*k-k3)/36;
+    f3 = k3/6;
+  }
+
+  return 4*M_PI*d3*d3*(a0*f0+a1*f1+a3*f3);
 }
 
 
