@@ -7,6 +7,8 @@
 
 #include "FMT_FFTW.h"
 
+static long CACHESIZE = 19712*1024;
+
 /**
   *  @brief UTILITY: A wrapper for linear algebra packages. The idea is to be able to easily change libraries without changing any other code. Probably overkill and could be eliminated.
   */  
