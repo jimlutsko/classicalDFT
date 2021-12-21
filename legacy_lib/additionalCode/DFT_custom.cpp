@@ -37,7 +37,7 @@ void DFT_Vec::set(const DFT_Vec& v1, const DFT_Vec& v2, double scale)
 	long N = VEC.size();
 	//for (long i=0;i<N;i++) VEC[i] = v1_VEC[i] + v2_VEC[i] * scale;
 	
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -58,7 +58,7 @@ void DFT_Vec::set(const double *x, unsigned N)
 	VEC.resize(N);
 	//for (long i=0; i<N; i++) VEC[i] = x[i];
 	
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -80,7 +80,7 @@ void DFT_Vec::zeros(long N)
 	VEC.resize(N);
 	//for (long i=0; i<N; i++) VEC[i] = 0.0;
 	
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -100,7 +100,7 @@ void DFT_Vec::zeros()
 	long N = VEC.size();
 	//for (long i=0; i<N; i++) VEC[i] = 0.0;
 	
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -124,7 +124,7 @@ double DFT_Vec::euclidean_norm() const
 	double sum = 0.0;
 	
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	//for (long i=0; i<N; i++) sum += VEC[i]*VEC[i];
@@ -149,7 +149,7 @@ void DFT_Vec::normalise() { MultBy(1.0/euclidean_norm());}
 double DFT_Vec::min() const
 {
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	double min_value = VEC[0];
@@ -174,7 +174,7 @@ double DFT_Vec::min() const
 double DFT_Vec::max() const
 {
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	double max_value = VEC[0];
@@ -207,7 +207,7 @@ double DFT_Vec::dotWith(const DFT_Vec &v) const
 	double sum = 0.0;
 	
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	//for (long i=0; i<N; i++) sum += VEC[i]*v_VEC[i];
@@ -235,7 +235,7 @@ double DFT_Vec::accu() const
 	double sum = 0.0;
 	
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	//for (long i=0; i<N; i++) sum += VEC[i];
@@ -261,7 +261,7 @@ void DFT_Vec::MultBy(double val)
 	//for (long i=0; i<N; i++) VEC[i] *= val;
 	
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -282,7 +282,7 @@ void DFT_Vec::IncrementBy(const DFT_Vec& v)
 	//for (long i=0; i<N; i++) VEC[i] += v_VEC[i];
 	
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -303,7 +303,7 @@ void DFT_Vec::DecrementBy(const DFT_Vec& v)
 	//for (long i=0; i<N; i++) VEC[i] -= v_VEC[i];
 	
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -324,7 +324,7 @@ void DFT_Vec::ShiftBy(double shift)
 	//for (long i=0; i<N; i++) VEC[i] += -shift; // TODO: Why +-? Is it really more efficient?
 	
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -348,7 +348,7 @@ void DFT_Vec::IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale)
 	//for (long i=0; i<N; i++) VEC[i] += v_VEC[i]*scale;
 	
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -370,7 +370,7 @@ void DFT_Vec::Schur(const DFT_Vec &v1, const DFT_Vec &v2)
 	//for (int i=0; i<N; i++) VEC[i] = v1_VEC[i] * v2_VEC[i];
 	
 	long N = VEC.size();
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -440,7 +440,7 @@ void DFT_Vec_Complex::MultBy(double val)
 	long N = cVEC.size();
 	//for (long i=0; i<N; i++) cVEC[i] *= val;
 	
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -464,7 +464,7 @@ void DFT_Vec_Complex::Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2
 		//for (long i=0; i<N; i++) cVEC[i] = v1_cVEC[i] * conj(v2_cVEC[i]);
 		
 		long N = cVEC.size();
-		long Nq = CACHESIZE/4;
+		long Nq = CACHESIZE/4/sizeof(double);
 		int Q = N/Nq;
 		
 		for (int q=0; q<Q; q++)
@@ -485,7 +485,7 @@ void DFT_Vec_Complex::Schur(const DFT_Vec_Complex &v1, const DFT_Vec_Complex &v2
 		//for (long i=0; i<N; i++) cVEC[i] = v1_cVEC[i] * v2_cVEC[i];
 		
 		long N = cVEC.size();
-		long Nq = CACHESIZE/4;
+		long Nq = CACHESIZE/4/sizeof(double);
 		int Q = N/Nq;
 		
 		for (int q=0; q<Q; q++)
@@ -510,7 +510,7 @@ void DFT_Vec_Complex::incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Co
 		//for (long i=0; i<N; i++) cVEC[i] += v1_cVEC[i] * conj(v2_cVEC[i]);
 		
 		long N = cVEC.size();
-		long Nq = CACHESIZE/4;
+		long Nq = CACHESIZE/4/sizeof(double);
 		int Q = N/Nq;
 		
 		for (int q=0; q<Q; q++)
@@ -531,7 +531,7 @@ void DFT_Vec_Complex::incrementSchur(const DFT_Vec_Complex &v1, const DFT_Vec_Co
 		//for (long i=0; i<N; i++) cVEC[i] += v1_cVEC[i] * v2_cVEC[i];
 		
 		long N = cVEC.size();
-		long Nq = CACHESIZE/4;
+		long Nq = CACHESIZE/4/sizeof(double);
 		int Q = N/Nq;
 		
 		for (int q=0; q<Q; q++)
@@ -554,7 +554,7 @@ void DFT_Vec_Complex::zeros(long N)
 	cVEC.resize(N);
 	//for (long i=0; i<N; i++) cVEC[i] = 0.0;
 	
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -574,7 +574,7 @@ void DFT_Vec_Complex::zeros()
 	long N = cVEC.size();
 	//for (long i=0; i<N; i++) cVEC[i] = 0.0;
 	
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
@@ -597,7 +597,7 @@ complex<double> DFT_Vec_Complex::max() const
 	
 	//for (long i=1; i<N; i++) if (abs(cVEC[i])>abs(max_value)) max_value = cVEC[i];
 	
-	long Nq = CACHESIZE/4;
+	long Nq = CACHESIZE/4/sizeof(double);
 	int Q = N/Nq;
 	
 	for (int q=0; q<Q; q++)
