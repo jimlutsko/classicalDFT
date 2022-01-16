@@ -77,6 +77,18 @@ void Options::read(char const * file, bool bPrint)
 	      throw std::runtime_error("Unrecognized boolean input in util//options.cpp");
 	  }
 	  if(bPrint) cout << boolalpha << *place << endl;
+	} else if(vdOptions_.find(pch) != vdOptions_.end()) {
+	  std::vector<double> *place = vdOptions_[pch];
+	  pch = strtok(NULL,delim);
+	  while(pch != NULL) {
+	    place->push_back(atof(pch));
+	    pch = strtok(NULL," ");
+	  }
+	  if(bPrint)
+	    {
+	      for(auto& x: *place) cout << x << " ";
+	      cout << endl;
+	    }	  
 	} else {
 	  if(bPrint) cout <<  "<not a parameter>" << endl;
 	}
@@ -108,5 +120,12 @@ void Options::write(ostream &of) const
   for (iterb=bOptions_.begin(); iterb != bOptions_.end(); ++iterb) 
     of <<  iterb->first << " = " << *(iterb->second) << endl;
 
+  map<string, vector<double>*>::const_iterator itervd;
+  for (itervd=vdOptions_.begin(); itervd != vdOptions_.end(); ++itervd)
+    {
+      of <<  itervd->first << " = ";
+      for(auto &x: *(itervd->second)) of << x << " ";
+      of << endl;
+    }
   of <<  endl;
 }
