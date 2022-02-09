@@ -51,6 +51,27 @@ void Interaction_Base::initialize()
   initialized_ = true;
 }    
 
+
+double Interaction_Base::getLocalInteractionEnergy(long pos)
+{
+	if (!initialized_) initialize();
+	
+	const Density &density1 = s1_->getDensity();
+	long Ntot = density1.Ntot();
+	double dV = density1.dV();
+	double rho1 = density1.getDensity(pos);
+	
+	double force1 = 0;
+	for (long pos2=0; pos2<Ntot; pos2++)
+	{
+		double rho2 = s2_->getDensity().getDensity(pos2);
+		force1 += rho2*w_att_.Real().get(pos2);
+	}
+	
+	return 0.5*rho1*force1;
+}
+
+
   // Note that the matrix w already contains a factor of dV
 double Interaction_Base::getInteractionEnergyAndForces()
 {

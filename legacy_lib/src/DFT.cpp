@@ -300,6 +300,47 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
 */
 
 
+double DFT::calculateLocalFreeEnergy(long pos)
+{
+	for (auto &species: allSpecies_) species->zeroForce();
+	for (auto &species: allSpecies_) species->beginForceCalculation();
+	
+	double f = 0;
+	
+	// Ideal gas contribution
+	for (auto &species: allSpecies_)
+	{
+		const Density& density = species->getDensity();
+		double rho = density.getDensity(pos);
+		
+		f += (rho*log(rho)-rho);
+	}
+	
+	// Hard-sphere contribution
+	for (auto &species: allSpecies_) f += fmt_->dPHI(pos, allSpecies_);
+	
+	// Mean field contribution
+	for (auto &interaction: DFT::Interactions_) 
+		f += interaction->getLocalInteractionEnergy(pos);
+	
+	// External field + chemical potential
+	for (auto &species: allSpecies_)
+	{
+		const Density& density = species->getDensity();
+		const DFT_Vec& field = density.getExternalField();
+		double rho = density.getDensity(pos);
+		double phi = field.get(pos);
+		double mu = species->getChemPotential();
+		
+		f += (phi-mu)*rho;
+	}
+	
+	for (auto &species: allSpecies_) species->endForceCalculation();
+	
+	return f;
+}
+
+
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
   for(auto &species : allSpecies_)  

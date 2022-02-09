@@ -68,6 +68,10 @@ class Interaction_Base
   virtual double getInteractionEnergyAndForces();
 
 
+  // Returns only the local free energy per unit volume
+  virtual double getLocalInteractionEnergy(long pos);
+  
+
   /**
   *   @brief  Calculates (d2F/dn_i dn_j)v_j
   *  
