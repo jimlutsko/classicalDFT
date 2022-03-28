@@ -44,6 +44,7 @@ class Minimizer
   double getForceTerminationCriterion() const {return forceLimit_;}
   void   setForceTerminationCriterion(double v) {forceLimit_ = v;}
   
+  virtual DFT_Vec getDF(int Jspecies);
   virtual double getDF_DX();
   virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
 

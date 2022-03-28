@@ -28,6 +28,22 @@ static const double SMALL_VALUE = 1e-18;
 
 
 
+struct FreezingParameters
+{
+	int Nx_min;
+	int Nx_max;
+	
+	int Ny_min;
+	int Ny_max;
+	
+	int Nz_min;
+	int Nz_max;
+	
+	bool freeze_inside_of_selection;
+};
+
+
+
 /**
   *  @brief Base class for the density: basically, a wrapper for the array holding the density at each lattice site
   */  
@@ -185,6 +201,14 @@ class Density : public Lattice
 	  }
     return r2/m;
   }
+  
+  // Points that cannot be changed during the minimisation
+  FreezingParameters get_freezing_parameters() const {return fparams_;}
+  void setFreezingParameters(FreezingParameters fparams) { fparams_ = fparams; }
+  void setFreezingParameters(int Nx_min, int Nx_max, int Ny_min, int Ny_max, int Nz_min, int Nz_max, bool freeze_inside)
+  { 
+  	fparams_ = {Nx_min, Nx_max, Ny_min, Ny_max, Nz_min, Nz_max, freeze_inside};
+  }
 
   /**
   *   @brief  set density at a given lattice position
@@ -216,7 +240,7 @@ class Density : public Lattice
   *   @return none
   */  
   void set(const DFT_Vec &x) { Density_.Real().set(x);}
-
+  
   /**
   *   @brief  scale the density by a scalar
   *  
@@ -425,6 +449,7 @@ protected:
 
   DFT_Vec vWall_;            ///< Array holding wall potential at each lattice point: i = pos(ix,iy,iz)
 
+  FreezingParameters fparams_ = {-1, -1, -1, -1, -1, -1, true};
 };
 
 #endif // __LUTSKO__DENSITY_ARRAY__

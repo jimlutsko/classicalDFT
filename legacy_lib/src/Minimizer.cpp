@@ -76,6 +76,35 @@ void Minimizer::initialize()
 }
 
 
+DFT_Vec Minimizer::getDF(int Jspecies)
+{
+	DFT_Vec dF; dF.set(dft_->getDF(Jspecies));
+	
+	const Density& theDensity = dft_->getDensity(Jspecies);
+	FreezingParameters fparams = theDensity.get_freezing_parameters();
+	
+	long pos = 0;
+	for (int ix=0; ix<theDensity.Nx(); ix++)
+	for (int iy=0; iy<theDensity.Ny(); iy++)
+	for (int iz=0; iz<theDensity.Nz(); iz++)
+	{
+		bool is_in_selection = true;
+		if (ix<fparams.Nx_min || ix>fparams.Nx_max) is_in_selection = false;
+		if (iy<fparams.Ny_min || iy>fparams.Ny_max) is_in_selection = false;
+		if (iz<fparams.Nz_min || iz>fparams.Nz_max) is_in_selection = false;
+		
+		bool freeze = false;
+		if ( is_in_selection &&  fparams.freeze_inside_of_selection) freeze = true;
+		if (!is_in_selection && !fparams.freeze_inside_of_selection) freeze = true;
+		
+		if (freeze) dF.set(pos, 0.0);
+		pos++;
+	}
+	
+	return dF;
+}
+
+
 double Minimizer::getDF_DX()
 {
   calls_++;
@@ -136,6 +165,7 @@ void fireMinimizer2::initialize()
 
 }
 
+
 double fireMinimizer2::step()
 {
 
@@ -150,7 +180,7 @@ double fireMinimizer2::step()
   // dF does not include the minus so we have to put it in by hand everywhere from here down:
   Summation P;  
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    P += -v_[Jspecies].dotWith(dft_->getDF(Jspecies));
+    P += -v_[Jspecies].dotWith(getDF(Jspecies));
 
   //  if(F_ - fold > 1e-10) P = -1;
   fold = F_;
@@ -164,7 +194,7 @@ double fireMinimizer2::step()
     {
       x_rem[Jspecies].set(x_[Jspecies]);
       v_rem[Jspecies].set(v_[Jspecies]);
-      dF_rem[Jspecies].set(dft_->getDF(Jspecies));
+      dF_rem[Jspecies].set(getDF(Jspecies));
     }
 
   
@@ -258,7 +288,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   long   cnorm = 0;
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
-      DFT_Vec &df = dft_->getDF(Jspecies);      
+      DFT_Vec df = getDF(Jspecies);      
       v_[Jspecies].IncrementBy_Scaled_Vector(df, -dt_);
 	  
       double v = v_[Jspecies].euclidean_norm();
@@ -275,7 +305,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       v_[Jspecies].MultBy(1-alpha_);      
-      v_[Jspecies].IncrementBy_Scaled_Vector(dft_->getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
+      v_[Jspecies].IncrementBy_Scaled_Vector(getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
       x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
     }  
   // recalculate forces with back-tracking, if necessary
@@ -294,7 +324,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
-      DFT_Vec &df = dft_->getDF(Jspecies);
+      DFT_Vec df = getDF(Jspecies);
       double f = df.euclidean_norm();
       new_fmax = max(new_fmax, df.inf_norm()/dft_->getDensity(Jspecies).dV());
       fnorm += f*f;
