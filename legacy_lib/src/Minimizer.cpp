@@ -76,7 +76,6 @@ void Minimizer::initialize()
 }
 
 
-// TODO: Is it enough to only set the forces to zero once in getDF_DX() ?
 DFT_Vec Minimizer::getDF(int Jspecies)
 {
 	DFT_Vec dF; dF.set(dft_->getDF(Jspecies));
