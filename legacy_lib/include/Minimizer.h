@@ -18,8 +18,10 @@ class Minimizer
   Minimizer(DFT *dft) : dft_(dft), forceLimit_(0.1),  bFrozenBoundary_(false)
   {
     x_.resize(dft->getNumberOfSpecies());
+    x_init_.resize(dft->getNumberOfSpecies());
 
-    for(auto &x: x_) x.resize(dft_->get_lattice().Ntot()); 
+    for(auto &x: x_) x.resize(dft_->get_lattice().Ntot());
+    for(auto &x: x_init_) x.resize(dft_->get_lattice().Ntot());
   }
 
   Minimizer() {}
@@ -44,7 +46,7 @@ class Minimizer
   double getForceTerminationCriterion() const {return forceLimit_;}
   void   setForceTerminationCriterion(double v) {forceLimit_ = v;}
   
-  virtual DFT_Vec getDF(int Jspecies);
+  virtual void check_freeze(int Jspecies);
   virtual double getDF_DX();
   virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
 
@@ -54,6 +56,7 @@ class Minimizer
   DFT *dft_ = NULL;
 
   vector<DFT_Vec> x_;
+  vector<DFT_Vec> x_init_; // remember the initial state (used to check frozen region)
 
   int calls_ = 0;
   int step_counter_ = 0;
