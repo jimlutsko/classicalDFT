@@ -227,7 +227,7 @@ double fireMinimizer2::step()
       backtracks_ = 0;
     };
 
-  cout << "dt_best_ = " << dt_best_ << " backtracks_ = " << backtracks_ << endl;    
+  //  cout << "dt_best_ = " << dt_best_ << " backtracks_ = " << backtracks_ << endl;    
   // write a snapshot
   static int ic = 0;
   if(ic % 10 == 0)
