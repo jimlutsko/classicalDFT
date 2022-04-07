@@ -168,13 +168,16 @@ void DFT::findCoex(double xmax, double dx, double &x1, double &x2, double tol) c
   double dp1 = pressure(xvap,this) - pressure(xliq,this);
   double dp2;
   do {
+    cout << "OK" << endl;
     dp2 = dp1;
-    xvap -= dx;
+    //    xvap -= dx;
+    xvap /= 1.1;
     xliq = find_density_from_mu(chempot(xvap,this), xs2,xmax-dx,tol);      
     dp1 =  pressure(xvap,this) - pressure(xliq,this);
-  } while(xvap > dx && ((dp1<0) == (dp2<0)));
+    cout << "xvap = " << xvap << " xliq = " << xliq << " xs2 = " << xs2 << " dp1 = " << dp1 << " dp2 = " << dp2 << endl;
+  } while(xvap > 1e-16 && ((dp1<0) == (dp2<0)));
 
-  if(xvap <= dx) throw std::runtime_error("DFT::findCoex failed 1");
+  if(xvap < 1e-16) throw std::runtime_error("DFT::findCoex failed 1");
 
   
   // 2. Bracket is (xvap,xvap+dx) : refine
