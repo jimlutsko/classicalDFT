@@ -111,8 +111,10 @@ double FMT_Gaussian_Species::calculateFreeEnergyAndDerivatives_IdealGas_()
 
 void FMT_Gaussian_Species::calculateFundamentalMeasures(bool needsTensor)
 {
-  if(use_discrete)
-    FMT_Species.calculateFundamentalMeasures(needsTensor);
+  GaussianDensity &density = *(static_cast<GaussianDensity*>(&density_));
+  
+  if(density.use_discrete())
+    FMT_Species::calculateFundamentalMeasures(needsTensor);
   
   long pos;
 #pragma omp parallel for  private(pos)  schedule(static)				
