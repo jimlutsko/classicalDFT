@@ -19,6 +19,36 @@ using namespace std;
 
 #include "DFT.h"
 
+// note that here, r = |r1-r2|
+double DFT::real_space_dcf(double r, double x) const
+{
+  if(allSpecies_.size() != 1)
+    throw std:: runtime_error("DFT::real_space_dcf only implemented for single species");
+  
+  double dcf = 0;
+  double hsd = allSpecies_[0]->getHSD();
+
+  if(fmt_) dcf += fmt_->get_real_space_dcf(r,x,hsd);
+
+  //  for(auto &x: Interactions_)
+  //    dcf -= x->getW(r);
+    
+  return dcf;
+}
+
+double DFT::fourier_space_dcf(double k, double x) const
+{
+  if(allSpecies_.size() != 1)
+    throw std:: runtime_error("DFT::real_space_dcf only implemented for single species");
+  
+  double dcf = 0;
+  double hsd = allSpecies_[0]->getHSD();
+
+  if(fmt_) dcf += fmt_->get_fourier_space_dcf(k,x,hsd);
+  
+  return dcf;
+}
+
 double DFT::mu_times_beta(double density) const
 {
   return mu_times_beta(vector<double>(1,density),0);

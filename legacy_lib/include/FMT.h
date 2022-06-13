@@ -28,18 +28,8 @@
 class FMT
 {
 public:
-  /**
-   *   @brief  Default  constructor for FMT 
-   *  
-   *   @param  lattice is the Lattice object 
-   *   @return nothing 
-   */  
+  // X'ors
   FMT(){} 
-  /**
-   *   @brief  Default  destrctur for FMT 
-   *  
-   *   @return nothing 
-   */  
   ~FMT(){}
 
   // calculates total FMT contribution to the chemical potential of the requested species.
@@ -109,8 +99,10 @@ public:
   virtual bool needsTensor() const  = 0;
 
   // the homogeneous dcf
-  virtual double get_dcf(double r, double eta) const { return 0.0;}
-
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const = 0;  
+  double get_real_space_dcf(double r, double rho, double d) const;
+  double get_fourier_space_dcf(double r, double rho, double d) const;
+  
   string get_name() const { return Name();}
   
 protected:
@@ -149,14 +141,11 @@ class Rosenfeld: public FMT
  public:
   Rosenfeld() : FMT(){};
 
-  virtual double get_dcf(double r, double eta) const
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
-    if(r > 1.0) return 0.0;
-    
-    double a0 = pow(1+2*eta,2)*pow(1-eta,-4);
-    double a1 = -1.5*eta*pow(2+eta,2)*pow(1-eta,-4);
-    double a2 = 0.5*eta*a0;
-    return -(a0+a1*r+a2*r*r*r);
+    a0 = -pow(1+2*eta,2)*pow(1-eta,-4);
+    a1 = 1.5*eta*pow(2+eta,2)*pow(1-eta,-4);
+    a3 = 0.5*eta*a0;
   }
   
   virtual bool needsTensor() const { return false;}
@@ -389,15 +378,17 @@ class esFMT : public Rosenfeld
  public:
   esFMT(double A = 1, double B = 0) : Rosenfeld(), A_(A), B_(B){};
 
-  virtual double get_dcf(double r, double eta) const
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
-    if(r > 1.0) return 0.0;
-    
+    Rosenfeld::get_dcf_coeffs(eta,a0,a1,a3);
+
     double c0 = -0.5*eta*pow(1-eta,-2);
     double c1 = eta*eta*(2*(4*A_+B_)-9)*pow(1-eta,-3);
-    double c2 = 0.5*eta*eta*eta*(2*(4*A_+B_)-9)*pow(1-eta,-4);    
-
-    return -c0*r*(2*(r*r-1)*(A_+B_)-2*A_+3) - c1*(1-r) - c2*(1-r)*(1-r)*(2+r) + Rosenfeld::get_dcf(r,eta);
+    double c3 = 0.5*eta*eta*eta*(2*(4*A_+B_)-9)*pow(1-eta,-4);
+    
+    a0 -= c1+2*c3;
+    a1 += c1+3*c3+c0*(4*A_+2*B_-3);
+    a3 -= (c3+2*c0*(A_+B_));    
   }
   
   virtual bool needsTensor() const { return true;}
@@ -518,16 +509,12 @@ class WhiteBearI : public esFMT
   // In the paper, it says that this should be esFMT(3/2, -3/2): here the 3/2 has been moved into f3. 
   WhiteBearI() : esFMT(1,-1){};
 
-  virtual double get_dcf(double r, double eta) const
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
-    if(r > 1.0) return 0.0;
-    
-    double b0 = (1+4*eta+3*eta*eta-2*eta*eta*eta)*pow(1-eta,-4);
-    double b1 = -(2-eta+14*eta*eta-6*eta*eta*eta)*pow(1-eta,-4) - 2*log(1-eta)/eta;
-    double b2 = (3-10*eta+15*eta*eta-5*eta*eta*eta)*pow(1-eta,-4) + 3*log(1-eta)/eta;      
-
-    return -(b0+b1*r+b2*r*r*r);
-  }
+    a0 = -(1+4*eta+3*eta*eta-2*eta*eta*eta)*pow(1-eta,-4);
+    a1 =  (2-eta+14*eta*eta-6*eta*eta*eta)*pow(1-eta,-4) + 2*log(1-eta)/eta;
+    a3 = -(3-10*eta+15*eta*eta-5*eta*eta*eta)*pow(1-eta,-4) - 3*log(1-eta)/eta;          
+  }  
   
   virtual double f2_(double eta) const
   {
@@ -593,9 +580,9 @@ class WhiteBearII : public esFMT //WhiteBearI
   // In the paper, it says that this should be esFMT(3/2, -3/2): here the 3/2 has been moved into f3. 
   WhiteBearII() : esFMT(1,-1){};
 
-  virtual double get_dcf(double r, double eta) const
+  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
-    throw std::runtime_error("WhiteBearII::get_dcf not implemented");
+    throw std::runtime_error("WhiteBearII::get_dcf_coeffs not implemented");    
   }
   
   virtual double f2_(double x) const

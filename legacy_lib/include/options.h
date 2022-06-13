@@ -3,6 +3,7 @@
 
 #include <map>
 #include <stdexcept>
+#include <vector>
 
 //typedef std::pair<char const *, int *> int_option_pair;
 //typedef std::pair<char const *, long *> long_option_pair;
@@ -64,7 +65,11 @@ class Options
     {
      bOptions_[name] = place;
     }
-
+  void addOption(char const * name, vector<double> * place)
+    {
+     vdOptions_[name] = place;
+    }
+  
   void read(int argc, char ** argv, bool bPrint = true);
   void read(char const * file, bool bPrint  = true);
   void write(ostream &of) const;
@@ -97,13 +102,20 @@ class Options
 	throw std::runtime_error("Key not found in options");
       return (i->second);
     }
-  double getBoolOption(string& name) const 
+  bool getBoolOption(string& name) const 
     {
       std::map<string, bool*>::const_iterator i = bOptions_.find(name);
       if (i == bOptions_.end ())
 	throw std::runtime_error("Key not found in options");
       return *(i->second);
     }
+  std::vector<double> getVectorDoubleOption(string& name) const 
+    {
+      std::map<string, vector<double>*>::const_iterator i = vdOptions_.find(name);
+      if (i == vdOptions_.end ())
+	throw std::runtime_error("Key not found in options");
+      return *(i->second);
+    }  
  private:
 
   std::map<string, int*>    intOptions_;
@@ -111,6 +123,7 @@ class Options
   std::map<string, double*> dOptions_;
   std::map<string, string*> cOptions_;
   std::map<string, bool*>   bOptions_;
+  std::map<string, vector<double>*>   vdOptions_;
 };
 
 #endif //__OPIONS_H__
