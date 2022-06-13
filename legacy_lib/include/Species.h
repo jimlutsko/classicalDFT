@@ -22,7 +22,8 @@ class Species
   
   void setFixedMass(double m) { fixedMass_ = m; if(m > 0.0) mu_ = 0.0;}
   void setFixedBackground() { fixedBackground_ = true;}
-  bool is_background_fixed(){ return fixedBackground_;}
+  bool is_background_fixed() const { return fixedBackground_;}
+  bool is_mass_fixed()       const { return (fixedMass_ > 0);}
   
   double getChemPotential() const {return mu_;}
   void   setChemPotential(double m) {mu_ = m;}

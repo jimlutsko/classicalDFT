@@ -142,7 +142,7 @@ double  DFT::find_density_from_mu(double mu, double xmin, double xmax, double to
   
   if(mu2 < mu || mu1 > mu)
     {
-      cout << mu1 << " " << mu << " " << mu2 << endl;
+      cout << "mu1 = " << mu1 << " mu = " << mu << " mu2 = " << mu2 << endl;
       throw std::runtime_error("DFT::find_density_from_mu failed");
     }
   
@@ -169,24 +169,26 @@ void DFT::findCoex(double xmax, double dx, double &x1, double &x2, double tol) c
   double dp2;
   do {
     dp2 = dp1;
-    xvap -= dx;
+    xvap /= 1.1;
     xliq = find_density_from_mu(chempot(xvap,this), xs2,xmax-dx,tol);      
     dp1 =  pressure(xvap,this) - pressure(xliq,this);
-  } while(xvap > dx && ((dp1<0) == (dp2<0)));
+    //    cout << "xvap = " << xvap << " xliq = " << xliq << " pvap = " << pressure(xvap,this) << " pliq = " << pressure(xliq,this) << " dp1 = " << dp1 << " dp2 = " << dp2 << endl;
+  } while(xvap > 1e-16 && ((dp1<0) == (dp2<0)));
 
-  if(xvap <= dx) throw std::runtime_error("DFT::findCoex failed 1");
+  if(xvap < 1e-16) throw std::runtime_error("DFT::findCoex failed 1");
 
   
   // 2. Bracket is (xvap,xvap+dx) : refine
 
   double y1 = xvap;
-  double y2 = xvap+dx;  
+  double y2 = xvap*1.1;
   do {
     double y = (y1+y2)/2;
     xliq = find_density_from_mu(chempot(y,this), xs2,xmax-dx,tol);      
     double dp =  pressure(y,this) - pressure(xliq,this);    
     if((dp<0) == (dp1<0)) { y1 = y; dp1 = dp;}
     else { y2 = y; dp2 = dp;}
+    //    cout << "y1 = " << y1 << " y2 = " << y2 << " p1 = " << pressure(y1,this) << " p2 = " << pressure(y2,this) << " xliq = " << xliq << " pliq = " << pressure(xliq,this) << endl;
   } while(fabs(y2-y1) > tol);
 
   x1 = (y1+y2)/2;
