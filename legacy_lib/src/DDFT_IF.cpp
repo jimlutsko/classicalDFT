@@ -278,8 +278,8 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
     } else d2F[Jspecies].MultBy(-1);
 }
 
-
-void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, bool fixed_boundary, bool dynamic) const
+/*
+void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, double shift, bool fixed_boundary, bool dynamic) const
 {
 	const int species = 0;
 	const Density& density = dft_->getDensity(species);
@@ -292,12 +292,55 @@ void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, bool fixed_
 	//      I have ABSOLUTELY NO JUSTIFICATION for that at the moment
 	vector<DFT_FFT> dft_v(1); dft_v[0].initialize(Nx,Ny,Nz);
 	for(long i=0; i<Ntot; i++) dft_v[0].Real().set(i,real(v[i])); //here
+	dft_v[0].do_real_2_fourier();
 	
-	vector<DFT_Vec> dft_d2F(1);
+	vector<DFT_Vec> dft_d2F(1); dft_d2F[0].zeros(Ntot);
 	Hessian_dot_v(dft_v, dft_d2F, fixed_boundary, dynamic);
 	
 	d2F.zeros(Ntot);
-	for(long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i);
+	for (long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i);
+	for (long i=0; i<Ntot; i++) d2F[i] += shift*v[i];
+}
+*/
+
+// Test case: symmetric matrix with random entries
+void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, double shift, bool fixed_boundary, bool dynamic) const
+{
+	int seed = 2937454906;
+	mt19937 rng(seed);
+	uniform_real_distribution<double> urd;
+	
+	const int species = 0;
+	const Density& density = dft_->getDensity(species);
+	const long Ntot = density.Ntot();
+	
+	d2F.zeros(Ntot);
+	if (Ntot>4096) return;
+	
+	arma::mat A(Ntot, Ntot);
+	for(int i=0; i<Ntot; i++)
+	for(int j=0; j<Ntot; j++)
+	{
+		A(i,j) = 2*urd(rng)-1;
+	}
+
+	arma::mat B = A.t();
+	A = (A+B)/2;
+	
+	/*
+	cout << endl;
+	cout << "Ntot = " << Ntot << endl;
+	cout << "First entries of matrix A are " << endl;
+	cout << fixed << setprecision(3);
+	cout << setw(7) << A(0,0) << setw(7) << A(0,1) << setw(7) << A(0,2) << setw(7) << A(0,3) << endl;
+	cout << setw(7) << A(1,0) << setw(7) << A(1,1) << setw(7) << A(1,2) << setw(7) << A(1,3) << endl;
+	cout << setw(7) << A(2,0) << setw(7) << A(2,1) << setw(7) << A(2,2) << setw(7) << A(2,3) << endl;
+	cout << setw(7) << A(3,0) << setw(7) << A(3,1) << setw(7) << A(3,2) << setw(7) << A(3,3) << endl;
+	cout << endl;
+	*/
+	
+	d2F = A*v;
+	for (int i=0; i<Ntot; i++) d2F[i] += shift*v[i];
 }
 
 
@@ -657,22 +700,22 @@ void compute_and_sort_eigenvectors(arma::cx_mat H, arma::cx_mat &eigvec, arma::c
 }
 
 
-bool DDFT_IF::check_factorisation(arma::cx_mat V, arma::cx_mat H, arma::cx_vec f, bool fixed_boundary, bool dynamic, double tol) const
+bool DDFT_IF::check_factorisation(arma::cx_mat V, arma::cx_mat H, arma::cx_vec f, double shift, bool fixed_boundary, bool dynamic, double tol) const
 {
 	if (V.n_cols!=H.n_rows || !H.is_square()) throw runtime_error("Inconsistent dimensions in Arnoldi factorisation");
 	int k = V.n_cols;
 	long Ntot = V.n_rows;
 	
-	arma::cx_mat R; //= A*V - V*H - fk*ek;
+	arma::cx_mat R(Ntot, k); //= A*V - V*H - fk*ek;
 	for (int j=0; j<k; j++)
 	{
 		arma::cx_vec v(Ntot); for (long i=0; i<Ntot; i++) v[i] = V(i,j);
-		arma::cx_vec w(Ntot); Hessian_dot_v(v, w, fixed_boundary, dynamic);
+		arma::cx_vec w(Ntot); Hessian_dot_v(v, w, shift, fixed_boundary, dynamic);
 		
 		for (long i=0; i<Ntot; i++)
 		{
 			R(i,j) = w[i];
-			for (int l=0; l<k; l++) R(i,j) += V(i,l)*H(l,j);
+			for (int l=0; l<k; l++) R(i,j) -= V(i,l)*H(l,j);
 			if (j==k-1) R(i,j) -= f[i];
 		}
 	}
@@ -728,7 +771,7 @@ void save_Arnoldi_matrices(arma::cx_mat V, arma::cx_mat H)
 }
 
 
-void DDFT_IF::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arma::cx_vec &f, const long Ntot, const int k, const int p, bool fixed_boundary, bool dynamic) const
+void DDFT_IF::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arma::cx_vec &f, const long Ntot, const int k, const int p, double shift, bool fixed_boundary, bool dynamic) const
 {
 	// Prepare extended V,H matrices
 	
@@ -747,8 +790,20 @@ void DDFT_IF::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arm
 	
 	if (k==0) // random vector
 	{
-		v.randu(); v /= norm(v);
-		arma::cx_vec w; Hessian_dot_v(v, w, fixed_boundary, dynamic);
+		int seed = 2937454906;
+		mt19937 rng(seed);
+		uniform_real_distribution<double> urd;
+		
+		for (long i=0; i<Ntot; i++) v[i] = 2*urd(rng)-1;
+		v /= norm(v);
+		
+		ofstream file_guess("arnoldi/guess.dat");
+		file_guess << fixed << setprecision(3);
+		for (long i=0; i<Ntot; i++) file_guess << setw(7) << real(v[i]); file_guess << endl;
+		file_guess << endl;
+		for (long i=0; i<Ntot; i++) file_guess << setw(7) << imag(v[i]); file_guess << endl;
+		
+		arma::cx_vec w; Hessian_dot_v(v, w, shift, fixed_boundary, dynamic);
 		
 		for (long j=0; j<Ntot; j++) V(j,0) = v[j];
 		H(0,0) = cdot(v,w);
@@ -770,7 +825,7 @@ void DDFT_IF::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arm
 		for (long j=0; j<=i;   j++) H(i+1,j) = 0; H(i+1,i) = beta;
 		
 		// new vector
-		Hessian_dot_v(v, v, fixed_boundary, dynamic);
+		Hessian_dot_v(v, v, shift, fixed_boundary, dynamic);
 		
 		// orthogonalise
 		arma::cx_vec h = V.t()*v;
@@ -792,7 +847,7 @@ void DDFT_IF::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arm
 	
 	save_Arnoldi_matrices(V,H);
 	
-	if (!check_factorisation(V,H,f,fixed_boundary,dynamic)) 
+	if (!check_factorisation(V,H,f,shift,fixed_boundary,dynamic)) 
 		throw runtime_error("Arnoldi factorisation does not check out");
 }
 
@@ -825,10 +880,14 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 	const int Ny = density.Ny();
 	const int Nz = density.Nz();
 	
+	eigen_vector[species].initialize(Nx,Ny,Nz);
+	
 	arma::cx_mat Vk,Hk;
 	arma::cx_vec fk;
 	
-	extend_arnoldi_factorisation(Vk, Hk, fk, Ntot, 0, k, fixed_boundary, dynamic);
+	extend_arnoldi_factorisation(Vk, Hk, fk, Ntot, 0, k, shift, fixed_boundary, dynamic);
+	if (!check_factorisation(Vk,Hk,fk,shift,fixed_boundary,dynamic)) 
+	throw runtime_error("(IRA) Arnoldi factorisation does not check out");
 	
 	arma::cx_vec Hk_eigval;
 	arma::cx_mat Hk_eigvec;
@@ -838,6 +897,7 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 	// Iterate
 	int iter = 0;
 	bool converged = false;
+	double eigen_value_old = 0.0;
 	
 	arma::cx_vec eigval;
 	arma::cx_mat eigvec;
@@ -850,8 +910,10 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 		arma::cx_mat Hp = Hk;
 		arma::cx_vec fp = fk;
 		
-		extend_arnoldi_factorisation(Vp, Hp, fp, Ntot, k, p, fixed_boundary, dynamic);
-		
+		extend_arnoldi_factorisation(Vp, Hp, fp, Ntot, k, p, shift, fixed_boundary, dynamic);
+		//if (!check_factorisation(Vp,Hp,fp,shift,fixed_boundary,dynamic)) 
+                //        throw runtime_error("(IRA) Arnoldi factorisation does not check out");
+		//return 0.0;
 		arma::cx_vec Hp_eigval;
 		arma::cx_mat Hp_eigvec;
 		
@@ -896,7 +958,7 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 		
 		save_Arnoldi_matrices(Vk,Hk);
 		
-		if (!check_factorisation(Vk,Hk,fk,fixed_boundary,dynamic)) 
+		if (!check_factorisation(Vk,Hk,fk,shift,fixed_boundary,dynamic)) 
 			throw runtime_error("(IRA) Arnoldi factorisation does not check out");
 		
 		// Update approximations for eigenvalues/vectors
@@ -925,31 +987,48 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 			if (ritz_estimate>tol*abs(eigval[i])) converged = false;
 			
 			ofile_iter << fixed << setprecision(6);
-			ofile_iter << setw(8) << iter*p << setw(12) << eigval[i].real() << setw(12) << eigval[i].imag();
+			ofile_iter << setw(8) << iter*p << setw(12) << eigval[i].real()-shift << setw(12) << eigval[i].imag();
 			ofile_iter << scientific << setprecision(2);
 			ofile_iter << setw(12) << ritz_estimate/abs(eigval[i]) << endl;
 		}
 		ofile_iter << endl;
+		
+		// Update DFT object for leading eigenvector
+		
+		eigen_vector[species].initialize(Nx,Ny,Nz);
+		
+		//TODO: Here I assume v has no imaginary part !!! 
+		//      I have ABSOLUTELY NO JUSTIFICATION for that at the moment
+		for(long i=0; i<Ntot; i++)
+			eigen_vector[species].Real().set(i,eigvec(i,0).real()); //here
+		
+		if(fixed_boundary) for(long i=0; i<density.get_Nboundary(); i++)
+			eigen_vector[species].Real().set(density.boundary_pos_2_pos(i),0.0);
+		
+		eigen_vector[species].Real().normalise();
+		eigen_vector[species].do_real_2_fourier();
+		
+		// Report in terminal
+		
+		cout << myColor::YELLOW;
+		cout << setprecision(6);
+		cout << '\r'; cout << "\t" << "iteration = " << iter << " shift = " << shift << " eigen_value = " << setw(12) << eigval[0].real()-shift;
+		cout << myColor::RESET;
+		
+		ofstream debug("debug.dat", (iter == 0 ? ios::trunc : ios::app));
+		debug << iter << " " << eigval[0].real()-shift << " " << fabs(eigval[0].real()-shift - eigen_value_old)/fabs(eigval[0].real()-shift) << " " << fabs(eigval[0].real()-shift - eigen_value_old) << " " << abs(Hk_eigvec(k-1,0))*norm(fk) << endl;
+		debug.close();
+		
+		eigen_value_old = eigval[0].real()-shift;
+		
+		ofstream of(Filename);
+		of << eigen_vector[species].Real();
+		of.close();
 	}
-	
-	// Return leading eigenvalue and DFT object for eigenvector
-	
-	eigen_vector[species].zeros();
-	
-	//TODO: Here I assume v has no imaginary part !!! 
-	//      I have ABSOLUTELY NO JUSTIFICATION for that at the moment
-	for(long i=0; i<Ntot; i++)
-		eigen_vector[species].Real().set(i,real(eigvec(0,i))); //here
-	
-	if(fixed_boundary) for(long i=0; i<density.get_Nboundary(); i++)
-		eigen_vector[species].Real().set(density.boundary_pos_2_pos(i),0.0);
-	
-	eigen_vector[species].Real().normalise();
-	eigen_vector[species].do_real_2_fourier();
 	
 	//TODO: Here I assume the eigenvalue is real!!! 
 	//      I have ABSOLUTELY NO JUSTIFICATION for that at the moment
-	return real(eigval[0]);
+	return eigval[0].real()-shift;
 }
 
 
