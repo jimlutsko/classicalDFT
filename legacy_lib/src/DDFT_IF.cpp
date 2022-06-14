@@ -288,17 +288,26 @@ void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, double shif
 	const int Ny = density.Ny();
 	const int Nz = density.Nz();
 	
-	//TODO: Here I assume v has no imaginary part !!! 
-	//      I have ABSOLUTELY NO JUSTIFICATION for that at the moment
+	//real part
 	vector<DFT_FFT> dft_v(1); dft_v[0].initialize(Nx,Ny,Nz);
-	for(long i=0; i<Ntot; i++) dft_v[0].Real().set(i,real(v[i])); //here
+	for(long i=0; i<Ntot; i++) dft_v[0].Real().set(i,v[i].real());
 	dft_v[0].do_real_2_fourier();
 	
+	//imag part
+	vector<DFT_FFT> dft_w(1); dft_w[0].initialize(Nx,Ny,Nz);
+	for(long i=0; i<Ntot; i++) dft_w[0].Real().set(i,v[i].imag());
+	dft_w[0].do_real_2_fourier();
+	
+	//real part
 	vector<DFT_Vec> dft_d2F(1); dft_d2F[0].zeros(Ntot);
 	Hessian_dot_v(dft_v, dft_d2F, fixed_boundary, dynamic);
 	
+	//imag part
+	vector<DFT_Vec> dft_d2F_imag(1); dft_d2F_imag[0].zeros(Ntot);
+	Hessian_dot_v(dft_w, dft_d2F_imag, fixed_boundary, dynamic);
+	
 	d2F.zeros(Ntot);
-	for (long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i);
+	for (long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i) + std::complex<double>(0,1)*dft_d2F_imag[0].get(i);
 	for (long i=0; i<Ntot; i++) d2F[i] += shift*v[i];
 	
 	if (fixed_boundary) for (long i=0; i<density.get_Nboundary(); i++)
@@ -899,7 +908,7 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 	cout << endl;
 	cout << myColor::YELLOW;
 	cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
-	cout << myColor::RESET;    
+	cout << myColor::RESET;
 	cout << endl;
 	
 	int sysres = system("mkdir -p arnoldi");
@@ -996,7 +1005,7 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 		
 		save_Arnoldi_matrices(Vk,Hk);
 		
-		if (!check_factorisation(Vk,Hk,fk,shift,fixed_boundary,dynamic,tol)) 
+		if (!check_factorisation(Vk,Hk,fk,shift,fixed_boundary,dynamic,tol))
 			throw runtime_error("(IRA) Arnoldi factorisation does not check out");
 		
 		// Update approximations for eigenvalues/vectors
@@ -1004,7 +1013,7 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 		eigval = Hk_eigval;
 		eigvec = arma::cx_mat(Ntot,k);
 		
-		for (int i=0; i<k; i++) 
+		for (int i=0; i<k; i++)
 		{
 			arma::cx_vec wi(k);
 			for (int j=0; j<k; j++) wi[j] = Hk_eigvec(j,i);
