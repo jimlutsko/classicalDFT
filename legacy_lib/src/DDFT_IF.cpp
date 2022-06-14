@@ -278,7 +278,7 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
     } else d2F[Jspecies].MultBy(-1);
 }
 
-/*
+
 void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, double shift, bool fixed_boundary, bool dynamic) const
 {
 	const int species = 0;
@@ -301,9 +301,10 @@ void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, double shif
 	for (long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i);
 	for (long i=0; i<Ntot; i++) d2F[i] += shift*v[i];
 }
-*/
+
 
 // Test case: symmetric matrix with random entries
+/*
 void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, double shift, bool fixed_boundary, bool dynamic) const
 {
 	int seed = 2937454906;
@@ -327,22 +328,10 @@ void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, double shif
 	arma::mat B = A.t();
 	A = (A+B)/2;
 	
-	/*
-	cout << endl;
-	cout << "Ntot = " << Ntot << endl;
-	cout << "First entries of matrix A are " << endl;
-	cout << fixed << setprecision(3);
-	cout << setw(7) << A(0,0) << setw(7) << A(0,1) << setw(7) << A(0,2) << setw(7) << A(0,3) << endl;
-	cout << setw(7) << A(1,0) << setw(7) << A(1,1) << setw(7) << A(1,2) << setw(7) << A(1,3) << endl;
-	cout << setw(7) << A(2,0) << setw(7) << A(2,1) << setw(7) << A(2,2) << setw(7) << A(2,3) << endl;
-	cout << setw(7) << A(3,0) << setw(7) << A(3,1) << setw(7) << A(3,2) << setw(7) << A(3,3) << endl;
-	cout << endl;
-	*/
-	
 	d2F = A*v;
 	for (int i=0; i<Ntot; i++) d2F[i] += shift*v[i];
 }
-
+*/
 
 double DDFT_IF::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol)const
 {
@@ -738,8 +727,8 @@ void save_Arnoldi_matrices(arma::cx_mat V, arma::cx_mat H)
 	int k = V.n_cols;
 	long Ntot = V.n_rows;
 	
+	/*
 	ofstream ofile_Vmatrix("arnoldi/Vmatrix.dat");
-	ofstream ofile_Hmatrix("arnoldi/Hmatrix.dat");
 	
 	ofile_Vmatrix << fixed << setprecision(6);
 	for (long i=0; i<Ntot; i++) 
@@ -754,6 +743,9 @@ void save_Arnoldi_matrices(arma::cx_mat V, arma::cx_mat H)
 		for (int j=0; j<k; j++) ofile_Vmatrix << setw(12) << V(i,j).imag();
 		ofile_Vmatrix << endl;
 	}
+	*/
+	
+	ofstream ofile_Hmatrix("arnoldi/Hmatrix.dat");
 	
 	ofile_Hmatrix << fixed << setprecision(6);
 	for (int i=0; i<k; i++) 
