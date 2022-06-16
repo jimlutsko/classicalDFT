@@ -912,9 +912,11 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 	cout << myColor::RESET;
 	cout << endl;
 	
-	int sysres = system("zip -r arnoldi_backup.zip arnoldi/");
+	int sysres = system("zip -r arnoldi_backup.zip arnoldi/ eigenvectors/");
 	    sysres = system("rm -r arnoldi");
 	    sysres = system("mkdir arnoldi");
+	    sysres = system("rm -r eigenvectors");
+	    sysres = system("mkdir eigenvectors");
 	
 	ofstream ofile_iter("arnoldi/iterations.dat");
 	ofile_iter << "# Largest eigenvalues from Implicitely Restarted Arnoldi method" << endl;
@@ -1060,7 +1062,7 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 			eigen_vector[species].Real().normalise();
 			eigen_vector[species].do_real_2_fourier();
 			
-			ofstream of("arnoldi/density_eigenvector_"+to_string(i)+".dat");
+			ofstream of("eigenvectors/density_eigenvector_"+to_string(i)+".dat");
 			of << eigen_vector[species].Real();
 			of.close();
 		}
