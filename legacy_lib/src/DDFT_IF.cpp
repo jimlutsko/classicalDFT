@@ -279,7 +279,7 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
 }
 
 
-void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, double shift, bool fixed_boundary, bool dynamic) const
+void DDFT_IF::Hessian_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift, bool fixed_boundary, bool dynamic) const
 {
 	const int species = 0;
 	const Density& density = dft_->getDensity(species);
@@ -307,8 +307,7 @@ void DDFT_IF::Hessian_dot_v(const arma::cx_vec v, arma::cx_vec& d2F, double shif
 	Hessian_dot_v(dft_w, dft_d2F_imag, fixed_boundary, dynamic);
 	
 	d2F.zeros(Ntot);
-	for (long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i) + std::complex<double>(0,1)*dft_d2F_imag[0].get(i);
-	for (long i=0; i<Ntot; i++) d2F[i] += shift*v[i];
+	for (long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i) + std::complex<double>(0,1)*dft_d2F_imag[0].get(i) + shift*v[i];
 	
 	if (fixed_boundary) for (long i=0; i<density.get_Nboundary(); i++)
 		d2F[density.boundary_pos_2_pos(i)] = 0.0;
@@ -604,7 +603,7 @@ double DDFT_IF::determine_unstable_eigenvector_Arnoldi_loop_(vector<DFT_FFT> &ei
 // TODO: do something if we exceed max number of iterations
 //  e.g. throw a runtime_error --> if you do this, remove numStepsLoop stuff
 
-double DDFT_IF::determine_unstable_eigenvector_Arnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol) const
+double DDFT_IF::determine_unstable_eigenvector_Arnoldi_old(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, long maxSteps, double tol) const
 {
 	cout << endl;
 	cout << myColor::YELLOW;
@@ -837,7 +836,9 @@ void DDFT_IF::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arm
 	
 	if (k==0) // random vector
 	{
-		int seed = 2937454906;
+		random_device r;
+		int seed = r();
+		
 		mt19937 rng(seed);
 		uniform_real_distribution<double> urd;
 		
@@ -849,10 +850,10 @@ void DDFT_IF::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arm
 		v /= norm(v);
 		
 		ofstream file_guess("arnoldi/guess.dat");
-		file_guess << fixed << setprecision(3);
-		for (long i=0; i<Ntot; i++) file_guess << setw(7) << real(v[i]); file_guess << endl;
+		file_guess << fixed << setprecision(6);
+		for (long i=0; i<Ntot; i++) file_guess << setw(10) << real(v[i]); file_guess << endl;
 		file_guess << endl;
-		for (long i=0; i<Ntot; i++) file_guess << setw(7) << imag(v[i]); file_guess << endl;
+		for (long i=0; i<Ntot; i++) file_guess << setw(10) << imag(v[i]); file_guess << endl;
 		
 		arma::cx_vec w; Hessian_dot_v(v, w, shift, fixed_boundary, dynamic);
 		
@@ -1073,6 +1074,8 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 		of << eigen_vector[species].Real();
 		of.close();
 	}
+	
+	cout << endl;
 	
 	//TODO: Here I assume the eigenvalue is real!!! 
 	//      I have ABSOLUTELY NO JUSTIFICATION for that at the moment
