@@ -912,9 +912,9 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 	cout << myColor::RESET;
 	cout << endl;
 	
-	int sysres = system("zip -r arnoldi/ arnoldi_backup.zip");
-	    sysres = system("rm -r arnoldi/");
-	    sysres = system("mkdir arnoldi.dat");
+	int sysres = system("zip -r arnoldi_backup.zip arnoldi/");
+	    sysres = system("rm -r arnoldi");
+	    sysres = system("mkdir arnoldi");
 	
 	ofstream ofile_iter("arnoldi/iterations.dat");
 	ofile_iter << "# Largest eigenvalues from Implicitely Restarted Arnoldi method" << endl;
@@ -1054,13 +1054,13 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 		{
 			//TODO: Here I assume v has no imaginary part !!! 
 			//      I have ABSOLUTELY NO JUSTIFICATION for that at the moment
-			for(long j=0; i<Ntot; j++)
+			for(long j=0; j<Ntot; j++)
 				eigen_vector[species].Real().set(j,eigvec(j,i).real()); //here
 			
 			eigen_vector[species].Real().normalise();
 			eigen_vector[species].do_real_2_fourier();
 			
-			ofstream of("density_eigenvector_"+to_string(i)+".dat");
+			ofstream of("arnoldi/density_eigenvector_"+to_string(i)+".dat");
 			of << eigen_vector[species].Real();
 			of.close();
 		}
