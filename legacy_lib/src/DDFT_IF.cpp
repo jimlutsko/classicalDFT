@@ -912,8 +912,9 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 	cout << myColor::RESET;
 	cout << endl;
 	
-	int sysres = system("mkdir -p arnoldi");
-	    sysres = system("rm arnoldi/*.dat");
+	int sysres = system("zip -r arnoldi/ arnoldi_backup.zip");
+	    sysres = system("rm -r arnoldi/");
+	    sysres = system("mkdir arnoldi.dat");
 	
 	ofstream ofile_iter("arnoldi/iterations.dat");
 	ofile_iter << "# Largest eigenvalues from Implicitely Restarted Arnoldi method" << endl;
@@ -1045,17 +1046,24 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 		}
 		ofile_iter << endl;
 		
-		// Update DFT object for leading eigenvector
+		// Save leading eigenvectors
 		
 		eigen_vector[species].initialize(Nx,Ny,Nz);
 		
-		//TODO: Here I assume v has no imaginary part !!! 
-		//      I have ABSOLUTELY NO JUSTIFICATION for that at the moment
-		for(long i=0; i<Ntot; i++)
-			eigen_vector[species].Real().set(i,eigvec(i,0).real()); //here
-		
-		eigen_vector[species].Real().normalise();
-		eigen_vector[species].do_real_2_fourier();
+		for (int i=k-1; i>=0; i--)
+		{
+			//TODO: Here I assume v has no imaginary part !!! 
+			//      I have ABSOLUTELY NO JUSTIFICATION for that at the moment
+			for(long j=0; i<Ntot; j++)
+				eigen_vector[species].Real().set(j,eigvec(j,i).real()); //here
+			
+			eigen_vector[species].Real().normalise();
+			eigen_vector[species].do_real_2_fourier();
+			
+			ofstream of("density_eigenvector_"+to_string(i)+".dat");
+			of << eigen_vector[species].Real();
+			of.close();
+		}
 		
 		// Report in terminal
 		
@@ -1069,10 +1077,6 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 		debug.close();
 		
 		eigen_value_old = eigval[0].real()-shift;
-		
-		ofstream of(Filename);
-		of << eigen_vector[species].Real();
-		of.close();
 	}
 	
 	cout << endl;
