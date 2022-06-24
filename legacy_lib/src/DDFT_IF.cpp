@@ -952,10 +952,13 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 	bool converged = false;
 	double eigen_value_old = 0.0;
 	
+	bool dont_stop_if_converged = false;
+	if (tol<0) {dont_stop_if_converged = true; tol = abs(tol);}
+	
 	arma::cx_vec eigval;
 	arma::cx_mat eigvec;
 	
-	while (!converged)
+	while (!converged || dont_stop_if_converged)
 	{
 		// p-step extension of Arnoldi factorisation
 		
