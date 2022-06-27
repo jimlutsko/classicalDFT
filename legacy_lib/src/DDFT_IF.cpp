@@ -180,6 +180,76 @@ double  static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const
     r = x.get(density.boundary_pos(ix,iy,iz));
   return r;
 }
+
+
+// "Symmetric" discretization scheme (Ito-Stratonovich equivalement)
+// This calculates (del_IJ rho_J del_JK) x_K so matrix A is discretized (del rho del) operator. 
+void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, const double D[], bool do_subtract_ideal) const
+{
+  const bool Ax_is_full = (Ax.size() == density.Ntot());
+  const bool x_is_full  = ( x.size() == density.Ntot());
+
+  const double dV = dx_*dy_*dz_;
+  
+  long pos;
+
+  double sum_forces = 0.0;
+  double sum_forces2 = 0.0;
+  double sum_sq = 0.0;
+
+#pragma omp parallel for  private(pos) schedule(static) reduction(+:sum_forces) reduction(+:sum_forces2) reduction(+:sum_sq)
+  for(pos = 0;pos<Ax.size();pos++)
+    {
+      int ix, iy,iz; // working space
+
+      if(Ax_is_full) density.cartesian(pos,ix,iy,iz);
+      else density.boundary_cartesian(pos,ix,iy,iz);
+      
+      double x0  = get(x,ix,iy,iz,x_is_full, density);
+
+      double xp2x = get(x,ix+2,iy,iz,x_is_full, density);
+      double xm2x = get(x,ix-2,iy,iz,x_is_full, density);
+	  
+      double xp2y = get(x,ix,iy+2,iz,x_is_full, density);
+      double xm2y = get(x,ix,iy-2,iz,x_is_full, density);
+
+      double xp2z = get(x,ix,iy,iz+2,x_is_full, density);
+      double xm2z = get(x,ix,iy,iz-2,x_is_full, density);
+
+      double r0  = density.get(ix,iy,iz);
+	  
+      double rpx = density.get(ix+1,iy,iz);
+      double rmx = density.get(ix-1,iy,iz);
+
+      double rpy = density.get(ix,iy+1,iz);
+      double rmy = density.get(ix,iy-1,iz);
+
+      double rpz = density.get(ix,iy,iz+1);
+      double rmz = density.get(ix,iy,iz-1);
+
+      double RHS = D[0]*(rpx*xp2x+rmx*xm2x-(rpx+rmx)*x0)
+                 + D[1]*(rpy*xp2y+rmy*xm2y-(rpy+rmy)*x0)
+                 + D[2]*(rpz*xp2z+rmz*xm2z-(rpz+rmz)*x0);
+
+      // Factor of 2 because of averaging the density over two points
+      RHS /= (2*dV);
+
+      if(do_subtract_ideal) // TODO: update?
+	{
+	  if(ix != 0 && iy != 0 && iz != 0) sum_forces += RHS;
+	  else sum_forces2 += RHS;
+	      
+	  sum_sq += RHS*RHS;
+	  RHS -= D[0]*(rpx+rmx-2*r0)+D[1]*(rpy+rmy-2*r0)+D[2]*(rpz+rmz-2*r0) ;
+	}
+      Ax.set(pos,RHS);	  
+    }      
+  //    if(do_subtract_ideal) cout << "Ax_is_full = " << Ax_is_full << " sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
+  //    cout << "Fmax = " << x.max() << " Fmin = " << x.min() << endl;
+}
+
+/*
+// "Asymmetric" discretization scheme (NOT Ito-Stratonovich equivalement)
 // This calculates (del_IJ rho_J del_JK) x_K so matrix A is discretized (del rho del) operator. 
 void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, const double D[], bool do_subtract_ideal) const
 {
@@ -225,8 +295,8 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
       double rmz = density.get(ix,iy,iz-1);
 
       double RHS = D[0]*((rpx+r0)*xpx+(r0+rmx)*xmx-(rpx+rmx+2*r0)*x0)
-	+D[1]*((rpy+r0)*xpy+(rmy+r0)*xmy-(rpy+rmy+2*r0)*x0)
-	+D[2]*((rpz+r0)*xpz+(rmz+r0)*xmz-(rpz+rmz+2*r0)*x0);
+                 + D[1]*((rpy+r0)*xpy+(rmy+r0)*xmy-(rpy+rmy+2*r0)*x0)
+                 + D[2]*((rpz+r0)*xpz+(rmz+r0)*xmz-(rpz+rmz+2*r0)*x0);
 
       // Factor of 2 because of averaging the density over two points
       RHS /= (2*dV);
@@ -244,7 +314,7 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
   //    if(do_subtract_ideal) cout << "Ax_is_full = " << Ax_is_full << " sum_forces = " << sum_forces << " sum_forces2 = " << sum_forces2 << " rms = " << sqrt(sum_sq) << endl;
   //    cout << "Fmax = " << x.max() << " Fmin = " << x.min() << endl;
 }
-
+*/
 
 // NOTE:
 // For the static case, we include a minus sign to keep the signs of the eigenvalues the same in the two cases.
