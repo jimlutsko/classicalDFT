@@ -998,6 +998,10 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 	ofile_iter << "# " << endl;
 	ofile_iter << "#" << setw(7) << "iter*p" << setw(12) <<  "real"  << setw(12) <<  "imag"  << setw(12) << "error" << endl;
 	
+	// Pass negative tolerance to tell the algorithm it must keep iterating
+	bool dont_stop_if_converged = false;
+	if (tol<0) {dont_stop_if_converged = true; tol = abs(tol);}
+	
 	const int species = 0;
 	const Density& density = dft_->getDensity(species);
 	const long Ntot = density.Ntot();
@@ -1025,7 +1029,7 @@ double DDFT_IF::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_
 	arma::cx_vec eigval;
 	arma::cx_mat eigvec;
 	
-	while (!converged)
+	while (!converged || dont_stop_if_converged)
 	{
 		// p-step extension of Arnoldi factorisation
 		
