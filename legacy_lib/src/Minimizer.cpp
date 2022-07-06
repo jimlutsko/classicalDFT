@@ -83,6 +83,7 @@ void Minimizer::resume(long maxSteps)
       }
   } while(1);
 
+  cleanup();
 }
 
 

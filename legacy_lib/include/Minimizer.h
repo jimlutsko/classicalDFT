@@ -36,7 +36,8 @@ class Minimizer
   virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
 
   void setMinDensity(double m) { minDensity_ = m;}
-  
+
+  virtual void cleanup() {} // called when minimization is finished to allow decendents to clean up user output.
  protected:
   DFT *dft_ = NULL;
 
