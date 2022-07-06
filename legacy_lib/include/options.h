@@ -69,11 +69,11 @@ class Options
     {
      vdOptions_[name] = place;
     }
-  
+
   void read(int argc, char ** argv, bool bPrint = true);
   void read(char const * file, bool bPrint  = true);
   void write(ostream &of) const;
-
+  
   int getIntOption(string&  name) const 
     {
       std::map<string, int*>::const_iterator i = intOptions_.find(name);
@@ -115,7 +115,8 @@ class Options
       if (i == vdOptions_.end ())
 	throw std::runtime_error("Key not found in options");
       return *(i->second);
-    }  
+    }
+    
  private:
 
   std::map<string, int*>    intOptions_;

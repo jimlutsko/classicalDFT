@@ -50,6 +50,7 @@ add_library(${PROJECT_NAME} STATIC ${all_SRCS})
 
 # All users of this library will need at least C++11
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+target_compile_options(${PROJECT_NAME}  PUBLIC -fconcepts)
 #target_compile_options(${PROJECT_NAME} PUBLIC ${CMAKE_CXX} -O3 -MMD)
 
 #find_package (Eigen3 3.3 REQUIRED NO_MODULE)

@@ -51,6 +51,10 @@ class DFT_Factory
       if(dft_) delete dft_;
     }
     
+
+  // Either of these works ... the first requires C++20
+  //void addOption(const char  *name, auto *variable) { options_.addOption(name,variable);}
+  template<typename Q> void addOption(const char *name, Q *variable) { options_.addOption(name,variable);}
   
   DFT& get_DFT()
     {
