@@ -20,7 +20,8 @@ class Minimizer
   
   void run(long maxSteps = -1);
   void resume(long maxSteps = -1);
-
+  virtual void reset();
+  
   virtual double step() = 0;
   virtual void draw_after() {};  // Display something after the minimization
   virtual void reportMessage(string message){}
@@ -86,6 +87,7 @@ class fireMinimizer2 : public Minimizer
   fireMinimizer2(DFT *dft);
   fireMinimizer2(): Minimizer(){}
 
+  virtual void reset();
   virtual double step();
 
   double getRMS_Force() const { return rms_force_;}
@@ -207,9 +209,6 @@ class DDFT : public Minimizer
 
   void Display(double F, double dFmin, double dFmax, double N);
 
-
-
-  
   //  double F_string(Density &d, double *fmax = NULL);
   //  void reverseForce(DFT_Vec *tangent);
   //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true) = 0;

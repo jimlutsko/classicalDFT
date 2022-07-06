@@ -21,7 +21,9 @@ class Species
   void doFFT(){ density_.doFFT();}
   
   void setFixedMass(double m) { fixedMass_ = m; if(m > 0.0) mu_ = 0.0;}
-  void setFixedBackground() { fixedBackground_ = true;}
+  void setFixedBackground(bool fixed) { fixedBackground_ = fixed;}
+  void setHomogeneousBoundary(bool homo) { homgeneousBoundary_ = homo;}
+  
   bool is_background_fixed() const { return fixedBackground_;}
   bool is_mass_fixed()       const { return (fixedMass_ > 0);}
   
@@ -99,7 +101,13 @@ class Species
     
     if(fixedBackground_)
       {
-	/*
+	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
+	  dF_.set(density_.boundary_pos_2_pos(pos),0.0);	
+      }
+
+    if(homgeneousBoundary_)
+      {
+	
 	double average_border_force = 0;
 
 	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
@@ -109,11 +117,7 @@ class Species
 
 	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
 	  dF_.set(density_.boundary_pos_2_pos(pos),average_border_force);
-	*/
-
-	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
-	  dF_.set(density_.boundary_pos_2_pos(pos),0.0);	
-      }
+      }    
 
     
     if(fixedMass_ > 0.0)
@@ -147,8 +151,9 @@ protected:
   DFT_Vec dF_;
   double mu_;
   int seq_num_;
-  double fixedMass_; // if this is > 0, then the mass of this species is being held fixed at this value.
-  bool fixedBackground_ = false; // if true, forces are set to zero on the background
+  double fixedMass_        = -1; // if this is > 0, then the mass of this species is being held fixed at this value.
+  bool fixedBackground_    = false; // if true, forces are set to zero on the background
+  bool homgeneousBoundary_ = false; 
   int index_ = -1;
 };
 

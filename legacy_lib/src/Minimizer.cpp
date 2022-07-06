@@ -20,16 +20,24 @@ Minimizer::Minimizer(DFT *dft) : dft_(dft), forceLimit_(0.1)
   x_.resize(dft->getNumberOfSpecies());
   
   for(auto &x: x_) x.resize(dft_->get_lattice().Ntot());
+
+  for(int Jspecies=0;Jspecies<dft_->getNumberOfSpecies();Jspecies++)
+    dft_->getSpecies(Jspecies)->get_density_alias(x_[Jspecies]);        
   
-  step_counter_ = 0;
-  calls_ = 0;
   
+}
+
+void Minimizer::reset()
+{
   for(int Jspecies=0;Jspecies<dft_->getNumberOfSpecies();Jspecies++)
     dft_->getSpecies(Jspecies)->get_density_alias(x_[Jspecies]);        
 }
 
 void Minimizer::run(long maxSteps)
 {
+  step_counter_ = 0;
+  calls_ = 0;
+
   resume(maxSteps);
 }
 
@@ -122,6 +130,17 @@ fireMinimizer2::fireMinimizer2(DFT *dft) :  Minimizer(dft)
 
   vv_ = 1.0;
 
+  dt_best_ = dt_;
+  
+  F_ = getDF_DX();
+  
+  for(auto &v: v_)
+    v.zeros();  
+}
+
+void fireMinimizer2::reset()
+{
+  Minimizer::reset();
   dt_best_ = dt_;
   
   F_ = getDF_DX();

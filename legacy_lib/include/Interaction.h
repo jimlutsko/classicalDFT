@@ -52,7 +52,7 @@ class Interaction_Base
   double Mu(const vector<double> &x, int species) const;
   double Fhelmholtz(const vector<double> &x) const {return 0.5*a_vdw_*x[s1_->getSequenceNumber()]*x[s2_->getSequenceNumber()];}  
 
-  double getVDWParameter() const { if(!initialized_) throw std::runtime_error("Interaction object must be initialized before calling getVDWParameter()"); return a_vdw_;}
+  double getVDWParameter() { if(!initialized_) initialize(); return a_vdw_;}
 
   string get_name() const { return (v_ == NULL ? string("none") : v_->getIdentifier());}
   
