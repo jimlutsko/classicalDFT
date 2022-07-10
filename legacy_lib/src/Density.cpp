@@ -193,7 +193,7 @@ double Density::get_msd() const
 }
 
 
-void Density::write_VTK_File(string &filename)
+void Density::write_VTK_File(string filename) const
 {
   // I don't understand why it has to be plus 1 ...
   int dims[] = {int(Nx_+1), int(Ny_+1), int(Nz_+1)};
@@ -223,7 +223,7 @@ void Density::write_VTK_File(string &filename)
   delete density;
 }
 
-void Density::writeDensity(string &filename) const
+void Density::writeDensity(string filename) const
 {
   ofstream of(filename.c_str(),ios::binary);
   Density_.cReal().save(of);
@@ -377,5 +377,21 @@ void Lattice::test_boundary_coding()
       }     
   cout << "pos = " << pos << endl;
   cout << "Test passed";
+}
+
+
+double Density::get_neighbors(long pos,double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
+{
+  int ix, iy,iz;
+  
+  cartesian(pos,ix,iy,iz);
+
+  xpx =  get(ix+1, iy,   iz);
+  xmx =  get(ix-1, iy,   iz);
+  xpy =  get(ix,   iy+1, iz);
+  xmy =  get(ix,   iy-1, iz);
+  xpz =  get(ix,   iy,   iz+1);
+  xmz =  get(ix,   iy,   iz-1);
+  return get(ix,   iy,   iz);
 }
 

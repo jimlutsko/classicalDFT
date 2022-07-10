@@ -80,6 +80,9 @@ class Density : public Lattice
   void   increment(unsigned pos, double val) { Density_.Real().IncrementBy(pos,val);}
   void   doFFT()            {Density_.do_real_2_fourier();}
 
+  // get neighboring values: the return value is the density at pos.
+  double get_neighbors(long pos,double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;  
+  
   // access arrays  
   const double*          get_density_pointer() { return Density_.Real().memptr();}
 
@@ -93,8 +96,8 @@ class Density : public Lattice
   double         get_field_dot_density() const { return (vWall_.size() == 0 ? 0.0 : vWall_.dotWith(Density_.cReal()));}   
   
   // Read/Write
-  void write_VTK_File(string &filename);
-  void writeDensity(string &filename) const; // write in binary format: obsolete
+  void write_VTK_File(string filename) const;
+  void writeDensity(string filename) const; // write in binary format: obsolete
   void readDensity(const char *filename);  // read from binary file: obsolete
 
   friend ostream &operator<<(ostream &of, const Density &d) {of << static_cast<const Lattice &>(d) << d.Density_ << d.vWall_; return of;}  

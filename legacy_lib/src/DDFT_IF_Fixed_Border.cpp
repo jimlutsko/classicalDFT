@@ -157,6 +157,26 @@ DDFT_IF_Fixed_Border::~DDFT_IF_Fixed_Border()
 }
 
 
+double DDFT_IF_Fixed_Border::get_neighbors(const DFT_Vec &x, int species, long pos,
+				       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
+{
+  const Density &density = dft_->getDensity(species);
+  
+  int ix, iy,iz;
+  density.boundary_cartesian(pos,ix,iy,iz);
+
+  xpx = x.get(density.get_PBC_Pos(ix+1,iy,iz));
+  xmx = x.get(density.get_PBC_Pos(ix-1,iy,iz));
+
+  xpy = x.get(density.get_PBC_Pos(ix,iy+1,iz));
+  xmy = x.get(density.get_PBC_Pos(ix,iy-1,iz));
+
+  xpz = x.get(density.get_PBC_Pos(ix,iy,iz+1));
+  xmz = x.get(density.get_PBC_Pos(ix,iy,iz-1));
+
+  return x.get(density.get_PBC_Pos(ix,iy,iz));
+}
+
 void DDFT_IF_Fixed_Border::calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0)
 {
   DFT_Vec work(species->getDensity().Ntot());

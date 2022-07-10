@@ -262,6 +262,10 @@ class DDFT_IF : public DDFT
   void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
   //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
   void A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, const double D[], bool do_subtract_ideal = false) const; 
+  void g_dot_x(const DFT_Vec& x, DFT_Vec& gx, const double D[], bool do_subtract_ideal) const;
+
+  virtual double get_neighbors(const DFT_Vec &x, int species, long pos,
+		       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const = 0;
   
 protected:
   vector<double> Lamx_;
@@ -298,6 +302,9 @@ class DDFT_IF_Periodic : public DDFT_IF
 
   void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
 
+  virtual double get_neighbors(const DFT_Vec &x, int species, long pos,
+		       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;
+  
  protected:
   DFT_FFT RHS0;
   DFT_FFT RHS1;
@@ -324,6 +331,9 @@ protected:
   
   void pack_for_sin_transform(const double *x);  
   void unpack_after_transform(double *x);
+
+  virtual double get_neighbors(const DFT_Vec &x, int species, long pos,
+		       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;  
 
   
  protected:
