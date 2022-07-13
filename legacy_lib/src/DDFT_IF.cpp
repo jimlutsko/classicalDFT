@@ -357,12 +357,12 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
 
 // NOTE:
 // For the static case, we include a minus sign to keep the signs of the eigenvalues the same in the two cases.
-void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool fixed_boundary, bool dynamic) const
+void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec>& result, bool fixed_boundary, bool dynamic) const
 {
   int Jspecies = 0;
 
-  d2F[Jspecies].zeros();
-  dft_->second_derivative(eigen_vector, d2F);
+  result[Jspecies].zeros();
+  dft_->hessian_dot_v(v, result);
 
   if(dynamic)
     {
@@ -373,18 +373,18 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>
 
       if(fixed_boundary)      
 	for(long p=0;p<density.get_Nboundary();p++)
-	  d2F[Jspecies].set(density.boundary_pos_2_pos(p),0.0);
+	  result[Jspecies].set(density.boundary_pos_2_pos(p),0.0);
 
-      DFT_Vec result(d2F[0].size());
+      DFT_Vec result1(result[0].size());
   
-      A_dot_x(d2F[Jspecies], result, density, D, false);
+      A_dot_x(result[Jspecies], result1, density, D, false);
 
-      d2F[Jspecies].set(result);
+      result[Jspecies].set(result1);
 
       if(fixed_boundary)      
 	for(long p=0;p<density.get_Nboundary();p++)
-	  d2F[Jspecies].set(density.boundary_pos_2_pos(p),0.0);      
-    } else d2F[Jspecies].MultBy(-1);
+	  result[Jspecies].set(density.boundary_pos_2_pos(p),0.0);      
+    } else result[Jspecies].MultBy(-1);
 }
 
 
@@ -549,6 +549,7 @@ void compute_and_sort_eigenvectors(arma::cx_mat H, arma::cx_mat &eigvec, arma::c
 	for (int i=0; i<k; i++) eigval[i] = eigval_raw[indices[i]];
 	for (int i=0; i<k; i++) for (int j=0; j<k; j++) eigvec(j,i) = eigvec_raw(j,indices[i]);
 }
+
 
 
 bool DDFT_IF::check_factorisation(arma::cx_mat V, arma::cx_mat H, arma::cx_vec f, double shift, bool fixed_boundary, bool dynamic, double tol) const

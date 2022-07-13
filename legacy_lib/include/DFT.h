@@ -153,7 +153,7 @@ class DFT
   *   @param  d2F: vector to be filled
   *   @param noFID: flag saying to exclude ideal-gas contribution (if noFIDS = true).
   */
-  void second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID = false);
+  void hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, bool noFID = false);
   
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)

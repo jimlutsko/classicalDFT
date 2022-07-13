@@ -1,0 +1,467 @@
+#include <cmath>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <stdexcept>
+#include <vector>
+#include <time.h>
+#include <random>
+
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
+using namespace std;
+
+#include <complex>
+
+#include "Minimizer.h"
+#include "myColor.h"
+
+#include "Arnoldi.h"
+
+#include <armadillo> // for arnoldi
+
+
+template <class T> void Arnoldi<T>::matrix_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift, bool fixed_boundary, bool dynamic) const
+{
+  const int species = 0;
+  //  const Density& density = dft_.getDensity(species);
+  const long Ntot = density_.Ntot();
+  const int Nx = density_.Nx();
+  const int Ny = density_.Ny();
+  const int Nz = density_.Nz();
+	
+  //real part
+  vector<DFT_FFT> dft_v(1); dft_v[0].initialize(Nx,Ny,Nz);
+  for(long i=0; i<Ntot; i++) dft_v[0].Real().set(i,v[i].real());
+  dft_v[0].do_real_2_fourier();
+	
+  //imag part
+  vector<DFT_FFT> dft_w(1); dft_w[0].initialize(Nx,Ny,Nz);
+  for(long i=0; i<Ntot; i++) dft_w[0].Real().set(i,v[i].imag());
+  dft_w[0].do_real_2_fourier();
+	
+  //real part
+  vector<DFT_Vec> dft_d2F(1); dft_d2F[0].zeros(Ntot);
+  (*matrix_dot_v_)(dft_v, dft_d2F, fixed_boundary, dynamic);
+	
+  //imag part
+  vector<DFT_Vec> dft_d2F_imag(1); dft_d2F_imag[0].zeros(Ntot);
+  (*matrix_dot_v_)(dft_w, dft_d2F_imag, fixed_boundary, dynamic);
+	
+  d2F.zeros(Ntot);
+  for (long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i) + std::complex<double>(0,1)*dft_d2F_imag[0].get(i) + shift*v[i];
+	
+  if (fixed_boundary) for (long i=0; i<density_.get_Nboundary(); i++)
+			d2F[density_.boundary_pos_2_pos(i)] = 0.0;
+}
+
+
+template <class T> double Arnoldi<T>::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, int k, int p, long maxSteps, double tol) const
+{
+	cout << endl;
+	cout << myColor::YELLOW;
+	cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
+	cout << myColor::RESET;
+	cout << endl;
+	
+	int sysres = system("zip -r arnoldi_backup.zip arnoldi/ eigenvectors/");
+	    sysres = system("rm -r arnoldi");
+	    sysres = system("mkdir arnoldi");
+	    sysres = system("rm -r eigenvectors");
+	    sysres = system("mkdir eigenvectors");
+	
+	ofstream ofile_iter("arnoldi/iterations.dat");
+	ofile_iter << "# Largest eigenvalues from Implicitely Restarted Arnoldi method" << endl;
+	ofile_iter << "# " << endl;
+	ofile_iter << "# These are Ritz values (real and imaginary components) and Ritz" << endl;
+	ofile_iter << "# estimates for the errors. In other words these are Rayleigh quotients" << endl;
+	ofile_iter << "# using the best approximations of the associated eigenvectors and the" << endl;
+	ofile_iter << "# error is equivalent to the residual |Av-xv|." << endl;
+	ofile_iter << "# " << endl;
+	ofile_iter << "#" << setw(7) << "iter*p" << setw(12) <<  "real"  << setw(12) <<  "imag"  << setw(12) << "error" << endl;
+	
+	// Pass negative tolerance to tell the algorithm it must keep iterating
+	bool dont_stop_if_converged = false;
+	if (tol<0) {dont_stop_if_converged = true; tol = abs(tol);}
+	
+	const int species = 0;
+	//	const Density& density = dft_.getDensity(species);
+	const long Ntot = density_.Ntot();
+	const int Nx = density_.Nx();
+	const int Ny = density_.Ny();
+	const int Nz = density_.Nz();
+	
+	eigen_vector[species].initialize(Nx,Ny,Nz);
+	
+	arma::cx_mat Vk,Hk;
+	arma::cx_vec fk;
+	
+	extend_arnoldi_factorisation(Vk, Hk, fk, 0, k, shift, fixed_boundary, dynamic, tol);
+	
+	arma::cx_vec Hk_eigval;
+	arma::cx_mat Hk_eigvec;
+	
+	compute_and_sort_eigenvectors(Hk, Hk_eigvec, Hk_eigval);
+	
+	// Iterate
+	int iter = 0;
+	bool converged = false;
+	double eigen_value_old = 0.0;
+	
+	arma::cx_vec eigval;
+	arma::cx_mat eigvec;
+	
+	while (!converged || dont_stop_if_converged)
+	{
+		// p-step extension of Arnoldi factorisation
+		
+		arma::cx_mat Vp = Vk;
+		arma::cx_mat Hp = Hk;
+		arma::cx_vec fp = fk;
+		
+		extend_arnoldi_factorisation(Vp, Hp, fp, k, p, shift, fixed_boundary, dynamic, tol);
+		
+		arma::cx_vec Hp_eigval;
+		arma::cx_mat Hp_eigvec;
+		
+		compute_and_sort_eigenvectors(Hp, Hp_eigvec, Hp_eigval);
+		
+		// Sort eigenvalues for extended H-matrix
+		
+		arma::cx_vec Hk_eigval(k);
+		arma::cx_vec Hp_eigval_discard(p);
+		
+		for (int i=0; i<k; i++) Hk_eigval[i] = Hp_eigval[i];
+		for (int i=k; i<k+p; i++) Hp_eigval_discard[i] = Hp_eigval[i];
+		
+		// Filter out unwanted eigenvalues
+		
+		arma::cx_vec q(k+p); q.zeros(); q(k+p-1) = 1;
+		
+		for (int i=0; i<p; i++)
+		{
+			arma::cx_mat Hp_shifted = Hp;
+			for (int j=0; j<k+p; j++) Hp_shifted(j,j) -= Hp_eigval_discard[i];
+			
+			arma::cx_mat Q,R;
+			arma::qr(Q,R,Hp_shifted);
+			
+			Hp = Q.t()*Hp*Q;
+			Vp = Vp*Q;
+			
+			Hp_eigvec = Q.t()*Hp_eigvec; // Missing information in Radke's thesis
+			
+			q = Q.t()*q; // Not the original line: misktake in Radke's thesis
+		}
+		
+		// Update Arnoldi factorisation
+		
+		for (long i=0; i<Ntot; i++) for (int j=0; j<k; j++) Vk(i,j) = Vp(i,j);
+		for (int i=0; i<k; i++) for (int j=0; j<k; j++) Hk(i,j) = Hp(i,j);
+		for (int i=0; i<k; i++) for (int j=0; j<k; j++) Hk_eigvec(j,i) = Hp_eigvec(j,i);
+		
+		arma::cx_vec vv(Ntot); for (long i=0; i<Ntot; i++) vv[i] = Vp(i,k);
+		fk = vv*Hp(k,k-1) + fp*q(k-1);
+		
+		save_Arnoldi_matrices(Vk,Hk);
+		
+		if (!check_factorisation(Vk,Hk,fk,shift,fixed_boundary,dynamic,tol))
+			throw runtime_error("(IRA) Arnoldi factorisation does not check out");
+		
+		// Update approximations for eigenvalues/vectors
+		
+		eigval = Hk_eigval;
+		eigvec = arma::cx_mat(Ntot,k);
+		
+		for (int i=0; i<k; i++)
+		{
+			arma::cx_vec wi(k);
+			for (int j=0; j<k; j++) wi[j] = Hk_eigvec(j,i);
+			
+			arma::cx_vec vi = Vk*wi;
+ 			for (long j=0; j<Ntot; j++) eigvec(j,i) = vi[j];
+		}
+		
+		// TODO: They are not exactly the same, why??
+		// Note: For testing only -- The norm of the residuals are the same as the Ritz estimates
+		check_eigenvectors(eigvec,eigval,shift,fixed_boundary,dynamic,tol);
+		
+		// Convergence checks
+		
+		iter++;
+		if (iter>=maxSteps) throw runtime_error("IRArnoldi method: Exceeded max iterations");
+		
+		converged = true;
+		for (int i=0; i<k; i++)
+		{
+			double ritz_estimate = abs(Hk_eigvec(k-1,i))*norm(fk);
+			if (ritz_estimate>tol*abs(eigval[i])) converged = false;
+			
+			ofile_iter << fixed << setprecision(6);
+			ofile_iter << setw(8) << iter*p << setw(12) << eigval[i].real()-shift << setw(12) << eigval[i].imag();
+			ofile_iter << scientific << setprecision(2);
+			ofile_iter << setw(12) << ritz_estimate << endl;
+		}
+		ofile_iter << endl;
+		
+		// Save leading eigenvectors
+		
+		eigen_vector[species].initialize(Nx,Ny,Nz);
+		
+		for (int i=k-1; i>=0; i--)
+		{
+			//TODO: Here I assume v has no imaginary part !!! 
+			for(long j=0; j<Ntot; j++)
+				eigen_vector[species].Real().set(j,eigvec(j,i).real()); //here
+			
+			eigen_vector[species].Real().normalise();
+			eigen_vector[species].do_real_2_fourier();
+			
+			ofstream of("eigenvectors/density_eigenvector_"+to_string(i)+".dat");
+			of << eigen_vector[species].Real();
+			of.close();
+		}
+		
+		// Report in terminal
+		
+		cout << myColor::YELLOW;
+		cout << setprecision(6);
+		cout << '\r'; cout << "\t" << "iteration = " << iter << " shift = " << shift << " eigen_value = " << setw(12) << eigval[0].real()-shift;
+		cout << myColor::RESET;
+		
+		ofstream debug("debug.dat", (iter == 0 ? ios::trunc : ios::app));
+		debug << iter << " " << eigval[0].real()-shift << " " << fabs(eigval[0].real()-shift - eigen_value_old)/fabs(eigval[0].real()-shift) << " " << fabs(eigval[0].real()-shift - eigen_value_old) << " " << abs(Hk_eigvec(k-1,0))*norm(fk) << endl;
+		debug.close();
+		
+		eigen_value_old = eigval[0].real()-shift;
+	}
+	
+	cout << endl;
+	
+	//TODO: Here I assume the eigenvalue is real!!! 
+	return eigval[0].real()-shift;
+}
+
+//template <class T> void Arnoldi<T>::compute_and_sort_eigenvectors(arma::cx_mat H, arma::cx_mat &eigvec, arma::cx_vec &eigval)
+void compute_and_sort_eigenvectors(arma::cx_mat H, arma::cx_mat &eigvec, arma::cx_vec &eigval)
+{
+	if (!H.is_square()) throw runtime_error("(DDFT_IF.cpp) Attempting to compute eigenvectors of non-square matrix");
+	int k = H.n_cols;
+	
+	eigvec = arma::cx_mat(k,k);
+	eigval = arma::cx_vec(k);
+	
+	arma::cx_mat eigvec_raw;
+	arma::cx_vec eigval_raw;
+	arma::eig_gen(eigval_raw, eigvec_raw, H);
+	
+	arma::vec eigval_real(k);
+	for (int i=0; i<k; i++) eigval_real[i] = abs(eigval_raw[i]); //eigval_raw[j].real();
+	arma::uvec indices = sort_index(eigval_real, "descend");
+	
+	for (int i=0; i<k; i++) eigval[i] = eigval_raw[indices[i]];
+	for (int i=0; i<k; i++) for (int j=0; j<k; j++) eigvec(j,i) = eigvec_raw(j,indices[i]);
+}
+
+template <class T> bool Arnoldi<T>::check_factorisation(arma::cx_mat V, arma::cx_mat H, arma::cx_vec f, double shift, bool fixed_boundary, bool dynamic, double tol) const
+{
+	if (V.n_cols!=H.n_rows || !H.is_square()) throw runtime_error("Inconsistent dimensions in Arnoldi factorisation");
+	int k = V.n_cols;
+	long Ntot = V.n_rows;
+	
+	arma::cx_mat R(Ntot, k); //= A*V - V*H - fk*ek;
+	for (int j=0; j<k; j++)
+	{
+		arma::cx_vec v(Ntot); for (long i=0; i<Ntot; i++) v[i] = V(i,j);
+		arma::cx_vec w(Ntot); matrix_dot_v(v, w, shift, fixed_boundary, dynamic);
+		
+		for (long i=0; i<Ntot; i++)
+		{
+			R(i,j) = w[i];
+			for (int l=0; l<k; l++) R(i,j) -= V(i,l)*H(l,j);
+			if (j==k-1) R(i,j) -= f[i];
+		}
+	}
+	
+	double error = arma::norm(R,"fro");
+	
+	ofstream ofile_check("arnoldi/check_factorisation.dat", ios::app);
+	
+	ofile_check << scientific << setprecision(2);
+	ofile_check << "Norm of Residual:     " << error << endl;
+	ofile_check << "While tol*sqrt(N*k):  " << tol*sqrt(Ntot*k) << endl;
+	ofile_check << endl;
+	
+	return (error<tol*sqrt(Ntot*k));
+}
+
+template <class T> bool Arnoldi<T>::check_eigenvectors(arma::cx_mat eigvec, arma::cx_vec eigval, double shift, bool fixed_boundary, bool dynamic, double tol) const
+{
+	const int species = 0;
+	//	const Density& density = dft_.getDensity(species);
+	const long Ntot = density_.Ntot();
+	
+	if (eigvec.n_cols!=eigval.n_rows) throw runtime_error("Inconsistent dimensions in eigvec/eigval");
+	int k = eigval.n_rows;
+	
+	if (fixed_boundary) for (long i=0; i<density_.get_Nboundary(); i++) for (int j=0; j<k; j++)
+	{
+		if (abs(eigvec(density_.boundary_pos_2_pos(i),j))>tol) 
+			throw runtime_error("Eigenvector has non-zero values on boundaries");
+	}
+	
+	ofstream ofile_check("arnoldi/check_eigenvectors.dat", ios::app);
+	ofile_check << scientific << setprecision(2);
+	
+	double err_max = 0.0;
+	
+	for (int j=0; j<k; j++)
+	{
+		arma::cx_vec v(Ntot); for (long i=0; i<Ntot; i++) v[i] = eigvec(i,j);
+		arma::cx_vec w(Ntot); matrix_dot_v(v, w, shift, fixed_boundary, dynamic);
+		for (long i=0; i<Ntot; i++) w[i] -= eigval[j]*v[i];
+		
+		double err = arma::norm(w,2);
+		if (err>err_max) err_max = err;
+		ofile_check << "Norm of Residual:   " << err << endl;
+	}
+	
+	ofile_check << "While tol*sqrt(N):  " << tol*sqrt(Ntot) << endl;
+	ofile_check << endl;
+	
+	return (err_max<tol);
+}
+
+template <class T> void Arnoldi<T>::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arma::cx_vec &f, const int k, const int p, double shift, bool fixed_boundary, bool dynamic, double tol) const
+{
+	const int species = 0;
+	//	const Density& density = dft_.getDensity(species);
+	const long Ntot = density_.Ntot();
+	
+	// Prepare extended V,H matrices
+	
+	arma::cx_mat V_new(Ntot, k+p); V_new.zeros();
+	arma::cx_mat H_new(k+p,  k+p); H_new.zeros();
+	
+	for (long i=0; i<Ntot; i++) for (int j=0; j<k; j++) V_new(i,j) = V(i,j);
+	for (int i=0; i<k; i++) for (int j=0; j<k; j++) H_new(i,j) = H(i,j);
+	
+	V = V_new;
+	H = H_new;
+	
+	// Initial arnoldi vector
+	
+	arma::cx_vec v(Ntot);
+	
+	if (k==0) // random vector
+	{
+		random_device r;
+		int seed = r();
+		
+		mt19937 rng(seed);
+		uniform_real_distribution<double> urd;
+		
+		for (long i=0; i<Ntot; i++) v[i] = 2*urd(rng)-1;
+		
+		if (fixed_boundary) for (long i=0; i<density_.get_Nboundary(); i++)
+			v[density_.boundary_pos_2_pos(i)] = 0.0;
+		
+		v /= norm(v);
+		
+		ofstream file_guess("arnoldi/guess.dat");
+		file_guess << fixed << setprecision(6);
+		for (long i=0; i<Ntot; i++) file_guess << setw(10) << real(v[i]); file_guess << endl;
+		file_guess << endl;
+		for (long i=0; i<Ntot; i++) file_guess << setw(10) << imag(v[i]); file_guess << endl;
+		
+		arma::cx_vec w; matrix_dot_v(v, w, shift, fixed_boundary, dynamic);
+		
+		for (long j=0; j<Ntot; j++) V(j,0) = v[j];
+		H(0,0) = cdot(v,w);
+		v = w - v*H(0,0);
+	}
+	else // use the remainder of the previous factorization
+	{
+		v = f;
+	}
+	
+	// p-steps extension of V,H matrices
+	
+	for (int i=(k>0?k-1:0); i<k+p-1; i++)
+	{
+		double beta = norm(v); 
+		v /= beta;
+		
+		for (long j=0; j<Ntot; j++) V(j,i+1) = v[j];
+		for (long j=0; j<=i;   j++) H(i+1,j) = 0; H(i+1,i) = beta;
+		
+		// new vector
+		matrix_dot_v(v, v, shift, fixed_boundary, dynamic);
+		
+		// orthogonalise
+		arma::cx_vec h = V.t()*v;
+		v -= V*h;
+		
+		// refine orthogonalisation
+		for (int j=0; j<3; j++)
+		{
+			arma::cx_vec s = V.t()*v;
+			v -= V*s;
+			h += s;
+		}
+		
+		
+		for (int j=0; j<=i+1; j++) H(j,i+1) = h[j];
+	}
+	
+	f = v;
+	
+	save_Arnoldi_matrices(V,H);
+	
+	if (!check_factorisation(V,H,f,shift,fixed_boundary,dynamic,tol)) 
+		throw runtime_error("Arnoldi factorisation does not check out");
+}
+
+
+void save_Arnoldi_matrices(arma::cx_mat V, arma::cx_mat H)
+{
+	if (V.n_cols!=H.n_rows || !H.is_square()) throw runtime_error("Inconsistent dimensions in Arnoldi factorisation");
+	int k = V.n_cols;
+	long Ntot = V.n_rows;
+	
+	/*
+	ofstream ofile_Vmatrix("arnoldi/Vmatrix.dat");
+	
+	ofile_Vmatrix << fixed << setprecision(6);
+	for (long i=0; i<Ntot; i++) 
+	{
+		for (int j=0; j<k; j++) ofile_Vmatrix << setw(12) << V(i,j).real();
+		ofile_Vmatrix << endl;
+	}
+	
+	ofile_Vmatrix << endl;
+	for (long i=0; i<Ntot; i++) 
+	{
+		for (int j=0; j<k; j++) ofile_Vmatrix << setw(12) << V(i,j).imag();
+		ofile_Vmatrix << endl;
+	}
+	*/
+	
+	ofstream ofile_Hmatrix("arnoldi/Hmatrix.dat");
+	
+	ofile_Hmatrix << fixed << setprecision(6);
+	for (int i=0; i<k; i++) 
+	{
+		for (int j=0; j<k; j++) ofile_Hmatrix << setw(12) << H(i,j).real();
+		ofile_Hmatrix << endl;
+	}
+	
+	ofile_Hmatrix << endl;
+	for (int i=0; i<k; i++) 
+	{
+		for (int j=0; j<k; j++) ofile_Hmatrix << setw(12) << H(i,j).imag();
+		ofile_Hmatrix << endl;
+	}
+}

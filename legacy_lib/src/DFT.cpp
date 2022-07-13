@@ -418,32 +418,38 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 }
 
   /**
-   *   @brief  Computes (d2F/dn_i dn_j) v_j: Currently implemented only for a SINGLE SPECIES
-   *
-   *  
-   *   @return nothing
+   *   computes (d2F/dn_i dn_j) v_j: 
+   *   Cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
    */  
-void DFT::second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool noFID)
+void DFT::hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, bool noFID)
 {
-  double dV = allSpecies_[0]->getDensity().dV();
+  //  vector<DFT_FFT> v(v1); // copy so we can change boundary points
 
-
+  // Boundary terms must be zero if the boundary is fixed
+  for(int s=0;s<allSpecies_.size();s++)  
+    if(allSpecies_[s]->is_fixed_boundary())
+      for(unsigned p=0;p<allSpecies_[s]->getLattice().get_Nboundary();p++)
+	{
+	  unsigned pp = allSpecies_[s]->getLattice().boundary_pos_2_pos(p);
+	  if(fabs(v[s].cReal().get(pp)) > 0.0)
+	    throw std::runtime_error("Input vector v ,ust have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
+	}
+  
   // ideal gas contribution: v_i/n_i
   if(noFID == false)
     {
+      double dV = allSpecies_[0]->getDensity().dV();
+
       for(int s=0;s<allSpecies_.size();s++)
       	for(unsigned i=0;i<v[s].cReal().size();i++)
-      	  d2F[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().get(i));
+      	  result[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().get(i));
     }
   
-  //  for(auto &x : v)
-  //    x.do_real_2_fourier();
-
   // Hard-sphere
   if(fmt_)
     {    
       try{
-	fmt_->add_second_derivative(v,d2F, allSpecies_);
+	fmt_->add_second_derivative(v,result, allSpecies_);
       } catch( Eta_Too_Large_Exception &e) {
 	throw e;
       }
@@ -455,8 +461,16 @@ void DFT::second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, bool
   
   // Mean field
   for(auto &interaction: DFT::Interactions_)    
-    interaction->add_second_derivative(v,d2F);
+    interaction->add_second_derivative(v,result);
 
+  // Remove boundary terms if the boundary is fixed
+  for(int s=0;s<allSpecies_.size();s++)  
+    if(allSpecies_[s]->is_fixed_boundary())
+      for(unsigned p=0;p<allSpecies_[s]->getLattice().get_Nboundary();p++)
+	{
+	  unsigned pp = allSpecies_[s]->getLattice().boundary_pos_2_pos(p);
+	  result[s].set(0.0,pp);
+	}
 }
 
 

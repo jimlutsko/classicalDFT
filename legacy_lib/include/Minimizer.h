@@ -252,8 +252,8 @@ class DDFT_IF : public DDFT
   void extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arma::cx_vec &f, const int k, const int p, double shift, bool fixed_boundary, bool dynamic = true, double tol=1e-8) const;
   double determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic = true, int k=10, int p=15, long maxSteps = 1000, double tol = 1e-8) const;
   
-  void Hessian_dot_v(const vector<DFT_FFT> &eigen_vector, vector<DFT_Vec>& d2F, bool fixed_boundary, bool dynamic) const;  
-  void Hessian_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift, bool fixed_boundary, bool dynamic) const;
+  void Hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec>& result, bool fixed_boundary, bool dynamic) const;  
+  void Hessian_dot_v(arma::cx_vec v, arma::cx_vec& result, double shift, bool fixed_boundary, bool dynamic) const;
   
  protected:
   virtual double fftDiffusion(DFT_Vec &d1) = 0;

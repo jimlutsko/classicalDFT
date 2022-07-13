@@ -15,7 +15,8 @@ template <class T>
 class Integrator
 {
  public:
-  Integrator(T* const obj , double (T::*fun)(double x) const, double epsRel = 1e-5, double epsAbs = 1e-5)
+  Integrator(T* const obj ,double (T::*fun)(double x) const, double epsRel = 1e-5, double epsAbs = 1e-5)
+	     
     : epsRel_(epsRel), epsAbs_(epsAbs), Nspace_(10000), obj_(obj), fun_(fun)
     {
       F_.function = &IntegratorHelper;
@@ -88,6 +89,8 @@ class Integrator
   T* obj_;
   /// Member function to integrate
   double (T::*fun_)(double x) const;
+
+	     
 
 };
 

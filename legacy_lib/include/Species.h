@@ -26,6 +26,7 @@ class Species
   
   bool is_background_fixed() const { return fixedBackground_;}
   bool is_mass_fixed()       const { return (fixedMass_ > 0);}
+  bool is_fixed_boundary() const { return (fixedBackground_ || homgeneousBoundary_);}
   
   double getChemPotential() const {return mu_;}
   void   setChemPotential(double m) {mu_ = m;}
