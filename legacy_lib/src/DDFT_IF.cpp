@@ -170,7 +170,7 @@ void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &
   
 }
 
-double  static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Density& density)
+double static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Density& density)
 {
   double r = 0;
   if(is_full)
@@ -180,19 +180,39 @@ double  static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const
   return r;
 }
 
+double DDFT_IF::get_neighbors(const DFT_Vec &x, int species, long pos,
+			      double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
+{
+  int ix, iy,iz;
+  dft_->getDensity(species).boundary_cartesian(pos,ix,iy,iz);
+
+  xpx = x.get(density.get_PBC_Pos(ix+1,iy,iz));
+  xmx = x.get(density.get_PBC_Pos(ix-1,iy,iz));
+
+  xpy = x.get(density.get_PBC_Pos(ix,iy+1,iz));
+  xmy = x.get(density.get_PBC_Pos(ix,iy-1,iz));
+
+  xpz = x.get(density.get_PBC_Pos(ix,iy,iz+1));
+  xmz = x.get(density.get_PBC_Pos(ix,iy,iz-1));
+
+  return x.get(density.get_PBC_Pos(ix,iy,iz));
+}
+
+
 // This calculates (del_IJ rho_J del_JK) x_K i.e. matrix g is discretized (del rho del) operator.
 // It could be more efficient: as it stands, for each new entry at pos, we retrieve 13 values from the two matrices:
 // if instead there was a triple loop over the three directions, then we would only need two new values for each position.
 // For now, I prefer the more compact version that is cleaner to read. 
-void DDFT_IF::g_dot_x(const DFT_Vec& x, DFT_Vec& gx, const double D[], bool do_subtract_ideal) const
+//
+// N.B.: For FIXED boundaries, the input vector x must have zero entries on the boundary.
+void DDFT_IF::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 {
   if(dft_->getNumberOfSpecies() > 1) throw std::runtime_error("DDFT_IF_Periodic::g_dot_x is not implemented for more than one species");
   int species = 0;
 
   const Density &density = dft_->getDensity(species);
-  const DFT_Vec &d = density.get_density_real();
-  const double  dV = dx_*dy_*dz_;
-    
+  const double D[] = {dx_*dx_, dy_*dy_, dz_*dz_}
+  
   long pos;
 #pragma omp parallel for  private(pos) schedule(static)
   for(pos = 0;pos<gx.size();pos++)
@@ -203,17 +223,15 @@ void DDFT_IF::g_dot_x(const DFT_Vec& x, DFT_Vec& gx, const double D[], bool do_s
       double dpx,dmx,dpy,dmy,dpz,dmz; // density
       double d0 = density.get_neighbors(pos,dpx,dmx,dpy,dmy,dpz,dmz);
 
-      double RHS = D[0]*((dpx+d0)*xpx+(d0+dmx)*xmx-(dpx+dmx+2*d0)*x0)
-                 + D[1]*((dpy+d0)*xpy+(d0+dmy)*xmy-(dpy+dmy+2*d0)*x0)
-                 + D[2]*((dpz+d0)*xpz+(d0+dmz)*xmz-(dpz+dmz+2*d0)*x0);
+      // Forward differences
+      gx.set(pos,0.5*D[0]*((dpx+d0)*xpx+(d0+dmx)*xmx-(dpx+dmx+2*d0)*x0)
+	     + 0.5*D[1]*((dpy+d0)*xpy+(d0+dmy)*xmy-(dpy+dmy+2*d0)*x0)
+	     + 0.5*D[2]*((dpz+d0)*xpz+(d0+dmz)*xmz-(dpz+dmz+2*d0)*x0));
 
-      // Factor of 2 because of averaging the density over two points
-      RHS /= (2*dV);
-
-      if(do_subtract_ideal)
-	RHS -= D[0]*(dpx+dmx-2*d0)+D[1]*(dpy+dmy-2*d0)+D[2]*(dpz+dmz-2*d0) ;
-
-      gx.set(pos,RHS);	  
+      // Centered differences
+      //      gx.set(pos,0.5*D[0]*(dpx*xpx+dmx*xmx-(dpx+dmx)*x0)
+      //	     + 0.5*D[1]*(dpy*xpy+dmy*xmy-(dpy+dmy)*x0)
+      //     + 0.5*D[2]*(dpz*xpz+dmz*xmz-(dpz+dmz)*x0));	     
     }      
 }
 

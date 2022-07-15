@@ -79,26 +79,6 @@ DDFT_IF_Periodic::DDFT_IF_Periodic(DFT *dft, bool showGraphics)
 
 
 
-double DDFT_IF_Periodic::get_neighbors(const DFT_Vec &x, int species, long pos,
-				       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
-{
-  const Density &density = dft_->getDensity(species);
-  
-  int ix, iy,iz;
-  density.cartesian(pos,ix,iy,iz);
-
-  xpx = x.get(density.get_PBC_Pos(ix+1,iy,iz));
-  xmx = x.get(density.get_PBC_Pos(ix-1,iy,iz));
-
-  xpy = x.get(density.get_PBC_Pos(ix,iy+1,iz));
-  xmy = x.get(density.get_PBC_Pos(ix,iy-1,iz));
-
-  xpz = x.get(density.get_PBC_Pos(ix,iy,iz+1));
-  xmz = x.get(density.get_PBC_Pos(ix,iy,iz-1));
-
-  return x.get(density.get_PBC_Pos(ix,iy,iz));
-}
-
 
 // Here we solve the nonlinear equation
 // rho_[k,t+dt] = exp(L_{k} dt) rho_{k,t} - ((exp(L_{k} dt)-1)/L_{k}) R_{k}[rho_t] +((exp(L_{k} dt) - 1 - L dt))/L_{k}^2) R_{k}[rho_{t+dt}]
