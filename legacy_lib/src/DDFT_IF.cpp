@@ -183,7 +183,7 @@ double static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const 
 double DDFT_IF::get_neighbors(const DFT_Vec &x, int species, long pos,
 			      double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
 {
-  Density &density = *(dft_->getDensity(species));
+  const Density &density = dft_->getDensity(species);
   
   int ix, iy,iz;
   density.boundary_cartesian(pos,ix,iy,iz);
@@ -213,7 +213,7 @@ void DDFT_IF::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
   int species = 0;
 
   const Density &density = dft_->getDensity(species);
-  const double D[] = {dx_*dx_, dy_*dy_, dz_*dz_}
+  const double D[] = {dx_*dx_, dy_*dy_, dz_*dz_};
   
   long pos;
 #pragma omp parallel for  private(pos) schedule(static)
