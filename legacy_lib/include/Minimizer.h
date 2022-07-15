@@ -262,7 +262,7 @@ class DDFT_IF : public DDFT
   void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
   //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
   void A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, const double D[], bool do_subtract_ideal = false) const; 
-  void g_dot_x(const DFT_Vec& x, DFT_Vec& gx, const double D[], bool do_subtract_ideal) const;
+  void g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
 
   double get_neighbors(const DFT_Vec &x, int species, long pos,
 		       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;

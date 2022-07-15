@@ -183,8 +183,10 @@ double static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const 
 double DDFT_IF::get_neighbors(const DFT_Vec &x, int species, long pos,
 			      double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
 {
+  Density &density = *(dft_->getDensity(species));
+  
   int ix, iy,iz;
-  dft_->getDensity(species).boundary_cartesian(pos,ix,iy,iz);
+  density.boundary_cartesian(pos,ix,iy,iz);
 
   xpx = x.get(density.get_PBC_Pos(ix+1,iy,iz));
   xmx = x.get(density.get_PBC_Pos(ix-1,iy,iz));
