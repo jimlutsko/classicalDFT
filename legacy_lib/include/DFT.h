@@ -41,7 +41,7 @@
   *  @detailed This is the base class for all of the DFT objects.
   */  
 
-class DFT
+class DFT : public DFT_Matrix
 {
  public:
   // Xtors
@@ -92,7 +92,6 @@ class DFT
   // Bulk structural properties
   double real_space_dcf(double r, double x) const;
   double fourier_space_dcf(double k, double x) const;
-  
   
   // Identifiers
   virtual string Name() const { return string("DFT_Ideal_Gas");}
@@ -146,14 +145,16 @@ class DFT
   double get_f_mf() const { return F_mf_;}
 
 
-  /**
-  *   @brief  Calculates (d2F/dn_i dn_j)v_j
-  *  
-  *   @param  v: input vector
-  *   @param  d2F: vector to be filled
-  *   @param noFID: flag saying to exclude ideal-gas contribution (if noFIDS = true).
-  */
-  void hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, bool noFID = false);
+  // Implement DFT_Matrix interface.
+  // Second derivatives contracted into arbitrary vector
+  virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param = NULL) const;
+
+  virtual unsigned get_dimension(int direction) const {return allSpecies_[0]->getLattice().get_dimension(direction);}
+  virtual long     get_Nboundary()              const {return allSpecies_[0]->getDensity().get_Nboundary();}
+  virtual long     boundary_pos_2_pos(int p)    const {return allSpecies_[0]->getDensity().boundary_pos_2_pos(p);}
+  virtual bool     get_next_boundary_point(int &ix, int &iy, int iz) const {return allSpecies_[0]->getLattice().get_next_boundary_point(ix,iy,iz);}
+  
+  void set_full_hessian(bool full) { full_hessian_ = full;}
   
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -175,6 +176,8 @@ class DFT
   double F_ext_ = 0.0; ///< External field contribution to free energy (including chemical potential)
   double F_hs_  = 0.0; ///< Hard-sphere contribution to free energy
   double F_mf_  = 0.0; ///< Mean-field contribution to free energy
+
+  mutable bool full_hessian_ = true; // used in matrix_holder to distinguish full hessian from excess hessian.
 };
 
 

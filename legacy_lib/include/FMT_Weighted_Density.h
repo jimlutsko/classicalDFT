@@ -38,11 +38,11 @@ class FMT_Weighted_Density
     weight_.Four().MultBy(1.0/weight_.Real().size());
   }
 
-  void convoluteWith(const DFT_Vec_Complex& density) { convoluteWith(density,weighted_density_);}
+  void convoluteWith(const DFT_Vec_Complex& v) { convoluteWith(v,weighted_density_);}
 
-  void convoluteWith(const DFT_Vec_Complex& density, DFT_FFT &Result)
+  void convoluteWith(const DFT_Vec_Complex& v, DFT_FFT &Result)
   {
-    Result.Four().Schur(density,weight_.Four()); 
+    Result.Four().Schur(v,weight_.Four()); 
     Result.do_fourier_2_real();
   }  
 

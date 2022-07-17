@@ -43,7 +43,7 @@ public:
   double calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies);
 
   // Given input vector v, calculates (d2F/dn_i dn_j)v_j
-  void add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies);
+  void add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, const vector<Species*> &allSpecies);
 
   // Brute force calculation: for checking only!
   double d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies);
@@ -62,7 +62,7 @@ public:
   void calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const;  
   
   // Calculates the fundamental measures at lattice point i
-  FundamentalMeasures getWeightedDensities(long i, vector<Species*> &allSpecies);
+  FundamentalMeasures getWeightedDensities(long i, const vector<Species*> &allSpecies);
 
   // The FMT functional is coded as PHI1 = f1(eta)*Phi1(eta,s,v,T) etc.
   // Phi1 and Phi2 are the same in all models (so far) so they are directly coded in the implementation, FMT.cpp. Phi3 must be specified.

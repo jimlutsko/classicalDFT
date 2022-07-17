@@ -150,7 +150,10 @@ class DFT_Vec_Complex
 };
 
 /**
-  *  @brief UTILITY: This class encapsulates a basic FFT. It is basically an interface to fftw library while holding both a real and a complex vector.
+  *  This class encapsulates a basic FFT. It is basically an interface to fftw library while holding both a real and a complex vector.
+  *  Note that the flag bReal_2_Fourier_ is meant to track whether or not the two components are mutually consistent. Since we do not have the means to tell when
+  *  the real or fourier space vectors is changed (i.e. dirty) I just set it to false whenever they are accessed via non-constant references. 
+  *  This is overly cautious but at least lets us avoid disastors. 
   */  
 class DFT_FFT
 {
@@ -178,6 +181,8 @@ class DFT_FFT
     }
 
   void zeros() {RealSpace_.zeros(); FourierSpace_.zeros();}
+
+  bool isConsistent() const {return bReal_2_Fourier_;}
   
   void initialize(unsigned Nx, unsigned Ny, unsigned Nz)
   {
@@ -190,14 +195,14 @@ class DFT_FFT
     Nz_ = Nz;
   };
   
-  DFT_Vec &Real() { return RealSpace_;}
-  DFT_Vec_Complex &Four() { return FourierSpace_;}
+  DFT_Vec &Real() { bReal_2_Fourier_ = false; return RealSpace_;}
+  DFT_Vec_Complex &Four() { bReal_2_Fourier_ = false; return FourierSpace_;}
 
   const DFT_Vec &cReal() const { return RealSpace_;}
   const DFT_Vec_Complex &cFour() const { return FourierSpace_;}
 
-  void do_real_2_fourier() {fftw_execute(real_2_four_);}
-  void do_fourier_2_real() {fftw_execute(four_2_real_);}
+  void do_real_2_fourier() {fftw_execute(real_2_four_); bReal_2_Fourier_ = true;}
+  void do_fourier_2_real() {fftw_execute(four_2_real_); bReal_2_Fourier_ = true;}
 
   void MultBy(double val) { RealSpace_.MultBy(val);  FourierSpace_.MultBy(val);}
 
@@ -273,6 +278,20 @@ class DFT_FFT
   unsigned Nx_; ///< spatial dimension: only needed for reading and writing plans.
   unsigned Ny_; ///< spatial dimension: only needed for reading and writing plans.
   unsigned Nz_; ///< spatial dimension: only needed for reading and writing plans.
+  mutable bool bReal_2_Fourier_ = false;
+};
+
+// This is a simple interface needed for the Arnoldi class
+class DFT_Matrix
+{
+public:
+  DFT_Matrix(){}
+  ~DFT_Matrix(){}
+  virtual void matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const = 0;
+  virtual unsigned get_dimension(int direction) const = 0;
+  virtual long get_Nboundary() const = 0;
+  virtual long boundary_pos_2_pos(int) const = 0;
+  virtual bool get_next_boundary_point(int &ix, int &iy, int iz) const = 0;
 };
 
 #endif // __DFT_LINALG_LUTSKO__

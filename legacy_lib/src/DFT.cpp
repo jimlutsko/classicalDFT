@@ -417,14 +417,16 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   return F.sum();  
 }
 
+
+
+
   /**
    *   computes (d2F/dn_i dn_j) v_j: 
    *   Cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
-   */  
-void DFT::hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, bool noFID)
-{
-  //  vector<DFT_FFT> v(v1); // copy so we can change boundary points
+   */
 
+void DFT::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
+{
   // Boundary terms must be zero if the boundary is fixed
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())
@@ -434,16 +436,18 @@ void DFT::hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, bool 
 	  if(fabs(v[s].cReal().get(pp)) > 0.0)
 	    throw std::runtime_error("Input vector v ,ust have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
 	}
-  
-  // ideal gas contribution: v_i/n_i
-  if(noFID == false)
+
+  if(full_hessian_)
     {
+      // ideal gas contribution: v_i/n_i
+
       double dV = allSpecies_[0]->getDensity().dV();
 
       for(int s=0;s<allSpecies_.size();s++)
-      	for(unsigned i=0;i<v[s].cReal().size();i++)
-      	  result[s].set(i, dV*v[s].cReal().get(i)/allSpecies_[s]->getDensity().get(i));
+	for(unsigned pos=0;pos<v[s].cReal().size();pos++)
+	  result[s].set(pos, dV*v[s].cReal().get(pos)/allSpecies_[s]->getDensity().get(pos));
     }
+
   
   // Hard-sphere
   if(fmt_)

@@ -22,47 +22,53 @@ using namespace std;
 
 #include <armadillo> // for arnoldi
 
+static void save_Arnoldi_matrices(arma::cx_mat V, arma::cx_mat H);
+static void compute_and_sort_eigenvectors(arma::cx_mat H, arma::cx_mat &eigvec, arma::cx_vec &eigval);
 
-template <class T> void Arnoldi<T>::matrix_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift, bool fixed_boundary, bool dynamic) const
+
+void Arnoldi::matrix_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift) const
 {
-  const int species = 0;
-  //  const Density& density = dft_.getDensity(species);
-  const long Ntot = density_.Ntot();
-  const int Nx = density_.Nx();
-  const int Ny = density_.Ny();
-  const int Nz = density_.Nz();
+	const int species = 0;
+	//	const Density& density = density_; //dft_->getDensity(species);
+	const int Nx = matrix_.get_dimension(0);
+	const int Ny = matrix_.get_dimension(1);
+	const int Nz = matrix_.get_dimension(2);
+	const long Ntot = Nx*Ny*Nz;
+		
+	//real part
+	vector<DFT_FFT> dft_v(1); dft_v[0].initialize(Nx,Ny,Nz);
+	for(long i=0; i<Ntot; i++) dft_v[0].Real().set(i,v[i].real());
+	dft_v[0].do_real_2_fourier();
 	
-  //real part
-  vector<DFT_FFT> dft_v(1); dft_v[0].initialize(Nx,Ny,Nz);
-  for(long i=0; i<Ntot; i++) dft_v[0].Real().set(i,v[i].real());
-  dft_v[0].do_real_2_fourier();
+	//imag part
+	vector<DFT_FFT> dft_w(1); dft_w[0].initialize(Nx,Ny,Nz);
+	for(long i=0; i<Ntot; i++) dft_w[0].Real().set(i,v[i].imag());
+	dft_w[0].do_real_2_fourier();
 	
-  //imag part
-  vector<DFT_FFT> dft_w(1); dft_w[0].initialize(Nx,Ny,Nz);
-  for(long i=0; i<Ntot; i++) dft_w[0].Real().set(i,v[i].imag());
-  dft_w[0].do_real_2_fourier();
+	//real part
+	vector<DFT_Vec> dft_d2F(1); dft_d2F[0].zeros(Ntot);
+	matrix_.matrix_dot_v(dft_v, dft_d2F, NULL); // JFL , fixed_boundary, dynamic);
+	//	dft_d2F[0].MultBy(-1); // JFL - this was done for dynamic = false
 	
-  //real part
-  vector<DFT_Vec> dft_d2F(1); dft_d2F[0].zeros(Ntot);
-  (*matrix_dot_v_)(dft_v, dft_d2F, fixed_boundary, dynamic);
+	//imag part
+	vector<DFT_Vec> dft_d2F_imag(1); dft_d2F_imag[0].zeros(Ntot);
+	matrix_.matrix_dot_v(dft_w, dft_d2F_imag, NULL); //JFL , fixed_boundary, dynamic);
+	//	dft_d2F_imag[0].MultBy(-1); // JFL - this was done for dynamic = false
 	
-  //imag part
-  vector<DFT_Vec> dft_d2F_imag(1); dft_d2F_imag[0].zeros(Ntot);
-  (*matrix_dot_v_)(dft_w, dft_d2F_imag, fixed_boundary, dynamic);
+	d2F.zeros(Ntot);
+	for (long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i) + std::complex<double>(0,1)*dft_d2F_imag[0].get(i) + shift*v[i];
 	
-  d2F.zeros(Ntot);
-  for (long i=0; i<Ntot; i++) d2F[i] = dft_d2F[0].get(i) + std::complex<double>(0,1)*dft_d2F_imag[0].get(i) + shift*v[i];
-	
-  if (fixed_boundary) for (long i=0; i<density_.get_Nboundary(); i++)
-			d2F[density_.boundary_pos_2_pos(i)] = 0.0;
+	if (fixed_boundary_) for (long i=0; i<matrix_.get_Nboundary(); i++)
+		d2F[matrix_.boundary_pos_2_pos(i)] = 0.0;
 }
 
 
-template <class T> double Arnoldi<T>::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic, int k, int p, long maxSteps, double tol) const
+
+double Arnoldi::determine_unstable_eigenvector_IRArnoldi(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps, double tol) const
 {
 	cout << endl;
 	cout << myColor::YELLOW;
-	cout << "\tFixed boundary = " << fixed_boundary << ", dynamic = " << dynamic << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
+	cout << "\tFixed boundary = " << fixed_boundary_ << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
 	cout << myColor::RESET;
 	cout << endl;
 	
@@ -87,18 +93,22 @@ template <class T> double Arnoldi<T>::determine_unstable_eigenvector_IRArnoldi(v
 	if (tol<0) {dont_stop_if_converged = true; tol = abs(tol);}
 	
 	const int species = 0;
-	//	const Density& density = dft_.getDensity(species);
-	const long Ntot = density_.Ntot();
-	const int Nx = density_.Nx();
-	const int Ny = density_.Ny();
-	const int Nz = density_.Nz();
+	//	const Density& density = density_; //dft_->getDensity(species);
+	//	const long Ntot = density.Ntot();
+	//	const int Nx = density.Nx();
+	//	const int Ny = density.Ny();
+	//	const int Nz = density.Nz();
+	const int Nx = matrix_.get_dimension(0);
+	const int Ny = matrix_.get_dimension(1);
+	const int Nz = matrix_.get_dimension(2);
+	const long Ntot = Nx*Ny*Nz;	
 	
 	eigen_vector[species].initialize(Nx,Ny,Nz);
 	
 	arma::cx_mat Vk,Hk;
 	arma::cx_vec fk;
 	
-	extend_arnoldi_factorisation(Vk, Hk, fk, 0, k, shift, fixed_boundary, dynamic, tol);
+	extend_arnoldi_factorisation(Vk, Hk, fk, 0, k, shift, tol);
 	
 	arma::cx_vec Hk_eigval;
 	arma::cx_mat Hk_eigvec;
@@ -121,7 +131,7 @@ template <class T> double Arnoldi<T>::determine_unstable_eigenvector_IRArnoldi(v
 		arma::cx_mat Hp = Hk;
 		arma::cx_vec fp = fk;
 		
-		extend_arnoldi_factorisation(Vp, Hp, fp, k, p, shift, fixed_boundary, dynamic, tol);
+		extend_arnoldi_factorisation(Vp, Hp, fp, k, p, shift, tol);
 		
 		arma::cx_vec Hp_eigval;
 		arma::cx_mat Hp_eigvec;
@@ -167,7 +177,7 @@ template <class T> double Arnoldi<T>::determine_unstable_eigenvector_IRArnoldi(v
 		
 		save_Arnoldi_matrices(Vk,Hk);
 		
-		if (!check_factorisation(Vk,Hk,fk,shift,fixed_boundary,dynamic,tol))
+		if (!check_factorisation(Vk,Hk,fk,shift,tol))
 			throw runtime_error("(IRA) Arnoldi factorisation does not check out");
 		
 		// Update approximations for eigenvalues/vectors
@@ -186,7 +196,7 @@ template <class T> double Arnoldi<T>::determine_unstable_eigenvector_IRArnoldi(v
 		
 		// TODO: They are not exactly the same, why??
 		// Note: For testing only -- The norm of the residuals are the same as the Ritz estimates
-		check_eigenvectors(eigvec,eigval,shift,fixed_boundary,dynamic,tol);
+		check_eigenvectors(eigvec,eigval,shift,tol);
 		
 		// Convergence checks
 		
@@ -244,7 +254,6 @@ template <class T> double Arnoldi<T>::determine_unstable_eigenvector_IRArnoldi(v
 	return eigval[0].real()-shift;
 }
 
-//template <class T> void Arnoldi<T>::compute_and_sort_eigenvectors(arma::cx_mat H, arma::cx_mat &eigvec, arma::cx_vec &eigval)
 void compute_and_sort_eigenvectors(arma::cx_mat H, arma::cx_mat &eigvec, arma::cx_vec &eigval)
 {
 	if (!H.is_square()) throw runtime_error("(DDFT_IF.cpp) Attempting to compute eigenvectors of non-square matrix");
@@ -265,7 +274,9 @@ void compute_and_sort_eigenvectors(arma::cx_mat H, arma::cx_mat &eigvec, arma::c
 	for (int i=0; i<k; i++) for (int j=0; j<k; j++) eigvec(j,i) = eigvec_raw(j,indices[i]);
 }
 
-template <class T> bool Arnoldi<T>::check_factorisation(arma::cx_mat V, arma::cx_mat H, arma::cx_vec f, double shift, bool fixed_boundary, bool dynamic, double tol) const
+
+
+bool Arnoldi::check_factorisation(arma::cx_mat V, arma::cx_mat H, arma::cx_vec f, double shift, double tol) const
 {
 	if (V.n_cols!=H.n_rows || !H.is_square()) throw runtime_error("Inconsistent dimensions in Arnoldi factorisation");
 	int k = V.n_cols;
@@ -275,7 +286,7 @@ template <class T> bool Arnoldi<T>::check_factorisation(arma::cx_mat V, arma::cx
 	for (int j=0; j<k; j++)
 	{
 		arma::cx_vec v(Ntot); for (long i=0; i<Ntot; i++) v[i] = V(i,j);
-		arma::cx_vec w(Ntot); matrix_dot_v(v, w, shift, fixed_boundary, dynamic);
+		arma::cx_vec w(Ntot); matrix_dot_v(v, w, shift);
 		
 		for (long i=0; i<Ntot; i++)
 		{
@@ -297,19 +308,24 @@ template <class T> bool Arnoldi<T>::check_factorisation(arma::cx_mat V, arma::cx
 	return (error<tol*sqrt(Ntot*k));
 }
 
-template <class T> bool Arnoldi<T>::check_eigenvectors(arma::cx_mat eigvec, arma::cx_vec eigval, double shift, bool fixed_boundary, bool dynamic, double tol) const
+
+bool Arnoldi::check_eigenvectors(arma::cx_mat eigvec, arma::cx_vec eigval, double shift, double tol) const
 {
 	const int species = 0;
-	//	const Density& density = dft_.getDensity(species);
-	const long Ntot = density_.Ntot();
+	//	const Density& density = density_;//dft_->getDensity(species);
+	//	const long Ntot = density.Ntot();
+	const int Nx = matrix_.get_dimension(0);
+	const int Ny = matrix_.get_dimension(1);
+	const int Nz = matrix_.get_dimension(2);
+	const long Ntot = Nx*Ny*Nz;	
 	
 	if (eigvec.n_cols!=eigval.n_rows) throw runtime_error("Inconsistent dimensions in eigvec/eigval");
 	int k = eigval.n_rows;
 	
-	if (fixed_boundary) for (long i=0; i<density_.get_Nboundary(); i++) for (int j=0; j<k; j++)
+	if (fixed_boundary_) for (long i=0; i<matrix_.get_Nboundary(); i++) for (int j=0; j<k; j++)
 	{
-		if (abs(eigvec(density_.boundary_pos_2_pos(i),j))>tol) 
-			throw runtime_error("Eigenvector has non-zero values on boundaries");
+	  if (abs(eigvec(matrix_.boundary_pos_2_pos(i),j))>tol) 
+	    throw runtime_error("Eigenvector has non-zero values on boundaries");
 	}
 	
 	ofstream ofile_check("arnoldi/check_eigenvectors.dat", ios::app);
@@ -320,7 +336,7 @@ template <class T> bool Arnoldi<T>::check_eigenvectors(arma::cx_mat eigvec, arma
 	for (int j=0; j<k; j++)
 	{
 		arma::cx_vec v(Ntot); for (long i=0; i<Ntot; i++) v[i] = eigvec(i,j);
-		arma::cx_vec w(Ntot); matrix_dot_v(v, w, shift, fixed_boundary, dynamic);
+		arma::cx_vec w(Ntot); matrix_dot_v(v, w, shift);
 		for (long i=0; i<Ntot; i++) w[i] -= eigval[j]*v[i];
 		
 		double err = arma::norm(w,2);
@@ -332,96 +348,6 @@ template <class T> bool Arnoldi<T>::check_eigenvectors(arma::cx_mat eigvec, arma
 	ofile_check << endl;
 	
 	return (err_max<tol);
-}
-
-template <class T> void Arnoldi<T>::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arma::cx_vec &f, const int k, const int p, double shift, bool fixed_boundary, bool dynamic, double tol) const
-{
-	const int species = 0;
-	//	const Density& density = dft_.getDensity(species);
-	const long Ntot = density_.Ntot();
-	
-	// Prepare extended V,H matrices
-	
-	arma::cx_mat V_new(Ntot, k+p); V_new.zeros();
-	arma::cx_mat H_new(k+p,  k+p); H_new.zeros();
-	
-	for (long i=0; i<Ntot; i++) for (int j=0; j<k; j++) V_new(i,j) = V(i,j);
-	for (int i=0; i<k; i++) for (int j=0; j<k; j++) H_new(i,j) = H(i,j);
-	
-	V = V_new;
-	H = H_new;
-	
-	// Initial arnoldi vector
-	
-	arma::cx_vec v(Ntot);
-	
-	if (k==0) // random vector
-	{
-		random_device r;
-		int seed = r();
-		
-		mt19937 rng(seed);
-		uniform_real_distribution<double> urd;
-		
-		for (long i=0; i<Ntot; i++) v[i] = 2*urd(rng)-1;
-		
-		if (fixed_boundary) for (long i=0; i<density_.get_Nboundary(); i++)
-			v[density_.boundary_pos_2_pos(i)] = 0.0;
-		
-		v /= norm(v);
-		
-		ofstream file_guess("arnoldi/guess.dat");
-		file_guess << fixed << setprecision(6);
-		for (long i=0; i<Ntot; i++) file_guess << setw(10) << real(v[i]); file_guess << endl;
-		file_guess << endl;
-		for (long i=0; i<Ntot; i++) file_guess << setw(10) << imag(v[i]); file_guess << endl;
-		
-		arma::cx_vec w; matrix_dot_v(v, w, shift, fixed_boundary, dynamic);
-		
-		for (long j=0; j<Ntot; j++) V(j,0) = v[j];
-		H(0,0) = cdot(v,w);
-		v = w - v*H(0,0);
-	}
-	else // use the remainder of the previous factorization
-	{
-		v = f;
-	}
-	
-	// p-steps extension of V,H matrices
-	
-	for (int i=(k>0?k-1:0); i<k+p-1; i++)
-	{
-		double beta = norm(v); 
-		v /= beta;
-		
-		for (long j=0; j<Ntot; j++) V(j,i+1) = v[j];
-		for (long j=0; j<=i;   j++) H(i+1,j) = 0; H(i+1,i) = beta;
-		
-		// new vector
-		matrix_dot_v(v, v, shift, fixed_boundary, dynamic);
-		
-		// orthogonalise
-		arma::cx_vec h = V.t()*v;
-		v -= V*h;
-		
-		// refine orthogonalisation
-		for (int j=0; j<3; j++)
-		{
-			arma::cx_vec s = V.t()*v;
-			v -= V*s;
-			h += s;
-		}
-		
-		
-		for (int j=0; j<=i+1; j++) H(j,i+1) = h[j];
-	}
-	
-	f = v;
-	
-	save_Arnoldi_matrices(V,H);
-	
-	if (!check_factorisation(V,H,f,shift,fixed_boundary,dynamic,tol)) 
-		throw runtime_error("Arnoldi factorisation does not check out");
 }
 
 
@@ -465,3 +391,99 @@ void save_Arnoldi_matrices(arma::cx_mat V, arma::cx_mat H)
 		ofile_Hmatrix << endl;
 	}
 }
+
+
+void Arnoldi::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arma::cx_vec &f, const int k, const int p, double shift, double tol) const
+{
+	const int species = 0;
+	//	const Density& density = density_; //dft_->getDensity(species);
+	//	const long Ntot = density.Ntot();
+	const int Nx = matrix_.get_dimension(0);
+	const int Ny = matrix_.get_dimension(1);
+	const int Nz = matrix_.get_dimension(2);
+	const long Ntot = Nx*Ny*Nz;	
+	
+	// Prepare extended V,H matrices
+	
+	arma::cx_mat V_new(Ntot, k+p); V_new.zeros();
+	arma::cx_mat H_new(k+p,  k+p); H_new.zeros();
+	
+	for (long i=0; i<Ntot; i++) for (int j=0; j<k; j++) V_new(i,j) = V(i,j);
+	for (int i=0; i<k; i++) for (int j=0; j<k; j++) H_new(i,j) = H(i,j);
+	
+	V = V_new;
+	H = H_new;
+	
+	// Initial arnoldi vector
+	
+	arma::cx_vec v(Ntot);
+	
+	if (k==0) // random vector
+	{
+		random_device r;
+		int seed = r();
+		
+		mt19937 rng(seed);
+		uniform_real_distribution<double> urd;
+		
+		for (long i=0; i<Ntot; i++) v[i] = 2*urd(rng)-1;
+		
+		if (fixed_boundary_) for (long i=0; i<matrix_.get_Nboundary(); i++)
+			v[matrix_.boundary_pos_2_pos(i)] = 0.0;
+		
+		v /= norm(v);
+		
+		ofstream file_guess("arnoldi/guess.dat");
+		file_guess << fixed << setprecision(6);
+		for (long i=0; i<Ntot; i++) file_guess << setw(10) << real(v[i]); file_guess << endl;
+		file_guess << endl;
+		for (long i=0; i<Ntot; i++) file_guess << setw(10) << imag(v[i]); file_guess << endl;
+		
+		arma::cx_vec w; matrix_dot_v(v, w, shift);
+		
+		for (long j=0; j<Ntot; j++) V(j,0) = v[j];
+		H(0,0) = cdot(v,w);
+		v = w - v*H(0,0);
+	}
+	else // use the remainder of the previous factorization
+	{
+		v = f;
+	}
+	
+	// p-steps extension of V,H matrices
+	
+	for (int i=(k>0?k-1:0); i<k+p-1; i++)
+	{
+		double beta = norm(v); 
+		v /= beta;
+		
+		for (long j=0; j<Ntot; j++) V(j,i+1) = v[j];
+		for (long j=0; j<=i;   j++) H(i+1,j) = 0; H(i+1,i) = beta;
+		
+		// new vector
+		matrix_dot_v(v, v, shift);
+		
+		// orthogonalise
+		arma::cx_vec h = V.t()*v;
+		v -= V*h;
+		
+		// refine orthogonalisation
+		for (int j=0; j<3; j++)
+		{
+			arma::cx_vec s = V.t()*v;
+			v -= V*s;
+			h += s;
+		}
+		
+		
+		for (int j=0; j<=i+1; j++) H(j,i+1) = h[j];
+	}
+	
+	f = v;
+	
+	save_Arnoldi_matrices(V,H);
+	
+	if (!check_factorisation(V,H,f,shift,tol)) 
+		throw runtime_error("Arnoldi factorisation does not check out");
+}
+

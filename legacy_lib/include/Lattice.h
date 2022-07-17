@@ -91,6 +91,14 @@ void init(double L[])
   long Nx() const { return Nx_;}
   long Ny() const { return Ny_;}
   long Nz() const { return Nz_;}
+  long get_dimension(int direction) const
+  {
+    if(direction == 0) return Nx_;
+    if(direction == 1) return Ny_;
+    if(direction == 2) return Nz_;
+
+    throw std::runtime_error("direction out of bounds in Lattice::get_dimension()");
+  }
   double Lx() const { return L_[0];}
   double Ly() const { return L_[1];}
   double Lz() const { return L_[2];}
@@ -248,6 +256,34 @@ void init(double L[])
 	}
       }      
     }
+  }
+
+  // Loop over boundary points. The order is
+  // ix = 0, iy = 0 to Ny-1, iz = 0 to Nz-1
+  // iy = 0, ix = 1 to Nx-1, iz = 0 to Nz-1
+  // iz = 0, ix = 1 to Nx-1, iy = 1 to Ny-1
+  // giving Ny*Nz + (Nx-1)*Nz + (Nx-1)*(Ny-1) = Ny*Nz+Nx*Nz+Nx*Ny-Nz-Nx-Ny+1 points as expected. 
+  bool get_next_boundary_point(int &ix, int &iy, int &iz) const
+  {
+    if(iz == 0) // on the last boundary
+      {
+	if(iy < Ny_-2) {iy++; return true;}
+	else if(ix < Nx_-2) {iy = 1; ix++; return true;}
+	return false; // finished
+      }
+    if(iy == 0)
+      {
+	if(iz < Nz_-2) {iz++; return true;}
+	else if(ix < Nx_-2) {iz = 0; ix++; return true;}
+	else {iz = 0; ix = iy = 1; return true;} // start z-boundary
+      }    
+    if(ix == 0)
+      {
+	if(iz < Nz_-2) {iz++; return true;}
+	else if(iy < Ny_-2) { iy++; iz = 0; return true;}
+	else {ix = 1; iy = 0; iz = 0; return true;}
+      }
+    throw std::runtime_error("Lattice::get_next_boundary_point called with bad arguments");
   }
 
   // a function for testing the boundary stuff

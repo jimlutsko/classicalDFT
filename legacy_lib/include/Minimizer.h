@@ -187,7 +187,7 @@ class fireMinimizer2 : public Minimizer
   *
   */  
 //  TODO: Update
-class DDFT : public Minimizer
+class DDFT : public Minimizer, DFT_Matrix
 {
  public:
  DDFT(DFT *dft, bool showGraphics = true)
@@ -216,6 +216,12 @@ class DDFT : public Minimizer
   //  void reverseForce(DFT_Vec *tangent);
   //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true) = 0;
 
+  // DFT_Matrix interface
+  virtual unsigned get_dimension(int direction) const {return dft_->get_dimension(direction);}
+  virtual long     get_Nboundary()              const {return dft_->get_Nboundary();}
+  virtual long     boundary_pos_2_pos(int p)    const {return dft_->boundary_pos_2_pos(p);}    
+  virtual bool     get_next_boundary_point(int &ix, int &iy, int iz) const {return dft_->get_next_boundary_point(ix,iy,iz);}
+  
  protected:
 
   bool show_ = true;
@@ -254,6 +260,9 @@ class DDFT_IF : public DDFT
   
   void Hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec>& result, bool fixed_boundary, bool dynamic) const;  
   void Hessian_dot_v(arma::cx_vec v, arma::cx_vec& result, double shift, bool fixed_boundary, bool dynamic) const;
+
+  // DFT_Matrix interface
+  virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const;
   
  protected:
   virtual double fftDiffusion(DFT_Vec &d1) = 0;

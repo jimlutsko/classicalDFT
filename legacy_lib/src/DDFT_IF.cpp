@@ -21,8 +21,6 @@ using namespace std;
 #include "Minimizer.h"
 #include "myColor.h"
 
-#include <armadillo> // for arnoldi
-
 // Let D be the divergence operator (D = (d/dx, d/dy, d/dz)).
 
 // The equation we are solving is
@@ -78,9 +76,6 @@ DDFT_IF::DDFT_IF(DFT *dft, bool showGraphics): DDFT(dft)
 
 double DDFT_IF::step()
 {
-  //  cout << "===================================================================================================================" << endl;
-
-
   if(dft_->getNumberOfSpecies() > 1)
     throw std::runtime_error("DDFT only implemented for single species systems ... aborting");
   
@@ -146,7 +141,6 @@ double DDFT_IF::step()
   else successes_++;
   if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
 
-
   species->set_density(d1);
   species->fft_density();
   calls_++;
@@ -168,16 +162,6 @@ void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &
 
   A_dot_x(dF, RHS1, density, D, true);
   
-}
-
-double static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Density& density)
-{
-  double r = 0;
-  if(is_full)
-    r = x.get(density.get_PBC_Pos(ix,iy,iz));
-  else if(ix == 0 || iy == 0 || iz == 0)
-    r = x.get(density.boundary_pos(ix,iy,iz));
-  return r;
 }
 
 double DDFT_IF::get_neighbors(const DFT_Vec &x, int species, long pos,
@@ -209,11 +193,11 @@ double DDFT_IF::get_neighbors(const DFT_Vec &x, int species, long pos,
 // N.B.: For FIXED boundaries, the input vector x must have zero entries on the boundary.
 void DDFT_IF::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 {
-  if(dft_->getNumberOfSpecies() > 1) throw std::runtime_error("DDFT_IF_Periodic::g_dot_x is not implemented for more than one species");
+  if(dft_->getNumberOfSpecies() > 1) throw std::runtime_error("DDFT_IF::g_dot_x is not implemented for more than one species");
   int species = 0;
 
   const Density &density = dft_->getDensity(species);
-  const double D[] = {dx_*dx_, dy_*dy_, dz_*dz_};
+  const double D[] = {1.0/(dx_*dx_), 1.0/(dy_*dy_), 1.0/(dz_*dz_)};
   
   long pos;
 #pragma omp parallel for  private(pos) schedule(static)
@@ -225,19 +209,45 @@ void DDFT_IF::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
       double dpx,dmx,dpy,dmy,dpz,dmz; // density
       double d0 = density.get_neighbors(pos,dpx,dmx,dpy,dmy,dpz,dmz);
 
-      // Forward differences
+      // Forward differences: 0.5 is due to using the average density (rho(x+dx)+rho(x))/2
       gx.set(pos,0.5*D[0]*((dpx+d0)*xpx+(d0+dmx)*xmx-(dpx+dmx+2*d0)*x0)
 	     + 0.5*D[1]*((dpy+d0)*xpy+(d0+dmy)*xmy-(dpy+dmy+2*d0)*x0)
 	     + 0.5*D[2]*((dpz+d0)*xpz+(d0+dmz)*xmz-(dpz+dmz+2*d0)*x0));
 
-      // Centered differences
-      //      gx.set(pos,0.5*D[0]*(dpx*xpx+dmx*xmx-(dpx+dmx)*x0)
-      //	     + 0.5*D[1]*(dpy*xpy+dmy*xmy-(dpy+dmy)*x0)
-      //     + 0.5*D[2]*(dpz*xpz+dmz*xmz-(dpz+dmz)*x0));	     
+      // Centered differences: 0.25 is becuase the derivative is (f(x+dx)-f(x-dx))/(2*dx)
+      //      gx.set(pos,0.25*D[0]*(dpx*xpx+dmx*xmx-(dpx+dmx)*x0)
+      //	     + 0.25*D[1]*(dpy*xpy+dmy*xmy-(dpy+dmy)*x0)
+      //     + 0.25*D[2]*(dpz*xpz+dmz*xmz-(dpz+dmz)*x0));	     
     }      
 }
 
+void DDFT_IF::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
+{
+  dft_->matrix_dot_v(v, result);
 
+  DFT_Vec intermediate_result(result[0]);
+  result[0].zeros();
+  g_dot_x(intermediate_result, result[0]);
+}
+
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+//      Everything below this line should eventually be obsolete and thus removed
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+
+#include <armadillo> // for arnoldi
+
+
+double static get(const DFT_Vec &x, int ix, int iy, int iz, bool is_full, const Density& density)
+{
+  double r = 0;
+  if(is_full)
+    r = x.get(density.get_PBC_Pos(ix,iy,iz));
+  else if(ix == 0 || iy == 0 || iz == 0)
+    r = x.get(density.boundary_pos(ix,iy,iz));
+  return r;
+}
 
 /*
 // Scheme I of the notes (Ito-Stratonovich equivalent but strange behaviour)
@@ -382,7 +392,7 @@ void DDFT_IF::Hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec>& result, b
   int Jspecies = 0;
 
   result[Jspecies].zeros();
-  dft_->hessian_dot_v(v, result);
+  dft_->matrix_dot_v(v, result);
 
   if(dynamic)
     {

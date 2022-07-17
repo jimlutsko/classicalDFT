@@ -75,7 +75,7 @@ double FMT::get_fourier_space_dcf(double k, double rho, double d) const
 }
 
 
-FundamentalMeasures FMT::getWeightedDensities(long i, vector<Species*> &allSpecies)
+FundamentalMeasures FMT::getWeightedDensities(long i, const vector<Species*> &allSpecies)
 {
   // the weighted densities for the lattice site under consideration (i).
   // The basic densities are the scalars eta and s, the vector v and the tensor T.
@@ -83,9 +83,9 @@ FundamentalMeasures FMT::getWeightedDensities(long i, vector<Species*> &allSpeci
   FundamentalMeasures fm;
   
   // Collect the contributions to the various weighted densities at lattice position
-  for(Species* &generic_species : allSpecies)
+  for(const Species* generic_species : allSpecies)
     {
-      FMT_Species *species = dynamic_cast<FMT_Species*>(generic_species);
+      const FMT_Species *species = dynamic_cast<const FMT_Species*>(generic_species);
       if(species)
 	{      
 	  double hsd = species->getHSD();
@@ -434,7 +434,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 // or we define Lambda_a(K) = (d2PHI(K)/dn_a(K) dn_b(K))psi_b(K)
 // and then calculate conv(Lam_a, w; I)
 //
-void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, vector<Species*> &allSpecies)
+void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, const vector<Species*> &allSpecies)
 {
   if(allSpecies.size() < 1)  throw std::runtime_error("No species for FMT::add_second_derivative to work with");
 

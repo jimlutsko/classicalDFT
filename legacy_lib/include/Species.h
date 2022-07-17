@@ -219,6 +219,8 @@ public:
 
   void convolute_weight_with(int pos, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
   {
+    if(v.isConsistent() == false) throw std::runtime_error("Need real and fourier parts of input to FMT_Species::convolute_weight_with(...) to be consistent");
+
     result.Four().Schur(v.cFour(), fmt_weighted_densities[pos].wk(),bConjugate);
     result.do_fourier_2_real();
   }  

@@ -52,13 +52,9 @@ add_library(${PROJECT_NAME} STATIC ${all_SRCS})
 # All users of this library will need at least C++11
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 target_compile_options(${PROJECT_NAME}  PUBLIC -fconcepts)
-#target_compile_options(${PROJECT_NAME} PUBLIC ${CMAKE_CXX} -O3 -MMD)
-
-#find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 
 # find gsl
 link_directories("/usr/local/lib")
-
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::serialization)
 
@@ -69,7 +65,6 @@ if(OpenMP_CXX_FOUND)
   target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OMP)
   target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 endif()
-#target_link_libraries (${PROJECT_NAME} PUBLIC Eigen3::Eigen)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 
