@@ -434,7 +434,7 @@ void DFT::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *
 	{
 	  unsigned pp = allSpecies_[s]->getLattice().boundary_pos_2_pos(p);
 	  if(fabs(v[s].cReal().get(pp)) > 0.0)
-	    throw std::runtime_error("Input vector v ,ust have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
+	    throw std::runtime_error("Input vector v must have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
 	}
 
   if(full_hessian_)
@@ -470,11 +470,10 @@ void DFT::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *
   // Remove boundary terms if the boundary is fixed
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())
-      for(unsigned p=0;p<allSpecies_[s]->getLattice().get_Nboundary();p++)
-	{
-	  unsigned pp = allSpecies_[s]->getLattice().boundary_pos_2_pos(p);
-	  result[s].set(0.0,pp);
-	}
+      {
+	long p = 0;
+	do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
+      }
 }
 
 

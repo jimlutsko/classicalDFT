@@ -187,7 +187,7 @@ class fireMinimizer2 : public Minimizer
   *
   */  
 //  TODO: Update
-class DDFT : public Minimizer, DFT_Matrix
+class DDFT : public Minimizer, public Dynamical_Matrix
 {
  public:
  DDFT(DFT *dft, bool showGraphics = true)
@@ -216,11 +216,14 @@ class DDFT : public Minimizer, DFT_Matrix
   //  void reverseForce(DFT_Vec *tangent);
   //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true) = 0;
 
-  // DFT_Matrix interface
+  // Dynamical_Matrix interface
   virtual unsigned get_dimension(int direction) const {return dft_->get_dimension(direction);}
   virtual long     get_Nboundary()              const {return dft_->get_Nboundary();}
   virtual long     boundary_pos_2_pos(int p)    const {return dft_->boundary_pos_2_pos(p);}    
-  virtual bool     get_next_boundary_point(int &ix, int &iy, int iz) const {return dft_->get_next_boundary_point(ix,iy,iz);}
+  virtual bool     get_next_boundary_point(int &ix, int &iy, int &iz) const {return dft_->get_next_boundary_point(ix,iy,iz);}
+  virtual bool     get_next_boundary_point(long &pos) const {return dft_->get_next_boundary_point(pos);}
+
+  virtual bool is_boundary_point(long p) const {return dft_->is_boundary_point(p);}
   
  protected:
 
@@ -261,7 +264,7 @@ class DDFT_IF : public DDFT
   void Hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec>& result, bool fixed_boundary, bool dynamic) const;  
   void Hessian_dot_v(arma::cx_vec v, arma::cx_vec& result, double shift, bool fixed_boundary, bool dynamic) const;
 
-  // DFT_Matrix interface
+  // Dynamical_Matrix interface
   virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const;
   
  protected:
@@ -273,7 +276,7 @@ class DDFT_IF : public DDFT
   void A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, const double D[], bool do_subtract_ideal = false) const; 
   void g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
 
-  double get_neighbors(const DFT_Vec &x, int species, long pos,
+  double get_neighbors(const DFT_Vec &x, int species, long pos, int stride, 
 		       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;
 
 protected:
@@ -311,6 +314,9 @@ class DDFT_IF_Periodic : public DDFT_IF
 
   void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
 
+  // Dynamical_Matrix interface
+  virtual bool is_fixed_boundary() const{ return false;}  
+  
  protected:
   DFT_FFT RHS0;
   DFT_FFT RHS1;
@@ -338,6 +344,9 @@ protected:
   void pack_for_sin_transform(const double *x);  
   void unpack_after_transform(double *x);
 
+  // Dynamical_Matrix interface
+  virtual bool is_fixed_boundary() const{ return true;}  
+  
  protected:
   //  DFT_Vec RHS0;
   //  DFT_Vec RHS1;

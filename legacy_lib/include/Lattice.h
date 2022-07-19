@@ -186,6 +186,13 @@ void init(double L[])
   // to an array of NxNy+Nx(Nz-1)+(Ny-1)(Nz-1) points
 
 
+  bool is_boundary_point(long pos) const
+  {
+    int ix, iy, iz;
+    cartesian(pos,ix,iy,iz);
+    return ((ix % Nx_ == 0) || (iy % Ny_ == 0) || (iz % Nz_ == 0));
+  }
+  
   long get_Nboundary() const { return Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;}
   // cartesian coordinates to position
   long boundary_pos(int v[]) const { return boundary_pos(v[0],v[1],v[2]);}
@@ -265,26 +272,36 @@ void init(double L[])
   // giving Ny*Nz + (Nx-1)*Nz + (Nx-1)*(Ny-1) = Ny*Nz+Nx*Nz+Nx*Ny-Nz-Nx-Ny+1 points as expected. 
   bool get_next_boundary_point(int &ix, int &iy, int &iz) const
   {
-    if(iz == 0) // on the last boundary
+    if(iz == 0 && ix != 0 && iy != 0) // on the last boundary
       {
-	if(iy < Ny_-2) {iy++; return true;}
-	else if(ix < Nx_-2) {iy = 1; ix++; return true;}
+	if(iy < Ny_-1) {iy++; return true;}
+	else if(ix < Nx_-1) {iy = 1; ix++; return true;}
 	return false; // finished
       }
-    if(iy == 0)
+    if(iy == 0 && ix != 0)
       {
-	if(iz < Nz_-2) {iz++; return true;}
-	else if(ix < Nx_-2) {iz = 0; ix++; return true;}
+	if(iz < Nz_-1) {iz++; return true;}
+	else if(ix < Nx_-1) {iz = 0; ix++; return true;}
 	else {iz = 0; ix = iy = 1; return true;} // start z-boundary
       }    
     if(ix == 0)
       {
-	if(iz < Nz_-2) {iz++; return true;}
-	else if(iy < Ny_-2) { iy++; iz = 0; return true;}
+	if(iz < Nz_-1) {iz++; return true;}
+	else if(iy < Ny_-1) { iy++; iz = 0; return true;}
 	else {ix = 1; iy = 0; iz = 0; return true;}
       }
     throw std::runtime_error("Lattice::get_next_boundary_point called with bad arguments");
   }
+
+  bool get_next_boundary_point(long &p) const
+  {
+    int ix,iy,iz;
+    cartesian(p,ix,iy,iz);
+    bool ret = get_next_boundary_point(ix,iy,iz);
+    if(ret) p = pos(ix,iy,iz);
+    return ret;
+  }
+
 
   // a function for testing the boundary stuff
   void test_boundary_coding();

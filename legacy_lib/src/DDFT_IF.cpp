@@ -164,22 +164,22 @@ void DDFT_IF::calcNonlinearTerm_intern(const DFT_Vec &d2, DFT_Vec &dF, DFT_Vec &
   
 }
 
-double DDFT_IF::get_neighbors(const DFT_Vec &x, int species, long pos,
+double DDFT_IF::get_neighbors(const DFT_Vec &x, int species, long pos, int stride,
 			      double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
 {
   const Density &density = dft_->getDensity(species);
   
   int ix, iy,iz;
-  density.boundary_cartesian(pos,ix,iy,iz);
+  density.cartesian(pos,ix,iy,iz);
 
-  xpx = x.get(density.get_PBC_Pos(ix+1,iy,iz));
-  xmx = x.get(density.get_PBC_Pos(ix-1,iy,iz));
+  xpx = x.get(density.get_PBC_Pos(ix+stride,iy,iz));
+  xmx = x.get(density.get_PBC_Pos(ix-stride,iy,iz));
 
-  xpy = x.get(density.get_PBC_Pos(ix,iy+1,iz));
-  xmy = x.get(density.get_PBC_Pos(ix,iy-1,iz));
+  xpy = x.get(density.get_PBC_Pos(ix,iy+stride,iz));
+  xmy = x.get(density.get_PBC_Pos(ix,iy-stride,iz));
 
-  xpz = x.get(density.get_PBC_Pos(ix,iy,iz+1));
-  xmz = x.get(density.get_PBC_Pos(ix,iy,iz-1));
+  xpz = x.get(density.get_PBC_Pos(ix,iy,iz+stride));
+  xmz = x.get(density.get_PBC_Pos(ix,iy,iz-stride));
 
   return x.get(density.get_PBC_Pos(ix,iy,iz));
 }
@@ -196,35 +196,39 @@ void DDFT_IF::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
   if(dft_->getNumberOfSpecies() > 1) throw std::runtime_error("DDFT_IF::g_dot_x is not implemented for more than one species");
   int species = 0;
 
+  const int stride       = 1; // 2 for centered differences  
   const Density &density = dft_->getDensity(species);
-  const double D[] = {1.0/(dx_*dx_), 1.0/(dy_*dy_), 1.0/(dz_*dz_)};
-  
+  const double D[]       = {0.5/(stride*dx_*dx_), 0.5/(stride*dy_*dy_), 0.5/(stride*dz_*dz_)};
+
   long pos;
-#pragma omp parallel for  private(pos) schedule(static)
+  //#pragma omp parallel for  private(pos) schedule(static)
   for(pos = 0;pos<gx.size();pos++)
-    {
-      double xpx,xmx,xpy,xmy,xpz,xmz;
-      double x0 = get_neighbors(x,species,pos,xpx,xmx,xpy,xmy,xpz,xmz);
-
-      double dpx,dmx,dpy,dmy,dpz,dmz; // density
-      double d0 = density.get_neighbors(pos,dpx,dmx,dpy,dmy,dpz,dmz);
-
-      // Forward differences: 0.5 is due to using the average density (rho(x+dx)+rho(x))/2
-      gx.set(pos,0.5*D[0]*((dpx+d0)*xpx+(d0+dmx)*xmx-(dpx+dmx+2*d0)*x0)
-	     + 0.5*D[1]*((dpy+d0)*xpy+(d0+dmy)*xmy-(dpy+dmy+2*d0)*x0)
-	     + 0.5*D[2]*((dpz+d0)*xpz+(d0+dmz)*xmz-(dpz+dmz+2*d0)*x0));
-
-      // Centered differences: 0.25 is becuase the derivative is (f(x+dx)-f(x-dx))/(2*dx)
-      //      gx.set(pos,0.25*D[0]*(dpx*xpx+dmx*xmx-(dpx+dmx)*x0)
-      //	     + 0.25*D[1]*(dpy*xpy+dmy*xmy-(dpy+dmy)*x0)
-      //     + 0.25*D[2]*(dpz*xpz+dmz*xmz-(dpz+dmz)*x0));	     
+    {      
+      if(is_fixed_boundary() && density.is_boundary_point(pos))
+	{
+	  gx.set(pos,0.0);
+	  if(fabs(x.get(pos) > 0.0))
+	    throw std::runtime_error("For fixed boundaries, input vector to DDFT_IF::g_dot_x must have zero boundary entries");
+	} else {      
+	double xpx,xmx,xpy,xmy,xpz,xmz;
+	double x0 = get_neighbors(x,species,pos,stride,xpx,xmx,xpy,xmy,xpz,xmz);
+	
+	double dpx,dmx,dpy,dmy,dpz,dmz; // density
+	double d0 = density.get_neighbors(pos,dpx,dmx,dpy,dmy,dpz,dmz);
+	
+	// centered differences: replace dpx+d0 ->dpx, etc, i.e. just set d0 = 0 ... 
+	gx.set(pos,D[0]*((dpx+d0)*(xpx-x0)-(d0+dmx)*(x0-xmx))
+	       + D[1]*((dpy+d0)*(xpy-x0)-(d0+dmy)*(x0-xmy))
+	       + D[2]*((dpz+d0)*(xpz-x0)-(d0+dmz)*(x0-xmz)));
+      }
     }      
 }
 
 void DDFT_IF::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
 {
+  if(dft_->getSpecies(0)->is_fixed_boundary() != is_fixed_boundary()) throw std::runtime_error("DDFT_IF::matrix_dot_v: DDFT_IF and DFT object out of synch on fixed boundaries");
+  
   dft_->matrix_dot_v(v, result);
-
   DFT_Vec intermediate_result(result[0]);
   result[0].zeros();
   g_dot_x(intermediate_result, result[0]);
@@ -324,6 +328,8 @@ void DDFT_IF::A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, con
 {
   const bool Ax_is_full = (Ax.size() == density.Ntot());
   const bool x_is_full  = ( x.size() == density.Ntot());
+
+  if(Ax_is_full == false || x_is_full == false) cout << "Ax_is_full = " << Ax_is_full << " x_is_full = " << x_is_full << endl;
 
   const double dV = dx_*dy_*dz_;
   
@@ -426,15 +432,25 @@ void DDFT_IF::Hessian_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift, boo
 	const int Nx = density.Nx();
 	const int Ny = density.Ny();
 	const int Nz = density.Nz();
+
+	// JFL: This did not previously set the boundary points to zero.
 	
 	//real part
 	vector<DFT_FFT> dft_v(1); dft_v[0].initialize(Nx,Ny,Nz);
-	for(long i=0; i<Ntot; i++) dft_v[0].Real().set(i,v[i].real());
+	for(long i=0; i<Ntot; i++)
+	  {
+	    if (fixed_boundary && density.is_boundary_point(i)) dft_v[0].Real().set(i,0.0);
+	    else dft_v[0].Real().set(i,v[i].real());
+	  }
 	dft_v[0].do_real_2_fourier();
 	
 	//imag part
 	vector<DFT_FFT> dft_w(1); dft_w[0].initialize(Nx,Ny,Nz);
-	for(long i=0; i<Ntot; i++) dft_w[0].Real().set(i,v[i].imag());
+	for(long i=0; i<Ntot; i++)
+	  {
+	    if (fixed_boundary && density.is_boundary_point(i)) dft_w[0].Real().set(i,0.0);
+	    else dft_w[0].Real().set(i,v[i].imag());
+	  }
 	dft_w[0].do_real_2_fourier();
 	
 	//real part
@@ -719,7 +735,7 @@ void DDFT_IF::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arm
 	if (k==0) // random vector
 	{
 		random_device r;
-		int seed = r();
+		int seed = 1; //r();
 		
 		mt19937 rng(seed);
 		uniform_real_distribution<double> urd;

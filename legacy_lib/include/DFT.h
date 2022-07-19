@@ -19,7 +19,7 @@
 #include "FMT.h"
 
 #include "Interaction.h"
-
+#include "Dynamical_Matrix.h"
 
 /*! \mainpage classicalDFT: Finite Temperature Density Functional Theory in 3 dimensions
  *
@@ -41,7 +41,7 @@
   *  @detailed This is the base class for all of the DFT objects.
   */  
 
-class DFT : public DFT_Matrix
+class DFT : public Dynamical_Matrix
 {
  public:
   // Xtors
@@ -145,14 +145,17 @@ class DFT : public DFT_Matrix
   double get_f_mf() const { return F_mf_;}
 
 
-  // Implement DFT_Matrix interface.
+  // Implement Dynamical_Matrix interface.
   // Second derivatives contracted into arbitrary vector
   virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param = NULL) const;
 
   virtual unsigned get_dimension(int direction) const {return allSpecies_[0]->getLattice().get_dimension(direction);}
   virtual long     get_Nboundary()              const {return allSpecies_[0]->getDensity().get_Nboundary();}
   virtual long     boundary_pos_2_pos(int p)    const {return allSpecies_[0]->getDensity().boundary_pos_2_pos(p);}
-  virtual bool     get_next_boundary_point(int &ix, int &iy, int iz) const {return allSpecies_[0]->getLattice().get_next_boundary_point(ix,iy,iz);}
+  virtual bool     get_next_boundary_point(int &ix, int &iy, int &iz) const {return allSpecies_[0]->getLattice().get_next_boundary_point(ix,iy,iz);}
+  virtual bool     get_next_boundary_point(long &pos) const {return allSpecies_[0]->getLattice().get_next_boundary_point(pos);}
+  virtual bool     is_fixed_boundary() const { return allSpecies_[0]->is_fixed_boundary();}
+  virtual bool is_boundary_point(long p) const {return allSpecies_[0]->getDensity().is_boundary_point(p);}
   
   void set_full_hessian(bool full) { full_hessian_ = full;}
   

@@ -65,8 +65,7 @@ class DFT_Vec
   friend ostream &operator<<(ostream &of, const DFT_Vec &v)
     {
       unsigned N = v.size();;
-      of.write((char*) &N, sizeof(unsigned));
-      of.write((const char *)(const_cast<DFT_Vec&>(v).memptr()), N*sizeof(double));
+
       return of;
     }
   friend istream &operator>>(istream  &in, DFT_Vec &v )
@@ -279,19 +278,6 @@ class DFT_FFT
   unsigned Ny_; ///< spatial dimension: only needed for reading and writing plans.
   unsigned Nz_; ///< spatial dimension: only needed for reading and writing plans.
   mutable bool bReal_2_Fourier_ = false;
-};
-
-// This is a simple interface needed for the Arnoldi class
-class DFT_Matrix
-{
-public:
-  DFT_Matrix(){}
-  ~DFT_Matrix(){}
-  virtual void matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const = 0;
-  virtual unsigned get_dimension(int direction) const = 0;
-  virtual long get_Nboundary() const = 0;
-  virtual long boundary_pos_2_pos(int) const = 0;
-  virtual bool get_next_boundary_point(int &ix, int &iy, int iz) const = 0;
 };
 
 #endif // __DFT_LINALG_LUTSKO__
