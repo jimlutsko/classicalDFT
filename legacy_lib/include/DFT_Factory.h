@@ -56,7 +56,7 @@ class DFT_Factory
   //void addOption(const char  *name, auto *variable) { options_.addOption(name,variable);}
   template<typename Q> void addOption(const char *name, Q *variable) { options_.addOption(name,variable);}
   
-  DFT& get_DFT()
+  void initialize()
     {
       options_.read(argc_, argv_);
 
@@ -123,11 +123,14 @@ class DFT_Factory
       *theLog_ << "\tVDW parameter (interaction) = " << 0.5*interaction1_->getVDWParameter() << endl;
       *theLog_ << endl;
 
-      return *dft_;
+      is_initialized_ = true;
     }
+
+  DFT& get_DFT() { check(); return *dft_;}
 
   void get_thermodynamics()
   {
+    check();
     /////////////////////////////////////////////////////
     // Thermodynamics
     *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
@@ -157,7 +160,9 @@ class DFT_Factory
   double get_vap_coex_density() const { return xv_;}
   string get_infile()           const { return infile_;}
   string get_outfile()          const { return outfile_;}
-  
+
+  void check() const {    if(!is_initialized_) throw std::runtime_error("DFT factory not initialized");}
+
  private:
   int argc_;
   char **argv_;
@@ -178,6 +183,8 @@ class DFT_Factory
   double xs1_ = -1;
   double xs2_ = -1;
 
+  bool is_initialized_ = false;
+  
  public:
   int nCores_  = 6;     
   double L_[3] = {10,10,10};

@@ -57,6 +57,37 @@ DDFT_IF::DDFT_IF(DFT *dft, bool showGraphics): DDFT(dft)
   dy_ = lattice.getDY();
   dz_ = lattice.getDZ();
 
+  RHS0.initialize(Nx_,Ny_,Nz_);
+  RHS1.initialize(Nx_,Ny_,Nz_);
+  
+  double Dx = 1.0/(dx_*dx_);
+  double Dy = 1.0/(dy_*dy_);
+  double Dz = 1.0/(dz_*dz_);
+
+  for(int ix=0;ix<=Nx_-1;ix++)
+    {
+      double kx = (2*M_PI*ix)/Nx_;
+      double facx = 2*Dx*(cos(kx)-1);
+      
+      Lamx_.push_back(facx);
+    }
+      
+  for(int iy=0;iy<=Ny_-1;iy++)
+    {
+      double ky = (2*M_PI*iy)/Ny_;
+      double facy = 2*Dy*(cos(ky)-1);
+
+      Lamy_.push_back(facy);
+    }
+
+  for(int iz=0;iz<Nz_/2+1;iz++) // this is not a mistake
+    {
+      double kz = (2*M_PI*iz)/Nz_;
+      double facz = 2*Dz*(cos(kz)-1);
+      
+      Lamz_.push_back(facz);
+    }    
+  
 }
 
 

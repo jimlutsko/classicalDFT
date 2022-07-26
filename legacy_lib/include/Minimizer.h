@@ -252,6 +252,41 @@ class DDFT_IF : public DDFT
 
   virtual double step();
 
+protected:
+  
+  void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
+  void g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
+
+  virtual double fftDiffusion(DFT_Vec &d1) = 0;
+  virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0) = 0;
+  
+  void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
+
+  double get_neighbors(const DFT_Vec &x, int species, long pos, int stride, 
+		       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;  
+
+ protected:
+  DFT_FFT RHS0;
+  DFT_FFT RHS1;
+
+  vector<double> Lamx_;
+  vector<double> Lamy_;
+  vector<double> Lamz_;
+
+  int Nx_ = 0;
+  int Ny_ = 0;
+  int Nz_ = 0;
+
+  double dx_ = 0.0;
+  double dy_ = 0.0;
+  double dz_ = 0.0;
+
+
+  
+  // ***********************************************************
+  // The rest is the old interface which should eventually be removed
+  
+public:
   void set_is_closed(bool val) { is_closed_ = val;}
 
   double determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, bool fixed_boundary, double shift, string Filename, bool dynamic = true, long maxSteps = 1000, double tol = 1e-8) const;
@@ -268,30 +303,12 @@ class DDFT_IF : public DDFT
   virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const;
   
  protected:
-  virtual double fftDiffusion(DFT_Vec &d1) = 0;
-  virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0) = 0;
-  
-  void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
   //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
   void A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, const double D[], bool do_subtract_ideal = false) const; 
-  void g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
 
-  double get_neighbors(const DFT_Vec &x, int species, long pos, int stride, 
-		       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;
+
 
 protected:
-  vector<double> Lamx_;
-  vector<double> Lamy_;
-  vector<double> Lamz_;
-
-  int Nx_ = 0;
-  int Ny_ = 0;
-  int Nz_ = 0;
-
-  double dx_ = 0.0;
-  double dy_ = 0.0;
-  double dz_ = 0.0;
-
   bool is_closed_ = false;
 };
 
