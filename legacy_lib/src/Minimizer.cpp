@@ -89,20 +89,17 @@ void Minimizer::resume(long maxSteps)
 
 double Minimizer::getDF_DX()
 {
-  calls_++;
-
-  for(int Jspecies=0;Jspecies<x_.size();Jspecies++)
-    dft_->getSpecies(Jspecies)->set_density_from_alias(x_[Jspecies]);        
+  dft_->set_densities_from_aliases(x_);
   
   double F = 0;
   try {
     F = dft_->calculateFreeEnergyAndDerivatives(false);   
+    calls_++;
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
 
-  for(int Jspecies = 0; Jspecies<dft_->getNumberOfSpecies(); Jspecies++)
-    dft_->getSpecies(Jspecies)->convert_to_alias_deriv(x_[Jspecies],dft_->getDF(Jspecies));    
+  dft_->convert_dF_to_alias_derivs(x_);
   
   return F;
 }

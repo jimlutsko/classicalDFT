@@ -9,53 +9,51 @@ using namespace std;
 
 #include <armadillo> // for Arnoldi stuff
 
-/**
-  *  @brief Minimizer base class
-  *
-  */  
-
+// brief Minimizer base class
 class Minimizer
 {
  public:
   Minimizer(DFT *dft);
   Minimizer() {}
   
-  void run(long maxSteps = -1);
-  void resume(long maxSteps = -1);
-  virtual void reset();
-  
-  virtual double step() = 0;
-  virtual void draw_after() {};  // Display something after the minimization
-  virtual void reportMessage(string message){}
-  
-  int getCalls() const { return calls_;}
-  double getF() const { return F_;}
+  void         run(long maxSteps = -1); // set counters to zero and run
+  virtual void reset();   // run without restting counters 
+  void         resume(long maxSteps = -1);
 
-  double getForceTerminationCriterion() const {return forceLimit_;}
-  void   setForceTerminationCriterion(double v) {forceLimit_ = v;}
-  
-  virtual double getDF_DX();
-  virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
 
   void setMinDensity(double m) { minDensity_ = m;}
+  void setForceTerminationCriterion(double v) {forceLimit_ = v;}  
 
-  virtual void cleanup() {} // called when minimization is finished to allow decendents to clean up user output.
+  virtual double step() = 0;
+
+  // report activity
+  virtual void   draw_after() {};  // Display something after the minimization
+  virtual void   reportMessage(string message){}
+  virtual void   cleanup() {} // called when minimization is finished to allow decendents to clean up user output.
+
+  // 
+  int  getCalls() const { return calls_;}  
+
+
+  double getForceTerminationCriterion() const {return forceLimit_;}
+  virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
+  
+protected:
+  double getF() const { return F_;}
+  virtual double getDF_DX();
+  
  protected:
-  DFT *dft_ = NULL;
+  vector<DFT_Vec> x_; // independent variables
+  DFT *dft_ = NULL; // calculates energy and forces
 
-  vector<DFT_Vec> x_;
-
-  int calls_ = 0;
-  int step_counter_ = 0;
+  int    calls_ = 0;
+  int    step_counter_ = 0;
   double F_ = 0;
 
   double forceLimit_;
   double f_abs_max_; // max absolute value of dF_
-
   double vv_ = 0;
-
   double minDensity_ = -1;
-
   int image_number_ = 0;
   
   std::chrono::duration<double> elapsed_seconds_;
@@ -185,21 +183,15 @@ class fireMinimizer2 : public Minimizer
 /**
   *  @brief Base class for a family of  finite elements ddft integrators. 
   *
-  */  
+  */
 //  TODO: Update
 class DDFT : public Minimizer, public Dynamical_Matrix
 {
  public:
- DDFT(DFT *dft, bool showGraphics = true)
-   : Minimizer(dft), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0)
-  {
-    double dx = dft_->get_lattice().getDX();
-    dt_ = 10*0.1*dx*dx;
-    dt_ = 0.0001*dx*dx;
-    dtMax_ = 1; //1*dx*dx;
-  }
+  DDFT(DFT *dft, bool showGraphics = true);
   ~DDFT() {}
 
+  double step();
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
   void set_max_time_step(double t) { dtMax_ = t;}
 
@@ -208,7 +200,6 @@ class DDFT : public Minimizer, public Dynamical_Matrix
 
   double get_time() const { return time_;}
   
-  virtual double step() = 0;
 
   void Display(double F, double dFmin, double dFmax, double N);
 
@@ -219,11 +210,20 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   // Dynamical_Matrix interface
   virtual unsigned get_dimension(int direction) const {return dft_->get_dimension(direction);}
   virtual long     get_Nboundary()              const {return dft_->get_Nboundary();}
-  virtual long     boundary_pos_2_pos(int p)    const {return dft_->boundary_pos_2_pos(p);}    
   virtual bool     get_next_boundary_point(int &ix, int &iy, int &iz) const {return dft_->get_next_boundary_point(ix,iy,iz);}
   virtual bool     get_next_boundary_point(long &pos) const {return dft_->get_next_boundary_point(pos);}
+  virtual long     boundary_pos_2_pos(int p)    const {return dft_->boundary_pos_2_pos(p);}    
+  virtual bool     is_boundary_point(long p) const {return dft_->is_boundary_point(p);}
+  virtual bool     is_fixed_boundary() const {return dft_->is_fixed_boundary();}
+  virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const;
 
-  virtual bool is_boundary_point(long p) const {return dft_->is_boundary_point(p);}
+protected:
+  void   g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
+  double get_neighbors(const DFT_Vec &x, int species, long pos, int stride,
+			     double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;
+
+  double fftDiffusion(DFT_Vec &d1);
+  void   calcNonlinearTerm(const DFT_Vec &density, Species *species, DFT_FFT& RHS);
   
  protected:
 
@@ -236,38 +236,10 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   // control of adaptive time step
   int successes_ = 0;
   double dtMax_  = 1;
-};
-
-/**
-  *  @brief DDFT minimizer Class using integrating factor
-  *
-  *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
-  *
-  */  
-class DDFT_IF : public DDFT
-{
- public:
-  DDFT_IF(DFT *dft, bool showGraphics = true);
-  ~DDFT_IF() {}
-
-  virtual double step();
-
-protected:
-  
-  void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
-  void g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
-
-  virtual double fftDiffusion(DFT_Vec &d1) = 0;
-  virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0) = 0;
-  
-  void calcNonlinearTerm_intern(const DFT_Vec &density, DFT_Vec &dF, DFT_Vec &RHS1);
-
-  double get_neighbors(const DFT_Vec &x, int species, long pos, int stride, 
-		       double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;  
 
  protected:
-  DFT_FFT RHS0;
-  DFT_FFT RHS1;
+  DFT_FFT RHS0_;
+  DFT_FFT RHS1_;
 
   vector<double> Lamx_;
   vector<double> Lamy_;
@@ -279,8 +251,21 @@ protected:
 
   double dx_ = 0.0;
   double dy_ = 0.0;
-  double dz_ = 0.0;
+  double dz_ = 0.0;  
+};
 
+/**
+  *  @brief DDFT minimizer Class using integrating factor
+  *
+  *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
+  *
+  */  
+
+class DDFT_IF : public DDFT
+{
+ public:
+  DDFT_IF(DFT *dft, bool showGraphics = true);
+  ~DDFT_IF() {}
 
   
   // ***********************************************************
@@ -299,14 +284,9 @@ public:
   void Hessian_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec>& result, bool fixed_boundary, bool dynamic) const;  
   void Hessian_dot_v(arma::cx_vec v, arma::cx_vec& result, double shift, bool fixed_boundary, bool dynamic) const;
 
-  // Dynamical_Matrix interface
-  virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const;
-  
  protected:
   //  virtual void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double D[3]);
   void A_dot_x(const DFT_Vec& x, DFT_Vec& Ax, const Density &density, const double D[], bool do_subtract_ideal = false) const; 
-
-
 
 protected:
   bool is_closed_ = false;
@@ -319,6 +299,7 @@ protected:
   *
   */  
 /* TODO : Update*/
+/*
 class DDFT_IF_Periodic : public DDFT_IF
 {
  public:
@@ -338,7 +319,7 @@ class DDFT_IF_Periodic : public DDFT_IF
   DFT_FFT RHS0;
   DFT_FFT RHS1;
 };
-	  
+*/	  
 
 /**
   *  @brief DDFT minimizer Class using integrating factor. This is for fixed density at the boundaries - a model for an open system.
@@ -346,6 +327,7 @@ class DDFT_IF_Periodic : public DDFT_IF
   *  @detailed This integrates the pure diffusion part of the dynamics exactly (using FFTs) and treats the rest implicitly via a Crank-Nicholson type method.
   */  
 /*TODO: Update */
+/*
 class DDFT_IF_Fixed_Border : public DDFT_IF
 {
  public:
@@ -380,7 +362,7 @@ protected:
   double   *sin_out_;
 };
 		    
-
+*/
 /* Currently not working
 class picardMinimizer : public Minimizer
 {

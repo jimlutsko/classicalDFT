@@ -344,6 +344,16 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
 }
 */
 
+void DFT::set_densities_from_aliases(vector<DFT_Vec> &x_)
+{
+  for(int s=0; s<allSpecies_.size();s++)
+    allSpecies_[s]->set_density_from_alias(x_[s]);        
+}
+void DFT::convert_dF_to_alias_derivs(vector<DFT_Vec> &x_)
+{
+  for(int s = 0; s<allSpecies_.size(); s++)
+    allSpecies_[s]->convert_to_alias_deriv(x_[s],getDF(s));    
+}
 
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
@@ -353,7 +363,6 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
   for(auto &s: allSpecies_) s->beginForceCalculation();
 
   double F = calculateFreeEnergyAndDerivatives_internal_(onlyFex);
-
 
   for(auto &s: allSpecies_)
     s->endForceCalculation();
