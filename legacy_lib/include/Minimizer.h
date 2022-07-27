@@ -223,8 +223,8 @@ protected:
 			     double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;
 
   double fftDiffusion(DFT_Vec &d1);
-  void   calcNonlinearTerm(const DFT_Vec &density, Species *species, DFT_FFT& RHS);
-  
+  void   calcNonlinearTerm(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const;
+  void   subtract_ideal_gas(const DFT_Vec &density, DFT_Vec& RHS) const;
  protected:
 
   bool show_ = true;

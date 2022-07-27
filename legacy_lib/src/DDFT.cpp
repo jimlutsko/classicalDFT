@@ -200,10 +200,12 @@ double DDFT::step()
 
 // This presently only works for a single species!!!
 
-void DDFT::calcNonlinearTerm(const DFT_Vec &density, Species *species, DFT_FFT& RHS)
+void DDFT::calcNonlinearTerm(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const
 {
   g_dot_x(species->getDF(), RHS.Real());    
-  RHS.do_real_2_fourier();
+  subtract_ideal_gas(density,RHS.Real());
+
+  RHS.do_real_2_fourier();  
 }
 
 // This function takes the input density and calculates a new density, d1, by propagating the density a time step dt.
@@ -270,6 +272,20 @@ double DDFT::fftDiffusion(DFT_Vec &new_density)
   return maxdeviation; 
 }
 
+// Note that this must always be consistent with the definition of Lam in the constructor.
+void DDFT::subtract_ideal_gas(const DFT_Vec &density, DFT_Vec& RHS) const
+{
+  const double D[]       = {1.0/(dx_*dx_), 1.0/(dy_*dy_), 1.0/(dz_*dz_)};
+  
+  unsigned pos;
+  //#pragma omp parallel for  private(pos) schedule(static)
+  for(pos = 0;pos<RHS.size();pos++)
+    {      
+      double dpx,dmx,dpy,dmy,dpz,dmz; // density
+      double d0 = get_neighbors(density, 0, pos, 1, dpx,dmx,dpy,dmy,dpz,dmz);
+      RHS.IncrementBy(pos, -D[0]*(dpx+dmx-2*d0)-D[1]*(dpy+dmy-2*d0)-D[2]*(dpz+dmz-2*d0));
+    }
+}
 
 double DDFT::get_neighbors(const DFT_Vec &x, int species, long pos, int stride,
 			      double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
