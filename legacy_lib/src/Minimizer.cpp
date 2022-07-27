@@ -93,7 +93,7 @@ double Minimizer::getDF_DX()
   
   double F = 0;
   try {
-    F = dft_->calculateFreeEnergyAndDerivatives(false);   
+    F = get_energy_and_forces();
     calls_++;
   } catch( Eta_Too_Large_Exception &e) {
     throw e;

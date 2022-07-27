@@ -39,6 +39,7 @@ class Minimizer
   virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
   
 protected:
+  double get_energy_and_forces() {calls_++;  return dft_->calculateFreeEnergyAndDerivatives(false);}
   double getF() const { return F_;}
   virtual double getDF_DX();
   
@@ -223,7 +224,7 @@ protected:
 			     double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;
 
   double fftDiffusion(DFT_Vec &d1);
-  void   calcNonlinearTerm(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const;
+  void   calculate_excess_RHS(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const;
   void   subtract_ideal_gas(const DFT_Vec &density, DFT_Vec& RHS) const;
  protected:
 

@@ -47,7 +47,7 @@ DDFT::DDFT(DFT *dft, bool showGraphics)
   dt_ = 0.0001*dx*dx;
   dtMax_ = 1; //1*dx*dx;
 
-  F_ = dft_->calculateFreeEnergyAndDerivatives(false); //density_, 0.0, dF_,true);   
+  F_ = get_energy_and_forces();
 
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);  
@@ -116,7 +116,7 @@ double DDFT::step()
   
   F_ = 0;
   try {
-    F_ = dft_->calculateFreeEnergyAndDerivatives(false);   
+    F_ = get_energy_and_forces();
     calls_++;
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
@@ -139,7 +139,7 @@ double DDFT::step()
   bool   reStart = false;
   bool   decreased_time_step = false;
 
-  calcNonlinearTerm(d0, species, RHS0_);
+  calculate_excess_RHS(d0, species, RHS0_);
   
   do {
     reStart = false;
@@ -148,8 +148,8 @@ double DDFT::step()
     for(int i=0;i<100 && deviation > tolerence_fixed_point_ && !reStart;i++)
       {
 	species->set_density(d1);
-	F_ = dft_->calculateFreeEnergyAndDerivatives(false);
-	calcNonlinearTerm(d1, species, RHS1_);  
+	F_ = get_energy_and_forces();
+	calculate_excess_RHS(d1, species, RHS1_);  
 
 	double nn = species->getDensity().getNumberAtoms();
 	
@@ -177,7 +177,7 @@ double DDFT::step()
   species->set_density(d1);
   species->fft_density();
 
-  F_ = dft_->calculateFreeEnergyAndDerivatives(false); 
+  F_ = get_energy_and_forces();
 
   //  cout << setprecision(12) << "F = " << F_ << " Natoms = " << species->getDensity().getNumberAtoms() << endl;
   
@@ -200,7 +200,7 @@ double DDFT::step()
 
 // This presently only works for a single species!!!
 
-void DDFT::calcNonlinearTerm(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const
+void DDFT::calculate_excess_RHS(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const
 {
   g_dot_x(species->getDF(), RHS.Real());    
   subtract_ideal_gas(density,RHS.Real());
@@ -259,14 +259,19 @@ double DDFT::fftDiffusion(DFT_Vec &new_density)
   double deviation = 0;
   double maxdeviation = 0;
     
-  for(unsigned i=0;i<new_density.size();i++)
+  for(unsigned pos=0;pos<new_density.size();pos++)
     {
-      double d = new_density.get(i);
-      double w = work.Real().get(i);
-      double u = fabs(d-w);
+      double d = new_density.get(pos);
       
-      deviation += u*u;    
-      if(u > maxdeviation) maxdeviation = u;
+      if(is_fixed_boundary() && is_boundary_point(pos))
+	work.Real().set(pos,d);
+      else {
+	double w = work.Real().get(pos);
+	double u = fabs(d-w);
+      
+	deviation += u*u;    
+	if(u > maxdeviation) maxdeviation = u;
+      }
     }
   new_density.set(work.Real());
   return maxdeviation; 
