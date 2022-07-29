@@ -39,7 +39,7 @@ class Species
   virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
   
-  void doDisplay(string &title, string &file) const { density_.doDisplay(title,file, seq_num_);}
+  void doDisplay(string &title, string &file, void *param = NULL) const { density_.doDisplay(title,file, seq_num_, param);}
 
   void set_density(DFT_Vec &x) {density_.set(x);}
   void set_density(long j, double x) {density_.set(j,x);}

@@ -72,7 +72,7 @@ class DFT : public Dynamical_Matrix
   void convert_dF_to_alias_derivs(vector<DFT_Vec> &x_);
   
   // A few actions  
-  void doDisplay(string &title, string &file) { for(auto &x: allSpecies_) x->doDisplay(title,file);}
+  void doDisplay(string &title, string &file, void *param = NULL) { for(auto &x: allSpecies_) x->doDisplay(title,file, param);}
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
   double calculateFreeEnergyAndDerivatives(bool onlyFex);
 

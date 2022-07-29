@@ -59,7 +59,7 @@ class Density : public Lattice
   complex<double> get_fourier_value(long pos) const {return Density_.cFour().get(pos);}
   
   //Decendents of the Density object can implement this method to do graphical displays
-  virtual void doDisplay(string &title, string &file, int seq = 0) const {}
+  virtual void doDisplay(string &title, string &file, int seq = 0, void *param = NULL) const {}
 
   //Some simple properties
   double getNumberAtoms() const;

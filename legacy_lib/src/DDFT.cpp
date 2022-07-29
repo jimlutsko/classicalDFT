@@ -168,6 +168,8 @@ double DDFT::step()
   } while(reStart);
 
   time_ += dt_;
+
+  cout << "time = " << time_ << " dt_ = " << dt_ << " dtMax_ = " << dtMax_ << endl;
   
   // Adaptive time-step: try to increase time step if the present one works 5 times 
   if(decreased_time_step) successes_ = 0;

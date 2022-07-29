@@ -16,48 +16,43 @@ class Minimizer
   Minimizer(DFT *dft);
   Minimizer() {}
   
-  void         run(long maxSteps = -1); // set counters to zero and run
-  virtual void reset();   // run without restting counters 
-  void         resume(long maxSteps = -1);
+  void         run(long maxSteps = -1); // set counters to zero and run = reset() + resume()
+  void         resume(long maxSteps = -1); // run without restting counters 
+  virtual void reset();   // reset internal state
 
-
+  int    getCalls() const { return calls_;}  
+  double getF()     const { return F_;}
+  double getForceTerminationCriterion()    const {return forceLimit_;}
+  virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
+  
   void setMinDensity(double m) { minDensity_ = m;}
   void setForceTerminationCriterion(double v) {forceLimit_ = v;}  
-
-  virtual double step() = 0;
 
   // report activity
   virtual void   draw_after() {};  // Display something after the minimization
   virtual void   reportMessage(string message){}
   virtual void   cleanup() {} // called when minimization is finished to allow decendents to clean up user output.
-
-  // 
-  int  getCalls() const { return calls_;}  
-
-
-  double getForceTerminationCriterion() const {return forceLimit_;}
-  virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
   
 protected:
   double get_energy_and_forces() {calls_++;  return dft_->calculateFreeEnergyAndDerivatives(false);}
-  double getF() const { return F_;}
   virtual double getDF_DX();
+  virtual double step() = 0;
   
  protected:
   vector<DFT_Vec> x_; // independent variables
   DFT *dft_ = NULL; // calculates energy and forces
 
-  int    calls_ = 0;
+  int    calls_        = 0;
   int    step_counter_ = 0;
-  double F_ = 0;
+  double F_            = 0.0;
 
   double forceLimit_;
   double f_abs_max_; // max absolute value of dF_
-  double vv_ = 0;
+  double vv_         = 0;
   double minDensity_ = -1;
-  int image_number_ = 0;
+  int image_number_  = 0;
   
-  std::chrono::duration<double> elapsed_seconds_;
+  mutable std::chrono::duration<double> elapsed_seconds_;
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -72,7 +67,6 @@ protected:
     ar & vv_;
     ar & minDensity_;
   }
-
   
 };
 
