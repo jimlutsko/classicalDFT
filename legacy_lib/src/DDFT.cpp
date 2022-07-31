@@ -204,9 +204,9 @@ double DDFT::step()
 
 void DDFT::calculate_excess_RHS(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const
 {
-  g_dot_x(species->getDF(), RHS.Real());    
+  g_dot_x(species->getDF(), RHS.Real());      
+  RHS.Real().MultBy(1.0/(dx_*dy_*dz_));//dF[i] = dF/drho_i but we need dF/(dV*drho_i) 
   subtract_ideal_gas(density,RHS.Real());
-
   RHS.do_real_2_fourier();  
 }
 
@@ -266,7 +266,7 @@ double DDFT::fftDiffusion(DFT_Vec &new_density)
       double d = new_density.get(pos);
       
       if(is_fixed_boundary() && is_boundary_point(pos))
-	work.Real().set(pos,d);
+	  work.Real().set(pos,d);
       else {
 	double w = work.Real().get(pos);
 	double u = fabs(d-w);
