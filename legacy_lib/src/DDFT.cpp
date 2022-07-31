@@ -153,8 +153,6 @@ double DDFT::step()
 
 	RHS_max_ = RHS1_.Real().inf_norm()/(dx_*dy_*dz_);
 	
-	double nn = species->getDensity().getNumberAtoms();
-	
 	species->set_density(d0);       
 	species->fft_density();
 	
@@ -201,7 +199,9 @@ void DDFT::calculate_excess_RHS(const DFT_Vec &density, Species *species, DFT_FF
   g_dot_x(species->getDF(), RHS.Real());  
   RHS.Real().MultBy(1.0/(dx_*dy_*dz_));//dF[i] = dF/drho_i but we need dF/(dV*drho_i)
   subtract_ideal_gas(density,RHS.Real());
+
   RHS.do_real_2_fourier();
+	
 }
 
 // This function takes the input density and calculates a new density, d1, by propagating the density a time step dt.
@@ -235,15 +235,19 @@ double DDFT::fftDiffusion(DFT_Vec &new_density)
     for(int iy=0;iy<Lamy_.size();iy++)
       for(int iz=0;iz<Lamz_.size();iz++)
 	{
-	  complex<double> x = density.get_fourier_value(pos); 
+	  complex<double> x = density.get_fourier_value(pos);
+	  complex<double> R0 = RHS0_.cFour().get(pos);
+	  complex<double> R1 = RHS1_.cFour().get(pos);
 	  
-	  if(pos > 0) // pos == 0 corresponds to K=0 - and mass is conserved so nothing to do ...
+	  //	  if(is_fixed_boundary() || pos > 0) // pos == 0 corresponds to K=0 - and mass is conserved so nothing to do ...
 	    {
 	      double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
 	      double exp_dt = fx[ix]*fy[iy]*fz[iz];
-	      x *= exp_dt;
-	      x += ((exp_dt-1)/Lambda)*RHS0_.cFour().get(pos);
-	      x += ((exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_))*(RHS1_.cFour().get(pos)-RHS0_.cFour().get(pos));
+	      double U0 = exp_dt;
+	      double U1 = (pos == 0 ? dt_   : ((exp_dt-1)/Lambda));
+	      double U2 = (pos == 0 ? dt_/2 : ((exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_)));
+
+	      x = U0*x + U1*R0 + U2*(R1-R0);
 	    }
 	  cwork.set(pos,x);
 	  pos++;	  
@@ -254,6 +258,7 @@ double DDFT::fftDiffusion(DFT_Vec &new_density)
 
   double deviation = 0;
   double maxdeviation = 0;
+  long maxpos;
     
   for(unsigned pos=0;pos<new_density.size();pos++)
     {
@@ -266,9 +271,10 @@ double DDFT::fftDiffusion(DFT_Vec &new_density)
 	double u = fabs(d-w);
       
 	deviation += u*u;    
-	if(u > maxdeviation) maxdeviation = u;
+	if(u > maxdeviation) {maxdeviation = u; maxpos = pos;}
       }
     }
+  cout << "maxpos: " << work.Real().get(maxpos) << " " << new_density.get(maxpos) << endl;
   new_density.set(work.Real());
   return maxdeviation; 
 }
