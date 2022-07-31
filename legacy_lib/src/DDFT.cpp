@@ -151,6 +151,8 @@ double DDFT::step()
 	F_ = get_energy_and_forces();
 	calculate_excess_RHS(d1, species, RHS1_);  
 
+	RHS_max_ = RHS1_.Real().inf_norm()/(dx_*dy_*dz_);
+	
 	double nn = species->getDensity().getNumberAtoms();
 	
 	species->set_density(d0);       
@@ -168,8 +170,8 @@ double DDFT::step()
   } while(reStart);
 
   time_ += dt_;
-
-  cout << "time = " << time_ << " dt_ = " << dt_ << " dtMax_ = " << dtMax_ << endl;
+  
+  cout << "time = " << time_ << " dt_ = " << dt_ << " dtMax_ = " << dtMax_ << " RHS_max_ = " << RHS_max_ << endl;
   
   // Adaptive time-step: try to increase time step if the present one works 5 times 
   if(decreased_time_step) successes_ = 0;
@@ -181,6 +183,9 @@ double DDFT::step()
 
   F_ = get_energy_and_forces();
 
+
+  cout << "Here " << dft_->get_convergence_monitor() << endl;
+  
   //  cout << setprecision(12) << "F = " << F_ << " Natoms = " << species->getDensity().getNumberAtoms() << endl;
   
   return F_;  
@@ -188,26 +193,15 @@ double DDFT::step()
 
 
 
-// Here we solve the nonlinear equation
-// rho_[k,t+dt] = exp(L_{k} dt) rho_{k,t} - ((exp(L_{k} dt)-1)/L_{k}) R_{k}[rho_t] +((exp(L_{k} dt) - 1 - L dt))/L_{k}^2) R_{k}[rho_{t+dt}]
-// by iteration.
-// Define:
-// d0_{k} = rho_{t,k}
-// d1_{k} = rho_{t+dt,k}
-// R0_{k} = R_{k}[d0]
-// R1_{1} = R_{k}[d1]
-// Then call to fftDiffusion(d1, R0,R1) to apply the diffusive prefactors and to update d1 according to 
-//  d1 ->  exp(L_{k} dt) d0_{k} + R0 + R1
-// Check for convergence and react accordingly
-
-// This presently only works for a single species!!!
+// This function computes (g dot dF) - (diffusion terms)
+// It presently only works for a single species!!!
 
 void DDFT::calculate_excess_RHS(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const
 {
-  g_dot_x(species->getDF(), RHS.Real());      
-  RHS.Real().MultBy(1.0/(dx_*dy_*dz_));//dF[i] = dF/drho_i but we need dF/(dV*drho_i) 
+  g_dot_x(species->getDF(), RHS.Real());  
+  RHS.Real().MultBy(1.0/(dx_*dy_*dz_));//dF[i] = dF/drho_i but we need dF/(dV*drho_i)
   subtract_ideal_gas(density,RHS.Real());
-  RHS.do_real_2_fourier();  
+  RHS.do_real_2_fourier();
 }
 
 // This function takes the input density and calculates a new density, d1, by propagating the density a time step dt.

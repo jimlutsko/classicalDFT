@@ -193,8 +193,8 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   void   setTimeStep(double dt) { dt_ = dt;}    
   double getTimeStep() const { return dt_;}
 
-  double get_time() const { return time_;}
-  
+  double get_time()                const { return time_;}
+  double get_convergence_monitor() const { return RHS_max_;}
 
   void Display(double F, double dFmin, double dFmax, double N);
 
@@ -235,6 +235,8 @@ protected:
  protected:
   DFT_FFT RHS0_;
   DFT_FFT RHS1_;
+
+  double RHS_max_ = 1;
 
   vector<double> Lamx_;
   vector<double> Lamy_;
