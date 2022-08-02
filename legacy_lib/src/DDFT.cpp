@@ -40,13 +40,12 @@ using namespace std;
 // This implementation presently only works for a single species!!!
 
 DDFT::DDFT(DFT *dft, bool showGraphics, bool central_differences)
-  : Minimizer(dft), show_graphics_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), central_differences_(central_differences)
+  : Minimizer(dft), show_graphics_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), central_differences_(central_differences), dtMax_(1)
 {
   double dx = dft_->get_lattice().getDX();
-  dt_ = 10*0.1*dx*dx;
+  //dt_ = 10*0.1*dx*dx;
   dt_ = 0.0001*dx*dx;
-  dtMax_ = 1; //1*dx*dx;
-
+  
   F_ = get_energy_and_forces();
 
   int Jspecies = 0;
@@ -90,8 +89,7 @@ DDFT::DDFT(DFT *dft, bool showGraphics, bool central_differences)
       double facz = 2*Dz*(cos(kz)-1);
       
       Lamz_.push_back(facz);
-    }    
-  
+    }
 }
 
 
@@ -116,6 +114,9 @@ double DDFT::step()
 {
   if(dft_->getNumberOfSpecies() > 1)
     throw std::runtime_error("DDFT only implemented for single species systems ... aborting");
+
+  // make sure that everything is initialized
+  if(fx_.size() != Lamx_.size()) { double tmp = dt_; dt_ = 0; change_timestep(tmp);}
   
   F_ = 0;
   try {
@@ -124,9 +125,7 @@ double DDFT::step()
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  //  cout << "Initial F = " << F_ << endl;
 
-  
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);
   
@@ -136,17 +135,15 @@ double DDFT::step()
   DFT_Vec d0(density.Ntot()); d0.set(density.get_density_real());
   DFT_Vec d1(density.Ntot()); d1.set(d0);
 
-  double deviation = 1;
-  double dt = dt_;
   bool   reStart = false;
   bool   decreased_time_step = false;
 
-  double rmax = calculate_excess_RHS(species, RHS0_);
+  RHS_max_ = calculate_excess_RHS(species, RHS0_);
 
   // Solution of implicit equations: outer loop allows restarting with a smaller timestep if the iterations do not converge
   do {
+    double deviation = 1;
     reStart = false;
-    double rmax;
     // Iterative solution ... 
     for(int i=0;i<100 && deviation > tolerence_fixed_point_ && !reStart;i++)
       {
@@ -159,42 +156,54 @@ double DDFT::step()
 	double old_error = deviation;	       	
 	deviation = apply_diffusion_propogator(d1);
 
+	if(verbose_) cout << "\ttime_step = " << dt_ << " deviation = " << deviation << endl;
+
 	// decrease time step and restart if density goes negative or if error is larger than previous step
-	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+	if(d1.min() < 0 || (i > 0 && old_error < deviation)) reStart = true; //{reStart = true; change_timestep(dt_/10); d1.set(d0); decreased_time_step = true;}
       }
-    if(!reStart && deviation > tolerence_fixed_point_)
-      {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+    //    if(!reStart && deviation > tolerence_fixed_point_)
+    if(reStart || deviation > tolerence_fixed_point_)
+      {change_timestep(dt_/10); d1.set(d0); decreased_time_step = true; reStart = true;}
   } while(reStart);
 
   time_ += dt_;
-  
-  RHS_max_ = rmax;
 
-  int ix,iy,iz;
-  density.cartesian(maxpos,ix,iy,iz);
-  cout << "time = " << time_ << " dt_ = " << dt_ << " dtMax_ = " << dtMax_ << " RHS_max_ = " << RHS_max_ << " rmax = " << rmax << " pos = " << maxpos << " = (" << ix << "," << iy << "," << iz << ")" << endl;
-
-  cout << density.get(ix,iy,iz) << " " << density.get(ix+1,iy,iz) << " " << density.get(ix-1,iy,iz) << endl;
-  cout << density.get(ix,iy,iz) << " " << density.get(ix,iy+1,iz) << " " << density.get(ix,iy-1,iz) << endl;
-  cout << density.get(ix,iy,iz) << " " << density.get(ix,iy,iz+1) << " " << density.get(ix,iy,iz-1) << endl;
-  cout << density.get(0,iy,iz) << " " << density.get(0,iy,iz+1) << " " << density.get(0,iy,iz-1) << endl;  
-  cout << log(density.get(ix,iy,iz)) - log(0.1) << endl;
-
-  
-  
-  // Adaptive time-step: try to increase time step if the present one works 5 times 
+    // Adaptive time-step: try to increase time step if the present one works 5 times 
   if(decreased_time_step) successes_ = 0;
   else successes_++;
-  if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
+  if(successes_ >= 5 && dt_ < dtMax_) { change_timestep(min(2*dt_, dtMax_)); successes_ = 0;}
 
   species->set_density(d1);
   species->fft_density();
 
   F_ = get_energy_and_forces();
-
-  //  cout << setprecision(12) << "F = " << F_ << " Natoms = " << species->getDensity().getNumberAtoms() << endl;
   
   return F_;  
+}
+
+void DDFT::change_timestep(double dt)
+{
+  if(fabs(dt_-dt) < 1e-10) return;
+  
+  dt_ = dt;
+
+  // For first time but also in case the sizes changed for some reason ...
+  if(fx_.size() != Lamx_.size()) fx_.resize(Lamx_.size());
+  if(fy_.size() != Lamy_.size()) fy_.resize(Lamy_.size());
+  if(fz_.size() != Lamz_.size()) fz_.resize(Lamz_.size());
+  
+  // save some evaluations of the exponent
+  for(int ix=0;ix<Lamx_.size();ix++)
+    fx_[ix] = exp(Lamx_[ix]*dt_);
+
+  vector<double> fy;
+  for(int iy=0;iy<Lamy_.size();iy++)
+    fy_[iy] = exp(Lamy_[iy]*dt_);
+  
+  vector<double> fz;
+  for(int iz=0;iz<Lamz_.size();iz++)
+    fz_[iz] = exp(Lamz_[iz]*dt_);  
+  
 }
 
 // This function computes (g dot dF) - (diffusion terms)
@@ -205,19 +214,6 @@ double  DDFT::calculate_excess_RHS(const Species *species, DFT_FFT& RHS) const
   g_dot_x(species->get_const_DF(), RHS.Real());  
   RHS.Real().MultBy(1.0/(dx_*dy_*dz_));//dF[i] = dF/drho_i but we need dF/(dV*drho_i)
   double rmax = RHS.Real().inf_norm()/(dx_*dy_*dz_);
-
-
-  maxpos = 0;
-  maxval = 0;
-  for(long pos = 0; pos < RHS.Real().size(); pos++)
-    if(!is_fixed_boundary() || !is_boundary_point(pos))
-      if(RHS.Real().get(pos) > maxval)
-	{ maxval = RHS.Real().get(pos); maxpos = pos;}
-  int ix,iy,iz;
-  species->getDensity().cartesian(maxpos,ix,iy,iz);
-  cout << " rmax = " << rmax << " pos = " << maxpos << " = (" << ix << "," << iy << "," << iz << ")" <<  " density = " << species->getDensity().get(maxpos) << endl;
-
-
   subtract_ideal_gas(species->getDensity().get_density_real(),RHS.Real());
   RHS.do_real_2_fourier();
   return rmax;
@@ -248,19 +244,6 @@ double DDFT::apply_diffusion_propogator(DFT_Vec &new_density)
 
   species->doFFT();
   
-  // save some evaluations of the exponent
-  vector<double> fx;
-  for(int ix=0;ix<Lamx_.size();ix++)
-    fx.push_back(exp(Lamx_[ix]*dt_));
-
-  vector<double> fy;
-  for(int iy=0;iy<Lamy_.size();iy++)
-    fy.push_back(exp(Lamy_[iy]*dt_));
-  
-  vector<double> fz;
-  for(int iz=0;iz<Lamz_.size();iz++)
-    fz.push_back(exp(Lamz_[iz]*dt_));  
-
   DFT_FFT work(Nx_,Ny_,Nz_);
   DFT_Vec_Complex &cwork = work.Four();
   
@@ -274,7 +257,7 @@ double DDFT::apply_diffusion_propogator(DFT_Vec &new_density)
 	  complex<double> R1 = RHS1_.cFour().get(pos);
 
 	  double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
-	  double exp_dt = fx[ix]*fy[iy]*fz[iz];
+	  double exp_dt = fx_[ix]*fy_[iy]*fz_[iz];
 	  double U0     = exp_dt;
 	  double U1     = (pos == 0 ? dt_   : (exp_dt-1)/Lambda);
 	  double U2     = (pos == 0 ? dt_/2 : (exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_));
@@ -359,8 +342,6 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 	double dpx,dmx,dpy,dmy,dpz,dmz; // density
 	double d0 = density.get_neighbors(pos,dpx,dmx,dpy,dmy,dpz,dmz);
 
-	if(pos == 4507) cout << d0 << " " << dpx << " " << dmx << " " << dpy << " " << dmy << " " << dpz << " " << dmz << endl;
-	
 	if(central_differences_) d0 = 0;
 	gx.set(pos,D[0]*((dpx+d0)*(xpx-x0)-(d0+dmx)*(x0-xmx))
 	       + D[1]*((dpy+d0)*(xpy-x0)-(d0+dmy)*(x0-xmy))
