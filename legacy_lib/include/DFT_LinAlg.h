@@ -150,8 +150,8 @@ class DFT_Vec_Complex
 
 /**
   *  This class encapsulates a basic FFT. It is basically an interface to fftw library while holding both a real and a complex vector.
-  *  Note that the flag bReal_2_Fourier_ is meant to track whether or not the two components are mutually consistent. Since we do not have the means to tell when
-  *  the real or fourier space vectors is changed (i.e. dirty) I just set it to false whenever they are accessed via non-constant references. 
+  *  Note that the flag is_dirty_ is meant to track whether or not the two components are mutually consistent. Since we do not have the means to tell when
+  *  the real or fourier space vectors is changed (i.e. dirty) I just set it to true whenever they are accessed via non-constant references. 
   *  This is overly cautious but at least lets us avoid disastors. 
   */  
 class DFT_FFT
@@ -159,8 +159,7 @@ class DFT_FFT
  public:
   DFT_FFT(unsigned Nx, unsigned Ny, unsigned Nz) : RealSpace_(Nx*Ny*Nz), FourierSpace_(Nx*Ny*((Nz/2)+1)), four_2_real_(NULL), real_2_four_(NULL), Nx_(Nx), Ny_(Ny), Nz_(Nz)
     {
-      RealSpace_.zeros();
-      FourierSpace_.zeros();
+      zeros();
       four_2_real_ = fftw_plan_dft_c2r_3d(Nx, Ny, Nz, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
       real_2_four_ = fftw_plan_dft_r2c_3d(Nx, Ny, Nz, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
     };
@@ -169,6 +168,7 @@ class DFT_FFT
     {
       four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
       real_2_four_ = fftw_plan_dft_r2c_3d(Nx_, Ny_, Nz_, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
+      is_dirty_ = Other.is_dirty_;
     };  
 
  DFT_FFT() : four_2_real_(NULL), real_2_four_(NULL){};
@@ -179,9 +179,9 @@ class DFT_FFT
       if(real_2_four_) fftw_destroy_plan(real_2_four_);
     }
 
-  void zeros() {RealSpace_.zeros(); FourierSpace_.zeros();}
+  void zeros() {RealSpace_.zeros(); FourierSpace_.zeros(); is_dirty_ = false;}
 
-  bool isConsistent() const {return bReal_2_Fourier_;}
+  bool get_is_dirty() const {return is_dirty_;}
   
   void initialize(unsigned Nx, unsigned Ny, unsigned Nz)
   {
@@ -192,24 +192,26 @@ class DFT_FFT
     Nx_ = Nx;
     Ny_ = Ny;
     Nz_ = Nz;
+    is_dirty_ = false;
   };
   
-  DFT_Vec &Real() { bReal_2_Fourier_ = false; return RealSpace_;}
-  DFT_Vec_Complex &Four() { bReal_2_Fourier_ = false; return FourierSpace_;}
+  DFT_Vec &Real()         { is_dirty_ = true; return RealSpace_;}
+  DFT_Vec_Complex &Four() { is_dirty_ = true; return FourierSpace_;}
 
-  const DFT_Vec &cReal() const { return RealSpace_;}
+  const DFT_Vec &cReal()         const { return RealSpace_;}
   const DFT_Vec_Complex &cFour() const { return FourierSpace_;}
 
-  void do_real_2_fourier() {fftw_execute(real_2_four_); bReal_2_Fourier_ = true;}
-  void do_fourier_2_real() {fftw_execute(four_2_real_); bReal_2_Fourier_ = true;}
+  void do_real_2_fourier() {if(is_dirty_) fftw_execute(real_2_four_); is_dirty_ = false;}
+  void do_fourier_2_real() {if(is_dirty_) fftw_execute(four_2_real_); is_dirty_ = false;}
 
-  void MultBy(double val) { RealSpace_.MultBy(val);  FourierSpace_.MultBy(val);}
+  void MultBy(double val) { RealSpace_.MultBy(val);  FourierSpace_.MultBy(val);} // doesn't change is_dirty_
 
   friend ostream &operator<<(ostream &of, const DFT_FFT &v)
   {    
     of << v.RealSpace_ << v.FourierSpace_ << v.Nx_ << " " << v.Ny_ << " " << v.Nz_; 
     return of;
-  }  
+  }
+  
   friend istream &operator>>(istream  &in, DFT_FFT &v )
   {
     in >> v.RealSpace_  >> v.FourierSpace_ >> v.Nx_ >> v.Ny_ >> v.Nz_;    
@@ -217,7 +219,7 @@ class DFT_FFT
     // This is really unpleasant in terms of wasted memory:
     // fftw messes up the data so we have to restore it after making the plans
     // copy the data:
-    DFT_Vec r(v.RealSpace_);
+    DFT_Vec         r(v.RealSpace_);
     DFT_Vec_Complex f(v.FourierSpace_);
     
     v.four_2_real_ = fftw_plan_dft_c2r_3d(v.Nx_, v.Ny_, v.Nz_, reinterpret_cast<fftw_complex*>(v.FourierSpace_.memptr()), v.RealSpace_.memptr(), FMT_FFTW);
@@ -249,12 +251,11 @@ class DFT_FFT
     ar & Ny_;
     ar & Nz_;    
 
-    
     // I do not know how to stream the fftw plans, so I reconstruct them.
     // BUT, this is really unpleasant in terms of wasted memory:
     // fftw messes up the data so we have to restore it after making the plans
     // copy the data:
-    DFT_Vec r(RealSpace_);
+    DFT_Vec         r(RealSpace_);
     DFT_Vec_Complex f(FourierSpace_);
     
     four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
@@ -277,7 +278,7 @@ class DFT_FFT
   unsigned Nx_; ///< spatial dimension: only needed for reading and writing plans.
   unsigned Ny_; ///< spatial dimension: only needed for reading and writing plans.
   unsigned Nz_; ///< spatial dimension: only needed for reading and writing plans.
-  mutable bool bReal_2_Fourier_ = false;
+  mutable bool is_dirty_ = true;
 };
 
 #endif // __DFT_LINALG_LUTSKO__

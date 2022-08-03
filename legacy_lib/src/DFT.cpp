@@ -383,11 +383,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	double dV = density.dV();
 	long Ntot = density.Ntot();
 	long pos;
-#pragma omp parallel for				\
-  shared(species, dV)				\
-  private(pos)						\
-  schedule(static)				\
-  reduction(SummationPlus:F)
+#pragma omp parallel for shared(species, dV) private(pos) schedule(static) reduction(SummationPlus:F)
 	for(pos=0;pos<Ntot;pos++)
 	  {
 	    double d0 = density.get(pos);

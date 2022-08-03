@@ -39,14 +39,13 @@ using namespace std;
 
 // This implementation presently only works for a single species!!!
 
-DDFT::DDFT(DFT *dft, bool showGraphics)
-  : Minimizer(dft), show_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0)
+DDFT::DDFT(DFT *dft, bool showGraphics, bool central_differences)
+  : Minimizer(dft), show_graphics_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), central_differences_(central_differences), dtMax_(1)
 {
   double dx = dft_->get_lattice().getDX();
-  dt_ = 10*0.1*dx*dx;
+  //dt_ = 10*0.1*dx*dx;
   dt_ = 0.0001*dx*dx;
-  dtMax_ = 1; //1*dx*dx;
-
+  
   F_ = get_energy_and_forces();
 
   int Jspecies = 0;
@@ -90,8 +89,7 @@ DDFT::DDFT(DFT *dft, bool showGraphics)
       double facz = 2*Dz*(cos(kz)-1);
       
       Lamz_.push_back(facz);
-    }    
-  
+    }
 }
 
 
@@ -109,10 +107,16 @@ DDFT::DDFT(DFT *dft, bool showGraphics)
 
 // This presently only works for a single species!!!
 
+long maxpos = 0;
+double maxval = 0;
+
 double DDFT::step()
 {
   if(dft_->getNumberOfSpecies() > 1)
     throw std::runtime_error("DDFT only implemented for single species systems ... aborting");
+
+  // make sure that everything is initialized
+  if(fx_.size() != Lamx_.size()) { double tmp = dt_; dt_ = 0; change_timestep(tmp);}
   
   F_ = 0;
   try {
@@ -121,92 +125,118 @@ double DDFT::step()
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  //  cout << "Initial F = " << F_ << endl;
 
-  
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);
   
-  const Lattice &lattice = species->getLattice();
   const Density &density = species->getDensity();
 
   // copy the current density
   DFT_Vec d0(density.Ntot()); d0.set(density.get_density_real());
   DFT_Vec d1(density.Ntot()); d1.set(d0);
 
-  double deviation = 1;
-  double dt = dt_;
   bool   reStart = false;
   bool   decreased_time_step = false;
 
-  calculate_excess_RHS(d0, species, RHS0_);
-  
+  RHS_max_ = calculate_excess_RHS(species, RHS0_);
+
+  // Solution of implicit equations: outer loop allows restarting with a smaller timestep if the iterations do not converge
   do {
+    double deviation = 1;
     reStart = false;
-    double old_error = 0;
-    
+    // Iterative solution ... 
     for(int i=0;i<100 && deviation > tolerence_fixed_point_ && !reStart;i++)
       {
 	species->set_density(d1);
 	F_ = get_energy_and_forces();
-	calculate_excess_RHS(d1, species, RHS1_);  
+	calculate_excess_RHS(species, RHS1_);  
 
-	RHS_max_ = RHS1_.Real().inf_norm()/(dx_*dy_*dz_);
-	
-	species->set_density(d0);       
-	species->fft_density();
-	
-	deviation = fftDiffusion(d1);
+	species->set_density(d0); // fft is now done automatically after set       
+
+	double old_error = deviation;	       	
+	deviation = apply_diffusion_propogator(d1);
+
+	if(verbose_) cout << "\ttime_step = " << dt_ << " deviation = " << deviation << endl;
 
 	// decrease time step and restart if density goes negative or if error is larger than previous step
-	if(d1.min() < 0 || (i > 0 && old_error < deviation)) {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
-
-	old_error = deviation;	       	
+	if(d1.min() < 0 || (i > 0 && old_error < deviation)) reStart = true; //{reStart = true; change_timestep(dt_/10); d1.set(d0); decreased_time_step = true;}
       }
-    if(!reStart && deviation > tolerence_fixed_point_)
-      {reStart = true; dt_ /= 10; d1.set(d0); decreased_time_step = true;}
+    //    if(!reStart && deviation > tolerence_fixed_point_)
+    if(reStart || deviation > tolerence_fixed_point_)
+      {change_timestep(dt_/10); d1.set(d0); decreased_time_step = true; reStart = true;}
   } while(reStart);
 
   time_ += dt_;
-  
-  cout << "time = " << time_ << " dt_ = " << dt_ << " dtMax_ = " << dtMax_ << " RHS_max_ = " << RHS_max_ << endl;
-  
-  // Adaptive time-step: try to increase time step if the present one works 5 times 
+
+    // Adaptive time-step: try to increase time step if the present one works 5 times 
   if(decreased_time_step) successes_ = 0;
   else successes_++;
-  if(successes_ >= 5 && dt_ < dtMax_) { dt_ = min(2*dt, dtMax_); successes_ = 0;}
+  if(successes_ >= 5 && dt_ < dtMax_) { change_timestep(min(2*dt_, dtMax_)); successes_ = 0;}
 
   species->set_density(d1);
   species->fft_density();
 
   F_ = get_energy_and_forces();
-
-
-  cout << "Here " << dft_->get_convergence_monitor() << endl;
-  
-  //  cout << setprecision(12) << "F = " << F_ << " Natoms = " << species->getDensity().getNumberAtoms() << endl;
   
   return F_;  
 }
 
+void DDFT::change_timestep(double dt)
+{
+  if(fabs(dt_-dt) < 1e-10) return;
+  
+  dt_ = dt;
 
+  // For first time but also in case the sizes changed for some reason ...
+  if(fx_.size() != Lamx_.size()) fx_.resize(Lamx_.size());
+  if(fy_.size() != Lamy_.size()) fy_.resize(Lamy_.size());
+  if(fz_.size() != Lamz_.size()) fz_.resize(Lamz_.size());
+  
+  // save some evaluations of the exponent
+  for(int ix=0;ix<Lamx_.size();ix++)
+    fx_[ix] = exp(Lamx_[ix]*dt_);
+
+  vector<double> fy;
+  for(int iy=0;iy<Lamy_.size();iy++)
+    fy_[iy] = exp(Lamy_[iy]*dt_);
+  
+  vector<double> fz;
+  for(int iz=0;iz<Lamz_.size();iz++)
+    fz_[iz] = exp(Lamz_[iz]*dt_);  
+  
+}
 
 // This function computes (g dot dF) - (diffusion terms)
 // It presently only works for a single species!!!
 
-void DDFT::calculate_excess_RHS(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const
+double  DDFT::calculate_excess_RHS(const Species *species, DFT_FFT& RHS) const
 {
-  g_dot_x(species->getDF(), RHS.Real());  
+  g_dot_x(species->get_const_DF(), RHS.Real());  
   RHS.Real().MultBy(1.0/(dx_*dy_*dz_));//dF[i] = dF/drho_i but we need dF/(dV*drho_i)
-  subtract_ideal_gas(density,RHS.Real());
-
+  double rmax = RHS.Real().inf_norm()/(dx_*dy_*dz_);
+  subtract_ideal_gas(species->getDensity().get_density_real(),RHS.Real());
   RHS.do_real_2_fourier();
-	
+  return rmax;
+}
+
+// Note that this MUST be consistent with the definition of Lam in the constructor.
+void DDFT::subtract_ideal_gas(const DFT_Vec &density, DFT_Vec& RHS) const
+{
+  const double D[] = {1.0/(dx_*dx_), 1.0/(dy_*dy_), 1.0/(dz_*dz_)};
+  
+  unsigned pos;
+#pragma omp parallel for  private(pos) schedule(static)
+  for(pos = 0;pos<RHS.size();pos++)
+    {      
+      double dpx,dmx,dpy,dmy,dpz,dmz; // density
+      double d0 = get_neighbors(density, 0, pos, 1, dpx,dmx,dpy,dmy,dpz,dmz);
+      RHS.IncrementBy(pos, -D[0]*(dpx+dmx-2*d0)-D[1]*(dpy+dmy-2*d0)-D[2]*(dpz+dmz-2*d0));
+    }
 }
 
 // This function takes the input density and calculates a new density, d1, by propagating the density a time step dt.
 // The nonlinear terms, RHS0 and RHS1, are treated explicitly.
-double DDFT::fftDiffusion(DFT_Vec &new_density)
+double DDFT::apply_diffusion_propogator(DFT_Vec &new_density)
 {
   int Jspecies = 0;
   Species *species = dft_->getSpecies(Jspecies);
@@ -214,51 +244,34 @@ double DDFT::fftDiffusion(DFT_Vec &new_density)
 
   species->doFFT();
   
-  // save some evaluations of the exponent
-  vector<double> fx;
-  for(int ix=0;ix<Lamx_.size();ix++)
-    fx.push_back(exp(Lamx_[ix]*dt_));
-
-  vector<double> fy;
-  for(int iy=0;iy<Lamy_.size();iy++)
-    fy.push_back(exp(Lamy_[iy]*dt_));
-  
-  vector<double> fz;
-  for(int iz=0;iz<Lamz_.size();iz++)
-    fz.push_back(exp(Lamz_[iz]*dt_));  
-
   DFT_FFT work(Nx_,Ny_,Nz_);
   DFT_Vec_Complex &cwork = work.Four();
   
   unsigned pos = 0;
-  for(int ix = 0;ix<Lamx_.size();ix++)
+  for(int ix=0;ix<Lamx_.size();ix++)
     for(int iy=0;iy<Lamy_.size();iy++)
       for(int iz=0;iz<Lamz_.size();iz++)
 	{
-	  complex<double> x = density.get_fourier_value(pos);
+	  complex<double> x  = density.get_fourier_value(pos);
 	  complex<double> R0 = RHS0_.cFour().get(pos);
 	  complex<double> R1 = RHS1_.cFour().get(pos);
-	  
-	  //	  if(is_fixed_boundary() || pos > 0) // pos == 0 corresponds to K=0 - and mass is conserved so nothing to do ...
-	    {
-	      double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
-	      double exp_dt = fx[ix]*fy[iy]*fz[iz];
-	      double U0 = exp_dt;
-	      double U1 = (pos == 0 ? dt_   : ((exp_dt-1)/Lambda));
-	      double U2 = (pos == 0 ? dt_/2 : ((exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_)));
 
-	      x = U0*x + U1*R0 + U2*(R1-R0);
-	    }
-	  cwork.set(pos,x);
+	  double Lambda = Lamx_[ix]+Lamy_[iy]+Lamz_[iz];
+	  double exp_dt = fx_[ix]*fy_[iy]*fz_[iz];
+	  double U0     = exp_dt;
+	  double U1     = (pos == 0 ? dt_   : (exp_dt-1)/Lambda);
+	  double U2     = (pos == 0 ? dt_/2 : (exp_dt-1-dt_*Lambda)/(Lambda*Lambda*dt_));
+
+	  cwork.set(pos, U0*x + U1*R0 + U2*(R1-R0));
 	  pos++;	  
 	}
   
   work.do_fourier_2_real();
   work.Real().MultBy(1.0/density.Ntot());
 
-  double deviation = 0;
+  double deviation    = 0;
   double maxdeviation = 0;
-  long maxpos;
+  long   maxpos       = 0;
     
   for(unsigned pos=0;pos<new_density.size();pos++)
     {
@@ -274,24 +287,8 @@ double DDFT::fftDiffusion(DFT_Vec &new_density)
 	if(u > maxdeviation) {maxdeviation = u; maxpos = pos;}
       }
     }
-  cout << "maxpos: " << work.Real().get(maxpos) << " " << new_density.get(maxpos) << endl;
   new_density.set(work.Real());
   return maxdeviation; 
-}
-
-// Note that this must always be consistent with the definition of Lam in the constructor.
-void DDFT::subtract_ideal_gas(const DFT_Vec &density, DFT_Vec& RHS) const
-{
-  const double D[]       = {1.0/(dx_*dx_), 1.0/(dy_*dy_), 1.0/(dz_*dz_)};
-  
-  unsigned pos;
-  //#pragma omp parallel for  private(pos) schedule(static)
-  for(pos = 0;pos<RHS.size();pos++)
-    {      
-      double dpx,dmx,dpy,dmy,dpz,dmz; // density
-      double d0 = get_neighbors(density, 0, pos, 1, dpx,dmx,dpy,dmy,dpz,dmz);
-      RHS.IncrementBy(pos, -D[0]*(dpx+dmx-2*d0)-D[1]*(dpy+dmy-2*d0)-D[2]*(dpz+dmz-2*d0));
-    }
 }
 
 double DDFT::get_neighbors(const DFT_Vec &x, int species, long pos, int stride,
@@ -314,7 +311,6 @@ double DDFT::get_neighbors(const DFT_Vec &x, int species, long pos, int stride,
   return x.get(density.get_PBC_Pos(ix,iy,iz));
 }
 
-
 // This calculates (del_IJ rho_J del_JK) x_K i.e. matrix g is discretized (del rho del) operator.
 // It could be more efficient: as it stands, for each new entry at pos, we retrieve 13 values from the two matrices:
 // if instead there was a triple loop over the three directions, then we would only need two new values for each position.
@@ -326,12 +322,12 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
   if(dft_->getNumberOfSpecies() > 1) throw std::runtime_error("DDFT::g_dot_x is not implemented for more than one species");
   int species = 0;
 
-  const int stride       = 1; // 2 for centered differences  
+  const int stride       = (central_differences_ ? 2 : 1); 
   const Density &density = dft_->getDensity(species);
-  const double D[]       = {0.5/(stride*dx_*dx_), 0.5/(stride*dy_*dy_), 0.5/(stride*dz_*dz_)};
+  const double D[]       = {1/(2*stride*dx_*dx_), 1/(2*stride*dy_*dy_), 1/(2*stride*dz_*dz_)};
 
   long pos;
-  //#pragma omp parallel for  private(pos) schedule(static)
+#pragma omp parallel for  private(pos) schedule(static)
   for(pos = 0;pos<gx.size();pos++)
     {      
       if(is_fixed_boundary() && density.is_boundary_point(pos))
@@ -345,8 +341,8 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 	
 	double dpx,dmx,dpy,dmy,dpz,dmz; // density
 	double d0 = density.get_neighbors(pos,dpx,dmx,dpy,dmy,dpz,dmz);
-	
-	// centered differences: replace dpx+d0 ->dpx, etc, i.e. just set d0 = 0 ... 
+
+	if(central_differences_) d0 = 0;
 	gx.set(pos,D[0]*((dpx+d0)*(xpx-x0)-(d0+dmx)*(x0-xmx))
 	       + D[1]*((dpy+d0)*(xpy-x0)-(d0+dmy)*(x0-xmy))
 	       + D[2]*((dpz+d0)*(xpz-x0)-(d0+dmz)*(x0-xmz)));
@@ -363,11 +359,6 @@ void DDFT::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void 
   result[0].zeros();
   g_dot_x(intermediate_result, result[0]);
 }
-
-
-
-
-
 
 //void DDFT::reverseForce(DFT_Vec *tangent) 
 //{

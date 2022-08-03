@@ -20,8 +20,8 @@ class Species
 
   void doFFT(){ density_.doFFT();}
   
-  void setFixedMass(double m) { fixedMass_ = m; if(m > 0.0) mu_ = 0.0;}
-  void setFixedBackground(bool fixed) { fixedBackground_ = fixed;}
+  void setFixedMass(double m)            { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
+  void setFixedBackground(bool fixed)    { fixedBackground_    = fixed;}
   void setHomogeneousBoundary(bool homo) { homgeneousBoundary_ = homo;}
   
   bool is_background_fixed() const { return fixedBackground_;}
@@ -33,16 +33,17 @@ class Species
 
   const Lattice& getLattice() const { return density_;}
   const Density& getDensity() const { return density_;}
-  const double* get_density_data() { return density_.get_density_pointer();}
+  const double*  get_density_data() { return density_.get_density_pointer();}
+  virtual void   get_density_alias(DFT_Vec &x) const;
 
-  virtual void set_density_from_alias(const DFT_Vec &x);
-  virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
   
   void doDisplay(string &title, string &file, void *param = NULL) const { density_.doDisplay(title,file, seq_num_, param);}
 
-  void set_density(DFT_Vec &x) {density_.set(x);}
-  void set_density(long j, double x) {density_.set(j,x);}
+  void         set_density(DFT_Vec &x) {density_.set(x); density_.doFFT();}
+  void         set_density(long j, double x) {density_.set(j,x);}
+  virtual void set_density_from_alias(const DFT_Vec &x);
+
   void fft_density() { density_.doFFT();}
   
   void zeroForce() {dF_.zeros();}
@@ -53,11 +54,12 @@ class Species
   
   double get_convergence_monitor() const { return dF_.inf_norm()/density_.dV();}
   
-  DFT_Vec &getDF() {return dF_;}
+  DFT_Vec       &getDF() {return dF_;}
+  const DFT_Vec &get_const_DF() const {return dF_;}
   void setDF(DFT_Vec &df) {return dF_.set(df);}
 
   // This species is held as allSpecies_[index_]
-  void setIndex(int i) { index_ = i;}
+  void setIndex(int i)  { index_ = i;}
   int  getIndex() const { return index_;}
   
   /**
@@ -219,7 +221,7 @@ public:
 
   void convolute_weight_with(int pos, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
   {
-    if(v.isConsistent() == false) throw std::runtime_error("Need real and fourier parts of input to FMT_Species::convolute_weight_with(...) to be consistent");
+    if(v.get_is_dirty() == true) throw std::runtime_error("Need real and fourier parts of input to FMT_Species::convolute_weight_with(...) to be consistent");
 
     result.Four().Schur(v.cFour(), fmt_weighted_densities[pos].wk(),bConjugate);
     result.do_fourier_2_real();

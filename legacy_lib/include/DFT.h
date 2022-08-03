@@ -58,7 +58,7 @@ class DFT : public Dynamical_Matrix
   const Density& getDensity(int species) const {return allSpecies_[species]->getDensity();}
   Species *getSpecies(int s) const { return allSpecies_[s];}
   
-  int getNumberOfSpecies() const {return allSpecies_.size();}
+  int    getNumberOfSpecies() const {return allSpecies_.size();}
   double getNumberAtoms(int species) const {return allSpecies_[species]->getDensity().getNumberAtoms();}  
   double get_convergence_monitor() const { double d = 0; for(auto& s: allSpecies_) d += s->get_convergence_monitor(); return d;}
   

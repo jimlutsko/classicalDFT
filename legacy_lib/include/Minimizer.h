@@ -27,7 +27,8 @@ class Minimizer
   
   void setMinDensity(double m) { minDensity_ = m;}
   void setForceTerminationCriterion(double v) {forceLimit_ = v;}  
-
+  void setVerbose(bool verbose) { verbose_ = verbose;}
+  
   // report activity
   virtual void   draw_after() {};  // Display something after the minimization
   virtual void   reportMessage(string message){}
@@ -42,6 +43,8 @@ protected:
   vector<DFT_Vec> x_; // independent variables
   DFT *dft_ = NULL; // calculates energy and forces
 
+  bool verbose_ = false;
+  
   int    calls_        = 0;
   int    step_counter_ = 0;
   double F_            = 0.0;
@@ -183,7 +186,7 @@ class fireMinimizer2 : public Minimizer
 class DDFT : public Minimizer, public Dynamical_Matrix
 {
  public:
-  DDFT(DFT *dft, bool showGraphics = true);
+  DDFT(DFT *dft, bool showGraphics = true, bool central_differences = false);
   ~DDFT() {}
 
   double step();
@@ -217,12 +220,15 @@ protected:
   double get_neighbors(const DFT_Vec &x, int species, long pos, int stride,
 			     double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;
 
-  double fftDiffusion(DFT_Vec &d1);
-  void   calculate_excess_RHS(const DFT_Vec &density, Species *species, DFT_FFT& RHS) const;
+  void change_timestep(double dt);
+  
+  double apply_diffusion_propogator(DFT_Vec &d1);
+  double calculate_excess_RHS(const Species *species, DFT_FFT& RHS) const;
   void   subtract_ideal_gas(const DFT_Vec &density, DFT_Vec& RHS) const;
  protected:
 
-  bool show_ = true;
+  bool show_graphics_       = true;
+  bool central_differences_ = false;
   
   double dt_;
   double time_ = 0;
@@ -231,7 +237,7 @@ protected:
   // control of adaptive time step
   int successes_ = 0;
   double dtMax_  = 1;
-
+  
  protected:
   DFT_FFT RHS0_;
   DFT_FFT RHS1_;
@@ -242,6 +248,10 @@ protected:
   vector<double> Lamy_;
   vector<double> Lamz_;
 
+  vector<double> fx_;
+  vector<double> fy_;
+  vector<double> fz_;
+  
   int Nx_ = 0;
   int Ny_ = 0;
   int Nz_ = 0;
@@ -304,7 +314,7 @@ class DDFT_IF_Periodic : public DDFT_IF
   ~DDFT_IF_Periodic(){}
 
  protected:
-  virtual double fftDiffusion(DFT_Vec &new_density);
+  virtual double apply_diffusion_propogator(DFT_Vec &new_density);
   virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0);
 
   void restore_values_on_border(const Lattice &lattice, const DFT_Vec &d0, DFT_Vec &density);  
@@ -332,7 +342,7 @@ class DDFT_IF_Fixed_Border : public DDFT_IF
   ~DDFT_IF_Fixed_Border();
 
 protected:
-  virtual double fftDiffusion(DFT_Vec &d1);
+  virtual double apply_diffusion_propogator(DFT_Vec &d1);
   virtual void   calcNonlinearTerm(const DFT_Vec &density, Species *species, bool use_R0);  
 
   //  void update_forces_fixed_background(const Density &density,const DFT_Vec &d2, DFT_Vec &dF, const double DD[3]);
