@@ -93,6 +93,12 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 	ofile_iter << "# " << endl;
 	ofile_iter << "#" << setw(7) << "iter*p" << setw(12) <<  "real"  << setw(12) <<  "imag"  << setw(12) << "error" << endl;
 	
+	const int species = 0;
+	const int Nx = matrix_.get_dimension(0);
+	const int Ny = matrix_.get_dimension(1);
+	const int Nz = matrix_.get_dimension(2);
+	const long Ntot = Nx*Ny*Nz;	
+	
 	// Pass negative tolerance to tell the algorithm it must keep iterating
 	bool dont_stop_if_converged = false;
 	if (tol<0) {dont_stop_if_converged = true; tol = abs(tol);}
@@ -210,7 +216,7 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 		
 		// Save leading eigenvectors
 		// JFL: This code needs to be replaced by something that only uses native (Armadillo) functions
-		/*
+		
 		eigen_vector[species].initialize(Nx,Ny,Nz);
 		
 		for (int i=k-1; i>=0; i--)
@@ -226,7 +232,6 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 			of << eigen_vector[species].Real();
 			of.close();
 		}
-		*/
 	       
 		// Report in terminal
 		
@@ -241,12 +246,6 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 		
 		eigen_value_old = eigval[0].real()-shift;
 	}
-
-	const int species = 0;
-	const int Nx = matrix_.get_dimension(0);
-	const int Ny = matrix_.get_dimension(1);
-	const int Nz = matrix_.get_dimension(2);
-	const long Ntot = Nx*Ny*Nz;	
 
 	// This is not already initialized ???
 	eigen_vector[species].initialize(Nx,Ny,Nz);		
