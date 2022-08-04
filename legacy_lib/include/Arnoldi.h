@@ -20,8 +20,9 @@ class Arnoldi
  public:
   Arnoldi(const Dynamical_Matrix& matrix) : matrix_(matrix){}
   ~Arnoldi(){}
-
-  double determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps, double tol) const;
+  // k = number of eigenvalues returned (ex. 10)
+  // p = additional dimensions used  (ex. 15)
+  double determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps = 1000000, double tol = 1e-8) const;
   
 protected:
   void matrix_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift) const;
