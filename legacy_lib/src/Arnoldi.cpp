@@ -93,9 +93,15 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 	ofile_iter << "# " << endl;
 	ofile_iter << "#" << setw(7) << "iter*p" << setw(12) <<  "real"  << setw(12) <<  "imag"  << setw(12) << "error" << endl;
 	
+	const int species = 0;
+	const int Nx = matrix_.get_dimension(0);
+	const int Ny = matrix_.get_dimension(1);
+	const int Nz = matrix_.get_dimension(2);
+	const long Ntot = Nx*Ny*Nz;	
+	
 	// Pass negative tolerance to tell the algorithm it must keep iterating
-	bool dont_stop_if_converged = false;
-	if (tol<0) {dont_stop_if_converged = true; tol = abs(tol);}
+	bool dont_stop_iterating = false;
+	if (tol<0) {dont_stop_iterating = true; tol = abs(tol);}
 	
 	arma::cx_mat Vk,Hk;
 	arma::cx_vec fk;
@@ -115,7 +121,7 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 	arma::cx_vec eigval;
 	arma::cx_mat eigvec;
 	
-	while (!converged || dont_stop_if_converged)
+	while (!converged || dont_stop_iterating)
 	{
 		// p-step extension of Arnoldi factorisation
 		
@@ -199,7 +205,19 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 		for (int i=0; i<k; i++)
 		{
 			double ritz_estimate = abs(Hk_eigvec(k-1,i))*norm(fk);
-			if (ritz_estimate>tol*abs(eigval[i])) converged = false;
+			
+			// Not converged if (large ritz estimate) and 
+			// (eigenvalue not degenerated with the largest discarded value)
+			// The second condition is necessary because if the last eigenvalue
+			// is degenerate with another that is discarded, we never complete
+			// the calculation of the corresponding vector subspace since we
+			// never record all necessary Arnoldi vectors to contruct the basis.
+			
+			if ( ritz_estimate > tol*abs(eigval[i]) &&
+			     abs(eigval[i]-Hp_eigval_discard[0]) > tol) 
+			{
+				converged = false;
+			}
 			
 			ofile_iter << fixed << setprecision(6);
 			ofile_iter << setw(8) << iter*p << setw(12) << eigval[i].real()-shift << setw(12) << eigval[i].imag();
@@ -210,7 +228,7 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 		
 		// Save leading eigenvectors
 		// JFL: This code needs to be replaced by something that only uses native (Armadillo) functions
-		/*
+		
 		eigen_vector[species].initialize(Nx,Ny,Nz);
 		
 		for (int i=k-1; i>=0; i--)
@@ -226,7 +244,6 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 			of << eigen_vector[species].Real();
 			of.close();
 		}
-		*/
 	       
 		// Report in terminal
 		
@@ -241,12 +258,6 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 		
 		eigen_value_old = eigval[0].real()-shift;
 	}
-
-	const int species = 0;
-	const int Nx = matrix_.get_dimension(0);
-	const int Ny = matrix_.get_dimension(1);
-	const int Nz = matrix_.get_dimension(2);
-	const long Ntot = Nx*Ny*Nz;	
 
 	// This is not already initialized ???
 	eigen_vector[species].initialize(Nx,Ny,Nz);		
