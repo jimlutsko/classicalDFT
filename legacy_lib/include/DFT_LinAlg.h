@@ -64,8 +64,9 @@ class DFT_Vec
   // but for now, I do not see it. 
   friend ostream &operator<<(ostream &of, const DFT_Vec &v)
     {
-      unsigned N = v.size();;
-
+      unsigned N = v.size();
+      of.write((char*) &N, sizeof(unsigned));
+      of.write((const char *)(const_cast<DFT_Vec&>(v).memptr()), N*sizeof(double));
       return of;
     }
   friend istream &operator>>(istream  &in, DFT_Vec &v )
