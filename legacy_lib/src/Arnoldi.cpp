@@ -91,7 +91,7 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 	ofile_iter << "# using the best approximations of the associated eigenvectors and the" << endl;
 	ofile_iter << "# error is equivalent to the residual |Av-xv|." << endl;
 	ofile_iter << "# " << endl;
-	ofile_iter << "#" << setw(7) << "iter*p" << setw(12) <<  "real"  << setw(12) <<  "imag"  << setw(12) << "error" << endl;
+	ofile_iter << "#" << setw(7) << "iter*p" << setw(16) <<  "real"  << setw(16) <<  "imag"  << setw(16) << "error" << endl;
 	
 	const int species = 0;
 	const int Nx = matrix_.get_dimension(0);
@@ -219,10 +219,8 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 				converged = false;
 			}
 			
-			ofile_iter << fixed << setprecision(6);
-			ofile_iter << setw(8) << iter*p << setw(12) << eigval[i].real()-shift << setw(12) << eigval[i].imag();
-			ofile_iter << scientific << setprecision(2);
-			ofile_iter << setw(12) << ritz_estimate << endl;
+			ofile_iter << scientific << setprecision(6);
+			ofile_iter << setw(8) << iter*p << setw(16) << eigval[i].real()-shift << setw(16) << eigval[i].imag() << setw(16) << ritz_estimate << endl;
 		}
 		ofile_iter << endl;
 		
@@ -233,9 +231,8 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 		
 		for (int i=k-1; i>=0; i--)
 		{
-			//TODO: Here I assume v has no imaginary part !!! 
 			for(long j=0; j<Ntot; j++)
-				eigen_vector[species].Real().set(j,eigvec(j,i).real()); //here
+				eigen_vector[species].Real().set(j,eigvec(j,i).real());
 			
 			eigen_vector[species].Real().normalise();
 			eigen_vector[species].do_real_2_fourier();
@@ -268,7 +265,6 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 	
 	cout << endl;
 	
-	//TODO: Here I assume the eigenvalue is real!!! 
 	return eigval[0].real()-shift;
 }
 
