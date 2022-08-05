@@ -38,6 +38,8 @@ class DFT_Factory
       //      options_.addOption("DensityInputFile", &SourceInput_);
       options_.addOption("DensityInputFile", &infile_);
       options_.addOption("DensityOutputFile", &outfile_);
+      
+      options_.addOption("ShowGraphics", &show_graphics_);
     }
 
   ~DFT_Factory()
@@ -92,7 +94,7 @@ class DFT_Factory
       ////// Construct DFT
 
       potential1_ = new LJ(sigma1_, eps1_, rcut1_);
-      theDensity_ = new DensityType(dx1_, L_, true);
+      theDensity_ = new DensityType(dx1_, L_, show_graphics_);
       fmt_        = new esFMT(1,0);
   
       if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
@@ -206,5 +208,7 @@ class DFT_Factory
   
   double maxIterations_ = 1000;
   double tol_           = 1e-8;   
+  
+  bool show_graphics_ = true;
 };
 #endif // __LUTSKO_DFT_FACTORY__
