@@ -110,9 +110,9 @@ void init(double L[])
   double getVolume() const { return L_[0]*L_[1]*L_[2];}
   
   // Translate index to cartesian coordinates
-  double getX(int i) const { return dx_*(i-(Nx_-1)/2);}
-  double getY(int i) const { return dy_*(i-(Ny_-1)/2);}
-  double getZ(int i) const { return dz_*(i-(Nz_-1)/2);}
+  double getX(int i) const { return dx_*(i-double(Nx_)/2);}
+  double getY(int i) const { return dy_*(i-double(Ny_)/2);}
+  double getZ(int i) const { return dz_*(i-double(Nz_)/2);}
 
 
   // Cartesian indices into vector index
