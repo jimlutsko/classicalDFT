@@ -58,7 +58,7 @@ class DFT_Factory
   //void addOption(const char  *name, auto *variable) { options_.addOption(name,variable);}
   template<typename Q> void addOption(const char *name, Q *variable) { options_.addOption(name,variable);}
   
-  void initialize()
+  void initialize(bool bHS = true, bool bInteraction = true)
     {
       options_.read(argc_, argv_);
 
@@ -93,21 +93,30 @@ class DFT_Factory
       //////////////////////////////////////
       ////// Construct DFT
 
-      potential1_ = new LJ(sigma1_, eps1_, rcut1_);
-      theDensity_ = new DensityType(dx1_, L_, show_graphics_);
-      fmt_        = new esFMT(1,0);
-  
-      if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
-      
-      species1_     = new FMT_Species(*theDensity_,hsd1_,1);      
-      interaction1_ = new Interaction_Interpolation_QF(species1_,species1_,potential1_,kT_);
+      fmt_ = NULL;
+      if(bHS)
+	fmt_ = new esFMT(1,0);
 
+      interaction1_ = NULL;
+      if(bInteraction)
+	{
+	  potential1_ = new LJ(sigma1_, eps1_, rcut1_);
+	  if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
+	} else if(hsd1_ < 1) hsd1_ = 1;
+
+      theDensity_ = new DensityType(dx1_, L_, show_graphics_);        
+      species1_     = new FMT_Species(*theDensity_,hsd1_,1);      
       dft_ = new DFT(species1_);
 
       species1_->setFixedBackground(fixed_background_);
       
-      dft_->addHardCoreContribution(fmt_);  
-      dft_->addInteraction(interaction1_);
+      if(bHS)          dft_->addHardCoreContribution(fmt_);
+
+      if(bInteraction)
+	{
+	  interaction1_ = new Interaction_Interpolation_QF(species1_,species1_,potential1_,kT_);
+	  dft_->addInteraction(interaction1_);
+	}
 
       if(infile_.empty() == false)
 	theDensity_->readDensity(infile_.c_str());
@@ -121,8 +130,11 @@ class DFT_Factory
       *theLog_ << "\tThe potential is : " << dft_->get_potential_name() << endl;
       *theLog_ << endl;
       *theLog_ << "\tHSD1                        = " << hsd1_ << endl;
-      *theLog_ << "\tVDW parameter (potential)   = " << potential1_->getVDW_Parameter(kT_) << endl;      
-      *theLog_ << "\tVDW parameter (interaction) = " << 0.5*interaction1_->getVDWParameter() << endl;
+      if(potential1_ && interaction1_)
+	{
+	  *theLog_ << "\tVDW parameter (potential)   = " << potential1_->getVDW_Parameter(kT_) << endl;      
+	  *theLog_ << "\tVDW parameter (interaction) = " << 0.5*interaction1_->getVDWParameter() << endl;
+	}
       *theLog_ << endl;
 
       is_initialized_ = true;
@@ -171,11 +183,11 @@ class DFT_Factory
   Options options_;
 
   Log         *theLog_;
-  Potential1  *potential1_;
-  DensityType *theDensity_;
-  Species     *species1_;
+  Potential1  *potential1_ = NULL;
+  DensityType *theDensity_ = NULL;
+  Species     *species1_   = NULL;
 
-  Interaction_Base *interaction1_;
+  Interaction_Base *interaction1_ = NULL;
   
   FMT *fmt_;
   DFT *dft_;
