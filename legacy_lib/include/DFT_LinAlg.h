@@ -22,8 +22,9 @@ class DFT_Vec
   double get(unsigned pos) const;
 
   void set(const DFT_Vec& x);
-  void set(const DFT_Vec& v1, const DFT_Vec& v2, double scale);
-  void set(const double *x, unsigned n);
+  void set(const DFT_Vec& v1, const DFT_Vec& v2, double scale); // = v1+v2*scale
+  void set(const double *x, unsigned n); // copy x (length n) into data
+  void set(double d); // set all values to constant
   
   void setFromAlias(const DFT_Vec &x);
   void setAliasFromValues(const DFT_Vec &x);

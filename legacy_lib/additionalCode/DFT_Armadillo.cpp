@@ -27,7 +27,7 @@ double DFT_Vec::get(unsigned pos) const { return DATA[pos];}
 
 void DFT_Vec::set(const DFT_Vec& v) { DATA = v_DATA;} 
 void DFT_Vec::set(const DFT_Vec& v1, const DFT_Vec& v2, double scale) { DATA = v1_DATA+v2_DATA*scale;}
-  
+void DFT_Vec::set(double d) { DATA.fill(d);}  
 void DFT_Vec::set(const double *x, unsigned n) { DATA.set_size(n); memcpy(DATA.memptr(),x,sizeof(double)*n);}
   
 void DFT_Vec::resize(long N) {DATA.resize(N);}

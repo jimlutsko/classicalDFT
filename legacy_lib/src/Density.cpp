@@ -40,6 +40,12 @@ void Density::initialize_from_file(const char *filename)
   readDensity(filename);
 }
 
+void Density::initialize_to_constant(double density)
+{
+  for(long p=0;p<Density_.Real().size();p++) Density_.Real().set(p,density);
+  Density_.do_real_2_fourier();
+}
+
 // We are assuming that the lattice spacing is the same ...
 // Assume that the input density has lattice points ix=0,...,Nx1-1
 // and that the new system has lattice points ix=0,...,Nx2-1
