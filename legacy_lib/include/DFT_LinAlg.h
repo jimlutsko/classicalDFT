@@ -6,6 +6,7 @@
 #include <boost/serialization/binary_object.hpp>
 
 #include "FMT_FFTW.h"
+#include <complex>
 
 /**
   *  @brief UTILITY: A wrapper for linear algebra packages. The idea is to be able to easily change libraries without changing any other code. Probably overkill and could be eliminated.
@@ -25,6 +26,7 @@ class DFT_Vec
   void set(const DFT_Vec& v1, const DFT_Vec& v2, double scale); // = v1+v2*scale
   void set(const double *x, unsigned n); // copy x (length n) into data
   void set(double d); // set all values to constant
+  void set_random_normal(); // set all values to random, gaussian distributed numbers with mean zero and variance one.
   
   void setFromAlias(const DFT_Vec &x);
   void setAliasFromValues(const DFT_Vec &x);

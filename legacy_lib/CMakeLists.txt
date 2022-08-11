@@ -27,6 +27,7 @@ message("Project source directory is " ${PROJECT_SOURCE_DIR})
 
 #file(GLOB all_SRCS "${PROJECT_SOURCE_DIR}/src/*.cpp")
 set(all_SRCS
+  ${PROJECT_SOURCE_DIR}/src/Dynamical_Matrix.cpp
   ${PROJECT_SOURCE_DIR}/src/Density.cpp
   ${PROJECT_SOURCE_DIR}/src/DFT.cpp
   ${PROJECT_SOURCE_DIR}/src/DFT_Coex.cpp

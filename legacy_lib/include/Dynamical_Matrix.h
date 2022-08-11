@@ -8,6 +8,9 @@ class Dynamical_Matrix
  public:
   Dynamical_Matrix(){}
   ~Dynamical_Matrix(){}
+
+  double log_det_1(double lam_max, int num_samples, int order);
+  double log_det_2(double lam_max, double lam_min, int num_samples, int order);
   
     // Dynamical_Matrix interface
   virtual unsigned get_dimension(int direction) const =0;

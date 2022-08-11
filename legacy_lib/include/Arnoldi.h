@@ -18,11 +18,11 @@
 class Arnoldi
 {
  public:
-  Arnoldi(const Dynamical_Matrix& matrix) : matrix_(matrix){}
+ Arnoldi(const Dynamical_Matrix& matrix, bool verbose = false) : matrix_(matrix), verbose_(verbose){}
   ~Arnoldi(){}
   // k = number of eigenvalues returned (ex. 10)
   // p = additional dimensions used  (ex. 15)
-  double determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps = 1000000, double tol = 1e-8) const;
+  double determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps = 1000000, double tol = 1e-8) const;
   
 protected:
   void matrix_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift) const;
@@ -32,5 +32,7 @@ protected:
 
  private:
   const Dynamical_Matrix& matrix_;
+
+  bool verbose_ = false;
 };
 #endif // __LUTSKO_DFT_ARNOLDI_ sentinal

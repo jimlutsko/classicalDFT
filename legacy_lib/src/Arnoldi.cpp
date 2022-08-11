@@ -69,15 +69,15 @@ void Arnoldi::matrix_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift) cons
 
 
 
-double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps, double tol) const
+double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps, double tol) const
 {
-	cout << endl;
-	cout << myColor::YELLOW;
-	cout << "\tFixed boundary = " << matrix_.is_fixed_boundary() << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
-	cout << myColor::RESET;
-	cout << endl;
+	if(verbose_) cout << endl;
+	if(verbose_) cout << myColor::YELLOW;
+	if(verbose_) cout << "\tFixed boundary = " << matrix_.is_fixed_boundary() << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
+	if(verbose_) cout << myColor::RESET;
+	if(verbose_) cout << endl;
 	
-	int sysres = system("zip -r arnoldi_backup.zip arnoldi/ eigenvectors/");
+	int sysres = system("zip -r -q arnoldi_backup.zip arnoldi/ eigenvectors/");
 	    sysres = system("rm -r arnoldi");
 	    sysres = system("mkdir arnoldi");
 	    sysres = system("rm -r eigenvectors");
@@ -255,7 +255,8 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 		
 		eigen_value_old = eigval[0].real()-shift;
 	}
-
+	cout << endl;
+	
 	// This is not already initialized ???
 	eigen_vector[species].initialize(Nx,Ny,Nz);		
 	for(long j=0; j<Ntot; j++)
@@ -263,7 +264,7 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 	eigen_vector[species].Real().normalise();
 	eigen_vector[species].do_real_2_fourier();
 	
-	cout << endl;
+	if(verbose_) cout << endl;
 	
 	return eigval[0].real()-shift;
 }
