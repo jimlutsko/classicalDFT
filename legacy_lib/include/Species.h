@@ -75,7 +75,7 @@ class Species
     if(bCalcForces)
       {
 	dF_.IncrementBy_Scaled_Vector(density_.get_external_field(),dV);
-	dF_.ShiftBy(mu_*dV);
+	dF_.add(-mu_*dV);
       }
     return Fx;
   }

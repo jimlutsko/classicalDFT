@@ -54,7 +54,7 @@ class DFT_Vec
   void MultBy(double val);
   void IncrementBy(const DFT_Vec& v);
   void DecrementBy(const DFT_Vec& v);
-  void ShiftBy(double shift);
+  void add(double shift);
 
   void IncrementBy(unsigned pos, double val);
     
