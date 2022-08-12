@@ -135,7 +135,8 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
   for(int j=0;j<=order;j++) c[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
 
   
-  long Ntot = get_Ntot();
+  long Ntot    = get_Ntot();
+  long Nactive = Ntot - (is_fixed_boundary() ? get_Nboundary() : 0);
 
   DFT_Vec w0(Ntot); w0.zeros();
   DFT_Vec w1(Ntot); w1.zeros();
@@ -144,8 +145,7 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
   DFT_Vec  u(Ntot);  u.zeros();
   DFT_Vec result(Ntot); result.zeros();
   
-  double log_det = -Ntot*log(scale);
-  if(is_fixed_boundary()) log_det += get_Nboundary()*log(scale);
+  double log_det = -Nactive*log(scale);
 
   random_device r;
   int seed = r();      
@@ -203,11 +203,6 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
   double a = lam_min*lam_min*scale;
   double b = lam_max*lam_max*scale;
 
-  int  Nx = get_dimension(0);
-  int  Ny = get_dimension(1);
-  int  Nz = get_dimension(2);
-  long Ntot = long(Nx)*long(Ny)*long(Nz);
-
   // first, we need the interpolation coefficients for log(x) 
   vector<double> c(order+1);
   for(int k=0;k<=order;k++)
@@ -229,6 +224,9 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
 	}
     }
   for(int j=0;j<=order;j++) c[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
+
+  long Ntot = get_Ntot();
+  long Nactive = Ntot - (is_fixed_boundary() ? get_Nboundary() : 0);
   
   DFT_Vec w0(Ntot);
   DFT_Vec w1(Ntot);
@@ -236,9 +234,9 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
   DFT_Vec  v(Ntot);
   DFT_Vec  u(Ntot);
   DFT_Vec result(Ntot);
-  
-  double log_det = -Ntot*log(scale);
 
+  double log_det = -Nactive*log(scale);
+  
   random_device r;
   int seed = r();      
   mt19937 rng(seed);
@@ -247,7 +245,8 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
   for(int i=1;i<=num_samples;i++)
     {
       for(long pos = 0; pos < Ntot; pos++) v.set(pos,(distrib(rng) > 0 ? 1 : -1));
-      
+      if(is_fixed_boundary()) set_boundary_points_to_zero(v);
+	
       matrix_dot_v1(v,result,NULL);
       matrix_dot_v1(result,result,NULL);
 
