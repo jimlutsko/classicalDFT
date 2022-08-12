@@ -19,27 +19,34 @@ using namespace std;
 #include "Dynamical_Matrix.h"
 
 
+void Dynamical_Matrix::set_boundary_points_to_zero(DFT_Vec &v) const
+{
+  long pos = 0;
+  
+  do{
+    v.set(pos,0.0);
+  } while(get_next_boundary_point(pos));
+  
+}
 
 
-
-
-
-void Dynamical_Matrix::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const
+void Dynamical_Matrix::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param) const
 {
   vector<DFT_FFT> vwork(1);
   vwork[0].initialize(get_dimension(0), get_dimension(1), get_dimension(2));
   vwork[0].Real().set(v);
+
+  if(is_fixed_boundary()) set_boundary_points_to_zero(vwork[0].Real());
+  
   vwork[0].do_real_2_fourier();
 
   vector<DFT_Vec> rwork(1, result.size());
 
   matrix_dot_v(vwork,rwork,param);
   result.set(rwork[0]);
+
+  if(is_fixed_boundary()) set_boundary_points_to_zero(result);
 }
-
-
-
-
 
 // This is the method of Boutsidis, Drineas, Kambadur, Kontopoulou and Zouzias
 // https://www.boutsidis.org/Boutsidis_LAA2017.pdf
@@ -73,14 +80,15 @@ double Dynamical_Matrix::log_det_1(double lam_max, int num_samples, int order)
     {
       // No real difference between these two ...
       //      g.set_random_normal();
-      for(long pos = 0; pos < Ntot; pos++) g.set(pos,(distrib(rng) > 0 ? 1 : -1));      
+      for(long pos = 0; pos < Ntot; pos++) g.set(pos,(distrib(rng) > 0 ? 1 : -1));
+      if(is_fixed_boundary()) set_boundary_points_to_zero(g);
 
       v.set(g);       
 
       for(int k=1;k<=order;k++)
 	{
 	  // Compute v-Mv/alpha
-	  matrix_dot_v(v,result,NULL);
+	  matrix_dot_v1(v,result,NULL);
 	  result.MultBy(-1.0/alpha);
 	  result.IncrementBy(v);
 
@@ -104,11 +112,6 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
 
   double lam_mid = (lam_max+lam_min)/2;
 
-  int  Nx = get_dimension(0);
-  int  Ny = get_dimension(1);
-  int  Nz = get_dimension(2);
-  long Ntot = long(Nx)*long(Ny)*long(Nz);
-
   // first, we need the interpolation coefficients for log(x) 
   vector<double> c(order+1);
   for(int k=0;k<=order;k++)
@@ -130,15 +133,19 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
 	}
     }
   for(int j=0;j<=order;j++) c[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
+
   
-  DFT_Vec w0(Ntot);
-  DFT_Vec w1(Ntot);
-  DFT_Vec w2(Ntot);
-  DFT_Vec  v(Ntot);
-  DFT_Vec  u(Ntot);
-  DFT_Vec result(Ntot);
+  long Ntot = get_Ntot();
+
+  DFT_Vec w0(Ntot); w0.zeros();
+  DFT_Vec w1(Ntot); w1.zeros();
+  DFT_Vec w2(Ntot); w2.zeros();
+  DFT_Vec  v(Ntot);  v.zeros();
+  DFT_Vec  u(Ntot);  u.zeros();
+  DFT_Vec result(Ntot); result.zeros();
   
   double log_det = -Ntot*log(scale);
+  if(is_fixed_boundary()) log_det += get_Nboundary()*log(scale);
 
   random_device r;
   int seed = r();      
@@ -148,8 +155,9 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
   for(int i=1;i<=num_samples;i++)
     {
       for(long pos = 0; pos < Ntot; pos++) v.set(pos,(distrib(rng) > 0 ? 1 : -1));
-
-      matrix_dot_v(v,result,NULL);      
+      if(is_fixed_boundary()) set_boundary_points_to_zero(v);
+      
+      matrix_dot_v1(v,result,NULL);      
       if(do_condition) {result.MultBy(-1); result.add(lam_mid*v.accu()/Ntot);}
 	
       result.MultBy(scale); // This is because we use A/( lam_min+ lam_max)	        
@@ -165,7 +173,7 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
       
       for(int k=2;k<=order;k++)
 	{
-	  matrix_dot_v(w1,result,NULL);
+	  matrix_dot_v1(w1,result,NULL);
 	  if(do_condition) {result.MultBy(-1); result.add(lam_mid*w1.accu()/Ntot);}
 	  
 	  result.MultBy(scale); // This is because we use A/( lam_min+ lam_max)	  
@@ -240,8 +248,8 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
     {
       for(long pos = 0; pos < Ntot; pos++) v.set(pos,(distrib(rng) > 0 ? 1 : -1));
       
-      matrix_dot_v(v,result,NULL);
-      matrix_dot_v(result,result,NULL);
+      matrix_dot_v1(v,result,NULL);
+      matrix_dot_v1(result,result,NULL);
 
       result.MultBy(scale); // This is because we use A/( lam_min+ lam_max)	        
       result.MultBy(2.0/(b-a));
@@ -256,8 +264,8 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
       
       for(int k=2;k<=order;k++)
 	{
-	  matrix_dot_v(w1,result,NULL);
-	  matrix_dot_v(result,result,NULL);
+	  matrix_dot_v1(w1,result,NULL);
+	  matrix_dot_v1(result,result,NULL);
 
 	  result.MultBy(scale); // This is because we use A/( lam_min+ lam_max)	  
 	  result.MultBy(4.0/(b-a));

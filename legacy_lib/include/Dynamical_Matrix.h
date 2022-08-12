@@ -24,7 +24,10 @@ class Dynamical_Matrix
 
   virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const =0;
 
-  void matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const;
+  void matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param) const;
+  void set_boundary_points_to_zero(DFT_Vec &v) const;
+  
+  
   long get_Ntot() const { return get_dimension(0)*get_dimension(1)*get_dimension(2);}
 };
 
