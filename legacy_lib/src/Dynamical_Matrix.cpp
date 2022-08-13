@@ -106,7 +106,6 @@ double Dynamical_Matrix::log_det_1(double lam_max, int num_samples, int order)
 // If do_condition = true, there is a zero eigenvalue associated with vector v0 = (1/sqrt(Ntot),...,1/sqrt(Ntot)) and so we use A->A+lam_max v0v0
 double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_samples, int order, bool has_zero_eigenvalue)
 {
-
   double scale = 1.0/(lam_min+lam_max);
   double a = lam_min*scale;
   double b = lam_max*scale;
@@ -190,6 +189,8 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
 	  w1.set(w2);
 	}
       log_det += v.dotWith(u)/num_samples;
+      if(dm_verbose_)
+	cout << "\t log_det = " << (has_zero_eigenvalue ? -log(lam_mid) : 0)  + num_samples*log_det/i << endl;
     }
 
   if(has_zero_eigenvalue) log_det -= log(lam_mid);
@@ -200,11 +201,13 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
 // This is the method of Han, Maliouto, Avron and Shin from https://arxiv.org/pdf/1606.00942.pdf
 // It is similar to the above method, but Chebychev interpolation is used since this is supposed to be more accurate.
 
-double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_samples, int order)
+double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_samples, int order, bool has_zero_eigenvalue)
 {
   double scale = 1.0/(lam_min*lam_min+lam_max*lam_max);
   double a = lam_min*lam_min*scale;
   double b = lam_max*lam_max*scale;
+  
+  double lam_mid = lam_max*lam_max*scale;  
 
   // first, we need the interpolation coefficients for log(x) 
   vector<double> c(order+1);
@@ -253,6 +256,8 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
       matrix_dot_v1(v,result,NULL);
       matrix_dot_v1(result,result,NULL);
 
+      if(has_zero_eigenvalue) result.add(lam_mid*v.accu()/Ntot);      
+
       result.MultBy(scale); // This is because we use A/( lam_min+ lam_max)	        
       result.MultBy(2.0/(b-a));
       result.IncrementBy_Scaled_Vector(v, -(b+a)/(b-a));
@@ -269,6 +274,8 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
 	  matrix_dot_v1(w1,result,NULL);
 	  matrix_dot_v1(result,result,NULL);
 
+	  if(has_zero_eigenvalue) result.add(lam_mid*w1.accu()/Ntot);
+	  
 	  result.MultBy(scale); // This is because we use A/( lam_min+ lam_max)	  
 	  result.MultBy(4.0/(b-a));
 	  result.IncrementBy_Scaled_Vector(w1, -2*(b+a)/(b-a));
@@ -281,6 +288,11 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
 	  w1.set(w2);
 	}
       log_det += v.dotWith(u)/num_samples;
+      if(dm_verbose_)
+	cout << "\t log_det = " << (has_zero_eigenvalue ? -0.5*log(lam_mid) : 0) + 0.5*num_samples*log_det/i << endl;      
     }
+
+  if(has_zero_eigenvalue) log_det -= log(lam_mid);
+  
   return log_det/2;   
 }
