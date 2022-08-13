@@ -104,8 +104,9 @@ double Dynamical_Matrix::log_det_1(double lam_max, int num_samples, int order)
 // This is the method of Han, Maliouto, Avron and Shin from https://arxiv.org/pdf/1606.00942.pdf
 // It is similar to the above method, but Chebychev interpolation is used since this is supposed to be more accurate.
 // If do_condition = true, there is a zero eigenvalue associated with vector v0 = (1/sqrt(Ntot),...,1/sqrt(Ntot)) and so we use A->A+lam_max v0v0
-double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_samples, int order, bool do_condition)
+double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_samples, int order, bool has_zero_eigenvalue)
 {
+
   double scale = 1.0/(lam_min+lam_max);
   double a = lam_min*scale;
   double b = lam_max*scale;
@@ -133,7 +134,6 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
 	}
     }
   for(int j=0;j<=order;j++) c[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
-
   
   long Ntot    = get_Ntot();
   long Nactive = Ntot - (is_fixed_boundary() ? get_Nboundary() : 0);
@@ -158,7 +158,8 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
       if(is_fixed_boundary()) set_boundary_points_to_zero(v);
       
       matrix_dot_v1(v,result,NULL);      
-      if(do_condition) {result.MultBy(-1); result.add(lam_mid*v.accu()/Ntot);}
+      if(is_dynamic())        result.MultBy(-1);
+      if(has_zero_eigenvalue) result.add(lam_mid*v.accu()/Ntot);
 	
       result.MultBy(scale); // This is because we use A/( lam_min+ lam_max)	        
       result.MultBy(2.0/(b-a));
@@ -174,7 +175,8 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
       for(int k=2;k<=order;k++)
 	{
 	  matrix_dot_v1(w1,result,NULL);
-	  if(do_condition) {result.MultBy(-1); result.add(lam_mid*w1.accu()/Ntot);}
+	  if(is_dynamic())        result.MultBy(-1); 
+	  if(has_zero_eigenvalue) result.add(lam_mid*w1.accu()/Ntot);
 	  
 	  result.MultBy(scale); // This is because we use A/( lam_min+ lam_max)	  
 	  result.MultBy(4.0/(b-a));
@@ -190,7 +192,8 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
       log_det += v.dotWith(u)/num_samples;
     }
 
-  if(do_condition) log_det -= log(lam_mid);
+  if(has_zero_eigenvalue) log_det -= log(lam_mid);
+
   return log_det;   
 }
 

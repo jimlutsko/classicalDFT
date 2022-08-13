@@ -69,6 +69,10 @@ class Options
     {
      vdOptions_[name] = place;
     }
+  void addOption(char const * name, vector<int> * place)
+    {
+     viOptions_[name] = place;
+    }  
 
   void read(int argc, char ** argv, bool bPrint = true);
   void read(char const * file, bool bPrint  = true);
@@ -116,6 +120,13 @@ class Options
 	throw std::runtime_error("Key not found in options");
       return *(i->second);
     }
+  std::vector<int> getVectorIntOption(string& name) const 
+    {
+      std::map<string, vector<int>*>::const_iterator i = viOptions_.find(name);
+      if (i == viOptions_.end())
+	throw std::runtime_error("Key not found in options");
+      return *(i->second);
+    }  
     
  private:
 
@@ -125,6 +136,7 @@ class Options
   std::map<string, string*> cOptions_;
   std::map<string, bool*>   bOptions_;
   std::map<string, vector<double>*>   vdOptions_;
+  std::map<string, vector<int>*>      viOptions_;
 };
 
 #endif //__OPIONS_H__

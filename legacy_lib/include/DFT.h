@@ -158,6 +158,7 @@ class DFT : public Dynamical_Matrix
   virtual bool     get_next_boundary_point(long &pos) const {return allSpecies_[0]->getLattice().get_next_boundary_point(pos);}
   virtual bool     is_fixed_boundary() const { return allSpecies_[0]->is_fixed_boundary();}
   virtual bool is_boundary_point(long p) const {return allSpecies_[0]->getDensity().is_boundary_point(p);}
+  virtual bool is_dynamic() const { return false;}
   
   void set_full_hessian(bool full) { full_hessian_ = full;}
   

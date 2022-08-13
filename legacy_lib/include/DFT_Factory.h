@@ -40,6 +40,8 @@ class DFT_Factory
       options_.addOption("DensityOutputFile", &outfile_);
       
       options_.addOption("ShowGraphics", &show_graphics_);
+      options_.addOption("Include_HS", &include_hs_);
+      options_.addOption("Include_Interaction", &include_interaction_);        
     }
 
   ~DFT_Factory()
@@ -58,7 +60,7 @@ class DFT_Factory
   //void addOption(const char  *name, auto *variable) { options_.addOption(name,variable);}
   template<typename Q> void addOption(const char *name, Q *variable) { options_.addOption(name,variable);}
   
-  void initialize(bool bHS = true, bool bInteraction = true)
+  void initialize()
     {
       options_.read(argc_, argv_);
 
@@ -94,11 +96,11 @@ class DFT_Factory
       ////// Construct DFT
 
       fmt_ = NULL;
-      if(bHS)
+      if(include_hs_)
 	fmt_ = new esFMT(1,0);
 
       interaction1_ = NULL;
-      if(bInteraction)
+      if(include_interaction_)
 	{
 	  potential1_ = new LJ(sigma1_, eps1_, rcut1_);
 	  if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
@@ -110,9 +112,9 @@ class DFT_Factory
 
       species1_->setFixedBackground(fixed_background_);
       
-      if(bHS)          dft_->addHardCoreContribution(fmt_);
+      if(include_hs_) dft_->addHardCoreContribution(fmt_);
 
-      if(bInteraction)
+      if(include_interaction_)
 	{
 	  interaction1_ = new Interaction_Interpolation_QF(species1_,species1_,potential1_,kT_);
 	  dft_->addInteraction(interaction1_);
@@ -177,6 +179,9 @@ class DFT_Factory
 
   void check() const {    if(!is_initialized_) throw std::runtime_error("DFT factory not initialized");}
 
+  void set_show_graphics(bool show) { show_graphics_ = show;}
+
+  
  private:
   int argc_;
   char **argv_;
@@ -221,6 +226,10 @@ class DFT_Factory
   double maxIterations_ = 1000;
   double tol_           = 1e-8;   
   
-  bool show_graphics_ = true;
+  bool show_graphics_        = true;
+  bool include_hs_           = true;
+  bool include_interaction_  = true;
+
+  
 };
 #endif // __LUTSKO_DFT_FACTORY__

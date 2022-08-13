@@ -88,10 +88,22 @@ void Options::read(char const * file, bool bPrint)
 	    {
 	      for(auto& x: *place) cout << x << " ";
 	      cout << endl;
-	    }	  
+	    }
+      } else if(viOptions_.find(pch) != viOptions_.end()) {
+	std::vector<int> *place = viOptions_[pch];
+	pch = strtok(NULL,delim);
+	  while(pch != NULL) {
+	    place->push_back(atoi(pch));
+	    pch = strtok(NULL," ");
+	  }
+	  if(bPrint)
+	    {
+	      for(auto& x: *place) cout << x << " ";
+	      cout << endl;
+	    }	  	  
 	} else {
 	  if(bPrint) cout <<  "<not a parameter>" << endl;
-	}
+      }
     }
   f.close();
 
@@ -128,4 +140,13 @@ void Options::write(ostream &of) const
       of << endl;
     }
   of <<  endl;
+
+  map<string, vector<int>*>::const_iterator itervi;
+  for (itervi=viOptions_.begin(); itervi != viOptions_.end(); ++itervi)
+    {
+      of <<  itervi->first << " = ";
+      for(auto &x: *(itervi->second)) of << x << " ";
+      of << endl;
+    }
+  of <<  endl;  
 }
