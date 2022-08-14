@@ -241,7 +241,8 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
   DFT_Vec  u(Ntot);
   DFT_Vec result(Ntot);
 
-  double log_det = -Nactive*log(scale);
+  //  double log_det = -Nactive*log(scale);
+  double log_det = 0;
   
   random_device r;
   int seed = r();      
@@ -289,10 +290,11 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
 	}
       log_det += v.dotWith(u)/num_samples;
       if(dm_verbose_)
-	cout << "\t log_det = " << (has_zero_eigenvalue ? -0.5*log(lam_mid) : 0) + 0.5*num_samples*log_det/i << endl;      
+	cout << "\t log_det = " << -0.5*Nactive*log(scale) + (has_zero_eigenvalue ? -0.5*log(lam_mid) : 0) + 0.5*num_samples*log_det/i << endl;      
     }
 
   if(has_zero_eigenvalue) log_det -= log(lam_mid);
+  log_det -= Nactive*log(scale);
   
   return log_det/2;   
 }
