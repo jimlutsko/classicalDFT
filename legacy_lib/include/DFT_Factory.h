@@ -177,6 +177,8 @@ class DFT_Factory
   string get_infile()           const { return infile_;}
   string get_outfile()          const { return outfile_;}
 
+  bool   get_fixed_background() const { return fixed_background_;}
+  
   void check() const {    if(!is_initialized_) throw std::runtime_error("DFT factory not initialized");}
 
   void set_show_graphics(bool show) { show_graphics_ = show;}

@@ -23,6 +23,9 @@ class Arnoldi
   // k = number of eigenvalues returned (ex. 10)
   // p = additional dimensions used  (ex. 15)
   double determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps = 1000000, double tol = 1e-8) const;
+
+  void set_verbose(bool b) { verbose_ = b;}
+  void set_debug(bool b)   { debug_   = b;}
   
 protected:
   void matrix_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift) const;
@@ -34,5 +37,6 @@ protected:
   const Dynamical_Matrix& matrix_;
 
   bool verbose_ = false;
+  bool debug_   = false;
 };
 #endif // __LUTSKO_DFT_ARNOLDI_ sentinal

@@ -76,23 +76,27 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 	if(verbose_) cout << "\tFixed boundary = " << matrix_.is_fixed_boundary() << ", MaxIterations = " << maxSteps << ", tolerence = " << tol << endl;
 	if(verbose_) cout << myColor::RESET;
 	if(verbose_) cout << endl;
+
+	ofstream ofile_iter;
 	
-	int sysres = system("zip -r -q arnoldi_backup.zip arnoldi/ eigenvectors/");
+	if(debug_)
+	  {
+	    int sysres = system("zip -r -q arnoldi_backup.zip arnoldi/ eigenvectors/");
 	    sysres = system("rm -r arnoldi");
 	    sysres = system("mkdir arnoldi");
 	    sysres = system("rm -r eigenvectors");
 	    sysres = system("mkdir eigenvectors");
 	
-	ofstream ofile_iter("arnoldi/iterations.dat");
-	ofile_iter << "# Largest eigenvalues from Implicitely Restarted Arnoldi method" << endl;
-	ofile_iter << "# " << endl;
-	ofile_iter << "# These are Ritz values (real and imaginary components) and Ritz" << endl;
-	ofile_iter << "# estimates for the errors. In other words these are Rayleigh quotients" << endl;
-	ofile_iter << "# using the best approximations of the associated eigenvectors and the" << endl;
-	ofile_iter << "# error is equivalent to the residual |Av-xv|." << endl;
-	ofile_iter << "# " << endl;
-	ofile_iter << "#" << setw(7) << "iter*p" << setw(16) <<  "real"  << setw(16) <<  "imag"  << setw(16) << "error" << endl;
-	
+	    ofile_iter.open("arnoldi/iterations.dat");
+	    ofile_iter << "# Largest eigenvalues from Implicitely Restarted Arnoldi method" << endl;
+	    ofile_iter << "# " << endl;
+	    ofile_iter << "# These are Ritz values (real and imaginary components) and Ritz" << endl;
+	    ofile_iter << "# estimates for the errors. In other words these are Rayleigh quotients" << endl;
+	    ofile_iter << "# using the best approximations of the associated eigenvectors and the" << endl;
+	    ofile_iter << "# error is equivalent to the residual |Av-xv|." << endl;
+	    ofile_iter << "# " << endl;
+	    ofile_iter << "#" << setw(7) << "iter*p" << setw(16) <<  "real"  << setw(16) <<  "imag"  << setw(16) << "error" << endl;
+	  }
 	const int species = 0;
 	const int Nx = matrix_.get_dimension(0);
 	const int Ny = matrix_.get_dimension(1);
@@ -199,9 +203,13 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 		// Convergence checks
 		
 		iter++;
-		if (iter>=maxSteps) throw runtime_error("IRArnoldi method: Exceeded max iterations");
+		//JFL
+		//if (iter>=maxSteps) converged = true; //throw runtime_error("IRArnoldi method: Exceeded max iterations");		
+		//converged = true;
+
+		if(iter>=maxSteps) return eigval[0].real()-shift;
+
 		
-		converged = true;
 		for (int i=0; i<k; i++)
 		{
 			double ritz_estimate = abs(Hk_eigvec(k-1,i))*norm(fk);
@@ -218,11 +226,14 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 			{
 				converged = false;
 			}
-			
-			ofile_iter << scientific << setprecision(6);
-			ofile_iter << setw(8) << iter*p << setw(16) << eigval[i].real()-shift << setw(16) << eigval[i].imag() << setw(16) << ritz_estimate << endl;
+
+			if(debug_)
+			  {
+			    ofile_iter << scientific << setprecision(6);
+			    ofile_iter << setw(8) << iter*p << setw(16) << eigval[i].real()-shift << setw(16) << eigval[i].imag() << setw(16) << ritz_estimate << endl;
+			  }
 		}
-		ofile_iter << endl;
+		if(debug_) ofile_iter << endl;
 		
 		// Save leading eigenvectors
 		// JFL: This code needs to be replaced by something that only uses native (Armadillo) functions
@@ -236,10 +247,13 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 			
 			eigen_vector[species].Real().normalise();
 			eigen_vector[species].do_real_2_fourier();
-			
-			ofstream of("eigenvectors/density_eigenvector_"+to_string(i)+".dat");
-			of << eigen_vector[species].Real();
-			of.close();
+
+			if(debug_)
+			  {
+			    ofstream of("eigenvectors/density_eigenvector_"+to_string(i)+".dat");
+			    of << eigen_vector[species].Real();
+			    of.close();
+			  }
 		}
 	       
 		// Report in terminal
@@ -248,11 +262,13 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 		cout << setprecision(6);
 		cout << '\r'; cout << "\t" << "iteration = " << iter << " shift = " << shift << " eigen_value = " << setw(12) << eigval[0].real()-shift;
 		cout << myColor::RESET;
-		
-		ofstream debug("debug.dat", (iter == 0 ? ios::trunc : ios::app));
-		debug << iter << " " << eigval[0].real()-shift << " " << fabs(eigval[0].real()-shift - eigen_value_old)/fabs(eigval[0].real()-shift) << " " << fabs(eigval[0].real()-shift - eigen_value_old) << " " << abs(Hk_eigvec(k-1,0))*norm(fk) << endl;
-		debug.close();
-		
+
+		if(debug_)
+		  {
+		    ofstream debug("debug.dat", (iter == 0 ? ios::trunc : ios::app));
+		    debug << iter << " " << eigval[0].real()-shift << " " << fabs(eigval[0].real()-shift - eigen_value_old)/fabs(eigval[0].real()-shift) << " " << fabs(eigval[0].real()-shift - eigen_value_old) << " " << abs(Hk_eigvec(k-1,0))*norm(fk) << endl;
+		    debug.close();
+		  }
 		eigen_value_old = eigval[0].real()-shift;
 	}
 	cout << endl;
@@ -312,14 +328,16 @@ bool Arnoldi::check_factorisation(arma::cx_mat V, arma::cx_mat H, arma::cx_vec f
 	}
 	
 	double error = arma::norm(R,"fro");
+
+	if(debug_)
+	  {
+	    ofstream ofile_check("arnoldi/check_factorisation.dat", ios::app);
 	
-	ofstream ofile_check("arnoldi/check_factorisation.dat", ios::app);
-	
-	ofile_check << scientific << setprecision(2);
-	ofile_check << "Norm of Residual:     " << error << endl;
-	ofile_check << "While tol*sqrt(N*k):  " << tol*sqrt(Ntot*k) << endl;
-	ofile_check << endl;
-	
+	    ofile_check << scientific << setprecision(2);
+	    ofile_check << "Norm of Residual:     " << error << endl;
+	    ofile_check << "While tol*sqrt(N*k):  " << tol*sqrt(Ntot*k) << endl;
+	    ofile_check << endl;
+	  }
 	return (error<tol*sqrt(Ntot*k));
 }
 
@@ -338,10 +356,13 @@ bool Arnoldi::check_eigenvectors(arma::cx_mat eigvec, arma::cx_vec eigval, doubl
 		if (abs(eigvec(matrix_.boundary_pos_2_pos(i),j))>tol) 
 		  throw runtime_error("Eigenvector has non-zero values on boundaries");
 	      }
-	
-	ofstream ofile_check("arnoldi/check_eigenvectors.dat", ios::app);
-	ofile_check << scientific << setprecision(2);
-	
+
+	ofstream ofile_check;
+	if(debug_)
+	  {
+	    ofile_check.open("arnoldi/check_eigenvectors.dat", ios::app);
+	    ofile_check << scientific << setprecision(2);
+	  }
 	double err_max = 0.0;
 	
 	for (int j=0; j<k; j++)
@@ -352,12 +373,13 @@ bool Arnoldi::check_eigenvectors(arma::cx_mat eigvec, arma::cx_vec eigval, doubl
 		
 		double err = arma::norm(w,2);
 		if (err>err_max) err_max = err;
-		ofile_check << "Norm of Residual:   " << err << endl;
+		if(debug_) ofile_check << "Norm of Residual:   " << err << endl;
 	}
-	
-	ofile_check << "While tol*sqrt(N):  " << tol*sqrt(Ntot) << endl;
-	ofile_check << endl;
-	
+	if(debug_)
+	  {
+	    ofile_check << "While tol*sqrt(N):  " << tol*sqrt(Ntot) << endl;
+	    ofile_check << endl;
+	  }
 	return (err_max<tol);
 }
 
@@ -488,7 +510,7 @@ void Arnoldi::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arm
 	
 	f = v;
 	
-	save_Arnoldi_matrices(V,H);
+	if(debug_) save_Arnoldi_matrices(V,H);
 	
 	if (!check_factorisation(V,H,f,shift,tol)) 
 		throw runtime_error("Arnoldi factorisation does not check out");

@@ -17,6 +17,7 @@
 using namespace std;
 
 #include "Dynamical_Matrix.h"
+#include "myColor.h"
 
 
 void Dynamical_Matrix::set_boundary_points_to_zero(DFT_Vec &v) const
@@ -189,9 +190,13 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
 	  w1.set(w2);
 	}
       log_det += v.dotWith(u)/num_samples;
-      if(dm_verbose_)
-	cout << "\t log_det = " << (has_zero_eigenvalue ? -log(lam_mid) : 0)  + num_samples*log_det/i << endl;
+      //      if(dm_verbose_)
+      cout << myColor::YELLOW;
+      cout << setprecision(6);
+      cout << '\r'; cout << "\t samples = " << i << " log_det = " << (has_zero_eigenvalue ? -log(lam_mid) : 0)  + num_samples*log_det/i;
+      cout << myColor::RESET;	      
     }
+  cout << endl;
 
   if(has_zero_eigenvalue) log_det -= log(lam_mid);
 
@@ -241,7 +246,8 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
   DFT_Vec  u(Ntot);
   DFT_Vec result(Ntot);
 
-  double log_det = -Nactive*log(scale);
+  double log_det = 0;
+  double var_log_det = 0;
   
   random_device r;
   int seed = r();      
@@ -287,12 +293,26 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
 	  w0.set(w1);
 	  w1.set(w2);
 	}
-      log_det += v.dotWith(u)/num_samples;
-      if(dm_verbose_)
-	cout << "\t log_det = " << (has_zero_eigenvalue ? -0.5*log(lam_mid) : 0) + 0.5*num_samples*log_det/i << endl;      
+      log_det += v.dotWith(u);
+      var_log_det += v.dotWith(u)*v.dotWith(u);
+      //      if(dm_verbose_)
+      cout << myColor::YELLOW;
+      cout << setprecision(6);
+      double av = log_det/i;
+      double av2 = var_log_det/i;
+      double current_val = -0.5*Nactive*log(scale) + (has_zero_eigenvalue ? -0.5*log(lam_mid) : 0) + 0.5*av;
+      
+      cout << '\r'; cout << "\t samples = " << i << " log_det = " <<  current_val
+	   << " variance = " << 0.5*sqrt(fabs(av2-av*av)) << " = " << 100*0.5*sqrt(fabs(av2-av*av))/current_val << " \%                         ";
+      cout << myColor::RESET;
     }
-
+  cout << endl;
+  log_det /= num_samples;				     
   if(has_zero_eigenvalue) log_det -= log(lam_mid);
+  log_det -= Nactive*log(scale);
+
+
+  
   
   return log_det/2;   
 }
