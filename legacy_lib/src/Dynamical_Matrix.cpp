@@ -236,16 +236,17 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
     }
   for(int j=0;j<=order;j++) c[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
 
-  long Ntot = get_Ntot();
-  long Nactive = Ntot - (is_fixed_boundary() ? get_Nboundary() : 0);
+  const long Ntot = get_Ntot();
+  const long Nactive = Ntot - (is_fixed_boundary() ? get_Nboundary() : 0);
   
+  /*
   DFT_Vec w0(Ntot);
   DFT_Vec w1(Ntot);
   DFT_Vec w2(Ntot);
   DFT_Vec  v(Ntot);
   DFT_Vec  u(Ntot);
   DFT_Vec result(Ntot);
-
+  */
   double log_det = 0;
   double var_log_det = 0;
   
@@ -253,9 +254,19 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
   int seed = r();      
   mt19937 rng(seed);
   uniform_int_distribution<> distrib(0, 1);      
-  
-  for(int i=1;i<=num_samples;i++)
+
+  int i;
+#pragma omp parallel for shared(rng, distrib)  private(i) schedule(static) reduction( + : log_det ) reduction( + : var_log_det )
+  for(i=1;i<=num_samples;i++)
     {
+
+      DFT_Vec w0(Ntot);
+      DFT_Vec w1(Ntot);
+      DFT_Vec w2(Ntot);
+      DFT_Vec  v(Ntot);
+      DFT_Vec  u(Ntot);
+      DFT_Vec result(Ntot);
+      
       for(long pos = 0; pos < Ntot; pos++) v.set(pos,(distrib(rng) > 0 ? 1 : -1));
       if(is_fixed_boundary()) set_boundary_points_to_zero(v);
 	
