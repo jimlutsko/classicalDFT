@@ -105,17 +105,10 @@ double Dynamical_Matrix::log_det_1(double lam_max, int num_samples, int order)
 // This is the method of Han, Maliouto, Avron and Shin from https://arxiv.org/pdf/1606.00942.pdf
 // It is similar to the above method, but Chebychev interpolation is used since this is supposed to be more accurate.
 // If do_condition = true, there is a zero eigenvalue associated with vector v0 = (1/sqrt(Ntot),...,1/sqrt(Ntot)) and so we use A->A+lam_max v0v0
-double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_samples, int order, bool has_zero_eigenvalue)
+
+static void get_coefficients(int order, double a, double b, vector<double> &c)
 {
-  double scale = 1.0/(lam_min+lam_max);
-  double a = lam_min*scale;
-  double b = lam_max*scale;
-
-  double lam_mid = (lam_max+lam_min)/2;
-
-  // first, we need the interpolation coefficients for log(x) 
-  vector<double> c(order+1);
-  for(int k=0;k<=order;k++)
+ for(int k=0;k<=order;k++)
     {
       double xk = cos(M_PI*(k+0.5)/(order+1));	  
       double Tm2 = 0;
@@ -134,6 +127,24 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
 	}
     }
   for(int j=0;j<=order;j++) c[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
+}
+
+
+
+double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_samples, int order, double & variance, bool has_zero_eigenvalue, long seed)
+{
+  lam_max *= 1.1;
+  lam_min /= 2;
+  
+  double scale = 1.0/(lam_min+lam_max);
+  double a = lam_min*scale;
+  double b = lam_max*scale;
+
+  double lam_mid = (lam_max+lam_min)/2;
+
+  // first, we need the interpolation coefficients for log(x) 
+  vector<double> c(order+1);
+  get_coefficients(order,a,b,c);
   
   long Ntot    = get_Ntot();
   long Nactive = Ntot - (is_fixed_boundary() ? get_Nboundary() : 0);
@@ -145,10 +156,12 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
   DFT_Vec  u(Ntot);  u.zeros();
   DFT_Vec result(Ntot); result.zeros();
   
-  double log_det = -Nactive*log(scale);
+  //  double log_det = -Nactive*log(scale);
+  double log_det = 0;
+  double var_log_det = 0;
 
-  random_device r;
-  int seed = r();      
+  
+  if(seed <= 0) { random_device r;  seed = r();}
   mt19937 rng(seed);
   uniform_int_distribution<> distrib(0, 1);      
   
@@ -189,25 +202,37 @@ double Dynamical_Matrix::log_det_2(double lam_max, double lam_min, int num_sampl
 	  w0.set(w1);
 	  w1.set(w2);
 	}
-      log_det += v.dotWith(u)/num_samples;
-      //      if(dm_verbose_)
+      log_det     += v.dotWith(u); ///num_samples;
+      var_log_det += v.dotWith(u)*v.dotWith(u);
+
+      double av          = log_det/i;
+      double av2         = var_log_det/i;
+      double current_val = -Nactive*log(scale) + (has_zero_eigenvalue ? -log(lam_mid) : 0) + av;
+      variance           = sqrt(fabs(av2-av*av));
+      
       cout << myColor::YELLOW;
-      cout << setprecision(6);
-      cout << '\r'; cout << "\t samples = " << i << " log_det = " << (has_zero_eigenvalue ? -log(lam_mid) : 0)  + num_samples*log_det/i;
+      cout << setprecision(6);      
+      cout << '\r'; cout << "\t samples = " << i << " log_det = " << current_val //(has_zero_eigenvalue ? -log(lam_mid) : 0)  + num_samples*log_det/i;
+	   << " variance = " << sqrt(fabs(av2-av*av)) << " = " << 100*sqrt(fabs(av2-av*av))/current_val << " \%                         ";
       cout << myColor::RESET;	      
     }
   cout << endl;
 
+  log_det /= num_samples;				     
   if(has_zero_eigenvalue) log_det -= log(lam_mid);
-
+  log_det -= Nactive*log(scale);
+  
   return log_det;   
 }
 
 // This is the method of Han, Maliouto, Avron and Shin from https://arxiv.org/pdf/1606.00942.pdf
-// It is similar to the above method, but Chebychev interpolation is used since this is supposed to be more accurate.
+// Here, we use the square of the matrix so that negative eigenvalues are not a problem
 
-double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_samples, int order, bool has_zero_eigenvalue)
+double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_samples, int order, double &variance, bool has_zero_eigenvalue, long seed)
 {
+  lam_max *= 1.1;
+  lam_min /= 2;
+
   double scale = 1.0/(lam_min*lam_min+lam_max*lam_max);
   double a = lam_min*lam_min*scale;
   double b = lam_max*lam_max*scale;
@@ -216,25 +241,7 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
 
   // first, we need the interpolation coefficients for log(x) 
   vector<double> c(order+1);
-  for(int k=0;k<=order;k++)
-    {
-      double xk = cos(M_PI*(k+0.5)/(order+1));	  
-      double Tm2 = 0;
-      double Tm1 = 0;
-      double T   = 1;
-      for(int j=0;j<=order;j++)
-	{      
-	  if(j == 0) T = 1;
-	  else if(j == 1) T = xk;
-	  else T = 2*xk*Tm1-Tm2;
-
-	  c[j] += log(0.5*(b-a)*xk+0.5*(b+a))*T;
-
-	  Tm2 = Tm1;
-	  Tm1 = T;
-	}
-    }
-  for(int j=0;j<=order;j++) c[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
+  get_coefficients(order,a,b,c);
 
   const long Ntot = get_Ntot();
   const long Nactive = Ntot - (is_fixed_boundary() ? get_Nboundary() : 0);
@@ -250,8 +257,9 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
   double log_det = 0;
   double var_log_det = 0;
   
-  random_device r;
-  int seed = r();      
+  
+  if(seed < 0) { random_device r; seed = r();}
+  
   mt19937 rng(seed);
   uniform_int_distribution<> distrib(0, 1);      
 
@@ -302,18 +310,18 @@ double Dynamical_Matrix::log_fabs_det_2(double lam_max, double lam_min, int num_
       double av = log_det/i;
       double av2 = var_log_det/i;
       double current_val = -0.5*Nactive*log(scale) + (has_zero_eigenvalue ? -0.5*log(lam_mid) : 0) + 0.5*av;
+      variance = 0.5*sqrt(fabs(av2-av*av));
       
       cout << '\r'; cout << "\t samples = " << i << " log_det = " <<  current_val
 	   << " variance = " << 0.5*sqrt(fabs(av2-av*av)) << " = " << 100*0.5*sqrt(fabs(av2-av*av))/current_val << " \%                         ";
       cout << myColor::RESET;
+      
     }
   cout << endl;
+
   log_det /= num_samples;				     
   if(has_zero_eigenvalue) log_det -= log(lam_mid);
   log_det -= Nactive*log(scale);
 
-
-  
-  
   return log_det/2;   
 }
