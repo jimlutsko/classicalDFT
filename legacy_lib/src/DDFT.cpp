@@ -358,6 +358,24 @@ void DDFT::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void 
   DFT_Vec intermediate_result(result[0]);
   result[0].zeros();
   g_dot_x(intermediate_result, result[0]);
+
+  // USE (A^T A)
+  if(use_squared_matrix_)
+    {
+      vector<DFT_FFT> v1(1);
+      v1[0].initialize(get_dimension(0), get_dimension(1), get_dimension(2));     
+      
+      v1[0].Real().set(result[0]);
+      v1[0].do_real_2_fourier();
+      result[0].zeros();
+      
+      dft_->matrix_dot_v(v1, result);
+      DFT_Vec intermediate_result(result[0]);
+      result[0].zeros();
+      g_dot_x(intermediate_result, result[0]);
+
+      result[0].MultBy(-1);      
+    }
 }
 
 //void DDFT::reverseForce(DFT_Vec *tangent) 

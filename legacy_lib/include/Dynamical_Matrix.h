@@ -8,10 +8,6 @@ class Dynamical_Matrix
  public:
   Dynamical_Matrix(){}
   ~Dynamical_Matrix(){}
-
-  double log_det_1(double lam_max, int num_samples, int order);
-  double log_det_2(double lam_max, double lam_min, int num_samples, int order, double &variance, bool has_zero_eigenvalue = false, long seed = -1);
-  double log_fabs_det_2(double lam_max, double lam_min, int num_samples, int order, double &variance, bool has_zero_eigenvalue = false, long seed = -1);
   
     // Dynamical_Matrix interface
   virtual unsigned get_dimension(int direction) const =0;
@@ -31,10 +27,12 @@ class Dynamical_Matrix
   
   long get_Ntot() const { return get_dimension(0)*get_dimension(1)*get_dimension(2);}
 
-  void set_verbose(bool v) { dm_verbose_ = v;}
-  
- private:
-  bool dm_verbose_ = false;
+  void set_verbose(bool v)             { dm_verbose_ = v;}
+  void set_use_squared_matrix_(bool v) { use_squared_matrix_  = v;}
+
+protected:
+  bool dm_verbose_         = false;
+  bool use_squared_matrix_ = false;
 };
 
 #endif

@@ -81,7 +81,7 @@ void Log_Det::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param) cons
   if(matrix_.is_fixed_boundary()) set_boundary_points_to_zero(result);
 }
 
-double Log_Det::calculate_log_det(int seed, int num_samples, bool has_zero_eigenvalue, double &variance)
+double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eigenvalue, double &variance)
 {
   double lam_mid = (lam_max_+lam_min_)/2;
 
