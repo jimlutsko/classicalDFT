@@ -213,7 +213,7 @@ double Arnoldi::determine_unstable_eigenvector(vector<DFT_FFT> &eigen_vector, do
 			// the calculation of the corresponding vector subspace since we
 			// never record all necessary Arnoldi vectors to contruct the basis.
 			
-			if ( ritz_estimate > tol*abs(eigval[i]) &&
+			if ( ritz_estimate > tol*abs(eigval[i].real()-shift) &&
 			     abs(eigval[i]-Hp_eigval_discard[0]) > tol) 
 			{
 				converged = false;
