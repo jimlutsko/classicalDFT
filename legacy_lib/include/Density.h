@@ -47,11 +47,12 @@ class Density : public Lattice
   // Initialize
   void initialize_from_file(const char *filename);
   void initialize_from_smaller_density(const Density &density);
-
+  
   //set/get density 
   void set(int i, int j, int k, double val)   { set(pos(i,j,k),val);}
   void set(unsigned pos, double val)  { Density_.Real().set(pos,val);}  
   void set(const DFT_Vec &x) { Density_.Real().set(x);}
+  void set(double density) { Density_.Real().set(density); Density_.do_real_2_fourier();}
   void set_background_density(double val);
   
   virtual double  get(long pos) const { return Density_.cReal().get(pos);}   

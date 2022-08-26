@@ -27,9 +27,10 @@ double DFT_Vec::get(unsigned pos) const { return DATA[pos];}
 
 void DFT_Vec::set(const DFT_Vec& v) { DATA = v_DATA;} 
 void DFT_Vec::set(const DFT_Vec& v1, const DFT_Vec& v2, double scale) { DATA = v1_DATA+v2_DATA*scale;}
-  
+void DFT_Vec::set(double d) { DATA.fill(d);}  
 void DFT_Vec::set(const double *x, unsigned n) { DATA.set_size(n); memcpy(DATA.memptr(),x,sizeof(double)*n);}
-  
+void DFT_Vec::set_random_normal(){arma::arma_rng::set_seed_random(); DATA.randn();}
+
 void DFT_Vec::resize(long N) {DATA.resize(N);}
 void DFT_Vec::zeros(long N)  {DATA.zeros(N);}
 void DFT_Vec::zeros()  {DATA.zeros();}
@@ -52,7 +53,7 @@ double DFT_Vec::accu() const { return arma::accu(DATA);}
 void DFT_Vec::MultBy(double val)            { DATA *= val;}
 void DFT_Vec::IncrementBy(const DFT_Vec& v) { DATA += v_DATA;}
 void DFT_Vec::DecrementBy(const DFT_Vec& v) { DATA -= v_DATA;}  
-void DFT_Vec::ShiftBy(double shift)         { DATA += -shift;}
+void DFT_Vec::add(double shift)         { DATA += shift;}
 
 void DFT_Vec::IncrementBy(unsigned pos, double val) { DATA[pos] += val;}
 

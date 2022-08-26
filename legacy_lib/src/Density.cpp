@@ -28,6 +28,7 @@ Density::Density(double dx, double dy, double dz, double L[])
   vWall_.zeros(Ntot_);
 }  
 Density::Density(): Lattice(), Density_(), vWall_(){}
+
 Density::Density(const Density &dd)
   : Lattice(dd), Density_(dd.Density_), vWall_(dd.vWall_)
 {

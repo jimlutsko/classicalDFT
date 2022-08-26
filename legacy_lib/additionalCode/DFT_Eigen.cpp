@@ -30,6 +30,7 @@ DFT_Vec::~DFT_Vec() { if(data_) delete static_cast<Eigen::VectorXd*>(data_);}
 void   DFT_Vec::set(unsigned pos, double val) { DATA[pos] = val;}
 double DFT_Vec::get(unsigned pos) const { return DATA[pos];}
 
+void DFT_Vec::set(double d) { DATA.fill(d);}  
 void DFT_Vec::set(const DFT_Vec& v) { DATA = v_DATA;} 
 void DFT_Vec::set(const DFT_Vec& v1, const DFT_Vec& v2, double scale) { DATA = v1_DATA+v2_DATA*scale;}
 
@@ -73,7 +74,7 @@ void DFT_Vec::load(ifstream &in)
 void DFT_Vec::MultBy(double val)            { DATA *= val;}
 void DFT_Vec::IncrementBy(const DFT_Vec& v) { DATA += v_DATA;}
 void DFT_Vec::DecrementBy(const DFT_Vec& v) { DATA -= v_DATA;}  
-void DFT_Vec::ShiftBy(double shift)         { DATA = DATA.array() -shift;}
+void DFT_Vec::add(double shift)         { DATA = DATA.array()+shift;}
 
 void DFT_Vec::IncrementBy(unsigned pos, double val) { DATA[pos] += val;}
 

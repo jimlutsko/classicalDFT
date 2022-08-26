@@ -430,8 +430,12 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
    *   Cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
    */
 
-void DFT::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
+void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
 {
+  // I would like to do this but it violates the const declaration of v
+  //  for(int i=0;i<v.size();i++)
+  //    v[i].do_real_2_fourier(); // make sure this is done! An internal flag should prevent needless FFT's
+  
   // Boundary terms must be zero if the boundary is fixed
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())

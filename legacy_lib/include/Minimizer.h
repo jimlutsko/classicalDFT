@@ -213,8 +213,9 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   virtual long     boundary_pos_2_pos(int p)    const {return dft_->boundary_pos_2_pos(p);}    
   virtual bool     is_boundary_point(long p) const {return dft_->is_boundary_point(p);}
   virtual bool     is_fixed_boundary() const {return dft_->is_fixed_boundary();}
-  virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const;
-
+  virtual void     matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const;
+  virtual bool     is_dynamic() const { return true;}
+  
 protected:
   void   g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
   double get_neighbors(const DFT_Vec &x, int species, long pos, int stride,

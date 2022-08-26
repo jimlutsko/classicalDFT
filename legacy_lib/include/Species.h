@@ -23,7 +23,8 @@ class Species
   void setFixedMass(double m)            { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
   void setFixedBackground(bool fixed)    { fixedBackground_    = fixed;}
   void setHomogeneousBoundary(bool homo) { homgeneousBoundary_ = homo;}
-  
+
+      
   bool is_background_fixed() const { return fixedBackground_;}
   bool is_mass_fixed()       const { return (fixedMass_ > 0);}
   bool is_fixed_boundary() const { return   fixedBackground_;}
@@ -75,7 +76,7 @@ class Species
     if(bCalcForces)
       {
 	dF_.IncrementBy_Scaled_Vector(density_.get_external_field(),dV);
-	dF_.ShiftBy(mu_*dV);
+	dF_.add(-mu_*dV);
       }
     return Fx;
   }

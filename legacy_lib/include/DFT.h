@@ -149,7 +149,7 @@ class DFT : public Dynamical_Matrix
 
   // Implement Dynamical_Matrix interface.
   // Second derivatives contracted into arbitrary vector
-  virtual void     matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param = NULL) const;
+  virtual void     matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param = NULL) const;
 
   virtual unsigned get_dimension(int direction) const {return allSpecies_[0]->getLattice().get_dimension(direction);}
   virtual long     get_Nboundary()              const {return allSpecies_[0]->getDensity().get_Nboundary();}
@@ -158,6 +158,7 @@ class DFT : public Dynamical_Matrix
   virtual bool     get_next_boundary_point(long &pos) const {return allSpecies_[0]->getLattice().get_next_boundary_point(pos);}
   virtual bool     is_fixed_boundary() const { return allSpecies_[0]->is_fixed_boundary();}
   virtual bool is_boundary_point(long p) const {return allSpecies_[0]->getDensity().is_boundary_point(p);}
+  virtual bool is_dynamic() const { return false;}
   
   void set_full_hessian(bool full) { full_hessian_ = full;}
   

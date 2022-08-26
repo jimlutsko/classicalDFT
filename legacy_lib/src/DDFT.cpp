@@ -350,15 +350,16 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
     }      
 }
 
-void DDFT::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
+void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
 {
   if(dft_->getSpecies(0)->is_fixed_boundary() != is_fixed_boundary()) throw std::runtime_error("DDFT::matrix_dot_v: DDFT and DFT object out of synch on fixed boundaries");
   
-  dft_->matrix_dot_v(v, result);
+  dft_->matrix_dot_v(v, result, param);
   DFT_Vec intermediate_result(result[0]);
   result[0].zeros();
   g_dot_x(intermediate_result, result[0]);
 }
+
 
 //void DDFT::reverseForce(DFT_Vec *tangent) 
 //{
