@@ -23,7 +23,7 @@ class Arnoldi
   
   // k = number of eigenvalues returned (ex. 10)
   // p = additional dimensions used  (ex. 15)
-  double determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps = 1000000, double tol = 1e-8);
+  void determine_largest_eigenpairs(double shift, int k, int p, bool compute_all_k_largest = true, long maxSteps = 1000000, double tol = 1e-8);
 
   void set_verbose(bool b) { verbose_ = b;}
   void set_debug(bool b)   { debug_   = b;}
@@ -40,19 +40,21 @@ class Arnoldi
   bool is_success()
   {
     if (!solver_executed_) throw runtime_error("Arnoldi: Solver has yet not been executed");
-    else return solver_success_;
+    return solver_success_;
   }
   
   double get_eigenvalue(int i)
   {
     if (!solver_executed_) throw runtime_error("Arnoldi: Solver has yet not been executed");
-    else return eigenvalues_[i];
+    if (i>=k_) throw runtime_error("Arnoldi: Requesting eigenvalue that has not been computed (index larger than k)");
+    return eigenvalues_[i];
   }
   
   DFT_FFT get_eigenvector(int i)
   {
     if (!solver_executed_) throw runtime_error("Arnoldi: Solver has yet not been executed");
-    else return eigenvectors_[i];
+    if (i>=k_) throw runtime_error("Arnoldi: Requesting eigenvector that has not been computed (index larger than k)");
+    return eigenvectors_[i];
   }
   
  protected:
@@ -75,6 +77,7 @@ class Arnoldi
   
   int k_;
   vector<double> eigenvalues_;
+  vector<double> ritz_estimates_;
   vector<DFT_FFT> eigenvectors_;
 };
 

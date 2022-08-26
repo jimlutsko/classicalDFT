@@ -69,7 +69,7 @@ void Arnoldi::matrix_dot_v(arma::cx_vec v, arma::cx_vec& d2F, double shift) cons
 
 
 
-double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, double shift, string Filename, int k, int p, long maxSteps, double tol)
+void Arnoldi::determine_largest_eigenpairs(double shift, int k, int p, bool compute_all_k_largest, long maxSteps, double tol)
 {
 	solver_executed_ = true;
 	solver_success_  = false;
@@ -125,7 +125,6 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 	// Iterate
 	int iter = 0;
 	bool converged = false;
-	double eigen_value_old = 0.0;
 	
 	arma::cx_vec eigval;
 	arma::cx_mat eigvec;
@@ -219,6 +218,8 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 			eigen_vector_k.Real().normalise();
 			eigen_vector_k.do_real_2_fourier();
 			
+			eigenvectors_.push_back(eigen_vector_k);
+			
 			if (debug_)
 			{
 				ofstream of("eigenvectors/density_eigenvector_"+to_string(i)+".dat");
@@ -234,13 +235,16 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 		// Convergence checks
 		
 		iter++;
-		//if (iter>=maxSteps) throw runtime_error("IRArnoldi method: Exceeded max iterations");		
-		if (iter>=maxSteps) return eigval[0].real()-shift;
+		if (iter>=maxSteps) throw runtime_error("IRArnoldi method: Exceeded max iterations");		
 
 		converged = true;
+		solver_success_ = true;
+		ritz_estimates_.clear();
+		
 		for (int i=0; i<k; i++)
 		{
 			double ritz_estimate = abs(Hk_eigvec(k-1,i))*norm(fk);
+			ritz_estimates_.push_back(ritz_estimate);
 			
 			// Not converged if (large ritz estimate) and 
 			// (eigenvalue not degenerated with the largest discarded value)
@@ -252,8 +256,11 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 			if ( ritz_estimate > tol*abs(eigval[i]) &&
 			     abs(eigval[i]-Hp_eigval_discard[0]) > tol) 
 			{
-				converged = false;
-				solver_success_ = true;
+				if (compute_all_k_largest || i==0)
+				{
+					converged = false;
+					solver_success_ = false;
+				}
 			}
 
 			if (debug_)
@@ -271,27 +278,9 @@ double Arnoldi::determine_largest_eigenvalue(vector<DFT_FFT> &eigen_vector, doub
 		cout << setprecision(6);
 		cout << '\r'; cout << "\t" << "iteration = " << iter << " shift = " << shift << " eigen_value = " << setw(12) << eigval[0].real()-shift;
 		cout << myColor::RESET;
-
-		if (debug_) // Write this in a usual log file instead?
-		{
-			ofstream debug("arnoldi/debug.dat", (iter == 0 ? ios::trunc : ios::app));
-			debug << iter << " " << eigval[0].real()-shift << " " << fabs(eigval[0].real()-shift - eigen_value_old)/fabs(eigval[0].real()-shift) << " " << fabs(eigval[0].real()-shift - eigen_value_old) << " " << abs(Hk_eigvec(k-1,0))*norm(fk) << endl;
-			debug.close();
-		}
-		
-		eigen_value_old = eigval[0].real()-shift;
 	}
 	
-	// This is not already initialized ???
-	eigen_vector[species].initialize(Nx,Ny,Nz);		
-	for(long j=0; j<Ntot; j++)
-	  eigen_vector[species].Real().set(j,eigvec(j,0).real()); 	    
-	eigen_vector[species].Real().normalise();
-	eigen_vector[species].do_real_2_fourier();
-	
 	cout << endl;
-	
-	return eigval[0].real()-shift;
 }
 
 void compute_and_sort_eigenvectors(arma::cx_mat H, arma::cx_mat &eigvec, arma::cx_vec &eigval)
