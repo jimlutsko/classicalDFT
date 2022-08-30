@@ -27,6 +27,7 @@ class DFT_Vec
   void set(const double *x, unsigned n); // copy x (length n) into data
   void set(double d); // set all values to constant
   void set_random_normal(); // set all values to random, gaussian distributed numbers with mean zero and variance one.
+  void set_random(); // uniform random elements from (-1,1)
   
   void setFromAlias(const DFT_Vec &x);
   void setAliasFromValues(const DFT_Vec &x);
@@ -44,7 +45,7 @@ class DFT_Vec
   double max() const;
 
   double *memptr();
-
+  const void* get_raw_data() const { return data_;} // ugly! eventually need a better solution
   unsigned size() const;
   
   double dotWith(const DFT_Vec &v) const;

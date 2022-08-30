@@ -30,6 +30,7 @@ void DFT_Vec::set(const DFT_Vec& v1, const DFT_Vec& v2, double scale) { DATA = v
 void DFT_Vec::set(double d) { DATA.fill(d);}  
 void DFT_Vec::set(const double *x, unsigned n) { DATA.set_size(n); memcpy(DATA.memptr(),x,sizeof(double)*n);}
 void DFT_Vec::set_random_normal(){arma::arma_rng::set_seed_random(); DATA.randn();}
+void DFT_Vec::set_random() {arma::arma_rng::set_seed_random(); DATA.randu(); DATA = 2*DATA-1;}
 
 void DFT_Vec::resize(long N) {DATA.resize(N);}
 void DFT_Vec::zeros(long N)  {DATA.zeros(N);}

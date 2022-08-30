@@ -4,12 +4,14 @@
 #include <fstream>
 #include <complex>
 #include <stdexcept>
+#include <random>
 
 using namespace std;
 
 #include "DFT_LinAlg.h"
 
 #include <Eigen/Dense>
+
 
 using namespace Eigen;
 
@@ -35,7 +37,16 @@ void DFT_Vec::set(const DFT_Vec& v) { DATA = v_DATA;}
 void DFT_Vec::set(const DFT_Vec& v1, const DFT_Vec& v2, double scale) { DATA = v1_DATA+v2_DATA*scale;}
 
 void DFT_Vec::set(const double *x, unsigned n) { DATA.resize(n); memcpy(DATA.data(),x,sizeof(double)*n);} 
-  
+void DFT_Vec::set_random() {DATA = Eigen::VectorXd::Random(size());}
+void DFT_Vec::set_random_normal()
+{
+  std::default_random_engine generator;
+  std::normal_distribution<double> distribution(0.0,1.0);
+  auto normal = [&] (int) {return distribution(generator);};
+
+  DATA = RowVectorXd::NullaryExpr(size(), normal );  
+}
+
 void DFT_Vec::resize(long N) {DATA.resize(N);}
 void DFT_Vec::zeros(long N)  {DATA = Eigen::VectorXd::Zero(N);}
 void DFT_Vec::zeros()  {DATA = Eigen::VectorXd::Zero(DATA.size());}
