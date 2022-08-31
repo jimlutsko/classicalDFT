@@ -28,6 +28,7 @@ class Minimizer
   void setMinDensity(double m) { minDensity_ = m;}
   void setForceTerminationCriterion(double v) {forceLimit_ = v;}  
   void setVerbose(bool verbose) { verbose_ = verbose;}
+  void set_fixed_direction(const DFT_Vec& fixed) { fixed_direction_ = fixed;}
   
   // report activity
   virtual void   draw_after() {};  // Display something after the minimization
@@ -54,6 +55,8 @@ protected:
   double vv_         = 0;
   double minDensity_ = -1;
   int image_number_  = 0;
+
+  DFT_Vec fixed_direction_;
   
   mutable std::chrono::duration<double> elapsed_seconds_;
 

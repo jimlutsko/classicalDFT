@@ -20,6 +20,8 @@ DFT_Vec::DFT_Vec(unsigned N) : data_(new arma::vec(N)){}
 DFT_Vec::DFT_Vec(const DFT_Vec& v) : data_(new arma::vec(v.size())) {DATA = v_DATA;}
 DFT_Vec::DFT_Vec(): data_(new arma::vec(1)) {}
 
+DFT_Vec& DFT_Vec::operator= (const DFT_Vec& v){DATA = v_DATA; return *this;}
+
 DFT_Vec::~DFT_Vec() { if(data_) delete static_cast<arma::vec*>(data_);}
 
 void   DFT_Vec::set(unsigned pos, double val) { DATA[pos] = val;}

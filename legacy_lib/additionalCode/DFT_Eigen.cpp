@@ -24,8 +24,10 @@ using namespace Eigen;
 
 
 DFT_Vec::DFT_Vec(unsigned N) : data_(new Eigen::VectorXd(N)){}
-DFT_Vec::DFT_Vec(const DFT_Vec& v) : data_(new Eigen::VectorXd(v.size())) { DATA = v_DATA;}
+DFT_Vec::DFT_Vec(const DFT_Vec& v) : data_(new Eigen::VectorXd(v_DATA)){} //(v.size())) { DATA = v_DATA;}
 DFT_Vec::DFT_Vec(): data_(new Eigen::VectorXd(1)) {}
+
+DFT_Vec& DFT_Vec::operator= (const DFT_Vec& v){DATA = v_DATA; return *this;}
 
 DFT_Vec::~DFT_Vec() { if(data_) delete static_cast<Eigen::VectorXd*>(data_);}
 

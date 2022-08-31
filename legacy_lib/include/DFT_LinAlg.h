@@ -18,6 +18,7 @@ class DFT_Vec
   DFT_Vec(const DFT_Vec& c);
   DFT_Vec();
   ~DFT_Vec();
+  DFT_Vec& operator= (const DFT_Vec& c);
   
   void   set(unsigned pos, double val);
   double get(unsigned pos) const;

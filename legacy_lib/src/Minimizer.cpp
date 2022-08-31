@@ -98,7 +98,17 @@ double Minimizer::getDF_DX()
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-
+  // project the forces into the orthogonal subspace
+  // of this vector, if it is given
+  if(fixed_direction_.size() == dft_->getDF(0).size())
+    {
+      for(int s=0;s<dft_->getNumberOfSpecies();s++)
+	{
+	  DFT_Vec& df = dft_->getDF(s);
+	  df.IncrementBy_Scaled_Vector(fixed_direction_, -2*fixed_direction_.dotWith(df));
+	}
+    }
+  
   dft_->convert_dF_to_alias_derivs(x_);
   
   return F;

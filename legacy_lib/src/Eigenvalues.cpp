@@ -23,7 +23,7 @@ static double eigenvalues_objective_func(const std::vector<double> &xx, std::vec
   eig.set_eigen_vec_(xx);
   
   DFT_Vec df(xx.size());
-  
+
   double f = eig.calculate_gradients(df);
 
   if (!grad.empty()) {
@@ -45,6 +45,10 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
 {
   matrix_.matrix_dot_v1(eigen_vec_,df,NULL);
 
+
+  if(vshift_.size() == df.size())
+    df.IncrementBy_Scaled_Vector(vshift_,0.5*vshift_.dotWith(eigen_vec_));
+  
   df.MultBy((change_sign_ ? -1 : 1)*scale_);
     
   double x2 = eigen_vec_.dotWith(eigen_vec_);      
@@ -67,9 +71,19 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   nlopt::opt opt("LD_LBFGS", matrix_.get_Ntot());
   opt.set_min_objective(eigenvalues_objective_func, (void*) this);  
 
-  eigen_vec_.zeros(matrix_.get_Ntot());
-  eigen_vec_.set_random_normal();
+  if(eigen_vec_.size() != matrix_.get_Ntot())
+  {
+      eigen_vec_.zeros(matrix_.get_Ntot());
+      eigen_vec_.set_random_normal();
+  
+      if(matrix_.is_fixed_boundary())
+	{
+	  long pos = 0;
+	  do{eigen_vec_.set(pos,0.0);} while(matrix_.get_next_boundary_point(pos));
+	}
+  }
 
+  
   vector<double> x(eigen_vec_.size());
   for(unsigned i=0; i<x.size();i++) x[i] = eigen_vec_.get(i);
 
@@ -79,6 +93,11 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   eigen_val_ /= scale_;  
   if(change_sign_) eigen_val_ *= -1;
 
+  for(unsigned i=0; i<x.size();i++) eigen_vec_.set(i,x[i]);
+
   eigen_vec_.normalise();
-  theLog << endl;
+
+  theLog << "v[0] = " << eigen_vec_.get(0) << endl;
+  theLog << "v[1] = " << eigen_vec_.get(1) << endl;
+  theLog << "v[2] = " << eigen_vec_.get(2) << endl;
 }

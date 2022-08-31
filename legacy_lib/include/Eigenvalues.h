@@ -22,22 +22,28 @@ class Eigenvalues
   void set_scale(double d)     {scale_ = d;}
   void set_tolerence(double d) {tol_ = d;}  
   void set_change_sign(bool b) {change_sign_ = b;}
-
+  void set_vshift(DFT_Vec& v)  { vshift_ = v;}
+  
   double get_scale()       const {return scale_;}
   double get_tolerence()   const {return tol_;}
   double get_eigenvalue()  const {return eigen_val_;}
   bool   get_change_sign() const {return change_sign_;}
   int    get_num_eval()    const {return num_eval_;}
   int    get_return_code() const {return return_code_;}
+  const DFT_Vec& get_eigen_vec() const {return eigen_vec_;}
+  double get_eigen_val()         const { return eigen_val_;}
   
   void   calculate_eigenvector(Log &theLog);
   
   void   calculate_eigen_value();
   void   set_eigen_vec_(const vector<double> &v_in);  
   double calculate_gradients(DFT_Vec& df);
+
+  void clear() { eigen_vec_.zeros(1);}
   
  private:
   const Dynamical_Matrix& matrix_;
+  DFT_Vec vshift_;
   
   double scale_     = 1e6;
   double tol_       = 1e-6;
