@@ -45,7 +45,7 @@ class DFT : public Dynamical_Matrix
 {
  public:
   // Xtors
-  DFT(Species *s = NULL) : fmt_(NULL) {if(s) addSpecies(s);}
+  DFT(double kT, Species *s = NULL) : kT_(kT), fmt_(NULL) {if(s) addSpecies(s);}
   ~DFT(){}
 
   // Add pieces
@@ -70,6 +70,7 @@ class DFT : public Dynamical_Matrix
   void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
   void set_densities_from_aliases(vector<DFT_Vec> &x_);
   void convert_dF_to_alias_derivs(vector<DFT_Vec> &x_);
+  void set_temperature(double kT);
   
   // A few actions  
   void doDisplay(string &title, string &file, void *param = NULL) { for(auto &x: allSpecies_) x->doDisplay(title,file, param);}
@@ -118,34 +119,10 @@ class DFT : public Dynamical_Matrix
    */  
   virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex);
 
-  /**
-   *   @brief  Returns ideal gas contribution to free energy
-   *  
-   *   @return Ideal part of free energy
-   */  
-  double get_f_id() const { return F_id_;}
-
-    /**
-   *   @brief  Returns external field contribution to free energy including chemical potential
-   *  
-   *   @return External field contribution to free energy (including chemical potential)
-   */  
-  double get_f_ext() const { return F_ext_;}
-
-    /**
-   *   @brief  Returns hard-sphere contribution to free energy
-   *  
-   *   @return Hard-sphere contribution to free energy
-   */  
-  double get_f_hs() const { return F_hs_;}
-
-  /**
-   *   @brief  Returns mean field contribution to free energy
-   *  
-   *   @return Mean-field contribution to free energy
-   */  
-  double get_f_mf() const { return F_mf_;}
-
+  double get_f_id()  const { return F_id_;}  //ideal gas contribution to free energy
+  double get_f_ext() const { return F_ext_;} //external field contribution to free energy including chemical potential
+  double get_f_hs()  const { return F_hs_;}  //Hard-sphere contribution to free energy
+  double get_f_mf()  const { return F_mf_;} //mean field contribution to free energy
 
   // Implement Dynamical_Matrix interface.
   // Second derivatives contracted into arbitrary vector
@@ -183,6 +160,8 @@ class DFT : public Dynamical_Matrix
   double F_hs_  = 0.0; ///< Hard-sphere contribution to free energy
   double F_mf_  = 0.0; ///< Mean-field contribution to free energy
 
+  double kT_;
+  
   mutable bool full_hessian_ = true; // used in matrix_holder to distinguish full hessian from excess hessian.
 };
 
