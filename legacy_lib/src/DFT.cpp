@@ -39,8 +39,8 @@ double DFT::real_space_dcf(double r, double x) const
 
   if(fmt_) dcf += fmt_->get_real_space_dcf(r,x,hsd);
 
-  //  for(auto &x: Interactions_)
-  //    dcf -= x->getW(r);
+  for(auto &x: Interactions_)
+    dcf -= x->getW(r);
     
   return dcf;
 }
@@ -358,6 +358,7 @@ void DFT::set_densities_from_aliases(vector<DFT_Vec> &x_)
   for(int s=0; s<allSpecies_.size();s++)
     allSpecies_[s]->set_density_from_alias(x_[s]);        
 }
+
 void DFT::convert_dF_to_alias_derivs(vector<DFT_Vec> &x_)
 {
   for(int s = 0; s<allSpecies_.size(); s++)
