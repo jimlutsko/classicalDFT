@@ -23,7 +23,6 @@ class Species
   void setFixedMass(double m)            { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
   void setFixedBackground(bool fixed)    { fixedBackground_    = fixed;}
   void setHomogeneousBoundary(bool homo) { homgeneousBoundary_ = homo;}
-
       
   bool is_background_fixed() const { return fixedBackground_;}
   bool is_mass_fixed()       const { return (fixedMass_ > 0);}
@@ -63,81 +62,17 @@ class Species
   void setIndex(int i)  { index_ = i;}
   int  getIndex() const { return index_;}
   
-  /**
-  *   @brief  This adds in the external field contribution (which is species dependent). Force calculation is optional
-  *  
-  *   @param  bCalcForces: forces are calculated if this is true
-  *   @return  the contribution to the free energy
-  */  
-  double externalField(bool bCalcForces)
-  {
-    double dV = density_.dV();
-    double Fx = density_.get_field_dot_density()*dV - density_.getNumberAtoms()*mu_;
-    if(bCalcForces)
-      {
-	dF_.IncrementBy_Scaled_Vector(density_.get_external_field(),dV);
-	dF_.add(-mu_*dV);
-      }
-    return Fx;
-  }
+  /// add extneral field contribution.
+  double externalField(bool bCalcForces);
 
-  virtual double getHSD() const { return 0.0;}
-  
-  // Placeholder for FMT-specific processing: non-FMT classes do nothing
+
+  // Placeholders for FMT-specific functionality: non-FMT classes do nothing  
+  virtual double getHSD() const { return 0.0;}  
   virtual void set_fundamental_measure_derivatives(FundamentalMeasures &fm, long pos, bool needsTensor) {}
  
-  //Constant particle number is enforced at the species-level. If needed, some information has to be collected before updating the forces. Note that particle number is rigorously kept constant.
-  void beginForceCalculation()
-  {
-    if(fixedMass_ > 0.0)
-      {
-	density_.scale_to(fixedMass_/density_.getNumberAtoms());
-	mu_ = 0.0;
-      }
-  }
-
-  // Constant particle number is enforced at the species-level. If activated, the necessary corrections to the forces are applied here. Note that particle number is rigorously kept constant.
-  double endForceCalculation()
-  {
-    if(fixedBackground_ && fixedMass_ > 0.0)
-      throw std::runtime_error("Cannot have both fixed background and fixed mass .... aborting");
-    
-    
-    if(fixedBackground_)
-      {
-	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
-	  dF_.set(density_.boundary_pos_2_pos(pos),0.0);	
-      }
-
-    if(homgeneousBoundary_)
-      {
-	
-	double average_border_force = 0;
-
-	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
-	  average_border_force += dF_.get(density_.boundary_pos_2_pos(pos));
-
-	average_border_force /= density_.get_Nboundary();
-
-	for(long pos = 0; pos < density_.get_Nboundary(); pos++)
-	  dF_.set(density_.boundary_pos_2_pos(pos),average_border_force);
-      }    
-
-    
-    if(fixedMass_ > 0.0)
-      {
-	mu_ = 0.0;
-
-	double Mtarget = fixedMass_;
-
-	for(long p=0;p<density_.Ntot();p++)
-	  mu_ += dF_.get(p)*density_.get(p);
-	mu_ /= Mtarget; //fixedMass_;
-	for(long p=0;p<density_.Ntot();p++)
-	  dF_.set(p, dF_.get(p)-mu_*density_.dV());
-      }
-    return 0;
-  }
+  //Enforce constraints on forces: constant particle number, uniform or fixed background, etc.
+  void   beginForceCalculation();
+  double   endForceCalculation();
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive &ar, const unsigned int file_version){}

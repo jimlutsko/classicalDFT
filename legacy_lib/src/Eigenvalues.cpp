@@ -96,8 +96,4 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   for(unsigned i=0; i<x.size();i++) eigen_vec_.set(i,x[i]);
 
   eigen_vec_.normalise();
-
-  theLog << "v[0] = " << eigen_vec_.get(0) << endl;
-  theLog << "v[1] = " << eigen_vec_.get(1) << endl;
-  theLog << "v[2] = " << eigen_vec_.get(2) << endl;
 }

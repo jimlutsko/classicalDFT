@@ -17,36 +17,6 @@ using namespace std;
 #include "Species.h"
 #include "myColor.h"
 
-int Species::SequenceNumber_ = 0;
-
-
-// These functions just alias the density so that it is always non-zero and in fact bigger than SMALL_VALUE.
-void Species::set_density_from_alias(const DFT_Vec &x)
-{
-  long pos;
-  const double dmin = SMALL_VALUE;
-  
-#pragma omp parallel for  private(pos)  schedule(static)
-  for(pos=0;pos<x.size();pos++)
-    density_.set(pos,dmin+x.get(pos)*x.get(pos));
-}
-  
-void Species::get_density_alias(DFT_Vec &x) const
-{
-  long pos;
-  const double dmin = SMALL_VALUE;
-  
-#pragma omp parallel for  private(pos)  schedule(static)				    
-  for(pos=0;pos<x.size();pos++)
-    x.set(pos, sqrt(std::max(0.0, density_.get(pos)-1e-20)));    
-}
-
-void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
-{
-  dF_dRho.Schur(x,dF_dRho);
-  dF_dRho.MultBy(2.0);
-}
-
 
 // These impose density limits based on the fact that in the most extreme case,
 // if the density at some point is dmax and all other points it is dmin, then

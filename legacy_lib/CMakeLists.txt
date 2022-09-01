@@ -31,17 +31,15 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/Density.cpp
   ${PROJECT_SOURCE_DIR}/src/DFT.cpp
   ${PROJECT_SOURCE_DIR}/src/DFT_Coex.cpp
+  ${PROJECT_SOURCE_DIR}/src/Species.cpp
+  ${PROJECT_SOURCE_DIR}/src/FMT_Species.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT.cpp
   ${PROJECT_SOURCE_DIR}/src/Minimizer.cpp
   ${PROJECT_SOURCE_DIR}/src/DDFT.cpp
-#  ${PROJECT_SOURCE_DIR}/src/DDFT_IF.cpp
-${PROJECT_SOURCE_DIR}/src/Arnoldi.cpp
-${PROJECT_SOURCE_DIR}/src/Eigenvalues.cpp
-${PROJECT_SOURCE_DIR}/src/Log_Det.cpp
-#  ${PROJECT_SOURCE_DIR}/src/DDFT_IF_Fixed_Border.cpp
-#  ${PROJECT_SOURCE_DIR}/src/DDFT_IF_Periodic.cpp
+  ${PROJECT_SOURCE_DIR}/src/Arnoldi.cpp
+  ${PROJECT_SOURCE_DIR}/src/Eigenvalues.cpp
+  ${PROJECT_SOURCE_DIR}/src/Log_Det.cpp
   ${PROJECT_SOURCE_DIR}/src/Interaction.cpp
-  ${PROJECT_SOURCE_DIR}/src/FMT_Species.cpp
   ${PROJECT_SOURCE_DIR}/src/GitSHA1.cpp
   ${PROJECT_SOURCE_DIR}/src/myColor.cpp
   ${PROJECT_SOURCE_DIR}/src/options.cpp
