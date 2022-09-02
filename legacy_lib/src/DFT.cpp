@@ -20,14 +20,6 @@ using namespace std;
 #include "DFT.h"
 
 
-void DFT::set_temperature(double kT)
-{
-
-  throw std::runtime_error("DFT::set_temperature() not implemented");
-
-}
-
-
 // note that here, r = |r1-r2|
 double DFT::real_space_dcf(double r, double x) const
 {

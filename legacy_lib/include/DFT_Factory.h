@@ -142,6 +142,56 @@ class DFT_Factory
       is_initialized_ = true;
     }
 
+  // this resets the temperature and recreates the DFT (and Species and Field ...). 
+  // This does NOT re-read the input file and it does not change the density or the log
+  void set_temperature(double kT)
+    {
+      kT_ = kT;
+      
+      // Eliminate old objects:
+      // deleting the dft has no consequences for any of the other objects
+      if(dft_)          delete dft_;                   dft_ = NULL;
+      if(fmt_)          delete fmt_;                   fmt_ = NULL;
+      if(species1_)     delete species1_;         species1_ = NULL;
+      if(interaction1_) delete interaction1_; interaction1_ = NULL;
+      
+      if(include_hs_)
+	fmt_ = new esFMT(1,0);
+
+      if(include_interaction_)
+	{
+	  potential1_ = new LJ(sigma1_, eps1_, rcut1_);
+	  if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
+	} else if(hsd1_ < 1) hsd1_ = 1;
+
+      species1_ = new FMT_Species(*theDensity_,hsd1_,1);      
+      dft_      = new DFT(species1_);
+
+      species1_->setFixedBackground(fixed_background_);
+      
+      if(include_hs_) dft_->addHardCoreContribution(fmt_);
+
+      if(include_interaction_)
+	{
+	  interaction1_ = new Interaction_Interpolation_QF(species1_,species1_,potential1_,kT_);
+	  dft_->addInteraction(interaction1_);
+	}
+
+      /////////////////////////////////////////////////////
+      // Report
+      *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+      *theLog_ <<  myColor::GREEN << "Temperature set to " << kT_ << " giving:" <<  myColor::RESET << endl << endl;  
+      *theLog_ << "\tHSD1                        = " << hsd1_ << endl;
+      if(potential1_ && interaction1_)
+	{
+	  *theLog_ << "\tVDW parameter (potential)   = " << potential1_->getVDW_Parameter(kT_) << endl;      
+	  *theLog_ << "\tVDW parameter (interaction) = " << 0.5*interaction1_->getVDWParameter() << endl;
+	}
+      *theLog_ << endl;
+
+      is_initialized_ = true;
+    }  
+
   DFT& get_DFT() { check(); return *dft_;}
 
   void get_thermodynamics()

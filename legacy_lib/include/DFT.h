@@ -45,7 +45,7 @@ class DFT : public Dynamical_Matrix
 {
  public:
   // Xtors
-  DFT(double kT, Species *s = NULL) : kT_(kT), fmt_(NULL) {if(s) addSpecies(s);}
+  DFT(Species *s = NULL) : fmt_(NULL) {if(s) addSpecies(s);}
   ~DFT(){}
 
   // Add pieces
@@ -70,7 +70,6 @@ class DFT : public Dynamical_Matrix
   void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
   void set_densities_from_aliases(vector<DFT_Vec> &x_);
   void convert_dF_to_alias_derivs(vector<DFT_Vec> &x_);
-  void set_temperature(double kT);
   
   // A few actions  
   void doDisplay(string &title, string &file, void *param = NULL) { for(auto &x: allSpecies_) x->doDisplay(title,file, param);}
@@ -159,8 +158,6 @@ class DFT : public Dynamical_Matrix
   double F_ext_ = 0.0; ///< External field contribution to free energy (including chemical potential)
   double F_hs_  = 0.0; ///< Hard-sphere contribution to free energy
   double F_mf_  = 0.0; ///< Mean-field contribution to free energy
-
-  double kT_;
   
   mutable bool full_hessian_ = true; // used in matrix_holder to distinguish full hessian from excess hessian.
 };
