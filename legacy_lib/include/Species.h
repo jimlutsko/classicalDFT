@@ -29,7 +29,7 @@ class Species
   bool is_fixed_boundary() const { return   fixedBackground_;}
   
   double getChemPotential() const {return mu_;}
-  void   setChemPotential(double m) {mu_ = m;}
+  void   setChemPotential(double m) {mu_ = m; fixedMass_ = -1;} // turn off fixed mass 
 
   const Lattice& getLattice() const { return density_;}
   const Density& getDensity() const { return density_;}
