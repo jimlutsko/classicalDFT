@@ -20,7 +20,7 @@ static double eigenvalues_objective_func(const std::vector<double> &xx, std::vec
 {
   Eigenvalues& eig = *((Eigenvalues*) data);
 
-  eig.set_eigen_vec_(xx);
+  eig.set_eigen_vec(xx);
   
   DFT_Vec df(xx.size());
 
@@ -33,7 +33,7 @@ static double eigenvalues_objective_func(const std::vector<double> &xx, std::vec
   return f;
 }
 
-void Eigenvalues::set_eigen_vec_(const vector<double> &v_in)
+void Eigenvalues::set_eigen_vec(const vector<double> &v_in)
 {
   if(eigen_vec_.size() != v_in.size()) eigen_vec_.zeros(v_in.size());  
 
@@ -62,6 +62,9 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
   cout << myColor::YELLOW;
   cout << '\r'; cout  <<  "\tEvaluation " << num_eval_ << " gives estimated eigenvalue " << (change_sign_ ? -1 : 1)*f/scale_ << "                 ";
   cout << myColor::RESET;
+  
+  if (max_num_eval_>0 && num_eval_>=max_num_eval_)
+    throw runtime_error("Eigenvalues: Exceeded max number of iterations");
 
   return f;
 }
@@ -87,7 +90,8 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   vector<double> x(eigen_vec_.size());
   for(unsigned i=0; i<x.size();i++) x[i] = eigen_vec_.get(i);
 
-  opt.set_ftol_rel(tol_);
+  //opt.set_ftol_rel(tol_);
+  opt.set_xtol_rel(tol_);
   return_code_ = opt.optimize(x, eigen_val_);
     
   eigen_val_ /= scale_;  
