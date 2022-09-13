@@ -204,7 +204,7 @@ class DFT_Factory
     
     xv_ = xl_ = xs1_ = xs2_ = -1;
     dft_->findSpinodal(1.0, 1e-4, xs1_, xs2_, 1e-8);
-    dft_->findCoex(1.0, 1e-4, xv_, xl_,1e-8);				  
+    dft_->findCoex(1.5, 1e-4, xv_, xl_,1e-8);				  
 
     *theLog_ << "\tOmega/(V kT) = " << dft_->omega_times_beta_over_volume(xl_) << endl;  
     *theLog_ << "\tmu/kT        = " << dft_->mu_times_beta(xl_) << endl;
@@ -224,6 +224,8 @@ class DFT_Factory
 
   double get_liq_coex_density() const { return xl_;}
   double get_vap_coex_density() const { return xv_;}
+  double get_liq_spinodal_density() const { return xs2_;}
+  double get_vap_spinodal_density() const { return xs1_;}
   string get_infile()           const { return infile_;}
   string get_outfile()          const { return outfile_;}
 
@@ -234,7 +236,7 @@ class DFT_Factory
   void set_show_graphics(bool show) { show_graphics_ = show;}
 
   
- private:
+ protected:
   int argc_;
   char **argv_;
   Options options_;
