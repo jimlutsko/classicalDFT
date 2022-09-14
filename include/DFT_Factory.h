@@ -147,6 +147,7 @@ class DFT_Factory
   void set_temperature(double kT)
     {
       kT_ = kT;
+      hsd1_ = 1;
       
       // Eliminate old objects:
       // deleting the dft has no consequences for any of the other objects
@@ -154,6 +155,7 @@ class DFT_Factory
       if(fmt_)          delete fmt_;                   fmt_ = NULL;
       if(species1_)     delete species1_;         species1_ = NULL;
       if(interaction1_) delete interaction1_; interaction1_ = NULL;
+      if(potential1_)   delete potential1_;     potential1_ = NULL;
       
       if(include_hs_)
 	fmt_ = new esFMT(1,0);
@@ -161,8 +163,8 @@ class DFT_Factory
       if(include_interaction_)
 	{
 	  potential1_ = new LJ(sigma1_, eps1_, rcut1_);
-	  if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
-	} else if(hsd1_ < 1) hsd1_ = 1;
+	  hsd1_ = potential1_->getHSD(kT_);
+	}
 
       species1_ = new FMT_Species(*theDensity_,hsd1_,0.0,0);      
       dft_      = new DFT(species1_);
@@ -206,6 +208,7 @@ class DFT_Factory
     dft_->findSpinodal(1.0, 1e-4, xs1_, xs2_, 1e-8);
     dft_->findCoex(1.5, 1e-4, xv_, xl_,1e-8);				  
 
+    *theLog_ << "\tkT = " << kT_ << endl;
     *theLog_ << "\tOmega/(V kT) = " << dft_->omega_times_beta_over_volume(xl_) << endl;  
     *theLog_ << "\tmu/kT        = " << dft_->mu_times_beta(xl_) << endl;
 
@@ -222,6 +225,7 @@ class DFT_Factory
   Interaction_Base& get_interaction() { return *interaction1_;}
   Species&          get_species()     { return *species1_;}
 
+  double get_temperature() const { return kT_;}
   double get_liq_coex_density() const { return xl_;}
   double get_vap_coex_density() const { return xv_;}
   double get_liq_spinodal_density() const { return xs2_;}
