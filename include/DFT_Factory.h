@@ -107,7 +107,7 @@ class DFT_Factory
 	} else if(hsd1_ < 1) hsd1_ = 1;
 
       theDensity_ = new DensityType(dx1_, L_, show_graphics_);        
-      species1_     = new FMT_Species(*theDensity_,hsd1_,1);      
+      species1_     = new FMT_Species(*theDensity_,hsd1_,0.0,0);      
       dft_ = new DFT(species1_);
 
       species1_->setFixedBackground(fixed_background_);
@@ -164,7 +164,7 @@ class DFT_Factory
 	  if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
 	} else if(hsd1_ < 1) hsd1_ = 1;
 
-      species1_ = new FMT_Species(*theDensity_,hsd1_,1);      
+      species1_ = new FMT_Species(*theDensity_,hsd1_,0.0,0);      
       dft_      = new DFT(species1_);
 
       species1_->setFixedBackground(fixed_background_);
