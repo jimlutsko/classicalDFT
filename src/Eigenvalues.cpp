@@ -73,7 +73,13 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
 {
   nlopt::opt opt("LD_LBFGS", matrix_.get_Ntot());
   opt.set_min_objective(eigenvalues_objective_func, (void*) this);  
-
+  
+  int M_old = opt.get_vector_storage();
+  int M_new = 16; opt.set_vector_storage(M_new);
+  
+  theLog << endl;
+  theLog << "\tVector storage resized from " << M_old << " to " << M_new << endl;
+  
   if(eigen_vec_.size() != matrix_.get_Ntot())
   {
       eigen_vec_.zeros(matrix_.get_Ntot());
