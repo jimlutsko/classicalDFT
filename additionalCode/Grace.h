@@ -62,6 +62,8 @@ class Grace
   void square(int dataSet, int Graph = -1);  
 
   void size(int dataSet, double size, int Graph = -1);
+  
+  void format_phys_rev(bool overrite_sets = false, int Graph = -1);
 
   static int CIRCLE;
   static int SQUARE;

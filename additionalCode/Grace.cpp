@@ -528,3 +528,128 @@ void Grace::size(int dataSet, double size, int Graph)
     ss << "g" << Graph << ".s" << dataSet << " symbol size " << size;
     sendCommand(ss.str());
 }
+
+void Grace::format_phys_rev(bool overrite_sets, int Graph)
+{
+  std::stringstream ss;
+  
+  if(Graph < 0) Graph = 0;
+  else 
+  {
+    ss << "FOCUS G" << Graph;
+    sendCommand(ss.str());
+    ss.str(std::string());
+  }
+  
+  /*
+  ss << "page size 794, 595";
+  sendCommand(ss.str());
+  ss.str(std::string());
+  */
+  
+  ss << "map color 1 to (0, 0, 0),   \"myblack\"";  sendCommand(ss.str()); ss.str(std::string());
+  ss << "map color 2 to (255, 20, 20), \"myred\"";    sendCommand(ss.str()); ss.str(std::string());
+  ss << "map color 3 to (75, 75, 255), \"myblue\"";   sendCommand(ss.str()); ss.str(std::string());
+  ss << "map color 4 to (0, 175, 0), \"mygreen\"";  sendCommand(ss.str()); ss.str(std::string());
+  
+  ss << "default linewidth 2.0";   sendCommand(ss.str()); ss.str(std::string());
+  ss << "default linestyle 1";     sendCommand(ss.str()); ss.str(std::string());
+  ss << "default color 1";         sendCommand(ss.str()); ss.str(std::string());
+  ss << "default pattern 1";       sendCommand(ss.str()); ss.str(std::string());
+  ss << "default font 0";          sendCommand(ss.str()); ss.str(std::string());
+  ss << "default char size 1.5";   sendCommand(ss.str()); ss.str(std::string());
+  ss << "default symbol size 1.0"; sendCommand(ss.str()); ss.str(std::string());
+  
+  ss << "title size 1.5";       sendCommand(ss.str()); ss.str(std::string());
+  ss << "subtitle size 1.5";    sendCommand(ss.str()); ss.str(std::string());
+  ss << "legend char size 1.5"; sendCommand(ss.str()); ss.str(std::string());
+  
+  ss << "xaxis label     char size 1.5"; sendCommand(ss.str()); ss.str(std::string());
+  ss << "xaxis ticklabel char size 1.5"; sendCommand(ss.str()); ss.str(std::string());
+  ss << "xaxis tick minor ticks 1";      sendCommand(ss.str()); ss.str(std::string());
+  
+  ss << "yaxis label     char size 1.5"; sendCommand(ss.str()); ss.str(std::string());
+  ss << "yaxis ticklabel char size 1.5"; sendCommand(ss.str()); ss.str(std::string());
+  ss << "yaxis tick minor ticks 1";      sendCommand(ss.str()); ss.str(std::string());
+  
+  if (overrite_sets)
+  {
+    //ss << "s0 line type 1";            sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 line linewidth 2.0";     sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s0 line linestyle 1";       sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 line color 1";           sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s0 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s0 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 fill color 1";           sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 fill pattern 4";         sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s0 symbol 1";               sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 symbol size 1.0";        sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 symbol linewidth 2.0";   sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 symbol linestyle 1";     sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 symbol color 1";         sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 symbol pattern 1";       sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 symbol fill color 1";    sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 symbol fill pattern 1";  sendCommand(ss.str()); ss.str(std::string());
+    ss << "s0 errorbar linewidth 2.0"; sendCommand(ss.str()); ss.str(std::string());
+    
+    //ss << "s1 line type 1";            sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 line linewidth 2.0";     sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s1 line linestyle 3";       sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 line color 2";           sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s1 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s1 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 fill color 2";           sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 fill pattern 5";         sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s1 symbol 2";               sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 symbol size 1.0";        sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 symbol linewidth 2.0";   sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 symbol linestyle 1";     sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 symbol color 2";         sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 symbol pattern 1";       sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 symbol fill color 2";    sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 symbol fill pattern 1";  sendCommand(ss.str()); ss.str(std::string());
+    ss << "s1 errorbar linewidth 2.0"; sendCommand(ss.str()); ss.str(std::string());
+    
+    //ss << "s2 line type 1";            sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 line linewidth 2.0";     sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s2 line linestyle 2";       sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 line color 3";           sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s2 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s2 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 fill color 3";           sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 fill pattern 6";         sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s2 symbol 3";               sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 symbol size 1.0";        sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 symbol linewidth 2.0";   sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 symbol linestyle 1";     sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 symbol color 3";         sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 symbol pattern 1";       sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 symbol fill color 3";    sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 symbol fill pattern 1";  sendCommand(ss.str()); ss.str(std::string());
+    ss << "s2 errorbar linewidth 2.0"; sendCommand(ss.str()); ss.str(std::string());
+    
+    //ss << "s3 line type 1";            sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 line linewidth 2.0";     sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s3 line linestyle 5";       sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 line color 4";           sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s3 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s3 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 fill color 4";           sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 fill pattern 7";         sendCommand(ss.str()); ss.str(std::string());
+    //ss << "s3 symbol 10";              sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 symbol size 1.0";        sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 symbol linewidth 2.0";   sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 symbol linestyle 1";     sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 symbol color 4";         sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 symbol pattern 1";       sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 symbol fill color 4";    sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 symbol fill pattern 1";  sendCommand(ss.str()); ss.str(std::string());
+    ss << "s3 errorbar linewidth 2.0"; sendCommand(ss.str()); ss.str(std::string());
+  }
+  
+  ss << "redraw";
+  sendCommand(ss.str());
+  ss.str(std::string());
+}
+
+
