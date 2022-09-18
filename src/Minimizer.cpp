@@ -99,7 +99,9 @@ double Minimizer::getDF_DX()
     throw e;
   }
   // project the forces into the orthogonal subspace
-  // of this vector, if it is given
+  // of this vector, if it is given --> Cedric: This is not a projection,
+  // because of the factor 2. It actually reverts the sign of the forces
+  // in the fixed direcion but does not cancel them.
   if(fixed_direction_.size() == dft_->getDF(0).size())
     {
       for(int s=0;s<dft_->getNumberOfSpecies();s++)
