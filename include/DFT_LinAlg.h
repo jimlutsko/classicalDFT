@@ -207,11 +207,17 @@ class DFT_FFT
   const DFT_Vec &cReal()         const { return RealSpace_;}
   const DFT_Vec_Complex &cFour() const { return FourierSpace_;}
 
+  void set(double x)                  { RealSpace_.set(x); is_dirty_ = true;}
+  void set(const DFT_Vec &x)          { RealSpace_.set(x); is_dirty_ = true;}
+  void set(unsigned pos, double val)  { RealSpace_.set(pos,val); is_dirty_ = true;}    
+
   void do_real_2_fourier() {if(is_dirty_) fftw_execute(real_2_four_); is_dirty_ = false;}
   void do_fourier_2_real() {if(is_dirty_) fftw_execute(four_2_real_); is_dirty_ = false;}
 
-  void MultBy(double val) { RealSpace_.MultBy(val);  FourierSpace_.MultBy(val);} // doesn't change is_dirty_
-
+  void MultBy(double val)       { RealSpace_.MultBy(val);  FourierSpace_.MultBy(val);} // doesn't change is_dirty_
+  void IncrementBy(DFT_Vec & v) { RealSpace_.IncrementBy(v); is_dirty_ = true;}
+  void IncrementBy(unsigned pos, double val) { RealSpace_.IncrementBy(pos,val); is_dirty_ = true;}     
+  
   friend ostream &operator<<(ostream &of, const DFT_FFT &v)
   {    
     of << v.RealSpace_ << v.FourierSpace_ << v.Nx_ << " " << v.Ny_ << " " << v.Nz_; 

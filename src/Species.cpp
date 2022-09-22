@@ -47,7 +47,7 @@ void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   dF_dRho.MultBy(2.0);
 }
 
-
+/*
 double Species::externalField(bool bCalcForces)
 {
   double dV = density_.dV();
@@ -59,13 +59,33 @@ double Species::externalField(bool bCalcForces)
     }
   return Fx;
 }
+*/
+
+double Species::evaluate_contribution_chemical_potential()
+{
+  double dV = density_.dV();
+  dF_.add(-mu_*dV);
+  return  - density_.get_mass()*mu_;
+}
+
+double Species::evaluate_external_field(const External_Field &f)
+{
+  double dV = density_.dV();
+
+  dF_.IncrementBy_Scaled_Vector(f,dV);
+  //  dF_.add(-mu_*dV);
+
+  return f.dotWith(density_.get_density_real())*dV; // - density_.getNumberAtoms()*mu_;
+}
+
 
 
 void Species::beginForceCalculation()
 {
   if(fixedMass_ > 0.0)
     {
-      density_.scale_to(fixedMass_/density_.getNumberAtoms());
+      //      density_.scale_to(fixedMass_/density_.getNumberAtoms());
+      density_ *= (fixedMass_/density_.getNumberAtoms());
       mu_ = 0.0;
     }
 }

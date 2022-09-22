@@ -9,6 +9,7 @@
 #include "Potential1.h"
 #include "Density.h"
 #include "Fundamental_Measures.h"
+#include "External_Field.h"
 
 class Species
 {
@@ -28,9 +29,14 @@ class Species
   bool is_mass_fixed()       const { return (fixedMass_ > 0);}
   bool is_fixed_boundary() const { return   fixedBackground_;}
   
+  double get_chemical_potential() const {return mu_;}
+  void   set_chemical_potential(double m) {mu_ = m; fixedMass_ = -1;} // turn off fixed mass 
+  double evaluate_contribution_chemical_potential();
+  
   double getChemPotential() const {return mu_;}
   void   setChemPotential(double m) {mu_ = m; fixedMass_ = -1;} // turn off fixed mass 
 
+  
   const Lattice& getLattice() const { return density_;}
   const Density& getDensity() const { return density_;}
   const double*  get_density_data() { return density_.get_density_pointer();}
@@ -63,8 +69,9 @@ class Species
   int  getIndex() const { return index_;}
   
   /// add extneral field contribution.
-  double externalField(bool bCalcForces);
+  //  double externalField(bool bCalcForces);
 
+  double evaluate_external_field(const External_Field &f);
 
   // Placeholders for FMT-specific functionality: non-FMT classes do nothing  
   virtual double getHSD() const { return 0.0;}  

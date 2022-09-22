@@ -16,30 +16,13 @@ using namespace std;
 
 
 Density::Density(double dx, double L[])
-  : Lattice(dx, L), Density_(), vWall_()
-{
-  Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
-  vWall_.zeros(Ntot_);
-}
+  : Lattice(dx, L), Density_(){ Density_.initialize(Nx_,Ny_,Nz_); }  // Allows child classes to do their own initialization
 Density::Density(double dx, double dy, double dz, double L[])
-  : Lattice(dx, dy, dz, L), Density_(), vWall_()
-{
-  Density_.initialize(Nx_,Ny_,Nz_);  // Allows child classes to do their own initialization
-  vWall_.zeros(Ntot_);
-}  
-Density::Density(): Lattice(), Density_(), vWall_(){}
-
+  : Lattice(dx, dy, dz, L), Density_() {Density_.initialize(Nx_,Ny_,Nz_); }  // Allows child classes to do their own initialization
+Density::Density(): Lattice(), Density_(){}
 Density::Density(const Density &dd)
-  : Lattice(dd), Density_(dd.Density_), vWall_(dd.vWall_)
-{
-  //  Density_.initialize(Nx_,Ny_,Nz_);      
-  //  vWall_ = dd.vWall_;
-}
+  : Lattice(dd), Density_(dd.Density_){}
 
-void Density::initialize_from_file(const char *filename)
-{
-  readDensity(filename);
-}
 
 // We are assuming that the lattice spacing is the same ...
 // Assume that the input density has lattice points ix=0,...,Nx1-1
@@ -47,7 +30,7 @@ void Density::initialize_from_file(const char *filename)
 // and assume that Nx2 > Nx1
 // I will demand that Nx2-Nx1 is even
 // and the idea is that we just pad the extra terms
-void Density::initialize_from_smaller_density(const Density &density)
+void Density::set_from_smaller_density(const Density &density)
 {
 
   long Nx1 = density.Nx();
@@ -381,7 +364,7 @@ void Lattice::test_boundary_coding()
 }
 
 
-double Density::get_neighbors(long pos,double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
+double Density::get_neighbor_values(long pos,double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const
 {
   int ix, iy,iz;
   
@@ -396,3 +379,14 @@ double Density::get_neighbors(long pos,double &xpx, double &xmx, double &xpy, do
   return get(ix,   iy,   iz);
 }
 
+template<class Archive> void Density::serialize(Archive & ar, const unsigned int version)
+{
+  ar & boost::serialization::base_object<Lattice>(*this);
+  ar & Density_;
+  if(version == 0) // this is only for reading, just to get us to the right place in the input file if it is from the previous version ...
+    {
+      DFT_Vec vWall_;
+      vWall_.zeros(Ntot_);
+      ar & vWall_;
+    }
+  }

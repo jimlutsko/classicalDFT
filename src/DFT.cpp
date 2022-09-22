@@ -417,8 +417,19 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 
   // External field + chemical potential
   F_ext_ = 0;
-  for(auto &species : allSpecies_)
-    F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
+
+
+  // add in the chemical potential ...
+  
+  for(auto &species: allSpecies_)
+    F_ext_ += species->evaluate_contribution_chemical_potential();
+
+  
+  for(auto &field : external_fields_)
+    F_ext_ += allSpecies_[field->get_species()]->evaluate_external_field(*field);
+  
+  //  for(auto &species : allSpecies_)
+  //    F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
   F += F_ext_;
 
   return F.sum();  

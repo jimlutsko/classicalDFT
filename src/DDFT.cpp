@@ -340,7 +340,7 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 	double x0 = get_neighbors(x,species,pos,stride,xpx,xmx,xpy,xmy,xpz,xmz);
 	
 	double dpx,dmx,dpy,dmy,dpz,dmz; // density
-	double d0 = density.get_neighbors(pos,dpx,dmx,dpy,dmy,dpz,dmz);
+	double d0 = density.get_neighbor_values(pos,dpx,dmx,dpy,dmy,dpz,dmz);
 
 	if(central_differences_) d0 = 0;
 	gx.set(pos,D[0]*((dpx+d0)*(xpx-x0)-(d0+dmx)*(x0-xmx))
