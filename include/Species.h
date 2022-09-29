@@ -20,10 +20,16 @@ class Species
   int getSequenceNumber() const { return seq_num_;}
 
   void doFFT(){ density_.doFFT();}
-  
-  void setFixedMass(double m)            { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
-  void setFixedBackground(bool fixed)    { fixedBackground_    = fixed;}
-  void setHomogeneousBoundary(bool homo) { homgeneousBoundary_ = homo;}
+
+  // To be replaced
+  void setFixedMass(double m)           { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
+  void setFixedBackground(bool fixed)   { fixedBackground_    = fixed;}
+  void setHomogeneousBoundary(bool val) { homgeneousBoundary_ = val;}
+
+  // to replace the three above
+  void set_fixed_mass(double m)             { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
+  void set_open_system(bool fixed)          { fixedBackground_    = fixed;} 
+  void set_homogeneous_boundary(bool val)   { homgeneousBoundary_ = val;}  
       
   bool is_background_fixed() const { return fixedBackground_;}
   bool is_mass_fixed()       const { return (fixedMass_ > 0);}
