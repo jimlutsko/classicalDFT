@@ -32,6 +32,7 @@ class DFT_Factory
       options_.addOption("Dx", &dx1_);
 
       options_.addOption("FixedBackground", &fixed_background_);
+      options_.addOption("Open_System", &fixed_background_);
       
       options_.addOption("MaxIterations", &maxIterations_);
       options_.addOption("Tolerence", &tol_);

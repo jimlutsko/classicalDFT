@@ -63,7 +63,7 @@ void Minimizer::resume(long maxSteps)
     if(f_abs_max_ < forceLimit_)
       {
 	stringstream s;	
-	s << "dF sufficiently small ... normal exit";
+	s << "Finished: convergence monitor = " << f_abs_max_ << " < " << forceLimit_ << " = forceLimit_ and so is  sufficiently small ... normal exit";
 	reportMessage(s.str());
 	break;
       }
