@@ -108,6 +108,7 @@ double Minimizer::getDF_DX()
 	{
 	  DFT_Vec& df = dft_->getDF(s);
 	  df.IncrementBy_Scaled_Vector(fixed_direction_, -2*fixed_direction_.dotWith(df));
+	  //df.IncrementBy_Scaled_Vector(fixed_direction_, -fixed_direction_.dotWith(df));
 	}
     }
   
