@@ -48,6 +48,27 @@ class Species
   
   DFT_Vec &getDF() {return dF_;}
   void setDF(DFT_Vec &df) {return dF_.set(df);}
+  
+  void zero_forces_in_frozen_region()
+  {
+	FreezingParameters fparams = density_.get_freezing_parameters();
+	
+	for (int ix=0; ix<density_.Nx(); ix++)
+	for (int iy=0; iy<density_.Ny(); iy++)
+	for (int iz=0; iz<density_.Nz(); iz++)
+	{
+		bool is_in_selection = true;
+		if (ix<fparams.Nx_min || ix>fparams.Nx_max) is_in_selection = false;
+		if (iy<fparams.Ny_min || iy>fparams.Ny_max) is_in_selection = false;
+		if (iz<fparams.Nz_min || iz>fparams.Nz_max) is_in_selection = false;
+		
+		bool freeze = false;
+		if ( is_in_selection &&  fparams.freeze_inside_of_selection) freeze = true;
+		if (!is_in_selection && !fparams.freeze_inside_of_selection) freeze = true;
+		
+		if (freeze) dF_.set(density_.pos(ix,iy,iz), 0.0);
+	}
+  }
 
   // This species is held as allSpecies_[index_]
   void setIndex(int i) { index_ = i;}
