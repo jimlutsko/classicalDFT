@@ -196,8 +196,8 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
   void set_max_time_step(double t) { dtMax_ = t;}
 
-  void   setTimeStep(double dt) { dt_ = dt;}    
-  double getTimeStep() const { return dt_;}
+  void   set_time_step(double dt) { dt_ = dt;}    
+  double get_time_step() const { return dt_;}
 
   double get_time()                const { return time_;}
   double get_convergence_monitor() const { return RHS_max_;}

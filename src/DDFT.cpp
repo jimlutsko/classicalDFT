@@ -211,9 +211,12 @@ void DDFT::change_timestep(double dt)
 
 double  DDFT::calculate_excess_RHS(const Species *species, DFT_FFT& RHS) const
 {
-  g_dot_x(species->get_const_DF(), RHS.Real());  
+  g_dot_x(species->get_const_DF(), RHS.Real());
+
+  //  cout << "dF_max = " << species->get_const_DF().inf_norm() << " and reduced by dV = " << species->get_const_DF().inf_norm()/(dx_*dy_*dz_) << endl;
+  
   RHS.Real().MultBy(1.0/(dx_*dy_*dz_));//dF[i] = dF/drho_i but we need dF/(dV*drho_i)
-  double rmax = RHS.Real().inf_norm()/(dx_*dy_*dz_);
+  double rmax = RHS.Real().inf_norm(); ///(dx_*dy_*dz_); I think this seves no purpose and is misleading ...
   subtract_ideal_gas(species->getDensity().get_density_real(),RHS.Real());
   RHS.do_real_2_fourier();
   return rmax;
