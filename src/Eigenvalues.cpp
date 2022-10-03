@@ -12,6 +12,16 @@ using namespace std;
 #include <complex>
 #include <nlopt.hpp>
 
+/*
+#define OPTIM_USE_OPENMP
+#define OPTIM_ENABLE_ARMA_WRAPPERS
+#include "optim.hpp"
+*/
+
+#ifdef USE_MPI
+#include <mpi.h>  
+#endif
+
 #include "myColor.h"
 #include "Eigenvalues.h"
 
@@ -29,6 +39,7 @@ static double eigenvalues_objective_func(const std::vector<double> &x, std::vect
   df = eig.alias_gradient_from_eigen_vec_gradient(df, x);
   
   if (!grad.empty()) {
+    #pragma omp parallel for
     for(long i=0;i<grad.size();i++)
       grad[i] = df.get(i);
   }
@@ -50,8 +61,10 @@ vector<double> Eigenvalues::get_alias_from_eigen_vec()
   
   #ifdef USE_ALIAS_EIGEN
     double rho_max = 1/theDensity_.dV();
+    #pragma omp parallel for
     for(long i=0; i<x.size(); i++) x[i] = eigen_vec_.get(i) / (1-pow( 2*theDensity_.get(i)/rho_max -1 ,2));
   #else
+    #pragma omp parallel for
     for(unsigned i=0; i<x.size(); i++) x[i] = eigen_vec_.get(i);
   #endif
   
@@ -65,8 +78,10 @@ void Eigenvalues::set_eigen_vec_from_alias(const vector<double> &x)
   
   #ifdef USE_ALIAS_EIGEN
     double rho_max = 1/theDensity_.dV();
+    #pragma omp parallel for
     for(long i=0; i<x.size(); i++) eigen_vec_.set(i, x[i] * (1-pow( 2*theDensity_.get(i)/rho_max -1 ,2)) );
   #else
+    #pragma omp parallel for
     for(long i=0; i<x.size(); i++) eigen_vec_.set(i,x[i]);
   #endif
 }
@@ -79,6 +94,7 @@ DFT_Vec Eigenvalues::alias_gradient_from_eigen_vec_gradient(const DFT_Vec& df, c
   
   #ifdef USE_ALIAS_EIGEN
     double rho_max = 1/theDensity_.dV();
+    #pragma omp parallel for
     for(long i=0; i<x.size(); i++) df_x.set(i, df.get(i) * (1-pow( 2*theDensity_.get(i)/rho_max -1 ,2)) );
   #else
     df_x = df;
