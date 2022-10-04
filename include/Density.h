@@ -105,7 +105,7 @@ class Density : public Lattice
   friend ostream &operator<<(ostream &of, const Density &d) {of << static_cast<const Lattice &>(d) << d.Density_; return of;}  
   friend istream &operator>>(istream  &in, Density &d )     {in >> static_cast<Lattice &>(d) >> d.Density_; return in;}
   friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive & ar, const unsigned int version);
+  template<typename Archive> void serialize(Archive & ar, const unsigned int version);
 
 protected:
   DFT_FFT Density_;  // The arrays for the real and fourier components of the density

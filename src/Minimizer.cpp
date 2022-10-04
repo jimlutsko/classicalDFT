@@ -161,7 +161,6 @@ void fireMinimizer2::reset()
 
 double fireMinimizer2::step()
 {
-
   it_++;
   static double fold = F_;
 

@@ -372,7 +372,9 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
   return F;
 }
 
+#ifdef USE_OMP    
 #pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
+#endif
 
 double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
@@ -385,7 +387,9 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	double dV = density.dV();
 	long Ntot = density.Ntot();
 	long pos;
+#ifdef USE_OMP    
 #pragma omp parallel for shared(species, dV) private(pos) schedule(static) reduction(SummationPlus:F)
+#endif
 	for(pos=0;pos<Ntot;pos++)
 	  {
 	    double d0 = density.get(pos);

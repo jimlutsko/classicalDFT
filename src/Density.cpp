@@ -379,7 +379,7 @@ double Density::get_neighbor_values(long pos,double &xpx, double &xmx, double &x
   return get(ix,   iy,   iz);
 }
 
-template<class Archive> void Density::serialize(Archive & ar, const unsigned int version)
+template<typename Archive> void Density::serialize(Archive & ar, const unsigned int version)
 {
   ar & boost::serialization::base_object<Lattice>(*this);
   ar & Density_;
@@ -389,4 +389,5 @@ template<class Archive> void Density::serialize(Archive & ar, const unsigned int
       vWall_.zeros(Ntot_);
       ar & vWall_;
     }
-  }
+}
+

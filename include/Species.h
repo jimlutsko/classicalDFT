@@ -30,7 +30,9 @@ class Species
   void set_fixed_mass(double m)             { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
   void set_open_system(bool fixed)          { fixedBackground_    = fixed;} 
   void set_homogeneous_boundary(bool val)   { homgeneousBoundary_ = val;}  
-      
+
+  void set_verbose(bool verbose) { verbose_ = verbose;}
+  
   bool is_background_fixed() const { return fixedBackground_;}
   bool is_mass_fixed()       const { return (fixedMass_ > 0);}
   bool is_fixed_boundary() const { return   fixedBackground_;}
@@ -107,6 +109,8 @@ protected:
   bool fixedBackground_    = false; // if true, forces are set to zero on the background
   bool homgeneousBoundary_ = false; 
   int index_ = -1;
+  bool verbose_ = true;
+
 };
 
 
@@ -122,7 +126,7 @@ protected:
 class FMT_Species : public Species
 {
 public:
-  FMT_Species(Density& density, double hsd, double mu = 0, int seq = -1);
+  FMT_Species(Density& density, double hsd, double mu = 0, bool verbose = true, int seq = -1);
   FMT_Species(const FMT_Species &) = delete;
   ~FMT_Species(){}
 
