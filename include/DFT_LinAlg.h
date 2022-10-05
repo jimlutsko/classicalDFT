@@ -18,7 +18,7 @@ class DFT_Vec
   DFT_Vec(const DFT_Vec& c);
   DFT_Vec();
   ~DFT_Vec();
-  DFT_Vec& operator= (const DFT_Vec& c);
+  DFT_Vec& operator= (const DFT_Vec& c){set(c); return *this;}
   
   void   set(unsigned pos, double val);
   double get(unsigned pos) const;
@@ -109,6 +109,8 @@ class DFT_Vec_Complex
   DFT_Vec_Complex(const DFT_Vec_Complex& c);
   DFT_Vec_Complex();
   ~DFT_Vec_Complex();
+
+  DFT_Vec_Complex& operator= (const DFT_Vec_Complex& c) {set(c); return *this;}  
   
   void   set(const DFT_Vec_Complex& c);
   void   set(unsigned pos, complex<double> val);
@@ -178,6 +180,22 @@ class DFT_FFT
     };  
 
  DFT_FFT() : four_2_real_(NULL), real_2_four_(NULL){};
+
+  DFT_FFT& operator= (const DFT_FFT& c)
+  {
+    RealSpace_    = c.RealSpace_;
+    FourierSpace_ = c.FourierSpace_;
+    
+    Nx_ = c.Nx_;
+    Ny_ = c.Ny_;
+    Nz_ = c.Nz_;
+    is_dirty_ = true; // mutable - so default to worse case
+
+    // I don't know how to copy these ... so recreate
+    four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
+    real_2_four_ = fftw_plan_dft_r2c_3d(Nx_, Ny_, Nz_, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
+    return *this;
+  }
   
   ~DFT_FFT()
     {

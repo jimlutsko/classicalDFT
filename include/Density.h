@@ -27,7 +27,7 @@ static const double SMALL_VALUE = 1e-18;
 #include "Summation.h"
 
 
-// TODO: get rid of Wall data member: need to add versioning to the serialization ...
+class String_Slave;
 
 
 
@@ -47,6 +47,14 @@ class Density : public Lattice
   
   ~Density(){}
 
+  Density& operator=(const Density &a){copy(a);return *this;}
+
+  void copy(const Density &ref)
+  {
+    Lattice::copy((Lattice&) ref);
+    Density_ = ref.Density_;
+  }
+  
   // Initialize
   
   //set/get density 
@@ -107,6 +115,8 @@ class Density : public Lattice
   friend class boost::serialization::access;
   template<typename Archive> void serialize(Archive & ar, const unsigned int version);
 
+  friend String_Slave;
+  
 protected:
   DFT_FFT Density_;  // The arrays for the real and fourier components of the density
 };

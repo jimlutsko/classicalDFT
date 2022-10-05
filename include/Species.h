@@ -22,13 +22,14 @@ class Species
   void doFFT(){ density_.doFFT();}
 
   // To be replaced
-  void setFixedMass(double m)           { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
-  void setFixedBackground(bool fixed)   { fixedBackground_    = fixed;}
-  void setHomogeneousBoundary(bool val) { homgeneousBoundary_ = val;}
+  void setFixedMass(double m)           { set_fixed_mass(m);}
+  void setFixedBackground(bool fixed)   { set_open_system(fixed);}
+  void setHomogeneousBoundary(bool val) { set_homogeneous_boundary(val);}
 
   // to replace the three above
-  void set_fixed_mass(double m)             { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
-  void set_open_system(bool fixed)          { fixedBackground_    = fixed;} 
+  void set_fixed_mass()                     { fixedMass_          = density_.get_mass(); mu_ = 0.0; fixedBackground_ = false;}
+  void set_fixed_mass(double m)             { fixedMass_          = m; if(m > 0.0) {mu_ = 0.0; fixedBackground_ = false;}}
+  void set_open_system(bool fixed)          { fixedBackground_    = fixed; fixedMass_ = -1;} 
   void set_homogeneous_boundary(bool val)   { homgeneousBoundary_ = val;}  
 
   void set_verbose(bool verbose) { verbose_ = verbose;}

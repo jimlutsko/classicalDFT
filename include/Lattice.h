@@ -36,8 +36,12 @@ class Lattice
     L_[0] =  L_[1] = L_[2] = 0;
   }
 
-  Lattice(const Lattice& ref)
-    {
+  Lattice(const Lattice& ref) {copy(ref);}
+
+  Lattice& operator=(const Lattice &a){copy(a);return *this;}
+
+  void copy(const Lattice &ref)     
+  {
       Nx_ = ref.Nx_;
       Ny_ = ref.Ny_;
       Nz_ = ref.Nz_;
@@ -51,9 +55,9 @@ class Lattice
 
       L_[0] = ref.L_[0];
       L_[1] = ref.L_[1];
-      L_[2] = ref.L_[2];
-    }
-
+      L_[2] = ref.L_[2];    
+  }
+  
 
 void init(double L[])
   {	

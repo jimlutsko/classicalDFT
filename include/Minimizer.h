@@ -26,7 +26,8 @@ class Minimizer
   virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
   
   void setMinDensity(double m) { minDensity_ = m;}
-  void setForceTerminationCriterion(double v) {forceLimit_ = v;}  
+  void setForceTerminationCriterion(double v) {forceLimit_ = v;}
+  void set_terminimation_criterion(double v) {forceLimit_ = v;}  
   void setVerbose(bool verbose) { verbose_ = verbose;}
   void set_fixed_direction(const DFT_Vec& fixed) { fixed_direction_ = fixed;}
   
@@ -200,7 +201,7 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   double get_time_step() const { return dt_;}
 
   double get_time()                const { return time_;}
-  double get_convergence_monitor() const { return RHS_max_;}
+  virtual double get_convergence_monitor() const { return RHS_max_;}
 
   void Display(double F, double dFmin, double dFmax, double N);
 
