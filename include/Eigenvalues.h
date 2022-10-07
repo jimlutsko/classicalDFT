@@ -10,34 +10,20 @@
 
 #include <boost/serialization/vector.hpp>
 
-// Enable alias using the following definition in the CMakeLists.txt
-// (or directly uncomment the following line)
-#define USE_ALIAS_EIGEN
-
-#ifdef USE_ALIAS_EIGEN
-  #include "Density.h"
-#endif
-
 #include "Dynamical_Matrix.h"
 #include "Log.h"
-
 
 class Eigenvalues
 {
  public:
-  #ifdef USE_ALIAS_EIGEN
-    Eigenvalues(const Dynamical_Matrix& matrix, const Density& theDensity, bool verbose = false) : matrix_(matrix), theDensity_(theDensity), verbose_(verbose){}
-  #else
-    Eigenvalues(const Dynamical_Matrix& matrix, bool verbose = false) : matrix_(matrix), verbose_(verbose){}
-  #endif
+  Eigenvalues(const Dynamical_Matrix& matrix, bool verbose = false) : matrix_(matrix), verbose_(verbose){}
   ~Eigenvalues(){}
 
   void set_scale(double d)      {scale_ = d;}
   void set_tolerence(double d)  {tol_ = d;}  
   void set_change_sign(bool b)  {change_sign_ = b;}
   void set_vshift(DFT_Vec& v)   {vshift_ = v;}
-  void set_max_num_eval(int i)  {max_num_eval_ = i;}
-  void set_eigen_vec(const DFT_Vec &v_in) {eigen_vec_ = v_in;}
+  void set_max_num_eval(int i) {max_num_eval_ = i;}
   
   double get_scale()        const {return scale_;}
   double get_tolerence()    const {return tol_;}
@@ -52,22 +38,16 @@ class Eigenvalues
   void reset_num_eval() {num_eval_ = 0;}
   void calculate_eigenvector(Log &theLog);
   
-  vector<double> get_alias_from_eigen_vec();
-  void set_eigen_vec_from_alias(const vector<double> &x);
-  DFT_Vec alias_gradient_from_eigen_vec_gradient(const DFT_Vec& df, const vector<double> &x);
-  
   void   calculate_eigen_value();
-  double calculate_gradients(DFT_Vec& df, const std::vector<double> &x);
+  void   set_eigen_vec(const vector<double> &v_in);  
+  void   set_eigen_vec(const DFT_Vec &v_in) {eigen_vec_ = v_in;}
+  double calculate_gradients(DFT_Vec& df);
 
   void clear() { eigen_vec_.zeros(1);}
   
  private:
   const Dynamical_Matrix& matrix_;
   DFT_Vec vshift_;
-  
-  #ifdef USE_ALIAS_EIGEN
-    const Density& theDensity_;
-  #endif
   
   double scale_     = 1e6;
   double tol_       = 1e-6;
@@ -76,7 +56,7 @@ class Eigenvalues
   int max_num_eval_ = -1;
   int return_code_  = 0; // nlopt return code
   bool verbose_     = false;
-  
+
   DFT_Vec eigen_vec_;
   double  eigen_val_ = 0;
 };
