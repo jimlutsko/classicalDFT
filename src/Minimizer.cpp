@@ -87,6 +87,19 @@ void Minimizer::resume(long maxSteps)
 }
 
 
+void Minimizer::set_fixed_direction(const DFT_Vec& fixed)
+{
+  fixed_direction_ = fixed; 
+  fixed_direction_.normalise(); 
+  
+  // Convert to alias space if we later orthogonalise the forces/velocity in alias space
+  dft_->getSpecies(0)->convert_to_alias_increment(x_[0],fixed_direction_);
+  fixed_direction_.normalise();
+  
+  F_ = getDF_DX();
+}
+
+
 double Minimizer::getDF_DX()
 {
   dft_->set_densities_from_aliases(x_);
@@ -98,21 +111,24 @@ double Minimizer::getDF_DX()
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
-  // project the forces into the orthogonal subspace
-  // of this vector, if it is given --> Cedric: This is not a projection,
-  // because of the factor 2. It actually reverts the sign of the forces
-  // in the fixed direcion but does not cancel them.
-  if(fixed_direction_.size() == dft_->getDF(0).size())
-    {
-      for(int s=0;s<dft_->getNumberOfSpecies();s++)
-	{
-	  DFT_Vec& df = dft_->getDF(s);
-	  df.IncrementBy_Scaled_Vector(fixed_direction_, -2*fixed_direction_.dotWith(df));
-	  //df.IncrementBy_Scaled_Vector(fixed_direction_, -fixed_direction_.dotWith(df));
-	}
-    }
   
   dft_->convert_dF_to_alias_derivs(x_);
+  
+  // Project the forces into the orthogonal subspace
+  // of this vector, if it is given
+  // Cedric: This is not a projection, because of the factor 2. 
+  // It actually reverts the sign of the forces in the fixed 
+  // direcion but does not cancel them. (Uncomment the version needed)
+  
+  if(fixed_direction_.size() == dft_->getDF(0).size())
+  {
+    for(int s=0;s<dft_->getNumberOfSpecies();s++)
+    {
+      DFT_Vec& df = dft_->getDF(s);
+      //df.IncrementBy_Scaled_Vector(fixed_direction_, -2*fixed_direction_.dotWith(df));
+      df.IncrementBy_Scaled_Vector(fixed_direction_, -fixed_direction_.dotWith(df));
+    }
+  }
   
   return F;
 }
@@ -191,6 +207,9 @@ double fireMinimizer2::step()
       dF_rem[Jspecies].set(dft_->getDF(Jspecies));
     }
 
+  cout << "\t-dF*v/|v| = " << P/vnorm_/sqrt(v_[0].size()) 
+       << "  -dF*v/|v||dF| = " << P/vnorm_/rms_force_/v_[0].size()
+       << endl;
   
   if(P > 0)
     {
@@ -221,7 +240,7 @@ double fireMinimizer2::step()
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
 	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
-	v_[Jspecies].MultBy(0.1);
+	v_[Jspecies].MultBy(0.1); vnorm_ *= 0.1;
       }
     backtracks_++;
   }
@@ -238,7 +257,7 @@ double fireMinimizer2::step()
       {
 	x_[Jspecies].set(x_rem[Jspecies]);
 	v_[Jspecies].set(v_rem[Jspecies]);
-	v_[Jspecies].MultBy(0.5);		
+	v_[Jspecies].MultBy(0.5); vnorm_ *= 0.5;
 	dft_->setDF(Jspecies,dF_rem[Jspecies]);
       }
     dt_ /= 2;
@@ -299,7 +318,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       v_[Jspecies].MultBy(1-alpha_);      
-      v_[Jspecies].IncrementBy_Scaled_Vector(dft_->getDF(Jspecies), -alpha_*sqrt(vnorm/fnorm));
+      v_[Jspecies].IncrementBy_Scaled_Vector(dft_->getDF(Jspecies), -alpha_*vnorm/fnorm);
       x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
     }  
   // recalculate forces with back-tracking, if necessary
@@ -311,20 +330,35 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
     reportMessage("Backtrack .. ");
     throw(e);
   }
+  
+  // Re-orthogonalise the velocity
+  if(fixed_direction_.size() == dft_->getDF(0).size())
+  {
+    for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
+    {
+      v_[Jspecies].IncrementBy_Scaled_Vector(fixed_direction_, -fixed_direction_.dotWith(v_[Jspecies]));
+    }
+  }
 
+  vnorm = 0.0;
   fnorm = 0.0;
   cnorm = 0;
   double new_fmax = 0;
   
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    {
-      DFT_Vec &df = dft_->getDF(Jspecies);
-      double f = df.euclidean_norm();
-      new_fmax = max(new_fmax, df.inf_norm()/dft_->getDensity(Jspecies).dV());
-      fnorm += f*f;
-      cnorm += df.size();
-      //      cout << "Jspecies = " << Jspecies << " fmax_ = " << fmax_ << " df.inf_norm = " << df.inf_norm() << " fnorm = " << fnorm << " cnorm = " << cnorm << endl;
-    }
+  {
+    DFT_Vec &df = dft_->getDF(Jspecies);
+    
+    new_fmax = max(new_fmax, df.inf_norm()/dft_->getDensity(Jspecies).dV());
+    double f = df.euclidean_norm();
+    double v = v_[Jspecies].euclidean_norm();
+    
+    fnorm += f*f;
+    vnorm += v*v;
+    cnorm += df.size();
+  }
+  
   rms_force_ = sqrt(fnorm/cnorm);
+  vnorm_ = sqrt(vnorm/cnorm);
   fmax_ = new_fmax;
 }
