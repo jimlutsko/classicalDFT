@@ -28,7 +28,7 @@ class Minimizer
   void setMinDensity(double m) { minDensity_ = m;}
   void setForceTerminationCriterion(double v) {forceLimit_ = v;}  
   void setVerbose(bool verbose) { verbose_ = verbose;}
-  void set_fixed_direction(const DFT_Vec& fixed);
+  void set_fixed_direction(const DFT_Vec& fixed, bool using_density_alias);
   
   // report activity
   virtual void   draw_after() {};  // Display something after the minimization

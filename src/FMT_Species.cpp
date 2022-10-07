@@ -108,6 +108,12 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
     }
 }
 
+void FMT_Species::convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const
+{
+  // Identical transformation if jacobian is diagonal (local alias)
+  convert_to_alias_deriv(x, dRho);
+}
+
 
 // This is another alias which maps the zero of the density 
 // (or rathera minimal value SMALL_VALUE) to -inf and the

@@ -42,6 +42,8 @@ class Eigenvalues
   void   set_eigen_vec(const vector<double> &v_in);  
   void   set_eigen_vec(const DFT_Vec &v_in) {eigen_vec_ = v_in;}
   double calculate_gradients(DFT_Vec& df);
+  
+  bool is_using_density_alias() const {return matrix_.is_using_density_alias();}
 
   void clear() { eigen_vec_.zeros(1);}
   

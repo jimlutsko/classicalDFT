@@ -57,6 +57,11 @@ void Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
     dRho.set(pos, 0.5*dRho.get(pos)/x.get(pos));
 }
 
+void Species::convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const
+{
+  // Identical transformation if jacobian is diagonal (local alias)
+  convert_to_alias_deriv(x, dRho);
+}
 
 // Trivial alias
 /*

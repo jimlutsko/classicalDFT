@@ -37,6 +37,7 @@ class Species
   virtual void   get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
   virtual void convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const;
+  virtual void convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const;
   
   void doDisplay(string &title, string &file, void *param = NULL) const { density_.doDisplay(title,file, seq_num_, param);}
 
@@ -123,6 +124,7 @@ public:
   virtual void get_density_alias(DFT_Vec &x) const;
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
   virtual void convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const;
+  virtual void convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const;
   
   const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
 

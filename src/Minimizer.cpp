@@ -87,14 +87,17 @@ void Minimizer::resume(long maxSteps)
 }
 
 
-void Minimizer::set_fixed_direction(const DFT_Vec& fixed)
+void Minimizer::set_fixed_direction(const DFT_Vec& fixed, bool using_density_alias)
 {
   fixed_direction_ = fixed; 
   fixed_direction_.normalise(); 
   
-  // Convert to alias space if we later orthogonalise the forces/velocity in alias space
-  dft_->getSpecies(0)->convert_to_alias_increment(x_[0],fixed_direction_);
-  fixed_direction_.normalise();
+  if (!using_density_alias)
+  {
+    // Convert to alias space as we later orthogonalise the forces/velocity in alias space
+    dft_->getSpecies(0)->convert_to_alias_increment(x_[0],fixed_direction_);
+    fixed_direction_.normalise();
+  }
   
   F_ = getDF_DX();
 }
