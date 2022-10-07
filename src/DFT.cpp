@@ -435,7 +435,12 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &result, void *param) const
 {
   vector<DFT_FFT> v(allSpecies_.size());
-  for(int s=0;s<allSpecies_.size();s++) v[s] = v_in[s];
+  for(int s=0; s<allSpecies_.size(); s++) 
+  {
+    v[s].initialize(get_dimension(0), get_dimension(1), get_dimension(2));
+    v[s].Real().set( v_in[s].cReal() );
+    v[s].do_real_2_fourier();
+  }
   
   if (is_using_density_alias())
   {
@@ -443,9 +448,10 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     {
       DFT_Vec x; allSpecies_[s]->get_density_alias(x);
       allSpecies_[s]->convert_to_density_increment(x, v[s].Real());
+      v[s].do_real_2_fourier();
     }
   }
-   
+  
   // I would like to do this but it violates the const declaration of v
   //  for(int i=0;i<v.size();i++)
   //    v[i].do_real_2_fourier(); // make sure this is done! An internal flag should prevent needless FFT's

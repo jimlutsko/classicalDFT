@@ -355,7 +355,12 @@ void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &res
   if(dft_->getSpecies(0)->is_fixed_boundary() != is_fixed_boundary()) throw std::runtime_error("DDFT::matrix_dot_v: DDFT and DFT object out of synch on fixed boundaries");
   
   vector<DFT_FFT> v(dft_->getNumberOfSpecies());
-  for(int s=0; s<dft_->getNumberOfSpecies(); s++) v[s] = v_in[s];
+  for(int s=0; s<dft_->getNumberOfSpecies(); s++)
+  {
+    v[s].initialize(get_dimension(0), get_dimension(1), get_dimension(2));
+    v[s].Real().set( v_in[s].cReal() );
+    v[s].do_real_2_fourier();
+  }
   
   if (is_using_density_alias())
   {
@@ -363,6 +368,7 @@ void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &res
     {
       DFT_Vec x; dft_->getSpecies(s)->get_density_alias(x);
       dft_->getSpecies(s)->convert_to_density_increment(x, v[s].Real());
+      v[s].do_real_2_fourier();
     }
   }
   
