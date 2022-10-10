@@ -348,13 +348,13 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
 void DFT::set_densities_from_aliases(vector<DFT_Vec> &x_)
 {
   for(int s=0; s<allSpecies_.size();s++)
-    allSpecies_[s]->set_density_from_alias(x_[s]);        
+    allSpecies_[s]->set_density_from_alias(x_[s]);
 }
 
 void DFT::convert_dF_to_alias_derivs(vector<DFT_Vec> &x_)
 {
   for(int s = 0; s<allSpecies_.size(); s++)
-    allSpecies_[s]->convert_to_alias_deriv(x_[s],getDF(s));    
+    allSpecies_[s]->convert_to_alias_deriv(x_[s],getDF(s));
 }
 
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
@@ -453,6 +453,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     {
       DFT_Vec x; allSpecies_[s]->get_density_alias(x);
       allSpecies_[s]->convert_to_density_increment(x, v[s].Real());
+      //allSpecies_[s]->convert_to_density_increment(v[s].Real());
       v[s].do_real_2_fourier();
     }
   }
@@ -512,6 +513,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     {
       DFT_Vec x; allSpecies_[s]->get_density_alias(x);
       allSpecies_[s]->convert_to_alias_increment(x, result[s]);
+      //allSpecies_[s]->convert_to_alias_increment(result[s]);
     }
   }
   

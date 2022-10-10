@@ -19,13 +19,14 @@ using namespace std;
 
 int Species::SequenceNumber_ = 0;
 
+const double dmin = SMALL_VALUE;
+
 
 // These functions just alias the density so that it is always non-zero and in fact bigger than SMALL_VALUE.
 
 void Species::set_density_from_alias(const DFT_Vec &x)
 {
   long pos;
-  const double dmin = SMALL_VALUE;
   
 #pragma omp parallel for  private(pos)  schedule(static)
   for(pos=0;pos<x.size();pos++)
@@ -34,12 +35,22 @@ void Species::set_density_from_alias(const DFT_Vec &x)
   
 void Species::get_density_alias(DFT_Vec &x) const
 {
-  long pos;
-  const double dmin = SMALL_VALUE;
+  x.zeros(density_.size());
   
-#pragma omp parallel for  private(pos)  schedule(static)				    
+  long pos;
+  
+#pragma omp parallel for  private(pos)  schedule(static)
   for(pos=0;pos<x.size();pos++)
-    x.set(pos, sqrt(std::max(0.0, density_.get(pos)-1e-20)));    
+    x.set(pos, sqrt(std::max(0.0, density_.get(pos)-dmin)));    
+}
+
+void Species::convert_to_alias_deriv(DFT_Vec &dF_dRho) const
+{
+  long pos;
+  
+  #pragma omp parallel for  private(pos)  schedule(static)
+  for(pos=0;pos<density_.size();pos++)
+    dF_dRho.set(pos, 2*dF_dRho.get(pos)*sqrt(density_.get(pos)));
 }
 
 void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
@@ -48,20 +59,24 @@ void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   dF_dRho.MultBy(2.0);
 }
 
+void Species::convert_to_alias_increment(DFT_Vec &dRho) const
+{
+  long pos;
+  
+  #pragma omp parallel for  private(pos)  schedule(static)
+  for(pos=0;pos<density_.size();pos++)
+    dRho.set(pos, 0.5*dRho.get(pos)/sqrt(density_.get(pos)));
+}
+
 void Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
 {
   long pos;
   
-  #pragma omp parallel for  private(pos)  schedule(static)				    
+  #pragma omp parallel for  private(pos)  schedule(static)
   for(pos=0;pos<x.size();pos++)
     dRho.set(pos, 0.5*dRho.get(pos)/x.get(pos));
 }
 
-void Species::convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const
-{
-  // Identical transformation if jacobian is diagonal (local alias)
-  convert_to_alias_deriv(x, dRho);
-}
 
 // Trivial alias
 /*
@@ -69,7 +84,14 @@ void Species::set_density_from_alias(const DFT_Vec &x) {density_.set(x);}
 void Species::get_density_alias(DFT_Vec &x) const {x = density_.get_density_real();}
 void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const {;}
 void Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dF_dRho) const {;}
+void Species::convert_to_alias_deriv(DFT_Vec &dF_dRho) const {;}
+void Species::convert_to_alias_increment(DFT_Vec &dF_dRho) const {;}
 */
+
+
+// Identical transformation if jacobian is diagonal (local alias)
+void Species::convert_to_density_increment(DFT_Vec &dRho) const {convert_to_alias_deriv(dRho);}
+void Species::convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const {convert_to_alias_deriv(x, dRho);}
 
 
 double Species::externalField(bool bCalcForces)

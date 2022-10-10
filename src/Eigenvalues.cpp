@@ -97,10 +97,10 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       eigen_vec_.set_random_normal();
   
       if(matrix_.is_fixed_boundary())
-	{
-	  long pos = 0;
-	  do{eigen_vec_.set(pos,0.0);} while(matrix_.get_next_boundary_point(pos));
-	}
+      {
+        long pos = 0;
+        do{eigen_vec_.set(pos,0.0);} while(matrix_.get_next_boundary_point(pos));
+      }
   }
 
   
