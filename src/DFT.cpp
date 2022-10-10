@@ -434,11 +434,16 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 
 void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &result, void *param) const
 {
+  vector<double> vnorm(allSpecies_.size());
   vector<DFT_FFT> v(allSpecies_.size());
   for(int s=0; s<allSpecies_.size(); s++) 
   {
     v[s].initialize(get_dimension(0), get_dimension(1), get_dimension(2));
     v[s].Real().set( v_in[s].cReal() );
+    
+    vnorm[s] = v[s].Real().euclidean_norm();
+    v[s].Real().normalise();
+    
     v[s].do_real_2_fourier();
   }
   
@@ -508,6 +513,53 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
       DFT_Vec x; allSpecies_[s]->get_density_alias(x);
       allSpecies_[s]->convert_to_alias_increment(x, result[s]);
     }
+  }
+  
+  
+  
+  
+  
+  DFT_Vec x; allSpecies_[0]->get_density_alias(x);
+  
+  DFT_Vec v0(allSpecies_.size());
+  v0.set(v_in[0].cReal());
+  v0.normalise();
+  
+  /*
+  cout << endl;
+  cout << "\tSize of density array: " << allSpecies_[0]->getDensity().get_density_real().size() << endl;
+  cout << "\tSize of alias   array: " << x.size() << endl;
+  cout << "\tSize of density increment array: " << v0.size() << endl;
+  cout << "\tSize of alias   increment array: " << v[0].cReal().size() << endl;
+  */
+  
+  cout << endl;
+  cout << "\t(Density space) Dot product vT*d/|d||v|: " << v0.dotWith(allSpecies_[0]->getDensity().get_density_real()) / allSpecies_[0]->getDensity().get_density_real().euclidean_norm() / v0.euclidean_norm() << endl;
+  cout << "\t(Alias space)   Dot product vT*x/|x||v|: " << v[0].cReal().dotWith(x) / x.euclidean_norm() / v[0].cReal().euclidean_norm() << endl;
+  
+  cout << endl;
+  cout << "\tL2-Norm of v:   " << v0.euclidean_norm() << " (normalised from input: " << vnorm[0] << ")" << endl;
+  cout << "\tL2-Norm of A*v: " << result[0].euclidean_norm() << endl;
+  
+  /*
+  cout << endl;
+  cout << "\tMax component of v:   " << v0.inf_norm() << endl;
+  cout << "\tMax component of A*v: " << result[0].inf_norm() << endl;
+  
+  cout << endl;
+  cout << "\tMax component of (normalized) v:   " << v0.inf_norm() / v0.euclidean_norm() << endl;
+  cout << "\tMax component of (normalized) A*v: " << result[0].inf_norm() / result[0].euclidean_norm() << endl;
+  */
+  cout << endl;
+  cout << "\tL2-Norm ratio |A*v|/|v|:     " << result[0].euclidean_norm() / v0.euclidean_norm() << endl;
+  cout << "\tDot product vT*A*v/|A*v||v|: " << v0.dotWith(result[0]) / result[0].euclidean_norm() / v0.euclidean_norm() << endl;
+  
+  
+  
+  
+  for(int s=0; s<allSpecies_.size(); s++) 
+  {
+    result[s].MultBy(vnorm[s]);
   }
 }
 

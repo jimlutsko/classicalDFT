@@ -51,6 +51,7 @@ void FMT_Species::set_density_from_alias(const DFT_Vec &x)
 void FMT_Species::get_density_alias(DFT_Vec &x) const
 {
   //Species::get_density_alias(x);
+  x.zeros(density_.size());
    
   long pos;
   const double etamin = rho_min*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
@@ -187,6 +188,7 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
     dRho.set(pos,z);
   }
 }
+
 
 // Trivial alias
 /*
