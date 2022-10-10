@@ -20,6 +20,7 @@ using namespace std;
 
 const double dmin = SMALL_VALUE;
 
+
 //#define USE_ORIGINAL_ALIAS
 #ifdef USE_ORIGINAL_ALIAS
 // These impose density limits based on the fact that in the most extreme case,
@@ -39,7 +40,7 @@ void FMT_Species::set_density_from_alias(const DFT_Vec &x)
   const double c = (1.0-etamin)/density_.dV();
   //const double c = (0.99-etamin)/density_.dV();
   
-#pragma omp parallel for  private(pos)  schedule(static)				    
+#pragma omp parallel for  private(pos)  schedule(static)
   for(pos=0;pos<x.size();pos++)
     {
       double y = x.get(pos);
@@ -59,7 +60,7 @@ void FMT_Species::get_density_alias(DFT_Vec &x) const
   const double c = (1.0-etamin)/density_.dV();
   //const double c = (0.99-etamin)/density_.dV();
   
-#pragma omp parallel for  private(pos)  schedule(static)				    
+#pragma omp parallel for  private(pos)  schedule(static)
   for(pos=0;pos<x.size();pos++)
     {
       double z = (density_.get(pos) - dmin)/c;
@@ -84,7 +85,7 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   const double c = (1.0-etamin)/density_.dV();
   //  const double c = (0.99-etamin)/density_.dV();  
 
-#pragma omp parallel for  private(pos)  schedule(static)				      
+#pragma omp parallel for  private(pos)  schedule(static)
   for(pos=0;pos<x.size();pos++)
     {
       double y = x.get(pos);
@@ -109,7 +110,7 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
   const double c = (1.0-etamin)/density_.dV();
   //  const double c = (0.99-etamin)/density_.dV();  
 
-#pragma omp parallel for  private(pos)  schedule(static)				      
+#pragma omp parallel for  private(pos)  schedule(static)
   for(pos=0;pos<x.size();pos++)
     {
       double y = x.get(pos);
@@ -136,8 +137,8 @@ void FMT_Species::set_density_from_alias(const DFT_Vec &x)
   for(pos=0;pos<x.size();pos++)
   {
     double y = x.get(pos);
-    double z = dmin + 0.5*c*(1+tanh(2*y/c));
-    //double z = dmin + c/(1+c*exp(-y));
+    //double z = dmin + 0.5*c*(1+tanh(2*y/c));
+    double z = dmin + c/(1+c*exp(-y));
     density_.set(pos,z);
   }
 }
@@ -155,8 +156,8 @@ void FMT_Species::get_density_alias(DFT_Vec &x) const
   for(pos=0;pos<x.size();pos++)
   {
     double rho = density_.get(pos);
-    double z = 0.5*c*atanh( 2*(rho-dmin)/c -1 );
-    //double z = -log(1/(rho-dmin) - 1/c);
+    //double z = 0.5*c*atanh( 2*(rho-dmin)/c -1 );
+    double z = -log(1/(rho-dmin) - 1/c);
     x.set(pos,z);
   }
 }
@@ -173,8 +174,8 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &dF_dRho) const
   {
     double rho = density_.get(pos);
     double df = dF_dRho.get(pos);
-    double z = df * (1- pow( 2*(rho-dmin)/c -1 ,2));
-    //double z = df * (dmax-rho)*(rho-dmin)/(dmax-dmin);
+    //double z = df * (1- pow( 2*(rho-dmin)/c -1 ,2));
+    double z = df * (dmax-rho)*(rho-dmin)/(dmax-dmin);
     dF_dRho.set(pos,z);
   }
 }
@@ -193,8 +194,8 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   {
     double y = x.get(pos);
     double df = dF_dRho.get(pos);
-    double z = df / pow( cosh(2*y/c) ,2);
-    //double z = df * c*c*exp(-y) / pow( 1+c*exp(-y) ,2);
+    //double z = df / pow( cosh(2*y/c) ,2);
+    double z = df * c*c*exp(-y) / pow( 1+c*exp(-y) ,2);
     dF_dRho.set(pos,z);
   }
   */
@@ -212,8 +213,8 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &dRho) const
   {
     double rho = density_.get(pos);
     double drho = dRho.get(pos);
-    double z = drho / (1- pow( 2*(rho-dmin)/c -1 ,2));
-    //double z = drho * (dmax-dmin)/(dmax-rho)/(rho-dmin);
+    //double z = drho / (1- pow( 2*(rho-dmin)/c -1 ,2));
+    double z = drho * (dmax-dmin)/(dmax-rho)/(rho-dmin);
     dRho.set(pos,z);
   }
 }
@@ -232,8 +233,8 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
   {
     double y = x.get(pos);
     double drho = dRho.get(pos);
-    double z = drho * pow( cosh(2*y/c) ,2);
-    //double z = drho * pow( 1+c*exp(-y) ,2) / (c*c*exp(-y));
+    //double z = drho * pow( cosh(2*y/c) ,2);
+    double z = drho * pow( 1+c*exp(-y) ,2) / (c*c*exp(-y));
     dRho.set(pos,z);
   }
   */
