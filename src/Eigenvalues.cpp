@@ -30,11 +30,14 @@ static double eigenvalues_objective_func(const std::vector<double> &xx, std::vec
 {
   Eigenvalues& eig = *((Eigenvalues*) data);
 
-  eig.set_eigen_vec(xx);
+  if (eig.already_using_density_alias()) eig.set_eigen_vec(xx);
+  else eig.set_eigen_vec_from_alias_vector(xx);
   
   DFT_Vec df(xx.size());
 
   double f = eig.calculate_gradients(df);
+  
+  if (!eig.already_using_density_alias()) eig.get_species()->convert_to_alias_deriv(df);
 
   if (!grad.empty()) {
     #pragma omp parallel for
@@ -44,11 +47,19 @@ static double eigenvalues_objective_func(const std::vector<double> &xx, std::vec
   return f;
 }
 
+
 void Eigenvalues::set_eigen_vec(const vector<double> &v_in)
 {
-  if(eigen_vec_.size() != v_in.size()) eigen_vec_.zeros(v_in.size());  
-  
+  if(eigen_vec_.size() != v_in.size()) eigen_vec_.zeros(v_in.size());
   for(long i=0;i<v_in.size();i++) eigen_vec_.set(i,v_in[i]);
+}
+
+
+void Eigenvalues::set_eigen_vec_from_alias_vector(const vector<double> &v_in)
+{
+  if(eigen_vec_.size() != v_in.size()) eigen_vec_.zeros(v_in.size());
+  for(long i=0;i<v_in.size();i++) eigen_vec_.set(i,v_in[i]);
+  species_->convert_to_density_increment(eigen_vec_);
 }
 
 
@@ -103,9 +114,18 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       }
   }
 
-  
   vector<double> x(eigen_vec_.size());
-  for(unsigned i=0; i<x.size();i++) x[i] = eigen_vec_.get(i);
+  if (already_using_density_alias()) 
+  {
+    for(unsigned i=0; i<x.size();i++) x[i] = eigen_vec_.get(i);
+  }
+  else 
+  {
+    DFT_Vec eigen_vec_alias; eigen_vec_alias.set(eigen_vec_);
+    species_->convert_to_alias_increment(eigen_vec_alias);
+    
+    for(unsigned i=0; i<x.size();i++) x[i] = eigen_vec_alias.get(i);
+  }
 
   //opt.set_ftol_rel(tol_);
   opt.set_xtol_rel(tol_);
@@ -114,7 +134,8 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   eigen_val_ /= scale_;  
   if(change_sign_) eigen_val_ *= -1;
 
-  for(unsigned i=0; i<x.size();i++) eigen_vec_.set(i,x[i]);
+  if (already_using_density_alias()) set_eigen_vec(x);
+  else set_eigen_vec_from_alias_vector(x);
 
   eigen_vec_.normalise();
 }
