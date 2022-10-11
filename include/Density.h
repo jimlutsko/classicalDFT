@@ -28,6 +28,7 @@ static const double SMALL_VALUE = 1e-18;
 
 
 class String_Slave;
+class String_Slave2;
 
 
 
@@ -116,6 +117,7 @@ class Density : public Lattice
   template<typename Archive> void serialize(Archive & ar, const unsigned int version);
 
   friend String_Slave;
+  friend String_Slave2;
   
 protected:
   DFT_FFT Density_;  // The arrays for the real and fourier components of the density

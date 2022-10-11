@@ -117,7 +117,7 @@ double DDFT::step()
 
   // make sure that everything is initialized
   if(fx_.size() != Lamx_.size()) { double tmp = dt_; dt_ = 0; change_timestep(tmp);}
-  
+
   F_ = 0;
   try {
     F_ = get_energy_and_forces();
