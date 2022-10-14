@@ -357,6 +357,12 @@ void DFT::convert_dF_to_alias_derivs(vector<DFT_Vec> &x_)
     allSpecies_[s]->convert_to_alias_deriv(x_[s],getDF(s));
 }
 
+void DFT::convert_dF_to_alias_derivs()
+{
+  for(int s = 0; s<allSpecies_.size(); s++)
+    allSpecies_[s]->convert_to_alias_deriv(getDF(s));
+}
+
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
   for(auto &species : allSpecies_)  

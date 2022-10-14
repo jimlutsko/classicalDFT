@@ -87,12 +87,12 @@ void Minimizer::resume(long maxSteps)
 }
 
 
-void Minimizer::set_fixed_direction(const DFT_Vec& fixed, bool using_density_alias)
+void Minimizer::set_fixed_direction(const DFT_Vec& fixed, bool already_using_density_alias)
 {
   fixed_direction_ = fixed; 
   fixed_direction_.normalise(); 
   
-  if (!using_density_alias)
+  if (!already_using_density_alias)
   {
     // Convert to alias space as we later orthogonalise the forces/velocity in alias space
     dft_->getSpecies(0)->convert_to_alias_increment(x_[0],fixed_direction_);
@@ -205,9 +205,12 @@ double fireMinimizer2::step()
     v_rem[Jspecies].set(v_[Jspecies]);
     dF_rem[Jspecies].set(dft_->getDF(Jspecies));
   }
-
-  cout << "\t-dF*v/|v| = " << P/vnorm_/sqrt(v_[0].size()) 
-       << "  -dF*v/|v||dF| = " << P/vnorm_/rms_force_/v_[0].size()
+  
+  long Ntot = dft_->getDF(0).size();
+  cout << setprecision(8);
+  cout << "\t-dF*v/|v||dF| = " << setw(16) << P/vnorm_/rms_force_/Ntot
+       << "  -dF*v/|dF| = "    << setw(16) << P/rms_force_/sqrt(Ntot)
+       << "  -dF*v/|v| = "     << setw(16) << P/vnorm_/sqrt(Ntot)
        << endl;
   
   if(P > 0)
@@ -243,6 +246,7 @@ double fireMinimizer2::step()
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
     {
       x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
+      //x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -dt_);
       v_[Jspecies].MultBy(0.1); vnorm_ *= 0.1;
     }
     backtracks_++;
@@ -328,10 +332,13 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   /// Do mixing & update x
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
   {
+    double v = v_[Jspecies].euclidean_norm();
+    double f = dft_->getDF(Jspecies).euclidean_norm();
+    
     v_[Jspecies].MultBy(1-alpha_);      
-    v_[Jspecies].IncrementBy_Scaled_Vector(dft_->getDF(Jspecies), -alpha_*vnorm/fnorm);
+    v_[Jspecies].IncrementBy_Scaled_Vector(dft_->getDF(Jspecies), -alpha_*v/f);
     x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies],dt_);
-  }  
+  }
   
   // Recalculate forces with back-tracking, if necessary
   bool bSuccess = false;

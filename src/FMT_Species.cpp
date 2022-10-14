@@ -21,7 +21,9 @@ using namespace std;
 const double dmin = SMALL_VALUE;
 
 
-//#define USE_ORIGINAL_ALIAS
+#define USE_ORIGINAL_ALIAS
+//#define USE_NEW_ALIAS
+
 #ifdef USE_ORIGINAL_ALIAS
 // These impose density limits based on the fact that in the most extreme case,
 // if the density at some point is dmax and all other points it is dmin, then
@@ -120,8 +122,8 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
     }
 }
 
-
-#else
+#else 
+#ifdef USE_NEW_ALIAS
 // This is another alias which maps the zero of the density 
 // (or rathera minimal value "dmin") to -inf and the
 // maximal value physically possible (with eta<1) to +inf
@@ -239,17 +241,21 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
   }
   */
 }
-#endif
+
+
+#else
 
 // Trivial alias
-/*
+
 void FMT_Species::set_density_from_alias(const DFT_Vec &x) {density_.set(x);}
 void FMT_Species::get_density_alias(DFT_Vec &x) const {x = density_.get_density_real();}
 void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const {;}
 void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dF_dRho) const {;}
 void FMT_Species::convert_to_alias_deriv(DFT_Vec &dF_dRho) const {;}
 void FMT_Species::convert_to_alias_increment(DFT_Vec &dF_dRho) const {;}
-*/
+
+#endif
+#endif
 
 
 // Identical transformation if jacobian is diagonal (local alias)

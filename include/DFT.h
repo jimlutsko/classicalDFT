@@ -70,6 +70,7 @@ class DFT : public Dynamical_Matrix
   void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
   void set_densities_from_aliases(vector<DFT_Vec> &x_);
   void convert_dF_to_alias_derivs(vector<DFT_Vec> &x_);
+  void convert_dF_to_alias_derivs();
   
   // A few actions  
   void doDisplay(string &title, string &file, void *param = NULL) { for(auto &x: allSpecies_) x->doDisplay(title,file, param);}

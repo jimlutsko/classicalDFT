@@ -28,7 +28,9 @@ class Minimizer
   void setMinDensity(double m) { minDensity_ = m;}
   void setForceTerminationCriterion(double v) {forceLimit_ = v;}  
   void setVerbose(bool verbose) { verbose_ = verbose;}
-  void set_fixed_direction(const DFT_Vec& fixed, bool using_density_alias);
+  
+  const DFT_Vec&  get_fixed_direction() {return fixed_direction_;}
+  void set_fixed_direction(const DFT_Vec& fixed, bool already_using_density_alias);
   
   // report activity
   virtual void   draw_after() {};  // Display something after the minimization
@@ -98,7 +100,7 @@ class fireMinimizer2 : public Minimizer
   
   void setTimeStep(double dt)    { dt_ = dt;}
   void setTimeStepMax(double dt) { dt_max_ = dt;}  
-  void setAlphaStart(double a)   { alpha_start_ = a;}
+  void setAlphaStart(double a)   { alpha_start_ = a; alpha_ = alpha_start_;}
   void setAlphaFac(double a)     { f_alf_ = a;}
   void setBacktrackFac(double a) { f_back_ = a;}  
 
