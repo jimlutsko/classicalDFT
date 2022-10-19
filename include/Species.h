@@ -35,6 +35,7 @@ class Species
   const Density& getDensity() const { return density_;}
   const double*  get_density_data() { return density_.get_density_pointer();}
   virtual void   get_density_alias(DFT_Vec &x) const;
+  virtual void   get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const; // only valid for local aliases
   
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
   virtual void convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const;
@@ -127,6 +128,7 @@ public:
 
   virtual void set_density_from_alias(const DFT_Vec &x);
   virtual void get_density_alias(DFT_Vec &x) const;
+  virtual void get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const;
   
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
   virtual void convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const;

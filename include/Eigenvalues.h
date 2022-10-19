@@ -17,7 +17,10 @@
 class Eigenvalues
 {
  public:
-  Eigenvalues(const Dynamical_Matrix& matrix, Species* species, bool verbose = false) : matrix_(matrix), species_(species), verbose_(verbose) {}
+ 
+  Eigenvalues(const Dynamical_Matrix& matrix, Species* species, bool verbose = false) 
+   : matrix_(matrix), species_(species), verbose_(verbose) {}
+  
   ~Eigenvalues(){}
 
   void set_scale(double d)      {scale_ = d;}
@@ -46,7 +49,10 @@ class Eigenvalues
   void   set_eigen_vec_from_alias_vector(const vector<double> &v_in); 
   double calculate_gradients(DFT_Vec& df);
   
+  void matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const;
+  
   bool is_using_density_alias() const {return matrix_.is_using_density_alias();}
+  //bool already_using_density_alias() const {return true;} // never use alias
   bool already_using_density_alias() const {return matrix_.is_using_density_alias();} // for code clarity: more natural name to use in some functions
   
   void clear() { eigen_vec_.zeros(1);}

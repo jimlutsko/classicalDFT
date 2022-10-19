@@ -438,6 +438,9 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
    *   Cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
    */
 
+/*
+// The current implementation (October 18 2022) corresponds to case II of the notes
+// This function returns A^I_J v^J
 void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &result, void *param) const
 {
   vector<double> vnorm(allSpecies_.size());
@@ -485,6 +488,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     double dV = allSpecies_[0]->getDensity().dV();
 
     for(int s=0;s<allSpecies_.size();s++)
+      #pragma omp parallel for
       for(unsigned pos=0;pos<v[s].cReal().size();pos++)
         result[s].set(pos, dV*v[s].cReal().get(pos)/allSpecies_[s]->getDensity().get(pos));
   }
@@ -513,6 +517,27 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
       do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
     }
   
+  
+  ///////////////////////////////////////////////////////////////
+  // Assuming that what we computed is A_{IJ} v^J
+  //   with A_{IJ} = d2F/dRhoIdRhoJ
+  // We then multiply by density metric to convert to 
+  //   A^I_J v^J (=g^{IK} A_{KJ} v^J)
+  // This is done by applying twice convert_to_alias_deriv
+  // The result corresponds to case III of the notes
+  
+  if (!is_using_density_alias())
+  {
+    for(int s=0;s<allSpecies_.size();s++)
+    {
+      allSpecies_[s]->convert_to_alias_deriv(result[s]);
+      allSpecies_[s]->convert_to_alias_deriv(result[s]);
+    }
+  }
+  
+  ///////////////////////////////////////////////////////////////
+  
+  
   if (is_using_density_alias())
   {
     for(int s=0;s<allSpecies_.size();s++) 
@@ -525,21 +550,17 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
   
   
   
-  
-  
   DFT_Vec x; allSpecies_[0]->get_density_alias(x);
   
   DFT_Vec v0(allSpecies_.size());
   v0.set(v_in[0].cReal());
   v0.normalise();
   
-  /*
-  cout << endl;
-  cout << "\tSize of density array: " << allSpecies_[0]->getDensity().get_density_real().size() << endl;
-  cout << "\tSize of alias   array: " << x.size() << endl;
-  cout << "\tSize of density increment array: " << v0.size() << endl;
-  cout << "\tSize of alias   increment array: " << v[0].cReal().size() << endl;
-  */
+  //cout << endl;
+  //cout << "\tSize of density array: " << allSpecies_[0]->getDensity().get_density_real().size() << endl;
+  //cout << "\tSize of alias   array: " << x.size() << endl;
+  //cout << "\tSize of density increment array: " << v0.size() << endl;
+  //cout << "\tSize of alias   increment array: " << v[0].cReal().size() << endl;
   
   cout << endl;
   cout << "\t(Density space) Dot product vT*d/|d||v|: " << v0.dotWith(allSpecies_[0]->getDensity().get_density_real()) / allSpecies_[0]->getDensity().get_density_real().euclidean_norm() / v0.euclidean_norm() << endl;
@@ -549,20 +570,166 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
   cout << "\tL2-Norm of v:   " << v0.euclidean_norm() << " (normalised from input: " << vnorm[0] << ")" << endl;
   cout << "\tL2-Norm of A*v: " << result[0].euclidean_norm() << endl;
   
-  /*
-  cout << endl;
-  cout << "\tMax component of v:   " << v0.inf_norm() << endl;
-  cout << "\tMax component of A*v: " << result[0].inf_norm() << endl;
+  //cout << endl;
+  //cout << "\tMax component of v:   " << v0.inf_norm() << endl;
+  //cout << "\tMax component of A*v: " << result[0].inf_norm() << endl;
   
+  //cout << endl;
+  //cout << "\tMax component of (normalized) v:   " << v0.inf_norm() / v0.euclidean_norm() << endl;
+  //cout << "\tMax component of (normalized) A*v: " << result[0].inf_norm() / result[0].euclidean_norm() << endl;
+  
+  DFT_Vec Jv0; Jv0.set(v0); allSpecies_[0]->convert_to_alias_increment(Jv0);
   cout << endl;
-  cout << "\tMax component of (normalized) v:   " << v0.inf_norm() / v0.euclidean_norm() << endl;
-  cout << "\tMax component of (normalized) A*v: " << result[0].inf_norm() / result[0].euclidean_norm() << endl;
-  */
+  cout << "\tL2-Norm ratio  |Jv|/|v|:     " << Jv0.euclidean_norm() / v0.euclidean_norm() << endl;
+  
   cout << endl;
   cout << "\tL2-Norm ratio |A*v|/|v|:     " << result[0].euclidean_norm() / v0.euclidean_norm() << endl;
   cout << "\tDot product vT*A*v/|A*v||v|: " << v0.dotWith(result[0]) / result[0].euclidean_norm() / v0.euclidean_norm() << endl;
   
   
+  
+  
+  for(int s=0; s<allSpecies_.size(); s++) 
+  {
+    result[s].MultBy(vnorm[s]);
+  }
+}
+*/
+
+
+
+// This implementation corresponds to case I of the notes
+// The function returns d2F/dxIdxJ, where x is the density alias
+void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &result, void *param) const
+{
+  vector<double> vnorm(allSpecies_.size());
+  vector<DFT_FFT> v(allSpecies_.size());
+  for(int s=0; s<allSpecies_.size(); s++) 
+  {
+    v[s].initialize(get_dimension(0), get_dimension(1), get_dimension(2));
+    v[s].Real().set( v_in[s].cReal() );
+    
+    vnorm[s] = v[s].Real().euclidean_norm();
+    v[s].Real().normalise();
+    
+    v[s].do_real_2_fourier();
+  }
+  
+  if (!is_using_density_alias())
+    throw runtime_error("Not using density alias in an alias-only implementation of matrix_dot_v_intern (DFT.cpp)");
+  
+  // I would like to do this but it violates the const declaration of v
+  //  for(int i=0;i<v.size();i++)
+  //    v[i].do_real_2_fourier(); // make sure this is done! An internal flag should prevent needless FFT's
+  
+  // Boundary terms must be zero if the boundary is fixed
+  for(int s=0;s<allSpecies_.size();s++)  
+    if(allSpecies_[s]->is_fixed_boundary())
+      for(unsigned p=0;p<allSpecies_[s]->getLattice().get_Nboundary();p++)
+      {
+        unsigned pp = allSpecies_[s]->getLattice().boundary_pos_2_pos(p);
+        if(fabs(v[s].cReal().get(pp)) > 0.0)
+          throw std::runtime_error("Input vector v must have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
+      }
+
+  if(full_hessian_)
+  {
+    // ideal gas contribution: v_i/n_i
+
+    double dV = allSpecies_[0]->getDensity().dV();
+
+    for(int s=0;s<allSpecies_.size();s++)
+      #pragma omp parallel for
+      for(unsigned pos=0;pos<v[s].cReal().size();pos++)
+        result[s].set(pos, dV*v[s].cReal().get(pos)/allSpecies_[s]->getDensity().get(pos));
+  }
+
+  // Hard-sphere
+  if(fmt_)
+  {
+    try {fmt_->add_second_derivative(v,result, allSpecies_);}
+    catch( Eta_Too_Large_Exception &e) {throw e;}
+  }
+  else
+  {
+    for(auto &species : allSpecies_)
+      species->doFFT(); 
+  } 
+  
+  // Mean field
+  for(auto &interaction: DFT::Interactions_)    
+    interaction->add_second_derivative(v,result);
+
+  // Remove boundary terms if the boundary is fixed
+  for(int s=0;s<allSpecies_.size();s++)  
+    if(allSpecies_[s]->is_fixed_boundary())
+    {
+      long p = 0;
+      do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
+    }
+  
+  ////////////////////////////////////////////////////////////////
+  // Now, convert d2F/dRhoIdRhoJ to d2F/dxIdxJ
+  // First, recompute the forces and make sure 
+  // they are not converted to alias coordinates
+  // TODO: Cannot do this because this function is const!!!
+  // TODO: That is annoying, there must be a parameter to know 
+  //       whether the forces are in density or alias coordinates,
+  //       or store the two versions
+  //calculateFreeEnergyAndDerivatives(false);
+  
+  for(int s=0;s<allSpecies_.size();s++)
+  {
+    allSpecies_[s]->convert_to_alias_deriv(result[s]);
+    allSpecies_[s]->convert_to_alias_deriv(result[s]);
+    
+    DFT_Vec df; df.set(allSpecies_[s]->getDF());
+    DFT_Vec d2Rhodx2; allSpecies_[s]->get_second_derivatives_of_density_wrt_alias(d2Rhodx2);
+    df.Schur(df, d2Rhodx2);
+    
+    result[s].IncrementBy(df);
+  }
+  
+  ////////////////////////////////////////////////////////////////
+  
+  
+  
+  
+  DFT_Vec x; allSpecies_[0]->get_density_alias(x);
+  
+  DFT_Vec v0(allSpecies_.size());
+  v0.set(v_in[0].cReal());
+  v0.normalise();
+  
+  //cout << endl;
+  //cout << "\tSize of density array: " << allSpecies_[0]->getDensity().get_density_real().size() << endl;
+  //cout << "\tSize of alias   array: " << x.size() << endl;
+  //cout << "\tSize of density increment array: " << v0.size() << endl;
+  //cout << "\tSize of alias   increment array: " << v[0].cReal().size() << endl;
+  
+  cout << endl;
+  cout << "\t(Density space) Dot product vT*d/|d||v|: " << v0.dotWith(allSpecies_[0]->getDensity().get_density_real()) / allSpecies_[0]->getDensity().get_density_real().euclidean_norm() / v0.euclidean_norm() << endl;
+  cout << "\t(Alias space)   Dot product vT*x/|x||v|: " << v[0].cReal().dotWith(x) / x.euclidean_norm() / v[0].cReal().euclidean_norm() << endl;
+  
+  cout << endl;
+  cout << "\tL2-Norm of v:   " << v0.euclidean_norm() << " (normalised from input: " << vnorm[0] << ")" << endl;
+  cout << "\tL2-Norm of A*v: " << result[0].euclidean_norm() << endl;
+  
+  //cout << endl;
+  //cout << "\tMax component of v:   " << v0.inf_norm() << endl;
+  //cout << "\tMax component of A*v: " << result[0].inf_norm() << endl;
+  
+  //cout << endl;
+  //cout << "\tMax component of (normalized) v:   " << v0.inf_norm() / v0.euclidean_norm() << endl;
+  //cout << "\tMax component of (normalized) A*v: " << result[0].inf_norm() / result[0].euclidean_norm() << endl;
+  
+  DFT_Vec Jv0; Jv0.set(v0); allSpecies_[0]->convert_to_alias_increment(Jv0);
+  cout << endl;
+  cout << "\tL2-Norm ratio  |Jv|/|v|:     " << Jv0.euclidean_norm() / v0.euclidean_norm() << endl;
+  
+  cout << endl;
+  cout << "\tL2-Norm ratio |A*v|/|v|:     " << result[0].euclidean_norm() / v0.euclidean_norm() << endl;
+  cout << "\tDot product vT*A*v/|A*v||v|: " << v0.dotWith(result[0]) / result[0].euclidean_norm() / v0.euclidean_norm() << endl;
   
   
   for(int s=0; s<allSpecies_.size(); s++) 
