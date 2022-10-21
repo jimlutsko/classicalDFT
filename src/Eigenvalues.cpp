@@ -93,6 +93,11 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
   */
   df.IncrementBy_Scaled_Vector(eigen_vec_,-f);
   df.MultBy(2/x2);
+  
+  // Artificial cost to keep the vectors near the unit sphere (does not change the eigenproblem)
+  double vnorm2 = eigen_vec_.dotWith(eigen_vec_);
+  f += (vnorm2-1)*(vnorm2-1);
+  df.IncrementBy_Scaled_Vector(eigen_vec_,4*(vnorm2-1));
 
   num_eval_++;
 
@@ -102,10 +107,6 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
   
   if (max_num_eval_>0 && num_eval_>=max_num_eval_)
     throw runtime_error("Eigenvalues: Exceeded max number of iterations");
-  
-  // Artificial cost to keep the vectors near the unit sphere (does not change the eigenproblem)
-  double vnorm = eigen_vec_.euclidean_norm();
-  f += (vnorm-1)*(vnorm-1);
   
   return f;
 }

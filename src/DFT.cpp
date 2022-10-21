@@ -659,14 +659,6 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
   // Mean field
   for(auto &interaction: DFT::Interactions_)    
     interaction->add_second_derivative(v,result);
-
-  // Remove boundary terms if the boundary is fixed
-  for(int s=0;s<allSpecies_.size();s++)  
-    if(allSpecies_[s]->is_fixed_boundary())
-    {
-      long p = 0;
-      do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
-    }
   
   ////////////////////////////////////////////////////////////////
   // Now, convert d2F/dRhoIdRhoJ to d2F/dxIdxJ
@@ -692,7 +684,13 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
   
   ////////////////////////////////////////////////////////////////
   
-  
+  // Remove boundary terms if the boundary is fixed
+  for(int s=0;s<allSpecies_.size();s++)  
+  if(allSpecies_[s]->is_fixed_boundary())
+  {
+    long p = 0;
+    do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
+  }
   
   
   DFT_Vec x; allSpecies_[0]->get_density_alias(x);
