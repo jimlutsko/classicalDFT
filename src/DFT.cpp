@@ -438,9 +438,6 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
    *   Cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
    */
 
-
-// The current implementation (October 18 2022) corresponds to case II of the notes
-// This function returns A^I_J v^J
 void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &result, void *param) const
 {
   vector<double> vnorm(allSpecies_.size());
@@ -455,19 +452,6 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     
     v[s].do_real_2_fourier();
   }
-  
-  /*
-  if (is_using_density_alias())
-  {
-    for(int s=0;s<allSpecies_.size();s++) 
-    {
-      DFT_Vec x; allSpecies_[s]->get_density_alias(x);
-      allSpecies_[s]->convert_to_density_increment(x, v[s].Real());
-      //allSpecies_[s]->convert_to_density_increment(v[s].Real());
-      v[s].do_real_2_fourier();
-    }
-  }
-  */
   
   // I would like to do this but it violates the const declaration of v
   //  for(int i=0;i<v.size();i++)
@@ -520,36 +504,6 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     }
   
   
-  ///////////////////////////////////////////////////////////////
-  // Assuming that what we computed is A_{IJ} v^J
-  //   with A_{IJ} = d2F/dRhoIdRhoJ
-  // We then multiply by density metric to convert to 
-  //   A^I_J v^J (=g^{IK} A_{KJ} v^J)
-  // This is done by applying twice convert_to_alias_deriv
-  // The result corresponds to case III of the notes
-  
-  //if (!is_using_density_alias())
-  //{
-  //  for(int s=0;s<allSpecies_.size();s++)
-  //  {
-  //    allSpecies_[s]->convert_to_alias_deriv(result[s]);
-  //    allSpecies_[s]->convert_to_alias_deriv(result[s]);
-  //  }
-  //}
-  
-  ///////////////////////////////////////////////////////////////
-  
-  /*
-  if (is_using_density_alias())
-  {
-    for(int s=0;s<allSpecies_.size();s++) 
-    {
-      DFT_Vec x; allSpecies_[s]->get_density_alias(x);
-      allSpecies_[s]->convert_to_alias_increment(x, result[s]);
-      //allSpecies_[s]->convert_to_alias_increment(result[s]);
-    }
-  }
-  */
   
   
   DFT_Vec x; allSpecies_[0]->get_density_alias(x);
@@ -663,7 +617,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     interaction->add_second_derivative(v,result);
   
   ////////////////////////////////////////////////////////////////
-  // Now, convert d2F/dRhoIdRhoJ to d2F/dxIdxJ
+  // Now, convert d2F/dRhoIdRhoJ vJ to d2F/dxIdxJ vJ
   // First, recompute the forces and make sure 
   // they are not converted to alias coordinates
   // TODO: Cannot do this because this function is const!!!
@@ -680,6 +634,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     DFT_Vec df; df.set(allSpecies_[s]->getDF());
     DFT_Vec d2Rhodx2; allSpecies_[s]->get_second_derivatives_of_density_wrt_alias(d2Rhodx2);
     df.Schur(df, d2Rhodx2);
+    df.Schur(df, v[s].Real());
     
     result[s].IncrementBy(df);
   }
