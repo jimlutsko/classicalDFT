@@ -50,10 +50,11 @@ class Eigenvalues
   double calculate_gradients(DFT_Vec& df);
   
   void matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const;
+  void matrix_dot_v(const vector<double> &vv, vector<double> &result, void *param);
   
   bool is_using_density_alias() const {return matrix_.is_using_density_alias();}
-  //bool already_using_density_alias() const {return true;} // never use alias
-  bool already_using_density_alias() const {return matrix_.is_using_density_alias();} // for code clarity: more natural name to use in some functions
+  bool already_using_density_alias() const {return true;} // never do conversions from alias to density or reverse
+  //bool already_using_density_alias() const {return matrix_.is_using_density_alias();} // for code clarity: more natural name to use in some functions
   
   void clear() { eigen_vec_.zeros(1);}
   
@@ -62,7 +63,7 @@ class Eigenvalues
   Species* species_;
   DFT_Vec vshift_;
   
-  double scale_     = 1e6;
+  double scale_     = 1;
   double tol_       = 1e-6;
   bool change_sign_ = false;  
   int num_eval_     = 0;

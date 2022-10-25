@@ -438,7 +438,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
    *   Cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
    */
 
-/*
+
 // The current implementation (October 18 2022) corresponds to case II of the notes
 // This function returns A^I_J v^J
 void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &result, void *param) const
@@ -456,6 +456,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     v[s].do_real_2_fourier();
   }
   
+  /*
   if (is_using_density_alias())
   {
     for(int s=0;s<allSpecies_.size();s++) 
@@ -466,6 +467,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
       v[s].do_real_2_fourier();
     }
   }
+  */
   
   // I would like to do this but it violates the const declaration of v
   //  for(int i=0;i<v.size();i++)
@@ -526,18 +528,18 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
   // This is done by applying twice convert_to_alias_deriv
   // The result corresponds to case III of the notes
   
-  if (!is_using_density_alias())
-  {
-    for(int s=0;s<allSpecies_.size();s++)
-    {
-      allSpecies_[s]->convert_to_alias_deriv(result[s]);
-      allSpecies_[s]->convert_to_alias_deriv(result[s]);
-    }
-  }
+  //if (!is_using_density_alias())
+  //{
+  //  for(int s=0;s<allSpecies_.size();s++)
+  //  {
+  //    allSpecies_[s]->convert_to_alias_deriv(result[s]);
+  //    allSpecies_[s]->convert_to_alias_deriv(result[s]);
+  //  }
+  //}
   
   ///////////////////////////////////////////////////////////////
   
-  
+  /*
   if (is_using_density_alias())
   {
     for(int s=0;s<allSpecies_.size();s++) 
@@ -547,7 +549,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
       //allSpecies_[s]->convert_to_alias_increment(result[s]);
     }
   }
-  
+  */
   
   
   DFT_Vec x; allSpecies_[0]->get_density_alias(x);
@@ -594,10 +596,10 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     result[s].MultBy(vnorm[s]);
   }
 }
-*/
 
 
 
+/*
 // This implementation corresponds to case I of the notes
 // The function returns d2F/dxIdxJ, where x is the density alias
 void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &result, void *param) const
@@ -735,7 +737,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
     result[s].MultBy(vnorm[s]);
   }
 }
-
+*/
 
 
 
