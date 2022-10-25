@@ -350,44 +350,14 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
     }      
 }
 
-void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &result, void *param) const
+void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
 {
   if(dft_->getSpecies(0)->is_fixed_boundary() != is_fixed_boundary()) throw std::runtime_error("DDFT::matrix_dot_v: DDFT and DFT object out of synch on fixed boundaries");
-  
-  vector<DFT_FFT> v(dft_->getNumberOfSpecies());
-  for(int s=0; s<dft_->getNumberOfSpecies(); s++)
-  {
-    v[s].initialize(get_dimension(0), get_dimension(1), get_dimension(2));
-    v[s].Real().set( v_in[s].cReal() );
-    v[s].do_real_2_fourier();
-  }
-  
-  if (is_using_density_alias())
-  {
-    for(int s=0; s<dft_->getNumberOfSpecies(); s++) 
-    {
-      DFT_Vec x; dft_->getSpecies(s)->get_density_alias(x);
-      dft_->getSpecies(s)->convert_to_density_increment(x, v[s].Real());
-      v[s].do_real_2_fourier();
-    }
-  }
-  
-  if (dft_->is_using_density_alias())
-    throw runtime_error("(DDFT::matrix_dot_v_intern) dft object uses alias too");
   
   dft_->matrix_dot_v(v, result, param);
   DFT_Vec intermediate_result(result[0]);
   result[0].zeros();
   g_dot_x(intermediate_result, result[0]);
-  
-  if (is_using_density_alias())
-  {
-    for(int s=0; s<dft_->getNumberOfSpecies(); s++)  
-    {
-      DFT_Vec x; dft_->getSpecies(s)->get_density_alias(x);
-      dft_->getSpecies(s)->convert_to_density_increment(x, result[s]);
-    }
-  }
 }
 
 

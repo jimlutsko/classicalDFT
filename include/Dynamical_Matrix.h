@@ -28,17 +28,14 @@ class Dynamical_Matrix
   void set_boundary_points_to_zero(DFT_Vec &v) const;
     
   long get_Ntot() const { return get_dimension(0)*get_dimension(1)*get_dimension(2);}
-  bool is_using_density_alias() const {return use_density_alias_;}
 
   void set_verbose(bool v)            { dm_verbose_ = v;}
   void set_use_squared_matrix(bool v) { use_squared_matrix_  = v;}
-  void set_use_density_alias(bool v)  { use_density_alias_  = v;}
 
 protected:
 
   bool dm_verbose_         = false;
   bool use_squared_matrix_ = false;
-  bool use_density_alias_  = false;
 };
 
 #endif

@@ -23,11 +23,12 @@ class Eigenvalues
   
   ~Eigenvalues(){}
 
-  void set_scale(double d)      {scale_ = d;}
-  void set_tolerence(double d)  {tol_ = d;}  
-  void set_change_sign(bool b)  {change_sign_ = b;}
-  void set_vshift(DFT_Vec& v)   {vshift_ = v;}
+  void set_scale(double d)     {scale_ = d;}
+  void set_tolerence(double d) {tol_ = d;}  
+  void set_change_sign(bool b) {change_sign_ = b;}
+  void set_vshift(DFT_Vec& v)  {vshift_ = v;}
   void set_max_num_eval(int i) {max_num_eval_ = i;}
+  void set_use_density_alias(bool v) { using_density_alias_  = v;}
   
   double get_scale()        const {return scale_;}
   double get_tolerence()    const {return tol_;}
@@ -46,15 +47,13 @@ class Eigenvalues
   void   calculate_eigen_value();
   void   set_eigen_vec(const vector<double> &v_in);
   void   set_eigen_vec(const DFT_Vec &v_in) {eigen_vec_ = v_in;}
-  void   set_eigen_vec_from_alias_vector(const vector<double> &v_in); 
   double calculate_gradients(DFT_Vec& df);
   
   void matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const;
   void matrix_dot_v(const vector<double> &vv, vector<double> &result, void *param);
   
-  bool is_using_density_alias() const {return matrix_.is_using_density_alias();}
-  bool already_using_density_alias() const {return true;} // never do conversions from alias to density or reverse
-  //bool already_using_density_alias() const {return matrix_.is_using_density_alias();} // for code clarity: more natural name to use in some functions
+  bool is_using_density_alias() const {return using_density_alias_;}
+  //bool is_using_density_alias() const {return matrix_.is_using_density_alias();}
   
   void clear() { eigen_vec_.zeros(1);}
   
@@ -70,6 +69,7 @@ class Eigenvalues
   int max_num_eval_ = -1;
   int return_code_  = 0; // nlopt return code
   bool verbose_     = false;
+  bool using_density_alias_ = false;
 
   DFT_Vec eigen_vec_;
   double  eigen_val_ = 0;
