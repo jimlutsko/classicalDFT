@@ -104,7 +104,7 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
     matrix_.matrix_dot_v1(v,result,param);
   }
   
-  cout << endl;
+  cout << endl; cout << setprecision(12);
   cout << "\tIn Eigenvalues::matrix_dot_v:" << endl;
   cout << "\t  L2-Norm of v:   " << v.euclidean_norm() << endl;
   cout << "\t  L2-Norm of A*v: " << result.euclidean_norm() << endl;
@@ -161,7 +161,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   double t = 0.0;
   
   // Parameters
-  double alpha_start = 0.5;
+  double alpha_start = 0.1;
   double alpha = alpha_start;
   double dt = 0.01;
   double dt_max = 0.1;
@@ -265,7 +265,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     }
     double Axerr = 1-fabs(xdotAx)/sqrt(xdotx)/sqrt(AxdotAx);
     
-    cout << endl;
+    cout << endl; cout << setprecision(12);
     cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
     cout << "\t  P  = " << P  << endl;
     cout << "\t  dt = " << dt << endl;
@@ -287,14 +287,19 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     }
   }
   
-  // Finalize
-  eigen_val_ = f;
   
-  ////////////////////////////////////////
-    
-  eigen_val_ /= scale_;  
-  if(change_sign_) eigen_val_ *= -1;
-
+  ////////////////////////////////////////////////////////////////////
+  // Use normalised eigenvector to compute the true eigenvalue
+  // This way we cancel the (v^2-1)^2 term in the objective function 
+  
   set_eigen_vec(x);
   eigen_vec_.normalise();
+  
+  eigen_val_ = calculate_gradients(df);
+  
+  eigen_val_ /= scale_;  
+  if(change_sign_) eigen_val_ *= -1;
 }
+
+
+
