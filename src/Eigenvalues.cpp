@@ -295,7 +295,8 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   set_eigen_vec(x);
   eigen_vec_.normalise();
   
-  eigen_val_ = calculate_gradients(df);
+  DFT_Vec dummy;
+  eigen_val_ = calculate_gradients(dummy);
   
   eigen_val_ /= scale_;  
   if(change_sign_) eigen_val_ *= -1;
