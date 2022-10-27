@@ -29,6 +29,7 @@ static double eigenvalues_objective_func(const std::vector<double> &xx, std::vec
 {
   Eigenvalues& eig = *((Eigenvalues*) data);
   eig.set_eigen_vec(xx);
+  eig.save_snapshot();
   
   DFT_Vec df(xx.size());
   double f = eig.calculate_gradients(df);
@@ -38,6 +39,7 @@ static double eigenvalues_objective_func(const std::vector<double> &xx, std::vec
     for(long i=0;i<grad.size();i++)
       grad[i] = df.get(i);
   }
+  
   return f;
 }
 
@@ -49,8 +51,19 @@ void Eigenvalues::set_eigen_vec(const vector<double> &v_in)
 }
 
 
+void Eigenvalues::save_snapshot()
+{
+  if(eigen_vec_.size()>1)
+  {
+    ofstream ofile("snapshot_eigenvector.dat");
+    ofile << eigen_vec_;
+    ofile.close();
+  }
+}
+
+
 double Eigenvalues::calculate_gradients(DFT_Vec& df)
-{  
+{
   matrix_dot_v(eigen_vec_,df,NULL);
 
   if(vshift_.size() == df.size())
@@ -163,8 +176,8 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   // Parameters
   double alpha_start = 0.1;
   double alpha = alpha_start;
-  double dt = 0.01;
-  double dt_max = 0.1;
+  double dt = 1e-4;
+  double dt_max = 1e-4;
   double dt_min = 0.0;
   double finc = 1.1;
   double falf = 1.0;
@@ -179,9 +192,22 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   // Iterate
   for (int i=0; i<Nmax; i++)
   {
-    double P = 0.0; 
+    double P = 0.0;
     #pragma omp parallel for reduction(+:P)
     for (long j=0; j<v.size(); j++) P -= df[j]*v[j];
+    
+    double vnorm = 0.0;
+    double fnorm = 0.0;
+    #pragma omp parallel for reduction(+:vnorm) reduction(+:fnorm)
+    for (long j=0; j<v.size(); j++)
+    {
+      vnorm += v[j]*v[j];
+      fnorm += df[j]*df[j];
+    }
+    vnorm = sqrt(vnorm);
+    fnorm = sqrt(fnorm);
+    
+    double P_normalized = P/vnorm/fnorm;
     
     #pragma omp parallel for
     for (long j=0; j<x.size(); j++) x_old[j] = x[j];
@@ -223,8 +249,8 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       v[j] -= dt*df[j];
     }
     
-    double vnorm = 0.0;
-    double fnorm = 0.0;
+    vnorm = 0.0;
+    fnorm = 0.0;
     #pragma omp parallel for reduction(+:vnorm) reduction(+:fnorm)
     for (long j=0; j<v.size(); j++)
     {
@@ -267,7 +293,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     
     cout << endl; cout << setprecision(12);
     cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
-    cout << "\t  P  = " << P  << endl;
+    cout << "\t  P/|v||df| = " << P_normalized << endl;
     cout << "\t  dt = " << dt << endl;
     cout << "\t  vnorm  = " << vnorm << endl;
     cout << "\t  fnorm  = " << fnorm << endl;

@@ -47,6 +47,7 @@ class Eigenvalues
   void   calculate_eigen_value();
   void   set_eigen_vec(const vector<double> &v_in);
   void   set_eigen_vec(const DFT_Vec &v_in) {eigen_vec_ = v_in;}
+  void   save_snapshot();
   double calculate_gradients(DFT_Vec& df);
   
   void matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const;
