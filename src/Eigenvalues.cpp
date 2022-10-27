@@ -176,17 +176,19 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   // Parameters
   double alpha_start = 0.1;
   double alpha = alpha_start;
-  double dt = 1e-4;
-  double dt_max = 1e-4;
+  double dt = 0.01;
+  double dt_max = 1;
   double dt_min = 0.0;
   double finc = 1.1;
   double falf = 1.0;
   double fdec = 0.5;
+  double finc2 = pow(finc,1.0/10);
+  double fdec2 = pow(fdec,1.0/10);
   int Npos = 0;
   int Nneg = 0;
   int Nmax = 1e6;
   int Ndelay = 10;
-  int Nneg_max = 10;
+  int Nneg_max = 20;
   bool initialdelay = true;
   
   // Iterate
@@ -219,6 +221,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       if (Npos>Ndelay)
       {
         dt = (dt*finc<dt_max)?dt*finc:dt_max;
+        dt_max *= finc2;
         alpha *= falf;
       }
     }
@@ -231,6 +234,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       if (!initialdelay || i>=Ndelay) 
       {
         if (dt*fdec>dt_min) dt *= fdec;
+        if (dt_max*fdec2>dt_min) dt_max *= fdec2;
         alpha = alpha_start;
       }
       
@@ -280,6 +284,8 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     }
     xerr  = sqrt(xerr)/x.size();
     
+    //TODO: compute this and check convergence only 
+    //      once in a while to save a few calls??
     vector<double> Ax; matrix_dot_v(x, Ax, NULL);
     double xdotx, xdotAx, AxdotAx; xdotx = xdotAx = AxdotAx = 0.0;
     #pragma omp parallel for reduction(+:xdotx) reduction(+:xdotAx) reduction(+:AxdotAx)
@@ -295,6 +301,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
     cout << "\t  P/|v||df| = " << P_normalized << endl;
     cout << "\t  dt = " << dt << endl;
+    cout << "\t  dt_max = " << dt_max << endl;
     cout << "\t  vnorm  = " << vnorm << endl;
     cout << "\t  fnorm  = " << fnorm << endl;
     cout << "\t  f-fold = " << f-f_old << endl;
@@ -321,7 +328,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   set_eigen_vec(x);
   eigen_vec_.normalise();
   
-  DFT_Vec dummy;
+  DFT_Vec dummy; dummy.zeros(x.size());
   eigen_val_ = calculate_gradients(dummy);
   
   eigen_val_ /= scale_;  
