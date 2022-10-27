@@ -18,7 +18,7 @@ using namespace std;
 */
 
 #ifdef USE_MPI
-#include <mpi.h>  
+#include <mpi.h>
 #endif
 
 #include "myColor.h"
@@ -160,7 +160,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   }
 
   vector<double> x(eigen_vec_.size());
-  for(unsigned i=0; i<x.size();i++) x[i] = eigen_vec_.get(i);
+  for(unsigned i=0; i<x.size(); i++) x[i] = eigen_vec_.get(i);
   
   
   ////////////////////////////////////////
@@ -169,25 +169,27 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   // Initialize
   vector<double> v (x.size(), 0.0);
   vector<double> df(x.size(), 0.0);
-  vector<double> x_old(x.size(), 0.0);
+  vector<double> x_old(x.size());
+  for(unsigned i=0; i<x.size(); i++) x_old[i] = x[i];
+  
   double f = eigenvalues_objective_func(x, df, this);
+  double f_old = f;
   double t = 0.0;
   
   // Parameters
-  double alpha_start = 0.1;
+  double alpha_start = 1.0;
+  double alpha_min = 0.1;
   double alpha = alpha_start;
   double dt = 0.01;
   double dt_max = 1;
   double dt_min = 0.0;
-  double finc = 1.1;
-  double falf = 1.0;
-  double fdec = 0.5;
-  double finc2 = pow(finc,1.0/10);
-  double fdec2 = pow(fdec,1.0/10);
+  double finc = 1.01;
+  double falf = 0.99;
+  double fdec = 0.1;
   int Npos = 0;
   int Nneg = 0;
   int Nmax = 1e6;
-  int Ndelay = 10;
+  int Ndelay = 5; //was 10
   int Nneg_max = 20;
   bool initialdelay = true;
   
@@ -211,18 +213,14 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     
     double P_normalized = P/vnorm/fnorm;
     
-    #pragma omp parallel for
-    for (long j=0; j<x.size(); j++) x_old[j] = x[j];
-    
-    if (P>0)
+    if (P>=0) // && f<=f_old sometimes causes problems sending dt->0
     {
       Npos ++; Nneg = 0;
       
-      if (Npos>Ndelay)
+      if (Npos>Ndelay && P_normalized>0.999)
       {
         dt = (dt*finc<dt_max)?dt*finc:dt_max;
-        dt_max *= finc2;
-        alpha *= falf;
+        alpha = (alpha*falf>alpha_min)?alpha*falf:alpha_min;
       }
     }
     else // if P<=0
@@ -234,17 +232,21 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       if (!initialdelay || i>=Ndelay) 
       {
         if (dt*fdec>dt_min) dt *= fdec;
-        if (dt_max*fdec2>dt_min) dt_max *= fdec2;
         alpha = alpha_start;
       }
       
+      cout << "\tBacktracking..." << endl;
       #pragma omp parallel for
       for (long j=0; j<v.size(); j++)
       {
-        x[j] -= 0.5*dt*v[j];
+        //x[j] -= 0.5*dt*v[j];
+        x[j] = x_old[j];
         v[j] = 0.0;
       }
     }
+    
+    #pragma omp parallel for
+    for (long j=0; j<x.size(); j++) x_old[j] = x[j];
     
     // Semi-implicit Euler: Inertial velocity step
     #pragma omp parallel for
@@ -272,7 +274,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       x[j] += dt*v[j];
     }
     
-    double f_old = f;
+    f_old = f;
     f = eigenvalues_objective_func(x, df, this);
     t += dt;
     
@@ -301,7 +303,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
     cout << "\t  P/|v||df| = " << P_normalized << endl;
     cout << "\t  dt = " << dt << endl;
-    cout << "\t  dt_max = " << dt_max << endl;
+    cout << "\t  alpha  = " << alpha << endl;
     cout << "\t  vnorm  = " << vnorm << endl;
     cout << "\t  fnorm  = " << fnorm << endl;
     cout << "\t  f-fold = " << f-f_old << endl;
