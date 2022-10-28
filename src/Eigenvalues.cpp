@@ -178,18 +178,18 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   
   // Parameters
   double alpha_start = 1.0;
-  double alpha_min = 0.1;
+  double alpha_min = 0.0;
   double alpha = alpha_start;
   double dt = 0.01;
   double dt_max = 1;
   double dt_min = 0.0;
-  double finc = 1.01;
-  double falf = 0.99;
+  double finc = 1.1;
+  double falf = 0.9;
   double fdec = 0.1;
   int Npos = 0;
   int Nneg = 0;
   int Nmax = 1e6;
-  int Ndelay = 5; //was 10
+  int Ndelay = 5;
   int Nneg_max = 20;
   bool initialdelay = true;
   
@@ -221,6 +221,11 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       {
         dt = (dt*finc<dt_max)?dt*finc:dt_max;
         alpha = (alpha*falf>alpha_min)?alpha*falf:alpha_min;
+      }
+      else if (Npos>Ndelay && P_normalized<=0.5)
+      {
+        dt = (dt/finc>dt_min)?dt/finc:dt_min;
+        alpha = (alpha/falf<alpha_start)?alpha/falf:alpha_start;
       }
     }
     else // if P<=0
