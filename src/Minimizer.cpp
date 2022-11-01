@@ -60,13 +60,9 @@ void Minimizer::resume(long maxSteps)
 
     draw_after();
 
-    if(f_abs_max_ < forceLimit_)
-      {
-	stringstream s;	
-	s << "dF sufficiently small ... normal exit";
-	reportMessage(s.str());
-	break;
-      }
+    if(should_stop())
+      break;
+    
     if(maxSteps > 0 && step_counter_ == maxSteps)
       {
 	stringstream s;
@@ -86,6 +82,20 @@ void Minimizer::resume(long maxSteps)
   cleanup();
 }
 
+
+bool Minimizer::should_stop() const
+{
+  bool stop = false;
+  
+  if(f_abs_max_ < forceLimit_)
+    {
+      stringstream s;	
+      s << "Finished: convergence monitor = " << f_abs_max_ << " < " << forceLimit_ << " = forceLimit_ and so is  sufficiently small ... normal exit";
+      reportMessage(s.str());
+      stop = true;
+    }
+  return stop;
+}
 
 double Minimizer::getDF_DX()
 {
@@ -162,7 +172,6 @@ void fireMinimizer2::reset()
 
 double fireMinimizer2::step()
 {
-
   it_++;
   static double fold = F_;
 

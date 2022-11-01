@@ -116,21 +116,21 @@ class Log: public std::ostream
    *   @param numtasks is the number of MPI tasks (-1 means no mpi)
    *   @param isNew : will create new log file if true, will try to append to existing file if false
    */    
- Log(const char *name, int Major = -1, int Minor = -1, char *prog = NULL, int numtasks = -1, bool isNew = true)
+  Log(const char *name, int Major = -1, int Minor = -1, char *prog = NULL, int numtasks = -1, bool isNew = true, bool verbose = true)
    : log_(name,(isNew ? ios::trunc : ios::app)), buffer(log_), ostream(&buffer)    
     {
       auto now = std::chrono::system_clock::now();
       std::time_t now_time = std::chrono::system_clock::to_time_t(now);
 
-      *this << "*****************************************************************" << endl;
-      if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
-      *this << std::ctime(&now_time) << " " << endl;
-      *this << "Using:\tLib " << PROJECT_NAME << endl
+      if(verbose) *this << "*****************************************************************" << endl;
+      if(verbose) if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
+      if(verbose) *this << std::ctime(&now_time) << " " << endl;
+      if(verbose) *this << "Using:\tLib " << PROJECT_NAME << endl
 	    << "\tversion: " << PROJECT_VER << endl
 	    << "\tgit revision: " << g_GIT_SHA1 << endl;
       //      *this << "Library built " << _TIMEZ_  << endl;
-      if(numtasks > 0) *this << " MPI: numtasks = " << numtasks << endl;
-      *this << "*****************************************************************" << endl  << endl;      
+      if(verbose) if(numtasks > 0) *this << " MPI: numtasks = " << numtasks << endl;
+      if(verbose) *this << "*****************************************************************" << endl  << endl;      
     }
 
   /**
@@ -147,10 +147,10 @@ class Log: public std::ostream
    */
   void write(Options &options)
   {
-      *this << "Input parameters:" << endl <<  "#" << endl;
-      options.write(*this);
-      *this << "=================================" << endl;
-      this->flush();
+    *this << "Input parameters:" << endl <<  "#" << endl;
+    options.write(*this);
+    *this << "=================================" << endl;
+    this->flush();
   }
 
  private:

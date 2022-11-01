@@ -372,7 +372,9 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
   return F;
 }
 
+#ifdef USE_OMP    
 #pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
+#endif
 
 double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
@@ -385,7 +387,9 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	double dV = density.dV();
 	long Ntot = density.Ntot();
 	long pos;
+#ifdef USE_OMP    
 #pragma omp parallel for shared(species, dV) private(pos) schedule(static) reduction(SummationPlus:F)
+#endif
 	for(pos=0;pos<Ntot;pos++)
 	  {
 	    double d0 = density.get(pos);
@@ -417,8 +421,19 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 
   // External field + chemical potential
   F_ext_ = 0;
-  for(auto &species : allSpecies_)
-    F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
+
+
+  // add in the chemical potential ...
+  
+  for(auto &species: allSpecies_)
+    F_ext_ += species->evaluate_contribution_chemical_potential();
+
+  
+  for(auto &field : external_fields_)
+    F_ext_ += allSpecies_[field->get_species()]->evaluate_external_field(*field);
+  
+  //  for(auto &species : allSpecies_)
+  //    F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
   F += F_ext_;
 
   return F.sum();  

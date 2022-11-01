@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
+set(USE_OMP false)
+
 #This allows us to include the git SHA to identify exactly which code is being used
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_stuff/")
 include(GetGitRevisionDescription)
@@ -60,9 +62,12 @@ link_directories("/usr/local/lib")
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::serialization)
 
 # enable omp if it exists
-find_package(OpenMP)
 
-if(OpenMP_CXX_FOUND)
+message("USE_OMP = " ${USE_OMP})
+
+if(USE_OMP)
+  find_package(OpenMP REQUIRED)
+  
   target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OMP)
   target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 endif()

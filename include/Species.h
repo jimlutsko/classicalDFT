@@ -9,6 +9,7 @@
 #include "Potential1.h"
 #include "Density.h"
 #include "Fundamental_Measures.h"
+#include "External_Field.h"
 
 class Species
 {
@@ -19,18 +20,32 @@ class Species
   int getSequenceNumber() const { return seq_num_;}
 
   void doFFT(){ density_.doFFT();}
+
+  // To be replaced
+  void setFixedMass(double m)           { set_fixed_mass(m);}
+  void setFixedBackground(bool fixed)   { set_open_system(fixed);}
+  void setHomogeneousBoundary(bool val) { set_homogeneous_boundary(val);}
+
+  // to replace the three above
+  void set_fixed_mass()                     { fixedMass_          = density_.get_mass(); mu_ = 0.0; fixedBackground_ = false;}
+  void set_fixed_mass(double m)             { fixedMass_          = m; if(m > 0.0) {mu_ = 0.0; fixedBackground_ = false;}}
+  void set_open_system(bool fixed)          { fixedBackground_    = fixed; fixedMass_ = -1;} 
+  void set_homogeneous_boundary(bool val)   { homgeneousBoundary_ = val;}  
+
+  void set_verbose(bool verbose) { verbose_ = verbose;}
   
-  void setFixedMass(double m)            { fixedMass_          = m; if(m > 0.0) mu_ = 0.0;}
-  void setFixedBackground(bool fixed)    { fixedBackground_    = fixed;}
-  void setHomogeneousBoundary(bool homo) { homgeneousBoundary_ = homo;}
-      
   bool is_background_fixed() const { return fixedBackground_;}
   bool is_mass_fixed()       const { return (fixedMass_ > 0);}
   bool is_fixed_boundary() const { return   fixedBackground_;}
   
+  double get_chemical_potential() const {return mu_;}
+  void   set_chemical_potential(double m) {mu_ = m; fixedMass_ = -1;} // turn off fixed mass 
+  double evaluate_contribution_chemical_potential();
+  
   double getChemPotential() const {return mu_;}
   void   setChemPotential(double m) {mu_ = m; fixedMass_ = -1;} // turn off fixed mass 
 
+  
   const Lattice& getLattice() const { return density_;}
   const Density& getDensity() const { return density_;}
   const double*  get_density_data() { return density_.get_density_pointer();}
@@ -63,8 +78,9 @@ class Species
   int  getIndex() const { return index_;}
   
   /// add extneral field contribution.
-  double externalField(bool bCalcForces);
+  //  double externalField(bool bCalcForces);
 
+  double evaluate_external_field(const External_Field &f);
 
   // Placeholders for FMT-specific functionality: non-FMT classes do nothing  
   virtual double getHSD() const { return 0.0;}  
@@ -94,6 +110,8 @@ protected:
   bool fixedBackground_    = false; // if true, forces are set to zero on the background
   bool homgeneousBoundary_ = false; 
   int index_ = -1;
+  bool verbose_ = true;
+
 };
 
 
@@ -109,7 +127,7 @@ protected:
 class FMT_Species : public Species
 {
 public:
-  FMT_Species(Density& density, double hsd, double mu = 0, int seq = -1);
+  FMT_Species(Density& density, double hsd, double mu = 0, bool verbose = true, int seq = -1);
   FMT_Species(const FMT_Species &) = delete;
   ~FMT_Species(){}
 

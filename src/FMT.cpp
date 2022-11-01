@@ -304,8 +304,9 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
   return phi;
 }
 
-
+#ifdef USE_OMP    
 #pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
+#endif
 
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
@@ -325,7 +326,9 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 
   Summation F;
   long i;
+#ifdef USE_OMP    
 #pragma omp parallel for shared(allSpecies ) private(i) schedule(static) reduction(SummationPlus:F)
+#endif  
   for(i=0;i<Ntot;i++)
     {
       try {
@@ -397,7 +400,9 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	  // PSI will be used to hold intermediate results
 
 	  long pos;
-#pragma omp parallel for  private(pos)  schedule(static)				
+#ifdef USE_OMP
+#pragma omp parallel for  private(pos)  schedule(static)
+#endif
 	  for(pos=0; pos<fao_species->getLattice().Ntot();pos++)
 	    {
 	      FundamentalMeasures n;
@@ -499,7 +504,9 @@ void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, 
   for(auto &p: Lambda) p.initialize(Nx,Ny,Nz);
 
   long pos;
+#ifdef USE_OMP
 #pragma omp parallel for  private(pos) schedule(static)
+#endif
   for(pos = 0; pos < Ntot; pos++)
     {
       FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
@@ -589,7 +596,9 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
   double f = 0;
 
   int ix;
+#ifdef USE_OMP      
 #pragma omp parallel for  private(ix) schedule(static)  reduction(+:f)
+#endif
   for(ix = 0;ix<Nx;ix++)
     for(int iy = 0;iy<Ny;iy++)
       for(int iz = 0;iz<Nz;iz++)
