@@ -100,20 +100,21 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
 }
 
 
-double Eigenvalues::calculate_residual_error() const
+double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
 {
   if (eigen_vec_.size() != matrix_.get_Ntot())
     throw runtime_error("Eigenvalues: Eigenvector not initialized yet!");
   
   DFT_Vec residual; residual.zeros(matrix_.get_Ntot());
   
-  if (matrix_dot_eigen_vec_.size() == matrix_.get_Ntot())
+  if (recompute_matrix_dot_v ||
+      matrix_dot_eigen_vec_.size() != matrix_.get_Ntot())
   {
-    residual.set(matrix_dot_eigen_vec_);
+    matrix_dot_v(eigen_vec_, residual, NULL);
   }
   else
   {
-    matrix_dot_v(eigen_vec_, residual, NULL);
+    residual.set(matrix_dot_eigen_vec_);
   }
   
   residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigen_val_);
@@ -269,7 +270,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
         alpha = alpha_start;
       }
       
-      cout << "\tBacktracking..." << endl;
+      if (verbose_) cout << "\tBacktracking..." << endl;
       #pragma omp parallel for
       for (long j=0; j<v.size(); j++)
       {
@@ -328,9 +329,18 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     if (!initialdelay || i>=Ndelay)
     {
       //if (P>0 && fabs(f-f_old)/fabs(f+f_old)<tol_) break;
-      if (calculate_residual_error() < tol_) break;
+      if (calculate_residual_error(false) < tol_) break;
     }
   }
+  
+  ////////////////////////////////////////
+  // Finalise
+  
+  set_eigen_vec(x);
+  eigen_vec_.normalise();
+  
+  DFT_Vec dummy; dummy.zeros(x.size()); 
+  calculate_gradients(dummy);
 }
 
 
