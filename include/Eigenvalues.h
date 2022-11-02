@@ -24,6 +24,7 @@ class Eigenvalues
   ~Eigenvalues(){}
 
   void set_scale(double d)     {scale_ = d;}
+  void set_verbose(bool v)     {verbose_ = v;}
   void set_tolerence(double d) {tol_ = d;}  
   void set_change_sign(bool b) {change_sign_ = b;}
   void set_vshift(DFT_Vec& v)  {vshift_ = v;}

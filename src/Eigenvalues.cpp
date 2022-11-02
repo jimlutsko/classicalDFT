@@ -117,13 +117,15 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
     matrix_.matrix_dot_v1(v,result,param);
   }
   
-  cout << endl; cout << setprecision(12);
-  cout << "\tIn Eigenvalues::matrix_dot_v:" << endl;
-  cout << "\t  L2-Norm of v:   " << v.euclidean_norm() << endl;
-  cout << "\t  L2-Norm of A*v: " << result.euclidean_norm() << endl;
-  cout << "\t  L2-Norm ratio |A*v|/|v|:     " << result.euclidean_norm() / v.euclidean_norm() << endl;
-  cout << "\t  Dot product vT*A*v/|A*v||v|: " << v.dotWith(result) / result.euclidean_norm() / v.euclidean_norm() << endl;
-  
+  if (verbose_)
+  {
+    cout << endl; cout << setprecision(12);
+    cout << "\tIn Eigenvalues::matrix_dot_v:" << endl;
+    cout << "\t  L2-Norm of v:   " << v.euclidean_norm() << endl;
+    cout << "\t  L2-Norm of A*v: " << result.euclidean_norm() << endl;
+    cout << "\t  L2-Norm ratio |A*v|/|v|:     " << result.euclidean_norm() / v.euclidean_norm() << endl;
+    cout << "\t  Dot product vT*A*v/|A*v||v|: " << v.dotWith(result) / result.euclidean_norm() / v.euclidean_norm() << endl;
+  }
 }
 
 
@@ -304,16 +306,19 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     }
     double Axerr = 1-fabs(xdotAx)/sqrt(xdotx)/sqrt(AxdotAx);
     
-    cout << endl; cout << setprecision(12);
-    cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
-    cout << "\t  P/|v||df| = " << P_normalized << endl;
-    cout << "\t  dt = " << dt << endl;
-    cout << "\t  alpha  = " << alpha << endl;
-    cout << "\t  vnorm  = " << vnorm << endl;
-    cout << "\t  fnorm  = " << fnorm << endl;
-    cout << "\t  f-fold = " << f-f_old << endl;
-    cout << "\t  xerr   = " << xerr  << endl;
-    cout << "\t  Axerr  = " << Axerr << endl;
+    if (verbose_)
+    {
+      cout << endl; cout << setprecision(12);
+      cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
+      cout << "\t  P/|v||df| = " << P_normalized << endl;
+      cout << "\t  dt = " << dt << endl;
+      cout << "\t  alpha  = " << alpha << endl;
+      cout << "\t  vnorm  = " << vnorm << endl;
+      cout << "\t  fnorm  = " << fnorm << endl;
+      cout << "\t  f-fold = " << f-f_old << endl;
+      cout << "\t  xerr   = " << xerr  << endl;
+      cout << "\t  Axerr  = " << Axerr << endl;
+    }
     
     // Check if converged
     if (!initialdelay || i>=Ndelay)
