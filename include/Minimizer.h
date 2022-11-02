@@ -26,7 +26,8 @@ class Minimizer
   virtual double get_convergence_monitor() const { return dft_->get_convergence_monitor();}
   
   void setMinDensity(double m) { minDensity_ = m;}
-  void setForceTerminationCriterion(double v) {forceLimit_ = v;}  
+  void setForceTerminationCriterion(double v) {forceLimit_ = v;}
+  void set_terminimation_criterion(double v) {forceLimit_ = v;}  
   void setVerbose(bool verbose) { verbose_ = verbose;}
   
   const DFT_Vec&  get_fixed_direction() {return fixed_direction_;}
@@ -34,13 +35,14 @@ class Minimizer
   
   // report activity
   virtual void   draw_after() {};  // Display something after the minimization
-  virtual void   reportMessage(string message){}
+  virtual void   reportMessage(string message) const {}
   virtual void   cleanup() {} // called when minimization is finished to allow decendents to clean up user output.
   
 protected:
   double get_energy_and_forces() {calls_++;  return dft_->calculateFreeEnergyAndDerivatives(false);}
   virtual double getDF_DX();
   virtual double step() = 0;
+  virtual bool   should_stop() const;
   
  protected:
   vector<DFT_Vec> x_; // independent variables
@@ -194,15 +196,20 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   DDFT(DFT *dft, bool showGraphics = true, bool central_differences = false);
   ~DDFT() {}
 
+  virtual void reset(){ time_ = 0.0;}
+  
   double step();
   void set_tolerence_fixed_point(double e) { tolerence_fixed_point_ = e;}
   void set_max_time_step(double t) { dtMax_ = t;}
 
-  void   setTimeStep(double dt) { dt_ = dt;}    
-  double getTimeStep() const { return dt_;}
+  void   set_time_step(double dt) {if(fabs(dt-dt_) > 1e-10)  change_timestep(dt);} //dt_ = dt;}    
+  double get_time_step() const { return dt_;}
 
-  double get_time()                const { return time_;}
-  double get_convergence_monitor() const { return RHS_max_;}
+  double get_time() const { return time_;}
+  void   set_tmax(double tmax) { Tmax_ = tmax;}
+
+  
+  virtual double get_convergence_monitor() const { return RHS_max_;}
 
   void Display(double F, double dFmin, double dFmax, double N);
 
@@ -231,6 +238,8 @@ protected:
   double apply_diffusion_propogator(DFT_Vec &d1);
   double calculate_excess_RHS(const Species *species, DFT_FFT& RHS) const;
   void   subtract_ideal_gas(const DFT_Vec &density, DFT_Vec& RHS) const;
+
+  virtual bool should_stop() const { return (time_ >= Tmax_ || fabs(time_-Tmax_) < 1e-10);}
  protected:
 
   bool show_graphics_       = true;
@@ -243,6 +252,7 @@ protected:
   // control of adaptive time step
   int successes_ = 0;
   double dtMax_  = 1;
+  double Tmax_   = 1;
   
  protected:
   DFT_FFT RHS0_;

@@ -117,7 +117,7 @@ double DDFT::step()
 
   // make sure that everything is initialized
   if(fx_.size() != Lamx_.size()) { double tmp = dt_; dt_ = 0; change_timestep(tmp);}
-  
+
   F_ = 0;
   try {
     F_ = get_energy_and_forces();
@@ -211,9 +211,12 @@ void DDFT::change_timestep(double dt)
 
 double  DDFT::calculate_excess_RHS(const Species *species, DFT_FFT& RHS) const
 {
-  g_dot_x(species->get_const_DF(), RHS.Real());  
+  g_dot_x(species->get_const_DF(), RHS.Real());
+
+  //  cout << "dF_max = " << species->get_const_DF().inf_norm() << " and reduced by dV = " << species->get_const_DF().inf_norm()/(dx_*dy_*dz_) << endl;
+  
   RHS.Real().MultBy(1.0/(dx_*dy_*dz_));//dF[i] = dF/drho_i but we need dF/(dV*drho_i)
-  double rmax = RHS.Real().inf_norm()/(dx_*dy_*dz_);
+  double rmax = RHS.Real().inf_norm(); ///(dx_*dy_*dz_); I think this seves no purpose and is misleading ...
   subtract_ideal_gas(species->getDensity().get_density_real(),RHS.Real());
   RHS.do_real_2_fourier();
   return rmax;
@@ -340,7 +343,7 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 	double x0 = get_neighbors(x,species,pos,stride,xpx,xmx,xpy,xmy,xpz,xmz);
 	
 	double dpx,dmx,dpy,dmy,dpz,dmz; // density
-	double d0 = density.get_neighbors(pos,dpx,dmx,dpy,dmy,dpz,dmz);
+	double d0 = density.get_neighbor_values(pos,dpx,dmx,dpy,dmy,dpz,dmz);
 
 	if(central_differences_) d0 = 0;
 	gx.set(pos,D[0]*((dpx+d0)*(xpx-x0)-(d0+dmx)*(x0-xmx))

@@ -32,7 +32,7 @@
 class Interaction_Base
 {
  public:
-  Interaction_Base(Species *s1, Species *s2, Potential1 *v, double kT);
+  Interaction_Base(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true);
 
   Interaction_Base() {}
 
@@ -87,6 +87,7 @@ class Interaction_Base
   bool initialized_ = false; ///< Flag to make sure the object has been initialized
   Potential1 *v_;            ///< The interatomic potential
   double kT_;                ///< The temperature
+  bool verbose_ = true;
 };
 
 
@@ -97,7 +98,7 @@ class Interaction_Base
 class Interaction : public Interaction_Base
 {
  public:
- Interaction(Species *s1, Species *s2, Potential1 *v, double kT, string pointsFile) :
+  Interaction(Species *s1, Species *s2, Potential1 *v, double kT, string pointsFile) :
   Interaction_Base(s1,s2,v,kT), pointsFile_(pointsFile) {};
   Interaction() : Interaction_Base(){};
 
@@ -130,8 +131,8 @@ class Interaction : public Interaction_Base
 class Interaction_Gauss : public Interaction_Base
 {
  public:
- Interaction_Gauss(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss) :
-  Interaction_Base(s1,s2,v,kT)
+  Interaction_Gauss(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss, bool verbose = true) :
+    Interaction_Base(s1,s2,v,kT, verbose)
   {
     gsl_integration_glfixed_table *tr = gsl_integration_glfixed_table_alloc(Ngauss);
     for(int i=0;i<Ngauss;i++)
@@ -176,8 +177,8 @@ class Interaction_Gauss_E : public Interaction_Gauss
    *   @param kT: the temperature
    *   @param Ngauss: number of gauss-lengendre points in each direction
    */    
- Interaction_Gauss_E(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss) :
-  Interaction_Gauss(s1,s2,v,kT,Ngauss){}
+  Interaction_Gauss_E(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss, bool verbose = true) :
+    Interaction_Gauss(s1,s2,v,kT,Ngauss, verbose){}
 
   Interaction_Gauss_E():
     Interaction_Gauss(){}  
@@ -215,8 +216,8 @@ class Interaction_Gauss_F : public Interaction_Gauss
    *   @param kT: the temperature
    *   @param Ngauss: number of gauss-lengendre points in each direction
    */    
- Interaction_Gauss_F(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss) :
-  Interaction_Gauss(s1,s2,v,kT,Ngauss){}
+ Interaction_Gauss_F(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss, bool verbose = true) :
+   Interaction_Gauss(s1,s2,v,kT,Ngauss, verbose){}
 
   Interaction_Gauss_F():
     Interaction_Gauss(){}
@@ -254,8 +255,8 @@ class Interaction_Interpolation : public Interaction_Base
    *   @param s2: the second species.
    *   @param kT: the temperature
    */      
- Interaction_Interpolation(Species *s1, Species *s2, Potential1 *v, double kT): 
-  Interaction_Base(s1,s2,v,kT) {}
+ Interaction_Interpolation(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true): 
+   Interaction_Base(s1,s2,v,kT,verbose) {}
 
   Interaction_Interpolation():
   Interaction_Base() {}
@@ -300,8 +301,8 @@ class Interaction_Interpolation_Zero : public Interaction_Interpolation
    *   @param s2: the second species.
    *   @param kT: the temperature
    */    
- Interaction_Interpolation_Zero(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT) { vv_.push_back(1.0); pt_.push_back(0.0); initialize();}
+ Interaction_Interpolation_Zero(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
+   Interaction_Interpolation(s1,s2,v,kT,verbose) { vv_.push_back(1.0); pt_.push_back(0.0); initialize();}
 
  Interaction_Interpolation_Zero() :
    Interaction_Interpolation() {};
@@ -327,8 +328,8 @@ class Interaction_Interpolation_LE : public Interaction_Interpolation
    *   @param s2: the second species.
    *   @param kT: the temperature
    */      
- Interaction_Interpolation_LE(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT)
+ Interaction_Interpolation_LE(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
+   Interaction_Interpolation(s1,s2,v,kT, verbose)
     { vv_.push_back( 1.0); vv_.push_back(26.0); vv_.push_back(66.0); vv_.push_back(26.0); vv_.push_back(1.0);
       pt_.push_back(-2.0); pt_.push_back(-1.0); pt_.push_back( 0.0); pt_.push_back( 1.0); pt_.push_back(2.0);
       for(auto &x: vv_) x /= 120.0;
@@ -359,8 +360,8 @@ class Interaction_Interpolation_QE : public Interaction_Interpolation
    *   @param s2: the second species.
    *   @param kT: the temperature
    */      
- Interaction_Interpolation_QE(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT)
+ Interaction_Interpolation_QE(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
+   Interaction_Interpolation(s1,s2,v,kT, verbose)
     { vv_.push_back(-1.0); vv_.push_back(8.0);  vv_.push_back(18.0); vv_.push_back(112.0); vv_.push_back(86.0); vv_.push_back(112.0); vv_.push_back(18.0); vv_.push_back(8.0); vv_.push_back(-1.0);
       pt_.push_back(-2.0); pt_.push_back(-1.5); pt_.push_back(-1.0); pt_.push_back(-0.5);  pt_.push_back(0.0);  pt_.push_back(0.5);   pt_.push_back(1.0);  pt_.push_back(1.5); pt_.push_back(2.0);
       for(auto &x: vv_) x /= 360.0;
@@ -391,8 +392,8 @@ class Interaction_Interpolation_LF : public Interaction_Interpolation
    *   @param s2: the second species.
    *   @param kT: the temperature
    */      
- Interaction_Interpolation_LF(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT)
+ Interaction_Interpolation_LF(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
+   Interaction_Interpolation(s1,s2,v,kT, verbose)
     { vv_.push_back(1.0);  vv_.push_back(4.0); vv_.push_back(1.0);
       pt_.push_back(-1.0); pt_.push_back(0.0); pt_.push_back(1.0);
       for(auto &x: vv_) x /= 6;
@@ -423,8 +424,8 @@ class Interaction_Interpolation_QF : public Interaction_Interpolation
    *   @param s2: the second species.
    *   @param kT: the temperature
    */      
- Interaction_Interpolation_QF(Species *s1, Species *s2, Potential1 *v, double kT) :
-  Interaction_Interpolation(s1,s2,v,kT)
+ Interaction_Interpolation_QF(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
+   Interaction_Interpolation(s1,s2,v,kT,verbose)
     { vv_.push_back(1.0/3);  vv_.push_back(1.0/3); vv_.push_back(1.0/3);
       pt_.push_back(-0.5); pt_.push_back(0.0); pt_.push_back(0.5);
       initialize();

@@ -26,8 +26,8 @@ using namespace std;
 #include "myColor.h"
 
 
-Interaction_Base::Interaction_Base(Species *s1, Species *s2, Potential1 *v, double kT)
-  : s1_(s1), s2_(s2), v_(v), kT_(kT), initialized_(false) {}
+Interaction_Base::Interaction_Base(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose)
+  : s1_(s1), s2_(s2), v_(v), kT_(kT), initialized_(false), verbose_(verbose) {}
 
 void Interaction_Base::initialize()
 {
@@ -207,9 +207,9 @@ void Interaction_Base::generateWeightsXYZSym()
 
   vector<double> w2(Nmax+1,0.0);
 
-  cout << myColor::YELLOW;
-  cout << "/////  Generating interpolated weights using Interaction_Base::generateWeightsXYZSym" << endl;
-  cout << myColor::RESET;
+  if(verbose_) cout << myColor::YELLOW;
+  if(verbose_) cout << "/////  Generating interpolated weights using Interaction_Base::generateWeightsXYZSym" << endl;
+  if(verbose_) cout << myColor::RESET;
   
   long p = 0;
   double global_factor = dx*dx*dy*dy*dz*dz;
@@ -254,9 +254,9 @@ void Interaction_Base::generateWeightsXYZSym()
 	    if (steps_completed % 100 == 1)
 	      {
 #pragma omp critical
-		cout << '\r';
-		std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
-		cout.flush();
+		if(verbose_) cout << '\r';
+		if(verbose_) cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
+		if(verbose_) cout.flush();
 	      }
 	  }
       }
@@ -266,9 +266,9 @@ void Interaction_Base::generateWeightsXYZSym()
   
   for(int ix = -Nx_lim-1;ix<=Nx_lim+1; ix++)
     {
-      cout << " " << '\r';
-      std::cout << "\tProgress: " << ix+Nx_lim+1 << " of " << 2*(Nx_lim+1) << " (" << std::fixed << std::setprecision(1) << (100.0*(ix+Nx_lim+1)/(2*(Nx_lim+1))) << "%)";
-      cout.flush();
+      if(verbose_) cout << " " << '\r';
+      if(verbose_) cout << "\tProgress: " << ix+Nx_lim+1 << " of " << 2*(Nx_lim+1) << " (" << std::fixed << std::setprecision(1) << (100.0*(ix+Nx_lim+1)/(2*(Nx_lim+1))) << "%)";
+      if(verbose_) cout.flush();
       
       for(int iy = -Ny_lim-1;iy<=Ny_lim+1; iy++)
 	for(int iz = -Nz_lim-1;iz<=Nz_lim+1; iz++)
@@ -295,14 +295,14 @@ void Interaction_Base::generateWeightsXYZSym()
   // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
   // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
   a_vdw_ /= (dx*dy*dz); 
-  cout << std::defaultfloat << std::setprecision(6);
+  if(verbose_) cout << std::defaultfloat << std::setprecision(6);
     
   //  cout << myColor::GREEN;
   //  cout << "/////  Finished.  " << endl;
   //  cout << "///////////////////////////////////////////////////////////" << endl;
   //  cout << myColor::RESET << endl;
-  cout << "                                                                                         ";
-  std::cout << '\r';  cout.flush();  
+  if(verbose_) cout << "                                                                                         ";
+  if(verbose_) cout << '\r';  if(verbose_) cout.flush();  
     
 }
 
@@ -346,9 +346,9 @@ void Interaction_Base::generateWeights()
 
   vector<double> w2(Nmax+1,0.0);
 
-  cout << myColor::YELLOW;
-  cout << "/////  Generating interpolated weights using Interaction_Base::generateWeights" << endl;
-  cout << myColor::RESET << endl;  
+  if(verbose_) cout << myColor::YELLOW;
+  if(verbose_) cout << "/////  Generating interpolated weights using Interaction_Base::generateWeights" << endl;
+  if(verbose_) cout << myColor::RESET << endl;  
   
   long p = 0;
   double global_factor = dx*dx*dy*dy*dz*dz;
@@ -392,9 +392,9 @@ void Interaction_Base::generateWeights()
             if (steps_completed % 100 == 1)
               {
 #pragma omp critical
-                cout << '\r';
-                std::cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
-                cout.flush();
+                if(verbose_) cout << '\r';
+                if(verbose_) cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
+                if(verbose_) cout.flush();
               }
           }
       }
@@ -404,9 +404,9 @@ void Interaction_Base::generateWeights()
   
   for(int ix = -Nx_lim;ix<=Nx_lim; ix++)
     {
-      cout << '\r';
-      std::cout << "\tProgress: " << ix+Nx_lim << " of " << 2*Nx_lim+1 << " (" << std::fixed << std::setprecision(1) << (100.0*(ix+Nx_lim)/(2*Nx_lim+1)) << "%)";
-      cout.flush();
+      if(verbose_) cout << '\r';
+      if(verbose_) cout << "\tProgress: " << ix+Nx_lim << " of " << 2*Nx_lim+1 << " (" << std::fixed << std::setprecision(1) << (100.0*(ix+Nx_lim)/(2*Nx_lim+1)) << "%)";
+      if(verbose_) cout.flush();
       
       for(int iy = -Ny_lim;iy<=Ny_lim; iy++)
         for(int iz = -Nz_lim;iz<=Nz_lim; iz++)
@@ -430,13 +430,13 @@ void Interaction_Base::generateWeights()
   // In real usage, we calculate sum_R1 sum_R2 rho1 rho2 w(R1-R2). For a uniform system, this becomes
   // rho^2 N sum_R w(R). Divide by the volume and by rho^2 to get the vdw constant gives sum_R w(R)/(dx*dy*dz)
   a_vdw_ /= (dx*dy*dz); 
-  cout << std::defaultfloat << std::setprecision(6);
+  if(verbose_) if(verbose_) cout << std::defaultfloat << std::setprecision(6);
     
   //  cout << myColor::GREEN;
   //  cout << "/////  Finished.  " << endl;
   //  cout << "///////////////////////////////////////////////////////////" << endl;
   //  cout << myColor::RESET << endl;
-  std::cout << " " << 'r' << " ";  cout.flush();    
+  if(verbose_) cout << " " << 'r' << " ";  if(verbose_) cout.flush();    
     
 }
 
@@ -608,8 +608,8 @@ bool Interaction::readWeights()
   if(!in.good())
     {
       readWeights = false;
-      cout << myColor::GREEN << endl;
-      cout << myColor::GREEN  << "\n" <<  "Could not open file with potential kernal: it will be generated" << myColor::RESET << endl;
+      if(verbose_) cout << myColor::GREEN << endl;
+      if(verbose_) cout << myColor::GREEN  << "\n" <<  "Could not open file with potential kernal: it will be generated" << myColor::RESET << endl;
     } else {
     string buf;
     getline(in,buf);
@@ -620,13 +620,13 @@ bool Interaction::readWeights()
     ss2 >> nx >> ny >> nz >> dx;
 
     if(nx != Nx)
-      {readWeights = false; cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
+      {readWeights = false; if(verbose_) cout << "\n" <<  "Mismatch in Nx: expected " << Nx << " but read " << nx <<  endl;}
     if(ny != Ny)
-      {readWeights = false; cout << "\n" <<  "Mismatch in Ny: expected " << Ny << " but read " << ny <<  endl;}
+      {readWeights = false; if(verbose_) cout << "\n" <<  "Mismatch in Ny: expected " << Ny << " but read " << ny <<  endl;}
     if(nz != Nz)
-      {readWeights = false; cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
+      {readWeights = false; if(verbose_) cout << "\n" <<  "Mismatch in Nz: expected " << Nz << " but read " << nz <<  endl;}
     if(fabs(density.getDX()-dx) > 1e-8*(density.getDX()+dx))
-      {readWeights = false; cout << "\n" <<  "Mismatch in Dx: generating weights: expected " << density.getDX() << " but read " << dx << endl;}      
+      {readWeights = false; if(verbose_) cout << "\n" <<  "Mismatch in Dx: generating weights: expected " << density.getDX() << " but read " << dx << endl;}      
 
     getline(in,buf);
     stringstream ss4(buf);      
@@ -634,7 +634,7 @@ bool Interaction::readWeights()
     ss4 >> identifier;
     string pot = v_->getIdentifier();
     if(identifier.compare(pot) != 0)
-      {readWeights = false; cout << "\n" <<  "Mismatch in potential: expected " << pot << " but read " << identifier <<  endl;}
+      {readWeights = false; if(verbose_) cout << "\n" <<  "Mismatch in potential: expected " << pot << " but read " << identifier <<  endl;}
       
     readWeights = checkWeightsFile(in);
   }
@@ -664,7 +664,7 @@ bool Interaction::checkWeightsFile(ifstream &in)
   bool readWeights = (ss3.str().compare(pointsFile_) == 0);
     
   if(!readWeights)
-    cout << "\n" <<  "Mismatch in points file: expected " << pointsFile_ << " but read " << ss3.str() <<  endl;
+    if(verbose_) cout << "\n" <<  "Mismatch in points file: expected " << pointsFile_ << " but read " << ss3.str() <<  endl;
     
   return readWeights;
 }
@@ -691,8 +691,8 @@ void Interaction::generateWeights()
 
   // Generate integration points for spherical surface
 
-  cout << endl;
-  cout << myColor::GREEN;
+  if(verbose_) cout << endl;
+  if(verbose_) cout << myColor::GREEN;
 
   vector < vector<double> > points; 
 
@@ -763,7 +763,7 @@ void Interaction::generateWeights()
   for(vector<double> &point : points)
     point[3] /= points.size();
 
-  cout << myColor::RESET << endl;
+  if(verbose_) cout << myColor::RESET << endl;
 
 
   // Add up the weights for each point.
@@ -780,7 +780,7 @@ void Interaction::generateWeights()
     
   for(int pos=0;pos < points.size(); pos++)
     {
-      if(pos%1000 == 0) {if(pos > 0) cout << '\r'; cout << "\t" << int(double(pos)*100.0/points.size()) << "% finished: " << pos << " out of " << points.size(); cout.flush();}
+      if(pos%1000 == 0) {if(pos > 0) if(verbose_) cout << '\r'; if(verbose_) cout << "\t" << int(double(pos)*100.0/points.size()) << "% finished: " << pos << " out of " << points.size(); if(verbose_) cout.flush();}
 
       for(int iperm = 0; iperm < iperm_max; iperm++)      // add permutations
 	{
@@ -865,7 +865,7 @@ void Interaction::generateWeights()
   //  cout << "/////  Finished.  " << endl;
   //  cout << "///////////////////////////////////////////////////////////" << endl;
   //  cout << myColor::RESET << endl;
-  std::cout << 'r' << " ";  cout.flush();  
+  if(verbose_) cout << 'r' << " ";  if(verbose_) cout.flush();  
   
   /// Dump the weights
   ofstream of(weightsFile_.str().c_str(), ios::binary | ios::app);  

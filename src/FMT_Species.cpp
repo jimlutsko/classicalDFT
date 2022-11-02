@@ -42,7 +42,9 @@ void FMT_Species::set_density_from_alias(const DFT_Vec &x)
   const double c = (1.0-etamin)/density_.dV();
   //const double c = (0.99-etamin)/density_.dV();
   
+  #ifdef USE_OMP    
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif  
   for(pos=0;pos<x.size();pos++)
   {
     double y = x.get(pos);
@@ -61,8 +63,10 @@ void FMT_Species::get_density_alias(DFT_Vec &x) const
   const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
   const double c = (1.0-etamin)/density_.dV();
   //const double c = (0.99-etamin)/density_.dV();
-  
+
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
   {
     double z = (density_.get(pos) - dmin)/c;
@@ -87,7 +91,9 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   const double c = (1.0-etamin)/density_.dV();
   //  const double c = (0.99-etamin)/density_.dV();  
 
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
   {
     double y = x.get(pos);
@@ -112,7 +118,9 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
   const double c = (1.0-etamin)/density_.dV();
   //  const double c = (0.99-etamin)/density_.dV();  
 
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
   {
     double y = x.get(pos);
@@ -131,7 +139,9 @@ void FMT_Species::get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2)
   const double c = (1.0-etamin)/density_.dV();
   //  const double c = (0.99-etamin)/density_.dV();  
 
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<density_.size();pos++)
   {
     double z = (density_.get(pos) - dmin)/c;
@@ -152,7 +162,9 @@ void FMT_Species::set_density_from_alias(const DFT_Vec &x)
   const double dmax = (1.0-etamin)/density_.dV();
   const double c = dmax - dmin;
   
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
   {
     double y = x.get(pos);
@@ -171,7 +183,9 @@ void FMT_Species::get_density_alias(DFT_Vec &x) const
   const double dmax = (1.0-etamin)/density_.dV();
   const double c = dmax - dmin;
   
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
   {
     double rho = density_.get(pos);
@@ -188,7 +202,9 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &dF_dRho) const
   const double dmax = (1.0-etamin)/density_.dV();
   const double c = dmax - dmin;
   
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<density_.size();pos++)
   {
     double rho = density_.get(pos);
@@ -208,7 +224,9 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   const double dmax = (1.0-etamin)/density_.dV();
   const double c = dmax - dmin;
   
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
   {
     double y = x.get(pos);
@@ -227,7 +245,9 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &dRho) const
   const double dmax = (1.0-etamin)/density_.dV();
   const double c = dmax - dmin;
   
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<density_.size();pos++)
   {
     double rho = density_.get(pos);
@@ -247,7 +267,9 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
   const double dmax = (1.0-etamin)/density_.dV();
   const double c = dmax - dmin;
   
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
   {
     double y = x.get(pos);
@@ -281,8 +303,10 @@ void FMT_Species::convert_to_density_increment(DFT_Vec &dRho) const {convert_to_
 void FMT_Species::convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const {convert_to_alias_deriv(x, dRho);}
 
 
-FMT_Species::FMT_Species(Density& density, double hsd, double mu, int seq): Species(density,mu,seq), hsd_(hsd), fmt_weighted_densities(11)
+FMT_Species::FMT_Species(Density& density, double hsd, double mu, bool verbose, int seq): Species(density,mu,seq), hsd_(hsd), fmt_weighted_densities(11)
 {
+  verbose_ = verbose;
+  
   long Nx = density_.Nx();
   long Ny = density_.Ny();
   long Nz = density_.Nz();
@@ -518,10 +542,10 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
   
   int I[2] = {-1,1};
 
-  cout << endl;
-  cout << myColor::YELLOW;
-  cout << "/////  Generating FMT weights using analytic formulae" << endl;
-  cout << myColor::RESET;
+  if(verbose_) cout << endl;
+  if(verbose_) cout << myColor::YELLOW;
+  if(verbose_) cout << "/////  Generating FMT weights using analytic formulae" << endl;
+  if(verbose_) cout << myColor::RESET;
 
   long counter = 0;
 
@@ -532,7 +556,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
       for(int Sz = 0; Sz <= Sz_max; Sz++)
 	{
 	  counter++;
-	  if(counter%1000 == 0) {if(counter > 0) cout << '\r'; cout << "\t" << int(double(counter)*100.0/pmax) << "% finished: " << counter << " out of " << pmax; cout.flush();}
+	  if(counter%1000 == 0) {if(counter > 0) if(verbose_) cout << '\r'; if(verbose_) cout << "\t" << int(double(counter)*100.0/pmax) << "% finished: " << counter << " out of " << pmax; if(verbose_) cout.flush();}
 
 	  double R2_min = dx*dx*(Sx-(Sx == 0 ? 0 : 1))*(Sx-(Sx == 0 ? 0 : 1))+dy*dy*(Sy-(Sy == 0 ? 0 : 1))*(Sy-(Sy == 0 ? 0 : 1))+dz*dz*(Sz-(Sz == 0 ? 0 : 1))*(Sz-(Sz == 0 ? 0 : 1));
 	  double R2_max = dx*dx*(Sx+1)*(Sx+1)+dy*dy*(Sy+1)*(Sy+1)+dz*dz*(Sz+1)*(Sz+1);
@@ -665,7 +689,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 		  fmt_weights[EI()].addToWeight(pos,w_eta);
 		  if(std::isnan(fmt_weights[EI()].getWeight(pos)))
 		    {
-		      cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
+		      if(verbose_) cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
 		      throw std::runtime_error("Found NAN");
 		    }
 		  if(numWeights > 1)
@@ -681,7 +705,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 		}		  
 	}
 
-  cout << '\r'; cout << ""; cout.flush();
+  if(verbose_) cout << '\r'; if(verbose_) cout << ""; if(verbose_) cout.flush();
 }
 
 
@@ -899,11 +923,9 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
 
   long Ntot = PSI_.cReal().size();
   long i;
-  
-#pragma omp parallel for \
-  private(i)		 \
-  schedule(static)	 \
-  reduction(+:F)
+#ifdef USE_OMP      
+#pragma omp parallel for private(i) schedule(static) reduction(+:F)
+#endif  
   for(long i=0;i<Ntot;i++)
     {
       double val = exp(-PSI_.cReal().get(i));

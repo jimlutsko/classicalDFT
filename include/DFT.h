@@ -10,13 +10,12 @@
 
 #include <boost/serialization/vector.hpp>
 
-
-
 #include "Enskog.h"
 
 #include "Potential1.h"
 #include "Density.h"
 #include "FMT.h"
+#include "External_Field.h"
 
 #include "Interaction.h"
 #include "Dynamical_Matrix.h"
@@ -52,16 +51,16 @@ class DFT : public Dynamical_Matrix
   void addSpecies(Species* s) {if(s == NULL) return; allSpecies_.push_back(s); s->setIndex(allSpecies_.size()-1);}
   void addInteraction(Interaction_Base* Interaction) {Interactions_.push_back(Interaction);}
   void addHardCoreContribution(FMT *fmt) {fmt_ = fmt;}  
-
+  void add_field(External_Field *field) { external_fields_.push_back(field);}
+  
   // Accessors
   const Lattice& get_lattice() const {return allSpecies_.front()->getLattice();}
   const Density& getDensity(int species) const {return allSpecies_[species]->getDensity();}
+
   Species *getSpecies(int s) const { return allSpecies_[s];}
-  
-  int    getNumberOfSpecies() const {return allSpecies_.size();}
-  double getNumberAtoms(int species) const {return allSpecies_[species]->getDensity().getNumberAtoms();}  
-  double get_convergence_monitor() const { double d = 0; for(auto& s: allSpecies_) d += s->get_convergence_monitor(); return d;}
-  
+  int      getNumberOfSpecies() const {return allSpecies_.size();}
+  double   getNumberAtoms(int species) const {return allSpecies_[species]->getDensity().getNumberAtoms();}  
+  double   get_convergence_monitor() const { double d = 0; for(auto& s: allSpecies_) d += s->get_convergence_monitor(); return d;}
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
 
   // Set
@@ -75,7 +74,9 @@ class DFT : public Dynamical_Matrix
   // A few actions  
   void doDisplay(string &title, string &file, void *param = NULL) { for(auto &x: allSpecies_) x->doDisplay(title,file, param);}
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
-  double calculateFreeEnergyAndDerivatives(bool onlyFex);
+  
+  double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
+  double evaluate(bool onlyFex = false) { return calculateFreeEnergyAndDerivatives(onlyFex);}  
 
   // Bulk Thermodynamics
 
@@ -89,7 +90,7 @@ class DFT : public Dynamical_Matrix
 
   void   findSpinodal(double xmax, double dx, double &xs1, double &xs2, double tol) const;
   double find_density_from_mu(double mu, double xmin, double xmax, double tol) const;
-  void findCoex(double xmax, double dx, double &x1, double &x2, double tol) const;
+  void   findCoex(double xmax, double dx, double &x1, double &x2, double tol) const;
   virtual void getCriticalPoint(Potential1& p, double &xc, double &Tc, double HSD = -1) const;
 
   // Bulk structural properties
@@ -98,25 +99,11 @@ class DFT : public Dynamical_Matrix
   
   // Identifiers
   virtual string Name() const { return string("DFT_Ideal_Gas");}
-  string get_fmt_name() const
-  {
-    if(fmt_ == NULL) return string("none");
-    return fmt_->get_name();
-  }
-  string get_potential_name(int which = 0) const
-  {
-    if(Interactions_.size() < which+1) return string("none");
-    return Interactions_[which]->get_name();
-  }
+  string get_fmt_name() const { return (fmt_ == NULL ? string("none") : fmt_->get_name()); }
+  string get_potential_name(int which = 0) const {return (Interactions_.size() < which+1 ?  string("none") : Interactions_[which]->get_name());}
   
   // protected:
   
-  /**
-   *   @brief  Calculates total grand canonical free energy and dOmega/dRho(i) for each lattice point using FFT convolutions. Here, this is just the ideal gas contribution.
-   *  
-   *   @param  onlyFex : if true, the ideal and external contributions are not added
-   *   @return total free energy of system
-   */  
   virtual double calculateFreeEnergyAndDerivatives_internal_(bool onlyFex);
 
   double get_f_id()  const { return F_id_;}  //ideal gas contribution to free energy
@@ -134,8 +121,8 @@ class DFT : public Dynamical_Matrix
   virtual bool     get_next_boundary_point(int &ix, int &iy, int &iz) const {return allSpecies_[0]->getLattice().get_next_boundary_point(ix,iy,iz);}
   virtual bool     get_next_boundary_point(long &pos) const {return allSpecies_[0]->getLattice().get_next_boundary_point(pos);}
   virtual bool     is_fixed_boundary() const { return allSpecies_[0]->is_fixed_boundary();}
-  virtual bool is_boundary_point(long p) const {return allSpecies_[0]->getDensity().is_boundary_point(p);}
-  virtual bool is_dynamic() const { return false;}
+  virtual bool     is_boundary_point(long p) const {return allSpecies_[0]->getDensity().is_boundary_point(p);}
+  virtual bool     is_dynamic() const { return false;}
   
   void set_full_hessian(bool full) { full_hessian_ = full;}
   
@@ -155,6 +142,9 @@ class DFT : public Dynamical_Matrix
   vector<Species*> allSpecies_; ///< array holding the species objects
   vector<Interaction_Base*> Interactions_; ///< array holding the interactions
   FMT *fmt_;
+  vector<External_Field*> external_fields_;
+
+
   double F_id_  = 0.0; ///< Ideal part of free energy
   double F_ext_ = 0.0; ///< External field contribution to free energy (including chemical potential)
   double F_hs_  = 0.0; ///< Hard-sphere contribution to free energy

@@ -356,6 +356,7 @@ void Grace::setYAxisLabel(const char *s, int Graph)
 void Grace::store() const 
 {
   std::string s = "saveall \"sample.agr\"";
+  int r = system("rm sample.agr");
   sendCommand(s);
 }
 

@@ -28,7 +28,9 @@ void Species::set_density_from_alias(const DFT_Vec &x)
 {
   long pos;
   
-#pragma omp parallel for  private(pos)  schedule(static)
+  #ifdef USE_OMP
+  #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
     density_.set(pos,dmin+x.get(pos)*x.get(pos));
 }
@@ -39,7 +41,9 @@ void Species::get_density_alias(DFT_Vec &x) const
   
   long pos;
   
-#pragma omp parallel for  private(pos)  schedule(static)
+  #ifdef USE_OMP
+  #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
     x.set(pos, sqrt(std::max(0.0, density_.get(pos)-dmin)));    
 }
@@ -48,7 +52,9 @@ void Species::convert_to_alias_deriv(DFT_Vec &dF_dRho) const
 {
   long pos;
   
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<density_.size();pos++)
     dF_dRho.set(pos, 2*dF_dRho.get(pos)*sqrt(density_.get(pos)));
 }
@@ -63,7 +69,9 @@ void Species::convert_to_alias_increment(DFT_Vec &dRho) const
 {
   long pos;
   
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<density_.size();pos++)
     dRho.set(pos, 0.5*dRho.get(pos)/sqrt(density_.get(pos)));
 }
@@ -72,7 +80,9 @@ void Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
 {
   long pos;
   
+  #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
   for(pos=0;pos<x.size();pos++)
     dRho.set(pos, 0.5*dRho.get(pos)/x.get(pos));
 }
@@ -96,7 +106,7 @@ void Species::get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) con
 void Species::convert_to_density_increment(DFT_Vec &dRho) const {convert_to_alias_deriv(dRho);}
 void Species::convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const {convert_to_alias_deriv(x, dRho);}
 
-
+/*
 double Species::externalField(bool bCalcForces)
 {
   double dV = density_.dV();
@@ -108,13 +118,33 @@ double Species::externalField(bool bCalcForces)
     }
   return Fx;
 }
+*/
+
+double Species::evaluate_contribution_chemical_potential()
+{
+  double dV = density_.dV();
+  dF_.add(-mu_*dV);
+  return  - density_.get_mass()*mu_;
+}
+
+double Species::evaluate_external_field(const External_Field &f)
+{
+  double dV = density_.dV();
+
+  dF_.IncrementBy_Scaled_Vector(f,dV);
+  //  dF_.add(-mu_*dV);
+
+  return f.dotWith(density_.get_density_real())*dV; // - density_.getNumberAtoms()*mu_;
+}
+
 
 
 void Species::beginForceCalculation()
 {
   if(fixedMass_ > 0.0)
     {
-      density_.scale_to(fixedMass_/density_.getNumberAtoms());
+      //      density_.scale_to(fixedMass_/density_.getNumberAtoms());
+      density_ *= (fixedMass_/density_.getNumberAtoms());
       mu_ = 0.0;
     }
 }
