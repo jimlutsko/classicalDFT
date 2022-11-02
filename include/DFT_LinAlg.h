@@ -3,6 +3,7 @@
 
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/split_member.hpp>
 #include <boost/serialization/binary_object.hpp>
 
 #include "FMT_FFTW.h"
@@ -83,10 +84,23 @@ class DFT_Vec
       return in;
     }    
 
-
-  template<class Archive> void save(Archive & ar, const unsigned int version) const;
-  template<class Archive>  void load(Archive & ar, const unsigned int version);
-  BOOST_SERIALIZATION_SPLIT_MEMBER()  
+  // These need to be inline ...
+  template<class Archive> void save(Archive & ar, unsigned int version) const
+  {
+    unsigned N = size();
+    boost::serialization::binary_object buf_wrap(((DFT_Vec*) this)->memptr(), N*sizeof(double));
+    ar & N;
+    ar & buf_wrap;
+  }    
+  template<class Archive>  void load(Archive & ar, unsigned int version)
+  {
+    unsigned N  = 0;
+    ar & N;
+    resize(N);    
+    boost::serialization::binary_object buf_wrap(memptr(), N*sizeof(double));
+    ar & buf_wrap;
+  }
+  BOOST_SERIALIZATION_SPLIT_MEMBER()
 
   // These are legacy functions that should be removed at some point. 
   void save(ofstream &of) const;
@@ -148,11 +162,24 @@ class DFT_Vec_Complex
       in.read((char *)(v.memptr()), N*sizeof(complex<double>));
       return in;
     }
-  template<class Archive> void save(Archive & ar, const unsigned int version) const;
-  template<class Archive>  void load(Archive & ar, const unsigned int version);
+  template<class Archive> void save(Archive & ar, const unsigned int version) const
+  {
+    unsigned N = size();
+    boost::serialization::binary_object buf_wrap(((DFT_Vec_Complex*) this)->memptr(), N*sizeof(complex<double>));
+    ar & N;
+    ar & buf_wrap;
+  }
+  template<class Archive>  void load(Archive & ar, const unsigned int version)
+  {
+    unsigned N  = 0;
+    ar & N;
+    resize(N);    
+    boost::serialization::binary_object buf_wrap(memptr(), N*sizeof(complex<double>));
+    ar & buf_wrap;
+  }
   BOOST_SERIALIZATION_SPLIT_MEMBER()  
   
-    protected:
+  protected:
   void* data_;
 };
 
@@ -218,7 +245,8 @@ class DFT_FFT
     Nz_ = Nz;
     is_dirty_ = false;
   };
-  
+
+  // Assume the worse (is_dirty) with these non-constant accessors
   DFT_Vec &Real()         { is_dirty_ = true; return RealSpace_;}
   DFT_Vec_Complex &Four() { is_dirty_ = true; return FourierSpace_;}
 

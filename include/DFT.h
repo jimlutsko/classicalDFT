@@ -130,6 +130,7 @@ class DFT : public Dynamical_Matrix
   {
     ar & allSpecies_;
     ar & Interactions_;
+    ar & external_fields_;
     ar & fmt_;
     ar & F_id_;
     ar & F_ext_;

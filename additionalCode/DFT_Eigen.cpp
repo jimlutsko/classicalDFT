@@ -95,22 +95,6 @@ void DFT_Vec::IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale) {DATA += 
 
 void DFT_Vec::Schur(const DFT_Vec &v1, const DFT_Vec &v2) { DATA = v1_DATA.cwiseProduct(v2_DATA);}
   
-template<class Archive> void DFT_Vec::save(Archive & ar, const unsigned int version) const
-{
-  unsigned N = DATA.size();
-  boost::serialization::binary_object buf_wrap(DATA.data(), N*sizeof(double));
-  ar & N;
-  ar & buf_wrap;
-}
-  
-template<class Archive>  void DFT_Vec::load(Archive & ar, const unsigned int version)
-{
-  unsigned N  = 0;
-  ar & N;
-  DATA.resize(N);    
-  boost::serialization::binary_object buf_wrap(DATA.data(), N*sizeof(double));
-  ar & buf_wrap;
-}
   
 ////////////////////////////
 // Complex vector
@@ -155,19 +139,3 @@ complex<double> *DFT_Vec_Complex::memptr() { return cDATA.data();}
 
 unsigned DFT_Vec_Complex::size() const { return cDATA.size();}
 
-template<class Archive> void DFT_Vec_Complex::save(Archive & ar, const unsigned int version) const
-{
-  unsigned N = size();
-  boost::serialization::binary_object buf_wrap(DATA.data(), N*sizeof(complex<double>));
-  ar & N;
-  ar & buf_wrap;
-}
-
-template<class Archive>  void DFT_Vec_Complex::load(Archive & ar, const unsigned int version)
-{
-  unsigned N  = 0;
-  ar & N;
-  resize(N);    
-  boost::serialization::binary_object buf_wrap(DATA.data(), N*sizeof(complex<double>));
-  ar & buf_wrap;
-}

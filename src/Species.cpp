@@ -72,10 +72,10 @@ double Species::evaluate_external_field(const External_Field &f)
 {
   double dV = density_.dV();
 
-  dF_.IncrementBy_Scaled_Vector(f,dV);
+  dF_.IncrementBy_Scaled_Vector(f.get_field(),dV);
   //  dF_.add(-mu_*dV);
 
-  return f.dotWith(density_.get_density_real())*dV; // - density_.getNumberAtoms()*mu_;
+  return f.get_field().dotWith(density_.get_density_real())*dV; // - density_.getNumberAtoms()*mu_;
 }
 
 
@@ -101,7 +101,7 @@ double Species::endForceCalculation()
 	dF_.set(density_.boundary_pos_2_pos(pos),0.0);	
     }
 
-  if(homgeneousBoundary_)
+  if(homogeneousBoundary_)
     {
 	
       double average_border_force = 0;
@@ -130,3 +130,91 @@ double Species::endForceCalculation()
     }
   return 0;
 }
+
+
+
+template<class Archive>
+void boost::serialization::save_construct_data(Archive & ar, const Species * t, const unsigned int file_version)
+{
+  ar << & t->density_;
+  ar << t->dF_;
+  
+  ar << t->mu_;
+
+  ar << t->seq_num_;
+  ar << t->index_;
+  
+  ar << t->fixedMass_;
+  ar << t->fixedBackground_;
+  ar << t->homogeneousBoundary_;
+  ar << t->verbose_;
+
+  ar << t->SequenceNumber_;
+
+}
+
+template<class Archive>
+void boost::serialization::load_construct_data(Archive & ar, Species * t, const unsigned int file_version)
+{
+    // retrieve data from archive required to construct new instance
+  Density *density;
+  ar >> density;
+
+  // invoke inplace constructor to initialize instance of my_class
+  double mu = 0;
+  double seq = 0;
+  ::new(t)Species(*density,mu,seq);
+
+  ar >> t->dF_;
+  
+  ar >> t->mu_;
+
+  ar >> t->seq_num_;
+  ar >> t->index_;
+  
+  ar >> t->fixedMass_;
+  ar >> t->fixedBackground_;
+  ar >> t->homogeneousBoundary_;
+  ar >> t->verbose_;
+
+  ar >> t->SequenceNumber_;
+}
+
+
+template<class Archive>
+void boost::serialization::save_construct_data(Archive & ar, const FMT_Species * t, const unsigned int file_version)
+{
+  //  ar << static_cast<const Species*>(t);
+  ar << & t->density_;
+  ar << t->mu_;
+  ar << t->seq_num_;
+  ar << t->dF_;
+  ar << t->fixedMass_;
+  ar << t->SequenceNumber_;
+  ar << t->index_;  
+  ar << t->hsd_;
+  ar << t->fmt_weighted_densities;
+}
+
+template<class Archive>
+void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version)
+{
+    // retrieve data from archive required to construct new instance
+  Density *d;
+  ar >> d;
+
+    // invoke inplace constructor to initialize instance of my_class
+  double mu = 0;
+  int seq_num = 0;
+  ::new(t)FMT_Species(*d,mu,seq_num);
+
+  ar >> t->mu_;
+  ar >> t->seq_num_;  
+  ar >> t->dF_;
+  ar >> t->fixedMass_;
+  ar >> t->SequenceNumber_;
+  ar >> t->index_;  
+  ar >> t->hsd_;
+  ar >> t->fmt_weighted_densities;  
+}
+

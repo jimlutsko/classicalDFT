@@ -12,6 +12,7 @@
 using namespace std;
 
 #include "Density.h"
+#include "External_Field.h"
 #include "visit_writer.h"
 
 
@@ -379,7 +380,9 @@ double Density::get_neighbor_values(long pos,double &xpx, double &xmx, double &x
   return get(ix,   iy,   iz);
 }
 
-template<typename Archive> void Density::serialize(Archive & ar, const unsigned int version)
+//template<typename Archive> void Density::serialize(Archive & ar, const unsigned int version)
+/*
+template<class Archive> void Density::serialize(Archive & ar, const unsigned int version)
 {
   ar & boost::serialization::base_object<Lattice>(*this);
   ar & Density_;
@@ -390,4 +393,31 @@ template<typename Archive> void Density::serialize(Archive & ar, const unsigned 
       ar & vWall_;
     }
 }
+*/
 
+
+/*
+template<typename Archive> void External_Field::serialize(Archive & ar, const unsigned int version)
+{
+  ar & boost::serialization::base_object<Lattice>(*this);
+  ar & species_;
+  //  ar & field_;
+}
+*/
+
+
+template<class Archive>
+void boost::serialization::save_construct_data(Archive & ar, const External_Field * t, const unsigned int file_version)
+{
+  ar << t->field_;
+  ar << t->species_;
+
+}
+
+template<class Archive>
+void boost::serialization::load_construct_data(Archive & ar, External_Field * t, const unsigned int file_version)
+{
+  ar >> t->field_;
+  ar >> t->species_;
+}
+ 

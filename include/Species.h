@@ -30,7 +30,7 @@ class Species
   void set_fixed_mass()                     { fixedMass_          = density_.get_mass(); mu_ = 0.0; fixedBackground_ = false;}
   void set_fixed_mass(double m)             { fixedMass_          = m; if(m > 0.0) {mu_ = 0.0; fixedBackground_ = false;}}
   void set_open_system(bool fixed)          { fixedBackground_    = fixed; fixedMass_ = -1;} 
-  void set_homogeneous_boundary(bool val)   { homgeneousBoundary_ = val;}  
+  void set_homogeneous_boundary(bool val)   { homogeneousBoundary_ = val;}  
 
   void set_verbose(bool verbose) { verbose_ = verbose;}
   
@@ -88,7 +88,7 @@ class Species
  
   //Enforce constraints on forces: constant particle number, uniform or fixed background, etc.
   void   beginForceCalculation();
-  double   endForceCalculation();
+  double endForceCalculation();
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive &ar, const unsigned int file_version){}
@@ -105,11 +105,13 @@ protected:
   Density &density_;
   DFT_Vec dF_;
   double mu_;
+
   int seq_num_;
+  int index_ = -1;
+  
   double fixedMass_        = -1; // if this is > 0, then the mass of this species is being held fixed at this value.
   bool fixedBackground_    = false; // if true, forces are set to zero on the background
-  bool homgeneousBoundary_ = false; 
-  int index_ = -1;
+  bool homogeneousBoundary_ = false; 
   bool verbose_ = true;
 
 };
@@ -143,12 +145,8 @@ public:
   
   const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
 
-  /**
-   *   @brief This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
-   *          ( so this computes the weighted densities n(r) = int w(r-r')rho(r')dr'). The results are all stored in parts of FMT_Weighted_Density
-   *  
-   *   @return none
-   */        
+  // This does the convolution of the density and the weight for each weighted density after which it converts back to real space 
+  //          ( so this computes the weighted densities n(r) = int w(r-r')rho(r')dr'). The results are all stored in parts of FMT_Weighted_Density
   virtual void calculateFundamentalMeasures(bool needsTensor)
   {
     // reference to Fourier-space array of density
@@ -181,12 +179,8 @@ public:
     result.do_fourier_2_real();
   }  
   
-  /**
-   *   @brief Loop over the weighted densities and ask each one to add its contribution to dPhi
-   *          In other words:   SUM_{a} SUM_j d PHI/d n_{a}(j) w_{a}(j-i)
-   *  
-   *   @return none
-   */  
+  // Loop over the weighted densities and ask each one to add its contribution to dPhi
+  //       In other words:   SUM_{a} SUM_j d PHI/d n_{a}(j) w_{a}(j-i)
   void Accumulate_dPhi(DFT_Vec_Complex& dPhi, bool needsTensor)
   {
     int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
@@ -259,11 +253,8 @@ public:
 
     throw std::runtime_error("Unknown index in FMT_Weighted_Density::getExtendedWeightedDensity");
   }
-  
-
-
-  
-  // FOr testing only: brute-force evaluation of weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
+    
+  // For testing only: brute-force evaluation of weighted density at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getBruteForceWeightedDensity(int K[3], int a)
   {
     double d = 0.0;
@@ -355,6 +346,8 @@ public:
   const DFT_Vec &getV_Real(int J) const { return fmt_weighted_densities[VI(J)].Real();}
   const DFT_Vec_Complex& getVweight_Four(int J) const { return fmt_weighted_densities[VI(J)].wk();}  
 
+
+  // streaming stuff
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
   {
@@ -362,7 +355,6 @@ public:
   }    
   template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species * t, const unsigned int file_version);
   template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version);
-
   
 protected:
   // Indices of eta, scaler, vector and tensor weighted densities
@@ -378,11 +370,8 @@ protected:
   }
 
 protected:
-  /**
-   *   @brief  This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
-   *           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
-   *
-   */        
+  //This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
+  //           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
   virtual void generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
 
 protected:
@@ -526,79 +515,5 @@ protected:
   vector<FMT_Weighted_Density> eos_weighted_density_; ///< all weighted densities in real & fourier space
   double D_EOS_;
 };
-
-
-
-
-
-template<class Archive>
-inline void boost::serialization::save_construct_data(Archive & ar, const Species * t, const unsigned int file_version)
-{
-  ar << & t->density_;
-  ar << t->mu_;
-  ar << t->seq_num_;
-  ar << t->dF_;
-  ar << t->fixedMass_;
-  ar << t->SequenceNumber_;
-  ar << t->index_;
-}
-
-template<class Archive>
-inline void boost::serialization::load_construct_data(Archive & ar, Species * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *d;
-  ar >> d;
-
-  // invoke inplace constructor to initialize instance of my_class
-  double mu = 0;
-  double seq = 0;
-  ::new(t)Species(*d,mu,seq);
-
-  ar >> t->mu_;
-  ar >> t->seq_num_;  
-  ar >> t->dF_;
-  ar >> t->fixedMass_;
-  ar >> t->SequenceNumber_;
-  ar >> t->index_;  
-}
-
-
-template<class Archive>
-inline void boost::serialization::save_construct_data(Archive & ar, const FMT_Species * t, const unsigned int file_version)
-{
-  //  ar << static_cast<const Species*>(t);
-  ar << & t->density_;
-  ar << t->mu_;
-  ar << t->seq_num_;
-  ar << t->dF_;
-  ar << t->fixedMass_;
-  ar << t->SequenceNumber_;
-  ar << t->index_;  
-  ar << t->hsd_;
-  ar << t->fmt_weighted_densities;
-}
-
-template<class Archive>
-inline void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *d;
-  ar >> d;
-
-    // invoke inplace constructor to initialize instance of my_class
-  double mu = 0;
-  int seq_num = 0;
-  ::new(t)FMT_Species(*d,mu,seq_num);
-
-  ar >> t->mu_;
-  ar >> t->seq_num_;  
-  ar >> t->dF_;
-  ar >> t->fixedMass_;
-  ar >> t->SequenceNumber_;
-  ar >> t->index_;  
-  ar >> t->hsd_;
-  ar >> t->fmt_weighted_densities;  
-}
 
 #endif // __LUTSKO__SPECIES__
