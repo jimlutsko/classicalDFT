@@ -74,6 +74,9 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
   double x2 = eigen_vec_.dotWith(eigen_vec_);
   double f  = eigen_vec_.dotWith(df)/x2;
   
+  matrix_dot_eigen_vec_ = df; df.MultBy(1.0/scale_);
+  eigen_val_ = (change_sign_ ? -1 : 1)*f/scale_;
+  
   df.IncrementBy_Scaled_Vector(eigen_vec_,-f);
   df.MultBy(2/x2);
   
@@ -82,16 +85,40 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
   f += (vnorm2-1)*(vnorm2-1);
   df.IncrementBy_Scaled_Vector(eigen_vec_,4*(vnorm2-1));
 
+  if (verbose_) cout  <<  "\tObjective function is now " << (change_sign_ ? -1 : 1)*f/scale_ << "                 " << endl;
+  
   num_eval_++;
-
+  
   cout << myColor::YELLOW;
-  cout << '\r'; cout  <<  "\tEvaluation " << num_eval_ << " gives estimated eigenvalue " << (change_sign_ ? -1 : 1)*f/scale_ << "                 ";
+  cout << '\r'; cout  <<  "\tEvaluation " << num_eval_ << " gives estimated eigenvalue " << eigen_val_ << "                 ";
   cout << myColor::RESET;
   
   if (max_num_eval_>0 && num_eval_>=max_num_eval_)
     throw runtime_error("Eigenvalues: Exceeded max number of iterations");
   
   return f;
+}
+
+
+double Eigenvalues::calculate_residual_error() const
+{
+  if (eigen_vec_.size() != matrix_.get_Ntot())
+    throw runtime_error("Eigenvalues: Eigenvector not initialized yet!");
+  
+  DFT_Vec residual; residual.zeros(matrix_.get_Ntot());
+  
+  if (matrix_dot_eigen_vec_.size() == matrix_.get_Ntot())
+  {
+    residual.set(matrix_dot_eigen_vec_);
+  }
+  else
+  {
+    matrix_dot_v(eigen_vec_, residual, NULL);
+  }
+  
+  residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigen_val_);
+  
+  return residual.euclidean_norm()/eigen_vec_.euclidean_norm()/fabs(eigen_val_);
 }
 
 
@@ -285,27 +312,6 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     f = eigenvalues_objective_func(x, df, this);
     t += dt;
     
-    double xerr  = 0.0;
-    #pragma omp parallel for reduction(+:xerr)
-    for (long j=0; j<v.size(); j++)
-    {
-      xerr  += (x_old[j]-x[j])*(x_old[j]-x[j]);
-    }
-    xerr  = sqrt(xerr)/x.size();
-    
-    //TODO: compute this and check convergence only 
-    //      once in a while to save a few calls??
-    vector<double> Ax; matrix_dot_v(x, Ax, NULL);
-    double xdotx, xdotAx, AxdotAx; xdotx = xdotAx = AxdotAx = 0.0;
-    #pragma omp parallel for reduction(+:xdotx) reduction(+:xdotAx) reduction(+:AxdotAx)
-    for (long j=0; j<x.size(); j++)
-    {
-      xdotx   +=  x[j]* x[j];
-      xdotAx  +=  x[j]*Ax[j];
-      AxdotAx += Ax[j]*Ax[j];
-    }
-    double Axerr = 1-fabs(xdotAx)/sqrt(xdotx)/sqrt(AxdotAx);
-    
     if (verbose_)
     {
       cout << endl; cout << setprecision(12);
@@ -316,35 +322,15 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       cout << "\t  vnorm  = " << vnorm << endl;
       cout << "\t  fnorm  = " << fnorm << endl;
       cout << "\t  f-fold = " << f-f_old << endl;
-      cout << "\t  xerr   = " << xerr  << endl;
-      cout << "\t  Axerr  = " << Axerr << endl;
     }
     
     // Check if converged
     if (!initialdelay || i>=Ndelay)
     {
-      //cout << endl << "convergence monitor = " << fnorm/df.size()*dt*dt << endl;
-      //cout << "\rerr = " << fnorm/df.size()*dt*dt << endl;
-      //if (P>0 && fnorm/df.size()*dt*dt<tol_) break;
       //if (P>0 && fabs(f-f_old)/fabs(f+f_old)<tol_) break;
-      //if (P>0 && xerr<tol_) break;
-      if (Axerr < tol_) break;
+      if (calculate_residual_error() < tol_) break;
     }
   }
-  
-  
-  ////////////////////////////////////////////////////////////////////
-  // Use normalised eigenvector to compute the true eigenvalue
-  // This way we cancel the (v^2-1)^2 term in the objective function 
-  
-  set_eigen_vec(x);
-  eigen_vec_.normalise();
-  
-  DFT_Vec dummy; dummy.zeros(x.size());
-  eigen_val_ = calculate_gradients(dummy);
-  
-  eigen_val_ /= scale_;  
-  if(change_sign_) eigen_val_ *= -1;
 }
 
 

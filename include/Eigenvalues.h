@@ -50,6 +50,7 @@ class Eigenvalues
   void   set_eigen_vec(const DFT_Vec &v_in) {eigen_vec_ = v_in;}
   void   save_snapshot();
   double calculate_gradients(DFT_Vec& df);
+  double calculate_residual_error() const;
   
   void matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const;
   void matrix_dot_v(const vector<double> &vv, vector<double> &result, void *param);
@@ -57,7 +58,7 @@ class Eigenvalues
   bool is_using_density_alias() const {return using_density_alias_;}
   //bool is_using_density_alias() const {return matrix_.is_using_density_alias();}
   
-  void clear() { eigen_vec_.zeros(1);}
+  void clear() { eigen_vec_.zeros(1); matrix_dot_eigen_vec_.zeros(1); }
   
  private:
   const Dynamical_Matrix& matrix_;
@@ -74,6 +75,7 @@ class Eigenvalues
   bool using_density_alias_ = false;
 
   DFT_Vec eigen_vec_;
+  DFT_Vec matrix_dot_eigen_vec_;
   double  eigen_val_ = 0;
 };
 
