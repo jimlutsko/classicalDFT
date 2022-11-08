@@ -121,7 +121,6 @@ double DDFT::step()
   F_ = 0;
   try {
     F_ = get_energy_and_forces();
-    calls_++;
   } catch( Eta_Too_Large_Exception &e) {
     throw e;
   }
