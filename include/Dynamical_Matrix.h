@@ -31,6 +31,8 @@ class Dynamical_Matrix
 
   void set_verbose(bool v)            { dm_verbose_ = v;}
   void set_use_squared_matrix(bool v) { use_squared_matrix_  = v;}
+  
+  bool get_use_squared_matrix() const { return use_squared_matrix_;}
 
 protected:
 

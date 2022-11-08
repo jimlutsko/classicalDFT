@@ -82,15 +82,15 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
   
   // Artificial cost to keep the vectors near the unit sphere (does not change the eigenproblem)
   double vnorm2 = eigen_vec_.dotWith(eigen_vec_);
-  f += (vnorm2-1)*(vnorm2-1);
-  df.IncrementBy_Scaled_Vector(eigen_vec_,4*(vnorm2-1));
+  f += scale_*(vnorm2-1)*(vnorm2-1);
+  df.IncrementBy_Scaled_Vector(eigen_vec_,4*(vnorm2-1)*scale_);
 
-  if (verbose_) cout  <<  "\tObjective function is now " << (change_sign_ ? -1 : 1)*f/scale_ << "                 " << endl;
+  if (verbose_) cout  <<  "\tObjective function is now " << f/scale_ << "                 " << endl;
   
   num_eval_++;
   
   cout << myColor::YELLOW;
-  cout << '\r'; cout  <<  "\tEvaluation " << num_eval_ << " gives estimated eigenvalue " << eigen_val_ << "                 ";
+  cout << '\r'; cout  <<  "\tEvaluation " << num_eval_ << " gives estimated eigenvalue " << eigen_val_ << " (res = " << calculate_residual_error(false) << ")                 ";
   cout << myColor::RESET;
   
   if (max_num_eval_>0 && num_eval_>=max_num_eval_)
@@ -117,14 +117,21 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
     residual.set(matrix_dot_eigen_vec_);
   }
   
-  residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigen_val_);
+  double eigen_val = eigen_val_*(change_sign_ ? -1 : 1)*scale_;
+  residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigen_val);
   
-  return residual.euclidean_norm()/eigen_vec_.euclidean_norm()/fabs(eigen_val_);
+  return residual.euclidean_norm()/eigen_vec_.euclidean_norm()/fabs(eigen_val);
 }
 
 
 void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const
 {
+  if (is_using_density_alias() && matrix_.is_dynamic())
+    throw runtime_error("(In Eigenvalues.cpp) Incompatible use of alias with dynamics");
+  
+  if (is_using_density_alias() && matrix_.get_use_squared_matrix())
+    throw runtime_error("(In Eigenvalues.cpp) Incompatible use of alias with squared matrix (not implemented)");
+  
   if (is_using_density_alias())
   {
     DFT_Vec vv; vv.set(v);
