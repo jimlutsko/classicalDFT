@@ -34,12 +34,25 @@ class Summation
       return *this;
     }
 
+  Summation& operator-=(const double rhs)
+    {
+      this->add(-rhs);
+      return *this;
+    }
+
   operator double() const { return sum(); }
 
   Summation& operator += (const Summation & other)
     {
       sum_ += other.sum_;
       c_ += other.c_;
+      return *this;
+    }
+
+  Summation& operator -= (const Summation & other)
+    {
+      sum_ -= other.sum_;
+      c_ -= other.c_;
       return *this;
     }
 

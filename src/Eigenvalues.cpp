@@ -65,27 +65,28 @@ void Eigenvalues::save_snapshot()
 double Eigenvalues::calculate_gradients(DFT_Vec& df)
 {
   matrix_dot_v(eigen_vec_,df,NULL);
-
+  
   if(vshift_.size() == df.size())
     df.IncrementBy_Scaled_Vector(vshift_,0.5*vshift_.dotWith(eigen_vec_));
   
+  matrix_dot_eigen_vec_ = df;
   df.MultBy((change_sign_ ? -1 : 1)*scale_);
-    
+
   double x2 = eigen_vec_.dotWith(eigen_vec_);
   double f  = eigen_vec_.dotWith(df)/x2;
   
-  matrix_dot_eigen_vec_ = df; df.MultBy(1.0/scale_);
   eigen_val_ = (change_sign_ ? -1 : 1)*f/scale_;
   
   df.IncrementBy_Scaled_Vector(eigen_vec_,-f);
   df.MultBy(2/x2);
   
   // Artificial cost to keep the vectors near the unit sphere (does not change the eigenproblem)
+  // Do not scale this, otherwise the vAv/vv term for small eigenvalues is dwarfed next to this one
   double vnorm2 = eigen_vec_.dotWith(eigen_vec_);
-  f += scale_*(vnorm2-1)*(vnorm2-1);
-  df.IncrementBy_Scaled_Vector(eigen_vec_,4*(vnorm2-1)*scale_);
-
-  if (verbose_) cout  <<  "\tObjective function is now " << f/scale_ << "                 " << endl;
+  f += (vnorm2-1)*(vnorm2-1);
+  df.IncrementBy_Scaled_Vector(eigen_vec_,4*(vnorm2-1));
+  
+  if (verbose_) cout  <<  "\tObjective function is now " << f << "                 " << endl;
   
   num_eval_++;
   
@@ -117,10 +118,8 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
     residual.set(matrix_dot_eigen_vec_);
   }
   
-  double eigen_val = eigen_val_*(change_sign_ ? -1 : 1)*scale_;
-  residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigen_val);
-  
-  return residual.euclidean_norm()/eigen_vec_.euclidean_norm()/fabs(eigen_val);
+  residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigen_val_);
+  return residual.euclidean_norm()/eigen_vec_.euclidean_norm()/fabs(eigen_val_);
 }
 
 
@@ -217,7 +216,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   double alpha_start = 1.0;
   double alpha_min = 0.0;
   double alpha = alpha_start;
-  double dt = 0.01;
+  double dt = 0.01/scale_;
   double dt_max = 1;
   double dt_min = 0.0;
   double finc = 1.1;
@@ -233,22 +232,35 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   // Iterate
   for (int i=0; i<Nmax; i++)
   {
-    double P = 0.0;
-    #pragma omp parallel for reduction(+:P)
-    for (long j=0; j<v.size(); j++) P -= df[j]*v[j];
+    Summation Sum_P;
+    #pragma omp parallel for reduction(+:Sum_P)
+    for (long j=0; j<v.size(); j++) Sum_P -= df[j]*v[j];
+    double P = Sum_P.sum();
     
-    double vnorm = 0.0;
-    double fnorm = 0.0;
-    #pragma omp parallel for reduction(+:vnorm) reduction(+:fnorm)
+    Summation Sum_vnorm;
+    Summation Sum_fnorm;
+    #pragma omp parallel for reduction(+:Sum_vnorm) reduction(+:Sum_fnorm)
     for (long j=0; j<v.size(); j++)
     {
-      vnorm += v[j]*v[j];
-      fnorm += df[j]*df[j];
+      Sum_vnorm += v[j]*v[j];
+      Sum_fnorm += df[j]*df[j];
     }
-    vnorm = sqrt(vnorm);
-    fnorm = sqrt(fnorm);
+    double vnorm = sqrt(Sum_vnorm.sum());
+    double fnorm = sqrt(Sum_fnorm.sum());
     
     double P_normalized = P/vnorm/fnorm;
+    
+    if (verbose_)
+    {
+      cout << endl; cout << setprecision(12);
+      cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
+      cout << "\t  P/|v||df| = " << P_normalized << endl;
+      cout << "\t  dt = " << dt << endl;
+      cout << "\t  alpha  = " << alpha << endl;
+      cout << "\t  vnorm  = " << vnorm << endl;
+      cout << "\t  fnorm  = " << fnorm << endl;
+      cout << "\t  f-fold = " << f-f_old << endl;
+    }
     
     if (P>=0) // && f<=f_old sometimes causes problems sending dt->0
     {
@@ -278,6 +290,7 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       }
       
       if (verbose_) cout << "\tBacktracking..." << endl;
+      
       #pragma omp parallel for
       for (long j=0; j<v.size(); j++)
       {
@@ -285,6 +298,8 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
         x[j] = x_old[j];
         v[j] = 0.0;
       }
+      
+      f = eigenvalues_objective_func(x, df, this);
     }
     
     #pragma omp parallel for
@@ -297,16 +312,16 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       v[j] -= dt*df[j];
     }
     
-    vnorm = 0.0;
-    fnorm = 0.0;
-    #pragma omp parallel for reduction(+:vnorm) reduction(+:fnorm)
+    Sum_vnorm = Summation();
+    Sum_fnorm = Summation();
+    #pragma omp parallel for reduction(+:Sum_vnorm) reduction(+:Sum_fnorm)
     for (long j=0; j<v.size(); j++)
     {
-      vnorm += v[j]*v[j];
-      fnorm += df[j]*df[j];
+      Sum_vnorm += v[j]*v[j];
+      Sum_fnorm += df[j]*df[j];
     }
-    vnorm = sqrt(vnorm);
-    fnorm = sqrt(fnorm);
+    vnorm = sqrt(Sum_vnorm.sum());
+    fnorm = sqrt(Sum_fnorm.sum());
     
     // Semi-implicit Euler: velocity mixing and x-step
     #pragma omp parallel for
@@ -319,18 +334,6 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     f_old = f;
     f = eigenvalues_objective_func(x, df, this);
     t += dt;
-    
-    if (verbose_)
-    {
-      cout << endl; cout << setprecision(12);
-      cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
-      cout << "\t  P/|v||df| = " << P_normalized << endl;
-      cout << "\t  dt = " << dt << endl;
-      cout << "\t  alpha  = " << alpha << endl;
-      cout << "\t  vnorm  = " << vnorm << endl;
-      cout << "\t  fnorm  = " << fnorm << endl;
-      cout << "\t  f-fold = " << f-f_old << endl;
-    }
     
     // Check if converged
     if (!initialdelay || i>=Ndelay)
