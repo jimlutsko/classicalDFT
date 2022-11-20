@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(USE_OMP false)
+set(USE_OMP true)
 
 #This allows us to include the git SHA to identify exactly which code is being used
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_stuff/")

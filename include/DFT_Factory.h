@@ -13,6 +13,10 @@
 #include "myColor.h"
 #include "Minimizer.h"
 
+
+static string LJ_name = "LJ";
+static string WHDF_name = "WHDF";
+
 template <class DensityType>
 class DFT_Factory
 {
@@ -56,7 +60,9 @@ public:
       
     options_.addOption("ShowGraphics", &show_graphics_);
     options_.addOption("Include_HS", &include_hs_);
-    options_.addOption("Include_Interaction", &include_interaction_);        
+    options_.addOption("Include_Interaction", &include_interaction_);
+
+    options_.addOption("Potential", &potential_name_);
   }
 
   ~DFT_Factory()
@@ -116,7 +122,12 @@ public:
     interaction1_ = NULL;
     if(include_interaction_)
       {
-	potential1_ = new LJ(sigma1_, eps1_, rcut1_);
+	if(potential_name_ == LJ_name)
+	  potential1_ = new LJ(sigma1_, eps1_, rcut1_);
+	else if(potential_name_ == WHDF_name)
+	  potential1_ = new WHDF(sigma1_, eps1_, rcut1_);
+	else throw std::runtime_error("Requested potential " + potential_name_ + " unknown to DFT_Factory");
+	  
 	if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
       } else if(hsd1_ < 1) hsd1_ = 1;
 
@@ -310,6 +321,8 @@ public:
   bool include_log_          = true;
   
   bool verbose_  = true;
+
+  string potential_name_ = "LJ";
   
 };
 #endif // __LUTSKO_DFT_FACTORY__
