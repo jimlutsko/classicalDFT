@@ -34,46 +34,111 @@ static double eigenvalues_objective_func(const std::vector<double> &xx, std::vec
   DFT_Vec df(xx.size());
   double f = eig.calculate_gradients(df);
 
-  if (!grad.empty()) {
+  if (!grad.empty()) 
+  {
     #pragma omp parallel for
-    for(long i=0;i<grad.size();i++)
-      grad[i] = df.get(i);
+    for(long i=0;i<grad.size();i++) grad[i] = df.get(i);
   }
   
   return f;
 }
 
 
+static double eigenvalues_objective_func(const DFT_Vec &xx, DFT_Vec &grad, void *data)
+{
+  Eigenvalues& eig = *((Eigenvalues*) data);
+  eig.set_eigen_vec(xx);
+  eig.save_snapshot();
+  
+  grad.zeros(xx.size());
+  return eig.calculate_gradients(grad);
+}
+
+
+DFT_Vec Eigenvalues::get_density_space_eigenvector() const
+{
+  DFT_Vec v(eigen_vec_);
+  
+  if (matrix_.is_dynamic()) g_dot_v(eigen_vec_, v);
+  else if (is_using_density_alias()) species_->convert_to_density_increment(v);
+  
+  return v;
+}
+
+
 void Eigenvalues::set_eigen_vec(const vector<double> &v_in)
 {
   if(eigen_vec_.size() != v_in.size()) eigen_vec_.zeros(v_in.size());
+  
+  #pragma omp parallel for
   for(long i=0;i<v_in.size();i++) eigen_vec_.set(i,v_in[i]);
 }
 
 
-void Eigenvalues::save_snapshot()
+void Eigenvalues::g_dot_v(const DFT_Vec &v, DFT_Vec &gv) const
+{
+  if (gv.size() != v.size()) gv.zeros(v.size());
+  
+  matrix_.g_dot_x(v, gv);
+  gv.MultBy(-1); //TODO minus sign because original metric g is not positive definite
+}
+
+
+double Eigenvalues::v_dot_w(const DFT_Vec &v, const DFT_Vec &w) const
+{
+  double vw = 0.0;
+  
+  if (matrix_.is_dynamic())
+  {
+    DFT_Vec gw(w); g_dot_v(w, gw);
+    vw = v.dotWith(gw);
+  }
+  else
+  {
+    vw = v.dotWith(w);
+  }
+  
+  return vw;
+}
+
+
+double Eigenvalues::norm(const DFT_Vec &v) const
+{
+  return sqrt(v_dot_w(v,v));
+}
+
+
+void Eigenvalues::save_snapshot() const
 {
   if(eigen_vec_.size()>1)
   {
     ofstream ofile("snapshot_eigenvector.dat");
     ofile << eigen_vec_;
     ofile.close();
+    
+    ofile.open("snapshot_density_eigenvector.dat");
+    ofile << get_density_space_eigenvector();
+    ofile.close();
   }
 }
 
+
+// Note: df has a lower index and we keep it that way to make subsequent 
+// calculations easier. The true gradient is g^{IJ}(df)_J and is contravariant
 
 double Eigenvalues::calculate_gradients(DFT_Vec& df)
 {
   matrix_dot_v(eigen_vec_,df,NULL);
   
   if(vshift_.size() == df.size())
-    df.IncrementBy_Scaled_Vector(vshift_,0.5*vshift_.dotWith(eigen_vec_));
+    df.IncrementBy_Scaled_Vector(vshift_,0.5*v_dot_w(vshift_,eigen_vec_));
   
   matrix_dot_eigen_vec_ = df;
   df.MultBy((change_sign_ ? -1 : 1)*scale_);
 
-  double x2 = eigen_vec_.dotWith(eigen_vec_);
-  double f  = eigen_vec_.dotWith(df)/x2;
+  // No need to divide by x2 since we already normalised the eigenvector
+  double x2 = v_dot_w(eigen_vec_,eigen_vec_);
+  double f  = v_dot_w(eigen_vec_,df)/x2;
   
   eigen_val_ = (change_sign_ ? -1 : 1)*f/scale_;
   
@@ -82,9 +147,11 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
   
   // Artificial cost to keep the vectors near the unit sphere (does not change the eigenproblem)
   // Do not scale this, otherwise the vAv/vv term for small eigenvalues is dwarfed next to this one
-  double vnorm2 = eigen_vec_.dotWith(eigen_vec_);
-  f += (vnorm2-1)*(vnorm2-1);
-  df.IncrementBy_Scaled_Vector(eigen_vec_,4*(vnorm2-1));
+  f += (x2-1)*(x2-1);
+  df.IncrementBy_Scaled_Vector(eigen_vec_,4*(x2-1));
+  
+  // Raise index of df
+  //if (matrix_.is_dynamic()) g_dot_v(eigen_vec_, df);
   
   if (verbose_) cout  <<  "\tObjective function is now " << f << "                 " << endl;
   
@@ -106,20 +173,20 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
   if (eigen_vec_.size() != matrix_.get_Ntot())
     throw runtime_error("Eigenvalues: Eigenvector not initialized yet!");
   
-  DFT_Vec residual; residual.zeros(matrix_.get_Ntot());
+  DFT_Vec vec(eigen_vec_); // contravariant vector (upper index)
+  if (matrix_.is_dynamic()) g_dot_v(eigen_vec_, vec);
+  
+  DFT_Vec residual(matrix_dot_eigen_vec_);
   
   if (recompute_matrix_dot_v ||
       matrix_dot_eigen_vec_.size() != matrix_.get_Ntot())
   {
+    residual.zeros(matrix_.get_Ntot());
     matrix_dot_v(eigen_vec_, residual, NULL);
   }
-  else
-  {
-    residual.set(matrix_dot_eigen_vec_);
-  }
   
-  residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigen_val_);
-  return residual.euclidean_norm()/eigen_vec_.euclidean_norm()/fabs(eigen_val_);
+  residual.IncrementBy_Scaled_Vector(vec, -eigen_val_);
+  return norm(residual)/norm(vec)/fabs(eigen_val_);
 }
 
 
@@ -134,7 +201,6 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
   if (is_using_density_alias())
   {
     DFT_Vec vv; vv.set(v);
-    
     species_->convert_to_density_increment(vv);
     matrix_.matrix_dot_v1(vv,result,param);
     species_->convert_to_alias_deriv(result);
@@ -146,6 +212,12 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
     
     result.IncrementBy(df);
   }
+  else if (matrix_.is_dynamic())
+  {
+    DFT_Vec gv(v); g_dot_v(v, gv);
+    matrix_.matrix_dot_v1(gv, result, param, true);
+    result.MultBy(-1); //TODO minus sign to be consistent with original metric g in DDFT object, which is not positive definite
+  }
   else
   {
     matrix_.matrix_dot_v1(v,result,param);
@@ -155,10 +227,10 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
   {
     cout << endl; cout << setprecision(12);
     cout << "\tIn Eigenvalues::matrix_dot_v:" << endl;
-    cout << "\t  L2-Norm of v:   " << v.euclidean_norm() << endl;
-    cout << "\t  L2-Norm of A*v: " << result.euclidean_norm() << endl;
-    cout << "\t  L2-Norm ratio |A*v|/|v|:     " << result.euclidean_norm() / v.euclidean_norm() << endl;
-    cout << "\t  Dot product vT*A*v/|A*v||v|: " << v.dotWith(result) / result.euclidean_norm() / v.euclidean_norm() << endl;
+    cout << "\t  L2-Norm of v:   " << norm(v) << endl;
+    cout << "\t  L2-Norm of A*v: " << norm(result) << endl;
+    cout << "\t  L2-Norm ratio |A*v|/|v|:     " << norm(result) / norm(v) << endl;
+    cout << "\t  Dot product vT*A*v/|A*v||v|: " << v_dot_w(v,result) / norm(result) / norm(v) << endl;
   }
 }
 
@@ -178,6 +250,116 @@ void Eigenvalues::matrix_dot_v(const vector<double> &vv, vector<double> &result,
   for (long i=0; i<vv.size(); i++) result[i] = r.get(i);
 }
 
+/*
+void Eigenvalues::calculate_eigenvector(Log& theLog)
+{
+  if(eigen_vec_.size() != matrix_.get_Ntot())
+  {
+      eigen_vec_.zeros(matrix_.get_Ntot());
+      eigen_vec_.set_random_normal();
+  
+      if(matrix_.is_fixed_boundary())
+      {
+        long pos = 0;
+        do{eigen_vec_.set(pos,0.0);} while(matrix_.get_next_boundary_point(pos));
+      }
+      
+      eigen_vec_.MultBy(1/norm(eigen_vec_));
+  }
+  
+  ////////////////////////////////////////
+  // Minimisation of xAx/xx with FIRE2
+  
+  // Initialize
+  DFT_Vec v; v.zeros(eigen_vec_.size());
+  DFT_Vec df; df.zeros(eigen_vec_.size());
+  DFT_Vec eigen_vec_old(eigen_vec_);
+  
+  double f = eigenvalues_objective_func(eigen_vec_, df, this);
+  double f_old = f;
+  double t = 0.0;
+  
+  // Parameters
+  double dt = 0.01/scale_;
+  double dt_max = 1;
+  double dt_min = 0.0;
+  double finc = 1.01;
+  double falf = 0.9;
+  double fdec = 0.1;
+  int Npos = 0;
+  int Nneg = 0;
+  int Nmax = 1e6;
+  int Ndelay = 5;
+  int Nneg_max = 20;
+  bool initialdelay = true;
+  
+  // Iterate
+  for (int i=0; i<Nmax; i++)
+  {
+    double P = -v_dot_w(v, df);
+    double vnorm = norm(v);
+    
+    if (verbose_)
+    {
+      cout << endl; cout << setprecision(12);
+      cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
+      cout << "\t  P  = " << P << endl;
+      cout << "\t  dt = " << dt << endl;
+      cout << "\t  vnorm  = " << vnorm << endl;
+      cout << "\t  f-fold = " << f-f_old << endl;
+    }
+    
+    if (P>=0) // && f<=f_old sometimes causes problems sending dt->0
+    {
+      Npos ++; Nneg = 0;
+      
+      dt = (dt*finc<dt_max)?dt*finc:dt_max;
+    }
+    else // if P<=0
+    {
+      Nneg ++; Npos = 0;
+      
+      if (Nneg>Nneg_max) throw runtime_error("Eigenvalues.cpp: Cannot stop going uphill in FIRE2");
+      
+      if (!initialdelay || i>=Ndelay) 
+      {
+        if (dt*fdec>dt_min) dt *= fdec;
+      }
+      
+      if (verbose_) cout << "\tBacktracking..." << endl;
+      
+      eigen_vec_.set(eigen_vec_old);
+      v.zeros();
+      
+      f = eigenvalues_objective_func(eigen_vec_, df, this);
+    }
+    
+    eigen_vec_old.set(eigen_vec_);
+    
+    // Semi-implicit Euler (purely inertial)
+    v.IncrementBy_Scaled_Vector(df, -dt);
+    eigen_vec_.IncrementBy_Scaled_Vector(v, dt);
+    vnorm = norm(v);
+    
+    f_old = f;
+    f = eigenvalues_objective_func(eigen_vec_, df, this);
+    t += dt;
+    
+    // Check if converged
+    if (!initialdelay || i>=Ndelay)
+    {
+      //if (P>0 && fabs(f-f_old)/fabs(f+f_old)<tol_) break;
+      if (calculate_residual_error(false) < tol_) break;
+    }
+  }
+  
+  ////////////////////////////////////////
+  // Finalise
+  
+  eigen_vec_.MultBy(1/norm(eigen_vec_));
+  calculate_gradients(df);
+}
+*/
 
 void Eigenvalues::calculate_eigenvector(Log& theLog)
 {
@@ -192,23 +374,18 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
         do{eigen_vec_.set(pos,0.0);} while(matrix_.get_next_boundary_point(pos));
       }
       
-      eigen_vec_.normalise();
+      eigen_vec_.MultBy(1/norm(eigen_vec_));
   }
-
-  vector<double> x(eigen_vec_.size());
-  for(unsigned i=0; i<x.size(); i++) x[i] = eigen_vec_.get(i);
-  
   
   ////////////////////////////////////////
   // Minimisation of xAx/xx with FIRE2
   
   // Initialize
-  vector<double> v (x.size(), 0.0);
-  vector<double> df(x.size(), 0.0);
-  vector<double> x_old(x.size());
-  for(unsigned i=0; i<x.size(); i++) x_old[i] = x[i];
+  DFT_Vec v; v.zeros(eigen_vec_.size());
+  DFT_Vec df; df.zeros(eigen_vec_.size());
+  DFT_Vec eigen_vec_old(eigen_vec_);
   
-  double f = eigenvalues_objective_func(x, df, this);
+  double f = eigenvalues_objective_func(eigen_vec_, df, this);
   double f_old = f;
   double t = 0.0;
   
@@ -232,21 +409,10 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   // Iterate
   for (int i=0; i<Nmax; i++)
   {
-    Summation Sum_P;
-    #pragma omp parallel for reduction(+:Sum_P)
-    for (long j=0; j<v.size(); j++) Sum_P -= df[j]*v[j];
-    double P = Sum_P.sum();
+    double P = -v_dot_w(v, df);
     
-    Summation Sum_vnorm;
-    Summation Sum_fnorm;
-    #pragma omp parallel for reduction(+:Sum_vnorm) reduction(+:Sum_fnorm)
-    for (long j=0; j<v.size(); j++)
-    {
-      Sum_vnorm += v[j]*v[j];
-      Sum_fnorm += df[j]*df[j];
-    }
-    double vnorm = sqrt(Sum_vnorm.sum());
-    double fnorm = sqrt(Sum_fnorm.sum());
+    double vnorm = norm(v);
+    double fnorm = norm(df);
     
     double P_normalized = P/vnorm/fnorm;
     
@@ -291,48 +457,27 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
       
       if (verbose_) cout << "\tBacktracking..." << endl;
       
-      #pragma omp parallel for
-      for (long j=0; j<v.size(); j++)
-      {
-        //x[j] -= 0.5*dt*v[j];
-        x[j] = x_old[j];
-        v[j] = 0.0;
-      }
+      eigen_vec_.set(eigen_vec_old);
+      v.zeros();
       
-      f = eigenvalues_objective_func(x, df, this);
+      f = eigenvalues_objective_func(eigen_vec_, df, this);
     }
     
-    #pragma omp parallel for
-    for (long j=0; j<x.size(); j++) x_old[j] = x[j];
+    eigen_vec_old.set(eigen_vec_);
     
     // Semi-implicit Euler: Inertial velocity step
-    #pragma omp parallel for
-    for (long j=0; j<v.size(); j++)
-    {
-      v[j] -= dt*df[j];
-    }
+    v.IncrementBy_Scaled_Vector(df, -dt);
     
-    Sum_vnorm = Summation();
-    Sum_fnorm = Summation();
-    #pragma omp parallel for reduction(+:Sum_vnorm) reduction(+:Sum_fnorm)
-    for (long j=0; j<v.size(); j++)
-    {
-      Sum_vnorm += v[j]*v[j];
-      Sum_fnorm += df[j]*df[j];
-    }
-    vnorm = sqrt(Sum_vnorm.sum());
-    fnorm = sqrt(Sum_fnorm.sum());
+    vnorm = norm(v);
+    fnorm = norm(df);
     
     // Semi-implicit Euler: velocity mixing and x-step
-    #pragma omp parallel for
-    for (long j=0; j<v.size(); j++)
-    {
-      v[j] = (1-alpha)*v[j] - alpha*df[j]*vnorm/fnorm;
-      x[j] += dt*v[j];
-    }
+    v.MultBy(1-alpha);
+    v.IncrementBy_Scaled_Vector(df, -alpha*vnorm/fnorm);
+    eigen_vec_.IncrementBy_Scaled_Vector(v, dt);
     
     f_old = f;
-    f = eigenvalues_objective_func(x, df, this);
+    f = eigenvalues_objective_func(eigen_vec_, df, this);
     t += dt;
     
     // Check if converged
@@ -346,11 +491,8 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
   ////////////////////////////////////////
   // Finalise
   
-  set_eigen_vec(x);
-  eigen_vec_.normalise();
-  
-  DFT_Vec dummy; dummy.zeros(x.size()); 
-  calculate_gradients(dummy);
+  eigen_vec_.MultBy(1/norm(eigen_vec_));
+  calculate_gradients(df);
 }
 
 

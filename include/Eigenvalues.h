@@ -41,14 +41,20 @@ class Eigenvalues
   const  DFT_Vec& get_eigen_vec() const {return eigen_vec_;}
   double get_eigen_val()          const { return eigen_val_;}
   Species *get_species()    const { return species_;}
+  const Dynamical_Matrix& get_matrix() const {return matrix_;}
   
-  void reset_num_eval() {num_eval_ = 0;}
-  void calculate_eigenvector(Log &theLog);
+  DFT_Vec get_density_space_eigenvector() const;
   
-  void   calculate_eigen_value();
+  void   reset_num_eval() {num_eval_ = 0;}
+  void   calculate_eigenvector(Log &theLog);
   void   set_eigen_vec(const vector<double> &v_in);
   void   set_eigen_vec(const DFT_Vec &v_in) {eigen_vec_ = v_in;}
-  void   save_snapshot();
+  void   save_snapshot() const;
+  
+  void g_dot_v(const DFT_Vec &v, DFT_Vec &gv) const;
+  double v_dot_w(const DFT_Vec &v, const DFT_Vec &w) const;
+  double norm(const DFT_Vec &v) const;
+  
   double calculate_gradients(DFT_Vec& df);
   double calculate_residual_error(bool recompute_matrix_dot_v=true) const;
   
