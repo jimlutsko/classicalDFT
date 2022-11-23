@@ -185,6 +185,9 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
     matrix_dot_v(eigen_vec_, residual, NULL);
   }
   
+  DFT_Vec gv; g_dot_v(residual, gv);
+  residual.set(gv);
+  
   residual.IncrementBy_Scaled_Vector(vec, -eigen_val_);
   return norm(residual)/norm(vec)/fabs(eigen_val_);
 }
@@ -197,6 +200,13 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
   
   if (is_using_density_alias() && matrix_.get_use_squared_matrix())
     throw runtime_error("(In Eigenvalues.cpp) Incompatible use of alias with squared matrix (not implemented)");
+  
+  if (verbose_)
+  {
+    cout << endl; cout << setprecision(12);
+    cout << "\tIn Eigenvalues::matrix_dot_v:" << endl;
+    cout << "\t  L2-Norm of v:   " << norm(v) << endl;
+  }
   
   if (is_using_density_alias())
   {
@@ -217,6 +227,8 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
     DFT_Vec gv(v); g_dot_v(v, gv);
     matrix_.matrix_dot_v1(gv, result, param, true);
     result.MultBy(-1); //TODO minus sign to be consistent with original metric g in DDFT object, which is not positive definite
+    
+    if (verbose_) cout << "\t  L2-Norm of g*v: " << norm(gv) << endl;
   }
   else
   {
@@ -225,9 +237,6 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
   
   if (verbose_)
   {
-    cout << endl; cout << setprecision(12);
-    cout << "\tIn Eigenvalues::matrix_dot_v:" << endl;
-    cout << "\t  L2-Norm of v:   " << norm(v) << endl;
     cout << "\t  L2-Norm of A*v: " << norm(result) << endl;
     cout << "\t  L2-Norm ratio |A*v|/|v|:     " << norm(result) / norm(v) << endl;
     cout << "\t  Dot product vT*A*v/|A*v||v|: " << v_dot_w(v,result) / norm(result) / norm(v) << endl;
