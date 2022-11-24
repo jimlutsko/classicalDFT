@@ -173,9 +173,6 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
   if (eigen_vec_.size() != matrix_.get_Ntot())
     throw runtime_error("Eigenvalues: Eigenvector not initialized yet!");
   
-  DFT_Vec vec(eigen_vec_); // contravariant vector (upper index)
-  if (matrix_.is_dynamic()) g_dot_v(eigen_vec_, vec);
-  
   DFT_Vec residual(matrix_dot_eigen_vec_);
   
   if (recompute_matrix_dot_v ||
@@ -185,11 +182,16 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
     matrix_dot_v(eigen_vec_, residual, NULL);
   }
   
-  DFT_Vec gv; g_dot_v(residual, gv);
-  residual.set(gv);
+  residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigen_val_);
+  double r = norm(residual)/norm(eigen_vec_)/fabs(eigen_val_);
   
-  residual.IncrementBy_Scaled_Vector(vec, -eigen_val_);
-  return norm(residual)/norm(vec)/fabs(eigen_val_);
+  double alpha = v_dot_w(eigen_vec_,matrix_dot_eigen_vec_)
+                 /norm(eigen_vec_)/norm(matrix_dot_eigen_vec_);
+  
+  double err = (r*r+1) - pow(alpha,-2);
+  if (fabs(err)>1e-8) throw runtime_error("Eigenvalues: Inconsistent residual calculation (r^2+1="+to_string(r*r+1)+" while 1/alpha^2="+to_string(pow(alpha,-2)));
+  
+  return r;
 }
 
 
