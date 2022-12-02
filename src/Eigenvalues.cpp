@@ -66,6 +66,15 @@ DFT_Vec Eigenvalues::get_density_space_eigenvector() const
 }
 
 
+void Eigenvalues::set_from_density_space_eigenvector(const DFT_Vec &v)
+{
+  if(eigen_vec_.size() != v.size()) eigen_vec_.zeros(v.size());
+  
+  matrix_.matrix_dot_v1(v, eigen_vec_, NULL, true); // (d2F)v
+  eigen_vec_.MultBy(1/norm(eigen_vec_));
+}
+
+
 void Eigenvalues::set_eigen_vec(const vector<double> &v_in)
 {
   if(eigen_vec_.size() != v_in.size()) eigen_vec_.zeros(v_in.size());
@@ -189,7 +198,8 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
                  /norm(eigen_vec_)/norm(matrix_dot_eigen_vec_);
   
   double err = (r*r+1) - pow(alpha,-2);
-  if (fabs(err)>1e-8) throw runtime_error("Eigenvalues: Inconsistent residual calculation (r^2+1="+to_string(r*r+1)+" while 1/alpha^2="+to_string(pow(alpha,-2)));
+  //if (fabs(err)>1e-8) throw runtime_error("Eigenvalues: Inconsistent residual calculation (r^2+1="+to_string(r*r+1)+" while 1/alpha^2="+to_string(pow(alpha,-2)));
+  if (fabs(err)>1e-8) cerr << "Eigenvalues: Inconsistent residual calculation (r^2+1=" << r*r+1 << " while 1/alpha^2=" << pow(alpha,-2) << endl;;
   
   return r;
 }

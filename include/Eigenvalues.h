@@ -44,6 +44,7 @@ class Eigenvalues
   const Dynamical_Matrix& get_matrix() const {return matrix_;}
   
   DFT_Vec get_density_space_eigenvector() const;
+  void set_from_density_space_eigenvector(const DFT_Vec &v_in); 
   
   void   reset_num_eval() {num_eval_ = 0;}
   void   calculate_eigenvector(Log &theLog);
