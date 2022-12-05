@@ -43,7 +43,9 @@ public:
     options_.addOption("Ly", L_+1);
     options_.addOption("Lz", L_+2);
 
-    options_.addOption("Dx", &dx1_);
+    options_.addOption("Dx", &dx_);
+    options_.addOption("Dy", &dy_);
+    options_.addOption("Dz", &dz_);
 
     options_.addOption("FixedBackground", &fixed_background_);
     options_.addOption("Open_System", &fixed_background_);
@@ -93,12 +95,15 @@ public:
 
     if(verbose_ && theLog_ != NULL) options_.write(*theLog_);
     if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+    
+    if (dy_<0) dy_ = dx_;
+    if (dz_<0) dz_ = dx_;
+    
+    if(L_[0] < 0) L_[0] = dx_;
+    if(L_[1] < 0) L_[1] = dy_;
+    if(L_[2] < 0) L_[2] = dz_;
 
-    if(L_[0] < 0) L_[0] = dx1_;
-    if(L_[1] < 0) L_[1] = dx1_;
-    if(L_[2] < 0) L_[2] = dx1_;        
-
-#ifdef USE_OMP    
+#ifdef USE_OMP
     omp_set_dynamic(0);
     omp_set_num_threads(nCores_);
     int fftw_init_threads();
@@ -122,8 +127,13 @@ public:
 
     if(include_density_)
       {
-	theDensity_ = new DensityType(dx1_, L_, show_graphics_);        
-	species1_   = new FMT_Species(*theDensity_,hsd1_,0.0,verbose_, 0);      
+  #ifdef DENSITY_CONSTRUCTOR_DX_DY_DZ
+	  theDensity_ = new DensityType(dx_, dy_, dz_, L_, show_graphics_);
+	#else
+	  theDensity_ = new DensityType(dx_, L_, show_graphics_);
+	#endif
+	
+	species1_   = new FMT_Species(*theDensity_,hsd1_,0.0,verbose_, 0);
 	dft_        = new DFT(species1_);
 
 	species1_->setFixedBackground(fixed_background_);
@@ -283,7 +293,9 @@ protected:
 public:
   int nCores_  = 6;     
   double L_[3] = {10,10,10};
-  double dx1_  = 0.1;
+  double dx_  = 0.1;
+  double dy_  = -1; // if unspecified, we will copy dx_
+  double dz_  = -1; // if unspecified, we will copy dx_
 
   double kT_   = 1;
   
