@@ -54,9 +54,11 @@ public:
       
     options_.addOption("MaxIterations", &maxIterations_);
     options_.addOption("Tolerence", &tol_);
-    //      options_.addOption("DensityInputFile", &SourceInput_);
+
     options_.addOption("DensityInputFile", &infile_);
+    options_.addOption("DensityInputStream", &instream_);
     options_.addOption("DensityOutputFile", &outfile_);
+    options_.addOption("DensityOutputStream", &outstream_);
       
     options_.addOption("ShowGraphics", &show_graphics_);
     options_.addOption("Include_HS", &include_hs_);
@@ -149,6 +151,12 @@ public:
 
 	if(infile_.empty() == false)
 	  theDensity_->readDensity(infile_.c_str());
+	if(instream_.empty() == false)
+	  {
+	    ifstream in(instream_.c_str());
+	    if(in.good()) in >> *theDensity_;      
+	    else throw std::runtime_error("Input file stream no good  ... aborting");	  	    
+	  }
       }
     /////////////////////////////////////////////////////
     // Report
@@ -305,7 +313,9 @@ public:
   double rcut1_  = 3;
 
   string infile_;
+  string instream_;
   string outfile_;
+  string outstream_;
   string SourceInput_;
 
   bool fixed_background_ = false;
