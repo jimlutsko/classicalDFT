@@ -269,6 +269,7 @@ public:
   double get_vap_spinodal_density() const { return xs1_;}
   string get_infile()           const { return infile_;}
   string get_outfile()          const { return outfile_;}
+  string get_outstream()          const { return outstream_;}
 
   bool   get_fixed_background() const { return fixed_background_;}
   
