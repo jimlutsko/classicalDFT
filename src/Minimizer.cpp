@@ -91,6 +91,7 @@ bool Minimizer::should_stop() const
     {
       stringstream s;	
       s << "Finished: convergence monitor = " << f_abs_max_ << " < " << forceLimit_ << " = forceLimit_ and so is  sufficiently small ... normal exit";
+      cout << s.str() << endl;
       reportMessage(s.str());
       stop = true;
     }

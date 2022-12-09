@@ -107,28 +107,12 @@ public:
   
 protected:
   
-  /**
-   *   @brief  This function just sums up phi(i) over the lattice to 
-   *           give the total free energy
-   *
-   *   @param  density is the Density object
-   *   @return The total free energy
-   */
+  // Sums up phi(i) over the lattice to give the total free energy
   double calculateFreeEnergy(vector<Species*> &allSpecies);
 
-  /**
-   *   @brief  name of model implemented by this class
-   *
-   *   @return the name as a string
-   */        
   virtual string Name() const = 0;
-
-
   friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive & ar, const unsigned int version)
-  {
-  }
-  
+  template<class Archive> void serialize(Archive & ar, const unsigned int version){}  
 };
 
 /**

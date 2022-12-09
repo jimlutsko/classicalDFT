@@ -108,12 +108,13 @@ class Density : public Lattice
   
   // Read/Write
   void write_VTK_File(string filename) const;
+
   void writeDensity(string filename) const; // write in binary format: obsolete
   void readDensity(const char *filename);  // read from binary file: obsolete
 
   friend ostream &operator<<(ostream &of, const Density &d) {of << static_cast<const Lattice &>(d) << d.Density_; return of;}  
   friend istream &operator>>(istream  &in, Density &d )     {in >> static_cast<Lattice &>(d) >> d.Density_; return in;}
-  //friend class boost::serialization::access;
+
   template<typename Archive> void serialize(Archive & ar, const unsigned int version)
   {
     ar & boost::serialization::base_object<Lattice>(*this);

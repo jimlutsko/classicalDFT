@@ -169,19 +169,9 @@ class Interaction_Gauss : public Interaction_Base
 class Interaction_Gauss_E : public Interaction_Gauss
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   *   @param Ngauss: number of gauss-lengendre points in each direction
-   */    
   Interaction_Gauss_E(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss, bool verbose = true) :
     Interaction_Gauss(s1,s2,v,kT,Ngauss, verbose){}
-
-  Interaction_Gauss_E():
-    Interaction_Gauss(){}  
+  Interaction_Gauss_E(): Interaction_Gauss(){}  
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -190,15 +180,6 @@ class Interaction_Gauss_E : public Interaction_Gauss
     boost::serialization::void_cast_register<Interaction_Gauss_E, Interaction_Gauss>(static_cast<Interaction_Gauss_E *>(NULL),static_cast<Interaction_Gauss *>(NULL));                
   }
  protected:
-  /**
-   *   @brief  Returns the kernel of the integral being evaluated
-   *  
-   *   @param Sx,Sy,Sz: the cell 
-   *   @param v: the potential
-   *   @param x,y,z: the position within the cell
-   *
-   *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
-   */        
   double getKernel(int Sx, int Sy, int Sz, double dx, double dy, double dz, double x, double y, double z);
 };
 
@@ -208,19 +189,10 @@ class Interaction_Gauss_E : public Interaction_Gauss
 class Interaction_Gauss_F : public Interaction_Gauss
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   *   @param Ngauss: number of gauss-lengendre points in each direction
-   */    
  Interaction_Gauss_F(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss, bool verbose = true) :
    Interaction_Gauss(s1,s2,v,kT,Ngauss, verbose){}
 
-  Interaction_Gauss_F():
-    Interaction_Gauss(){}
+  Interaction_Gauss_F(): Interaction_Gauss(){}
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -228,17 +200,7 @@ class Interaction_Gauss_F : public Interaction_Gauss
     ar & boost::serialization::base_object<Interaction_Gauss>(*this);
     boost::serialization::void_cast_register<Interaction_Gauss_F, Interaction_Gauss>(static_cast<Interaction_Gauss_F *>(NULL),static_cast<Interaction_Gauss *>(NULL));                    
   }
-
  protected:
-  /**
-   *   @brief  Returns the kernel of the integral being evaluated
-   *  
-   *   @param Sx,Sy,Sz: the cell 
-   *   @param v: the potential
-   *   @param x,y,z: the position within the cell
-   *
-   *   @returns the value of the kernel in cell (Sx,Sy,Sz) at position (x,y,z).
-   */      
   double getKernel(int Sx, int Sy, int Sz, double dx, double dy, double dz, double x, double y, double z);
 };
 
@@ -248,29 +210,12 @@ class Interaction_Gauss_F : public Interaction_Gauss
 class Interaction_Interpolation : public Interaction_Base
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */      
  Interaction_Interpolation(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true): 
    Interaction_Base(s1,s2,v,kT,verbose) {}
 
-  Interaction_Interpolation():
-  Interaction_Base() {}
+  Interaction_Interpolation(): Interaction_Base() {}
 
  protected:
-  /**
-   *   @brief  Calculates the weight w(Sx,Sy,Sz)
-   *  
-   *   @param Sx,Sy,Sz: the cell 
-   *   @param v: the potential
-   *   @param dx: lattice spacing
-   *
-   *   @returns the value of the kernel in cell (Sx,Sy,Sz) without the global dV*dV
-   */        
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz);
 
   friend class boost::serialization::access;
@@ -294,18 +239,10 @@ class Interaction_Interpolation : public Interaction_Base
 class Interaction_Interpolation_Zero : public Interaction_Interpolation
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */    
  Interaction_Interpolation_Zero(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
    Interaction_Interpolation(s1,s2,v,kT,verbose) { vv_.push_back(1.0); pt_.push_back(0.0); initialize();}
 
- Interaction_Interpolation_Zero() :
-   Interaction_Interpolation() {};
+ Interaction_Interpolation_Zero() : Interaction_Interpolation() {};
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -321,13 +258,6 @@ class Interaction_Interpolation_Zero : public Interaction_Interpolation
 class Interaction_Interpolation_LE : public Interaction_Interpolation
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */      
  Interaction_Interpolation_LE(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
    Interaction_Interpolation(s1,s2,v,kT, verbose)
     { vv_.push_back( 1.0); vv_.push_back(26.0); vv_.push_back(66.0); vv_.push_back(26.0); vv_.push_back(1.0);
@@ -336,8 +266,7 @@ class Interaction_Interpolation_LE : public Interaction_Interpolation
       initialize();
     }
 
-  Interaction_Interpolation_LE() : 
-    Interaction_Interpolation(){}
+  Interaction_Interpolation_LE() : Interaction_Interpolation(){}
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -353,13 +282,6 @@ class Interaction_Interpolation_LE : public Interaction_Interpolation
 class Interaction_Interpolation_QE : public Interaction_Interpolation
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */      
  Interaction_Interpolation_QE(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
    Interaction_Interpolation(s1,s2,v,kT, verbose)
     { vv_.push_back(-1.0); vv_.push_back(8.0);  vv_.push_back(18.0); vv_.push_back(112.0); vv_.push_back(86.0); vv_.push_back(112.0); vv_.push_back(18.0); vv_.push_back(8.0); vv_.push_back(-1.0);
@@ -368,8 +290,7 @@ class Interaction_Interpolation_QE : public Interaction_Interpolation
       initialize();
     }
 
-  Interaction_Interpolation_QE() : 
-    Interaction_Interpolation(){}  
+  Interaction_Interpolation_QE() : Interaction_Interpolation(){}  
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -385,13 +306,6 @@ class Interaction_Interpolation_QE : public Interaction_Interpolation
 class Interaction_Interpolation_LF : public Interaction_Interpolation
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */      
  Interaction_Interpolation_LF(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
    Interaction_Interpolation(s1,s2,v,kT, verbose)
     { vv_.push_back(1.0);  vv_.push_back(4.0); vv_.push_back(1.0);
@@ -400,8 +314,7 @@ class Interaction_Interpolation_LF : public Interaction_Interpolation
       initialize();
     }
 
-  Interaction_Interpolation_LF() : 
-    Interaction_Interpolation(){}
+  Interaction_Interpolation_LF() : Interaction_Interpolation(){}
   
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -417,21 +330,13 @@ class Interaction_Interpolation_LF : public Interaction_Interpolation
 class Interaction_Interpolation_QF : public Interaction_Interpolation
 {
  public:
-  /**
-   *   @brief  Constructor 
-   *  
-   *   @param s1: the first species.
-   *   @param s2: the second species.
-   *   @param kT: the temperature
-   */      
  Interaction_Interpolation_QF(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true) :
    Interaction_Interpolation(s1,s2,v,kT,verbose)
     { vv_.push_back(1.0/3);  vv_.push_back(1.0/3); vv_.push_back(1.0/3);
       pt_.push_back(-0.5); pt_.push_back(0.0); pt_.push_back(0.5);
       initialize();
     }  
-  Interaction_Interpolation_QF() : 
-    Interaction_Interpolation(){}
+  Interaction_Interpolation_QF() : Interaction_Interpolation(){}
   
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)

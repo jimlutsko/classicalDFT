@@ -109,7 +109,7 @@ public:
 #ifdef USE_OMP    
     omp_set_dynamic(0);
     omp_set_num_threads(nCores_);
-    int fftw_init_threads();
+    fftw_init_threads();
     fftw_plan_with_nthreads(omp_get_max_threads());
     if(verbose_ && theLog_ != NULL) *theLog_ << "OMP initialized with " << omp_get_num_threads() << endl;
 #endif

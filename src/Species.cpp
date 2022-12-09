@@ -28,7 +28,7 @@ void Species::set_density_from_alias(const DFT_Vec &x)
   
 #pragma omp parallel for  private(pos)  schedule(static)
   for(pos=0;pos<x.size();pos++)
-    density_.set(pos,dmin+x.get(pos)*x.get(pos));
+    density_->set(pos,dmin+x.get(pos)*x.get(pos));
 }
   
 void Species::get_density_alias(DFT_Vec &x) const
@@ -38,7 +38,7 @@ void Species::get_density_alias(DFT_Vec &x) const
   
 #pragma omp parallel for  private(pos)  schedule(static)				    
   for(pos=0;pos<x.size();pos++)
-    x.set(pos, sqrt(std::max(0.0, density_.get(pos)-1e-20)));    
+    x.set(pos, sqrt(std::max(0.0, density_->get(pos)-1e-20)));    
 }
 
 void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
@@ -50,11 +50,11 @@ void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
 /*
 double Species::externalField(bool bCalcForces)
 {
-  double dV = density_.dV();
-  double Fx = density_.get_field_dot_density()*dV - density_.getNumberAtoms()*mu_;
+  double dV = density_->dV();
+  double Fx = density_->get_field_dot_density()*dV - density_->getNumberAtoms()*mu_;
   if(bCalcForces)
     {
-      dF_.IncrementBy_Scaled_Vector(density_.get_external_field(),dV);
+      dF_.IncrementBy_Scaled_Vector(density_->get_external_field(),dV);
       dF_.add(-mu_*dV);
     }
   return Fx;
@@ -63,19 +63,19 @@ double Species::externalField(bool bCalcForces)
 
 double Species::evaluate_contribution_chemical_potential()
 {
-  double dV = density_.dV();
+  double dV = density_->dV();
   dF_.add(-mu_*dV);
-  return  - density_.get_mass()*mu_;
+  return  - density_->get_mass()*mu_;
 }
 
 double Species::evaluate_external_field(const External_Field &f)
 {
-  double dV = density_.dV();
+  double dV = density_->dV();
 
   dF_.IncrementBy_Scaled_Vector(f.get_field(),dV);
   //  dF_.add(-mu_*dV);
 
-  return f.get_field().dotWith(density_.get_density_real())*dV; // - density_.getNumberAtoms()*mu_;
+  return f.get_field().dotWith(density_->get_density_real())*dV; // - density_->getNumberAtoms()*mu_;
 }
 
 
@@ -84,8 +84,8 @@ void Species::beginForceCalculation()
 {
   if(fixedMass_ > 0.0)
     {
-      //      density_.scale_to(fixedMass_/density_.getNumberAtoms());
-      density_ *= (fixedMass_/density_.getNumberAtoms());
+      //      density_->scale_to(fixedMass_/density_->getNumberAtoms());
+      *density_ *= (fixedMass_/density_->getNumberAtoms());
       mu_ = 0.0;
     }
 }
@@ -97,8 +97,8 @@ double Species::endForceCalculation()
         
   if(fixedBackground_)
     {
-      for(long pos = 0; pos < density_.get_Nboundary(); pos++)
-	dF_.set(density_.boundary_pos_2_pos(pos),0.0);	
+      for(long pos = 0; pos < density_->get_Nboundary(); pos++)
+	dF_.set(density_->boundary_pos_2_pos(pos),0.0);	
     }
 
   if(homogeneousBoundary_)
@@ -106,13 +106,13 @@ double Species::endForceCalculation()
 	
       double average_border_force = 0;
 
-      for(long pos = 0; pos < density_.get_Nboundary(); pos++)
-	average_border_force += dF_.get(density_.boundary_pos_2_pos(pos));
+      for(long pos = 0; pos < density_->get_Nboundary(); pos++)
+	average_border_force += dF_.get(density_->boundary_pos_2_pos(pos));
 
-      average_border_force /= density_.get_Nboundary();
+      average_border_force /= density_->get_Nboundary();
 
-      for(long pos = 0; pos < density_.get_Nboundary(); pos++)
-	dF_.set(density_.boundary_pos_2_pos(pos),average_border_force);
+      for(long pos = 0; pos < density_->get_Nboundary(); pos++)
+	dF_.set(density_->boundary_pos_2_pos(pos),average_border_force);
     }    
 
     
@@ -122,11 +122,11 @@ double Species::endForceCalculation()
 
       double Mtarget = fixedMass_;
 
-      for(long p=0;p<density_.Ntot();p++)
-	mu_ += dF_.get(p)*density_.get(p);
+      for(long p=0;p<density_->Ntot();p++)
+	mu_ += dF_.get(p)*density_->get(p);
       mu_ /= Mtarget; //fixedMass_;
-      for(long p=0;p<density_.Ntot();p++)
-	dF_.set(p, dF_.get(p)-mu_*density_.dV());
+      for(long p=0;p<density_->Ntot();p++)
+	dF_.set(p, dF_.get(p)-mu_*density_->dV());
     }
   return 0;
 }
@@ -186,12 +186,19 @@ void boost::serialization::save_construct_data(Archive & ar, const FMT_Species *
 {
   //  ar << static_cast<const Species*>(t);
   ar << & t->density_;
+
+  ar << t->dF_;
+
   ar << t->mu_;
   ar << t->seq_num_;
-  ar << t->dF_;
-  ar << t->fixedMass_;
   ar << t->SequenceNumber_;
   ar << t->index_;  
+
+  ar << t->fixedMass_;  
+  ar << t->fixedBackground_;
+  ar << t->homogeneousBoundary_;
+  ar << t->verbose_;
+  
   ar << t->hsd_;
   ar << t->fmt_weighted_densities;
 }
@@ -200,20 +207,25 @@ template<class Archive>
 void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version)
 {
     // retrieve data from archive required to construct new instance
-  Density *d;
-  ar >> d;
-
-    // invoke inplace constructor to initialize instance of my_class
+  Density *density = NULL;
   double mu = 0;
-  int seq_num = 0;
-  ::new(t)FMT_Species(*d,mu,seq_num);
+  int seq_num = 0;  
+  ar >> density;
+  // invoke inplace constructor to initialize instance of my_class
+  ::new(t)FMT_Species(*density,mu,seq_num);
 
+  ar >> t->dF_;
+  
   ar >> t->mu_;
   ar >> t->seq_num_;  
-  ar >> t->dF_;
-  ar >> t->fixedMass_;
   ar >> t->SequenceNumber_;
-  ar >> t->index_;  
+  ar >> t->index_;
+
+  ar >> t->fixedMass_;  
+  ar >> t->fixedBackground_;
+  ar >> t->homogeneousBoundary_;
+  ar >> t->verbose_;
+  
   ar >> t->hsd_;
   ar >> t->fmt_weighted_densities;  
 }
