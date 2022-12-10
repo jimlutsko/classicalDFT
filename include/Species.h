@@ -88,12 +88,22 @@ class Species
   void   beginForceCalculation();
   double endForceCalculation();
 
-  friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive &ar, const unsigned int file_version){}
+  friend class boost::serialization::access;  
+  template<typename Archive> void serialize(Archive & ar, const unsigned int version)
+  {
+    ar & density_;
+    ar & mu_;
+    ar & seq_num_;
+    ar & dF_;
+    
+    ar & fixedMass_;  
+    ar & index_;
   
-  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const Species * t, const unsigned int file_version);
-  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, Species * t, const unsigned int file_version);
-
+    ar & fixedBackground_;
+    ar & homogeneousBoundary_; 
+    ar & verbose_;
+  }    
+  
   
 protected:
  
@@ -128,6 +138,7 @@ class FMT_Species : public Species
 {
 public:
   FMT_Species(Density& density, double hsd, double mu = 0, bool verbose = true, int seq = -1);
+  FMT_Species(){}
   FMT_Species(const FMT_Species &) = delete;
   ~FMT_Species(){}
 
@@ -344,15 +355,15 @@ public:
   const DFT_Vec &getV_Real(int J) const { return fmt_weighted_densities[VI(J)].Real();}
   const DFT_Vec_Complex& getVweight_Four(int J) const { return fmt_weighted_densities[VI(J)].wk();}  
 
-
   // streaming stuff
   friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive &ar, const unsigned int file_version)
+  template<typename Archive> void serialize(Archive & ar, const unsigned int version)
   {
-    boost::serialization::void_cast_register<FMT_Species, Species>(static_cast<FMT_Species *>(NULL),static_cast<Species *>(NULL));
-  }    
-  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const FMT_Species * t, const unsigned int file_version);
-  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version);
+    ar & boost::serialization::base_object<Species>(*this);
+    ar & hsd_;
+    ar & fmt_weighted_densities;
+  }
+
   
 protected:
   // Indices of eta, scaler, vector and tensor weighted densities

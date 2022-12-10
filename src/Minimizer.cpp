@@ -62,7 +62,7 @@ void Minimizer::resume(long maxSteps)
 
     if(should_stop())
       break;
-    
+
     if(maxSteps > 0 && step_counter_ == maxSteps)
       {
 	stringstream s;

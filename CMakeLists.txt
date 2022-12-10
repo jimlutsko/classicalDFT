@@ -36,6 +36,7 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/Species.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT_Species.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT.cpp
+  ${PROJECT_SOURCE_DIR}/src/Potential.cpp
   ${PROJECT_SOURCE_DIR}/src/Minimizer.cpp
   ${PROJECT_SOURCE_DIR}/src/DDFT.cpp
   ${PROJECT_SOURCE_DIR}/src/Arnoldi.cpp

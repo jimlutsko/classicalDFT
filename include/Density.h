@@ -143,18 +143,11 @@ public:
   int get_species() const {return species_;}
   const DFT_Vec& get_field() const { return field_;}
 
-  //  friend class boost::serialization::access;
-    template<typename Archive> void serialize(Archive & ar, const unsigned int version){}
-  //  template<class Archive> void serialize(Archive &ar, const unsigned int version)
-  //  {
-  //    ar & field_;
-  //    ar & species_;
-  //  }  
-
-  template<class Archive> friend void boost::serialization::save_construct_data(Archive & ar, const External_Field * t, const unsigned int file_version);
-  template<class Archive> friend void boost::serialization::load_construct_data(Archive & ar, External_Field * t, const unsigned int file_version);
-
-  
+  template<class Archive> void serialize(Archive &ar, const unsigned int version)
+  {
+    ar & field_;
+    ar & species_;
+  }  
 protected:
   DFT_Vec field_;
   int     species_ = 1;

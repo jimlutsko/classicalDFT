@@ -26,6 +26,18 @@ using namespace std;
 #include "myColor.h"
 
 
+BOOST_CLASS_EXPORT(Interaction_Base)
+BOOST_CLASS_EXPORT(Interaction)
+BOOST_CLASS_EXPORT(Interaction_Gauss)
+BOOST_CLASS_EXPORT(Interaction_Gauss_E)
+BOOST_CLASS_EXPORT(Interaction_Gauss_F)
+BOOST_CLASS_EXPORT(Interaction_Interpolation)
+BOOST_CLASS_EXPORT(Interaction_Interpolation_Zero)
+BOOST_CLASS_EXPORT(Interaction_Interpolation_LE)
+BOOST_CLASS_EXPORT(Interaction_Interpolation_QE)
+BOOST_CLASS_EXPORT(Interaction_Interpolation_LF)
+BOOST_CLASS_EXPORT(Interaction_Interpolation_QF)
+
 Interaction_Base::Interaction_Base(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose)
   : s1_(s1), s2_(s2), v_(v), kT_(kT), initialized_(false), verbose_(verbose) {}
 

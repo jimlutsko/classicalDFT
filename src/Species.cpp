@@ -17,6 +17,13 @@ using namespace std;
 #include "Species.h"
 #include "myColor.h"
 
+BOOST_CLASS_EXPORT(Species)
+BOOST_CLASS_EXPORT(FMT_Species)
+
+
+
+
+
 int Species::SequenceNumber_ = 0;
 
 
@@ -131,102 +138,4 @@ double Species::endForceCalculation()
   return 0;
 }
 
-
-
-template<class Archive>
-void boost::serialization::save_construct_data(Archive & ar, const Species * t, const unsigned int file_version)
-{
-  ar << & t->density_;
-  ar << t->dF_;
-  
-  ar << t->mu_;
-
-  ar << t->seq_num_;
-  ar << t->index_;
-  
-  ar << t->fixedMass_;
-  ar << t->fixedBackground_;
-  ar << t->homogeneousBoundary_;
-  ar << t->verbose_;
-
-  ar << t->SequenceNumber_;
-
-}
-
-template<class Archive>
-void boost::serialization::load_construct_data(Archive & ar, Species * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *density;
-  ar >> density;
-
-  // invoke inplace constructor to initialize instance of my_class
-  double mu = 0;
-  double seq = 0;
-  ::new(t)Species(*density,mu,seq);
-
-  ar >> t->dF_;
-  
-  ar >> t->mu_;
-
-  ar >> t->seq_num_;
-  ar >> t->index_;
-  
-  ar >> t->fixedMass_;
-  ar >> t->fixedBackground_;
-  ar >> t->homogeneousBoundary_;
-  ar >> t->verbose_;
-
-  ar >> t->SequenceNumber_;
-}
-
-
-template<class Archive>
-void boost::serialization::save_construct_data(Archive & ar, const FMT_Species * t, const unsigned int file_version)
-{
-  //  ar << static_cast<const Species*>(t);
-  ar << & t->density_;
-
-  ar << t->dF_;
-
-  ar << t->mu_;
-  ar << t->seq_num_;
-  ar << t->SequenceNumber_;
-  ar << t->index_;  
-
-  ar << t->fixedMass_;  
-  ar << t->fixedBackground_;
-  ar << t->homogeneousBoundary_;
-  ar << t->verbose_;
-  
-  ar << t->hsd_;
-  ar << t->fmt_weighted_densities;
-}
-
-template<class Archive>
-void boost::serialization::load_construct_data(Archive & ar, FMT_Species * t, const unsigned int file_version)
-{
-    // retrieve data from archive required to construct new instance
-  Density *density = NULL;
-  double mu = 0;
-  int seq_num = 0;  
-  ar >> density;
-  // invoke inplace constructor to initialize instance of my_class
-  ::new(t)FMT_Species(*density,mu,seq_num);
-
-  ar >> t->dF_;
-  
-  ar >> t->mu_;
-  ar >> t->seq_num_;  
-  ar >> t->SequenceNumber_;
-  ar >> t->index_;
-
-  ar >> t->fixedMass_;  
-  ar >> t->fixedBackground_;
-  ar >> t->homogeneousBoundary_;
-  ar >> t->verbose_;
-  
-  ar >> t->hsd_;
-  ar >> t->fmt_weighted_densities;  
-}
 

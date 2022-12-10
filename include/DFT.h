@@ -124,7 +124,7 @@ class DFT : public Dynamical_Matrix
   virtual bool     is_dynamic() const { return false;}
   
   void set_full_hessian(bool full) { full_hessian_ = full;}
-  
+
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
