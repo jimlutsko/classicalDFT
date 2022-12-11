@@ -73,7 +73,7 @@ class DFT : public Dynamical_Matrix
   // A few actions  
   void doDisplay(string &title, string &file, void *param = NULL) { for(auto &x: allSpecies_) x->doDisplay(title,file, param);}
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
-  
+  void perturb_density(DFT_Vec& perturbation, int species = 0) { allSpecies_[species]->perturb_density(perturbation);} 
   double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
   double evaluate(bool onlyFex = false) { return calculateFreeEnergyAndDerivatives(onlyFex);}  
 

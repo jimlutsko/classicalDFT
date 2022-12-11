@@ -46,6 +46,7 @@ class Species
   double getChemPotential() const {return mu_;}
   void   setChemPotential(double m) {mu_ = m; fixedMass_ = -1;} // turn off fixed mass 
 
+  void perturb_density(DFT_Vec& perturbation) { *density_ += perturbation;} 
   
   const Lattice& getLattice() const { return *density_;}
   const Density& getDensity() const { return *density_;}

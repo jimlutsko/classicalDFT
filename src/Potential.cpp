@@ -25,6 +25,8 @@ using namespace std;
 #include "Potential1.h"
 #include "myColor.h"
 
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(Potential1)
+
 BOOST_CLASS_EXPORT(Potential1)
 BOOST_CLASS_EXPORT(LJ)
 BOOST_CLASS_EXPORT(tWF)

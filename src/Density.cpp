@@ -9,12 +9,15 @@
 
 #include <gsl/gsl_integration.h>
 
+#include <boost/serialization/export.hpp>
+
 using namespace std;
 
 #include "Density.h"
 #include "External_Field.h"
 #include "visit_writer.h"
 
+BOOST_CLASS_EXPORT(Density)
 
 Density::Density(double dx, double L[])
   : Lattice(dx, L), Density_(){ Density_.initialize(Nx_,Ny_,Nz_); }  // Allows child classes to do their own initialization
