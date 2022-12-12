@@ -55,6 +55,7 @@ class Interaction_Base
   double getVDWParameter() { if(!initialized_) initialize(); return a_vdw_;}
 
   string get_name() const { return (v_ == NULL ? string("none") : v_->getIdentifier());}
+  double get_temperature() const { return kT_;}
   
  protected:  
   virtual void generateWeights();    
