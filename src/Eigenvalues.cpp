@@ -119,7 +119,7 @@ double Eigenvalues::norm(const DFT_Vec &v) const
 
 void Eigenvalues::save_snapshot() const
 {
-  if(eigen_vec_.size()>1)
+  if (eigen_vec_.size()>1)
   {
     ofstream ofile("snapshot_eigenvector.dat");
     ofile << eigen_vec_;
@@ -199,7 +199,7 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
   
   double err = (r*r+1) - pow(alpha,-2);
   //if (fabs(err)>1e-8) throw runtime_error("Eigenvalues: Inconsistent residual calculation (r^2+1="+to_string(r*r+1)+" while 1/alpha^2="+to_string(pow(alpha,-2)));
-  if (fabs(err)>1e-8) cerr << "Eigenvalues: Inconsistent residual calculation (r^2+1=" << r*r+1 << " while 1/alpha^2=" << pow(alpha,-2) << endl;;
+  if (fabs(err)>1e-8) cerr << "Eigenvalues: Inconsistent residual calculation (r^2+1=" << r*r+1 << " while 1/alpha^2=" << pow(alpha,-2) << ")" << endl;;
   
   return r;
 }
@@ -453,7 +453,15 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     {
       Npos ++; Nneg = 0;
       
-      if (Npos>Ndelay && P_normalized>0.999)
+      /*
+      if (Npos>Ndelay) // Original FIRE2
+      {
+        dt = (dt*finc<dt_max)?dt*finc:dt_max;
+        alpha = (alpha*falf>alpha_min)?alpha*falf:alpha_min;
+      }
+      */
+      
+      if (Npos>Ndelay && P_normalized>0.999) // Modified FIRE2
       {
         dt = (dt*finc<dt_max)?dt*finc:dt_max;
         alpha = (alpha*falf>alpha_min)?alpha*falf:alpha_min;

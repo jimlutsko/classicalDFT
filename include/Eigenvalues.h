@@ -38,8 +38,9 @@ class Eigenvalues
   int    get_num_eval()     const {return num_eval_;}
   int    get_max_num_eval() const {return max_num_eval_;}
   int    get_return_code()  const {return return_code_;}
-  const  DFT_Vec& get_eigen_vec() const {return eigen_vec_;}
-  double get_eigen_val()          const { return eigen_val_;}
+  const  DFT_Vec& get_vshift()    const {return eigen_vec_;}
+  const  DFT_Vec& get_eigen_vec() const {return vshift_;}
+  double get_eigen_val()          const {return eigen_val_;}
   Species *get_species()    const { return species_;}
   const Dynamical_Matrix& get_matrix() const {return matrix_;}
   
