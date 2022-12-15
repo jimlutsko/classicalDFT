@@ -99,8 +99,8 @@ void Species::beginForceCalculation()
 
 double Species::endForceCalculation()
 {
-  if(fixedBackground_ && fixedMass_ > 0.0)
-    throw std::runtime_error("Cannot have both fixed background and fixed mass .... aborting");
+  //  if(fixedBackground_ && fixedMass_ > 0.0)
+  //    throw std::runtime_error("Cannot have both fixed background and fixed mass .... aborting");
         
   if(fixedBackground_)
     {
@@ -130,11 +130,22 @@ double Species::endForceCalculation()
       double Mtarget = fixedMass_;
 
       for(long p=0;p<density_->Ntot();p++)
-	mu_ += dF_.get(p)*density_->get(p);
+	//	if(!fixedBackground_ || !(density_->is_boundary_point(p)))
+	  mu_ += dF_.get(p)*density_->get(p);
       mu_ /= Mtarget; //fixedMass_;
       for(long p=0;p<density_->Ntot();p++)
-	dF_.set(p, dF_.get(p)-mu_*density_->dV());
+	//	if(!fixedBackground_ || !(density_->is_boundary_point(p)))
+	  dF_.set(p, dF_.get(p)-mu_*density_->dV());
     }
+
+  // 
+  //  if(fixedBackground_ && fixedMass_ > 0.0) // need to do this again for case of both constraints ...
+  //    {
+  //      for(long pos = 0; pos < density_->get_Nboundary(); pos++)
+  //	dF_.set(density_->boundary_pos_2_pos(pos),0.0);	
+  //    }
+
+  
   return 0;
 }
 

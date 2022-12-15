@@ -33,6 +33,8 @@ class Species
   void set_open_system(bool fixed)          { fixedBackground_    = fixed; fixedMass_ = -1;} 
   void set_homogeneous_boundary(bool val)   { homogeneousBoundary_ = val;}  
 
+  //void set_fixed_background_and_mass(double m) { fixedMass_ = m; fixedBackground_ = true; mu_ = 0;}
+  
   void set_verbose(bool verbose) { verbose_ = verbose;}
   
   bool is_background_fixed() const { return fixedBackground_;}
