@@ -62,7 +62,7 @@ void Minimizer::resume(long maxSteps)
 
     if(should_stop())
       break;
-    
+
     if(maxSteps > 0 && step_counter_ == maxSteps)
       {
 	stringstream s;
@@ -91,6 +91,7 @@ bool Minimizer::should_stop() const
     {
       stringstream s;	
       s << "Finished: convergence monitor = " << f_abs_max_ << " < " << forceLimit_ << " = forceLimit_ and so is  sufficiently small ... normal exit";
+      cout << s.str() << endl;
       reportMessage(s.str());
       stop = true;
     }
@@ -154,7 +155,7 @@ fireMinimizer2::fireMinimizer2(DFT *dft) :  Minimizer(dft)
   dt_best_ = dt_;
   
   F_ = getDF_DX();
-  
+
   for(auto &v: v_)
     v.zeros();  
 }
@@ -200,8 +201,8 @@ double fireMinimizer2::step()
       dF_rem[Jspecies].set(dft_->getDF(Jspecies));
     }
 
-  
-  if(P > 0)
+  // 15/12/2022: Changed so as to ALWAYS accept first iteration since v_ should be zero ...
+  if(P > 0 || it_ == 1) 
     {
       N_P_positive_++;
       N_P_negative_ = 0;
@@ -226,7 +227,7 @@ double fireMinimizer2::step()
 	  dt_ *= f_dec_;
 	alpha_ = alpha_start_;
       }
-    reportMessage("Uphill motion stopped");
+    reportMessage("\t\t!!! Uphill motion stopped !!!");
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
 	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
@@ -258,7 +259,7 @@ double fireMinimizer2::step()
   catch(...) {
     reportMessage("Unknown exception ...");
   }
-
+  
   if(backtracks_ >= 10) // new control of dt_max_
     {
       dt_max_ = min(dt_best_, 0.9*dt_max_);

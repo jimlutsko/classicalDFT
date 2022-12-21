@@ -13,6 +13,10 @@
 #include "myColor.h"
 #include "Minimizer.h"
 
+
+static string LJ_name = "LJ";
+static string WHDF_name = "WHDF";
+
 template <class DensityType>
 class DFT_Factory
 {
@@ -50,13 +54,17 @@ public:
       
     options_.addOption("MaxIterations", &maxIterations_);
     options_.addOption("Tolerence", &tol_);
-    //      options_.addOption("DensityInputFile", &SourceInput_);
+
     options_.addOption("DensityInputFile", &infile_);
+    options_.addOption("DensityInputStream", &instream_);
     options_.addOption("DensityOutputFile", &outfile_);
+    options_.addOption("DensityOutputStream", &outstream_);
       
     options_.addOption("ShowGraphics", &show_graphics_);
     options_.addOption("Include_HS", &include_hs_);
-    options_.addOption("Include_Interaction", &include_interaction_);        
+    options_.addOption("Include_Interaction", &include_interaction_);
+
+    options_.addOption("Potential", &potential_name_);
   }
 
   ~DFT_Factory()
@@ -101,7 +109,7 @@ public:
 #ifdef USE_OMP    
     omp_set_dynamic(0);
     omp_set_num_threads(nCores_);
-    int fftw_init_threads();
+    fftw_init_threads();
     fftw_plan_with_nthreads(omp_get_max_threads());
     if(verbose_ && theLog_ != NULL) *theLog_ << "OMP initialized with " << omp_get_num_threads() << endl;
 #endif
@@ -116,7 +124,12 @@ public:
     interaction1_ = NULL;
     if(include_interaction_)
       {
-	potential1_ = new LJ(sigma1_, eps1_, rcut1_);
+	if(potential_name_ == LJ_name)
+	  potential1_ = new LJ(sigma1_, eps1_, rcut1_);
+	else if(potential_name_ == WHDF_name)
+	  potential1_ = new WHDF(sigma1_, eps1_, rcut1_);
+	else throw std::runtime_error("Requested potential " + potential_name_ + " unknown to DFT_Factory");
+	  
 	if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
       } else if(hsd1_ < 1) hsd1_ = 1;
 
@@ -138,6 +151,12 @@ public:
 
 	if(infile_.empty() == false)
 	  theDensity_->readDensity(infile_.c_str());
+	if(instream_.empty() == false)
+	  {
+	    ifstream in(instream_.c_str());
+	    if(in.good()) in >> *theDensity_;      
+	    else throw std::runtime_error("Input file stream no good  ... aborting");	  	    
+	  }
       }
     /////////////////////////////////////////////////////
     // Report
@@ -250,6 +269,7 @@ public:
   double get_vap_spinodal_density() const { return xs1_;}
   string get_infile()           const { return infile_;}
   string get_outfile()          const { return outfile_;}
+  string get_outstream()          const { return outstream_;}
 
   bool   get_fixed_background() const { return fixed_background_;}
   
@@ -294,7 +314,9 @@ public:
   double rcut1_  = 3;
 
   string infile_;
+  string instream_;
   string outfile_;
+  string outstream_;
   string SourceInput_;
 
   bool fixed_background_ = false;
@@ -310,6 +332,8 @@ public:
   bool include_log_          = true;
   
   bool verbose_  = true;
+
+  string potential_name_ = "LJ";
   
 };
 #endif // __LUTSKO_DFT_FACTORY__

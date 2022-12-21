@@ -33,8 +33,8 @@ void FMT_Species::set_density_from_alias(const DFT_Vec &x)
   long pos;
   const double dmin = SMALL_VALUE;
   const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
-  const double c = (1.0-etamin)/density_.dV();
-  //const double c = (0.99-etamin)/density_.dV();
+  const double c = (1.0-etamin)/density_->dV();
+  //const double c = (0.99-etamin)/density_->dV();
   
 #ifdef USE_OMP    
 #pragma omp parallel for  private(pos)  schedule(static)
@@ -44,7 +44,7 @@ void FMT_Species::set_density_from_alias(const DFT_Vec &x)
       double y = x.get(pos);
       //double z = dmin +c*(1-exp(-y*y));
       double z = dmin +c*y*y/(1+y*y);
-      density_.set(pos,z);
+      density_->set(pos,z);
     }
   
 }
@@ -55,19 +55,19 @@ void FMT_Species::get_density_alias(DFT_Vec &x) const
   //Species::get_density_alias(x);
    
   long pos;
-  double dv = density_.dV();
+  double dv = density_->dV();
   
   const double dmin = SMALL_VALUE;
   const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
-  const double c = (1.0-etamin)/density_.dV();
-  //const double c = (0.99-etamin)/density_.dV();
+  const double c = (1.0-etamin)/density_->dV();
+  //const double c = (0.99-etamin)/density_->dV();
 
 #ifdef USE_OMP      
 #pragma omp parallel for  private(pos)  schedule(static)
 #endif
   for(pos=0;pos<x.size();pos++)
     {
-      double z = (density_.get(pos) - dmin)/c;
+      double z = (density_->get(pos) - dmin)/c;
       //double y = sqrt(fabs(log(1.0/(1-z))));
       double y = sqrt(fabs(z/(1-z)));
       x.set(pos, y);          
@@ -82,8 +82,8 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   long pos;
   const double dmin = SMALL_VALUE;
   const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
-  const double c = (1.0-etamin)/density_.dV();
-  //  const double c = (0.99-etamin)/density_.dV();  
+  const double c = (1.0-etamin)/density_->dV();
+  //  const double c = (0.99-etamin)/density_->dV();  
 
 #ifdef USE_OMP    
 #pragma omp parallel for  private(pos)  schedule(static)
@@ -102,9 +102,9 @@ FMT_Species::FMT_Species(Density& density, double hsd, double mu, bool verbose, 
 {
   verbose_ = verbose;
   
-  long Nx = density_.Nx();
-  long Ny = density_.Ny();
-  long Nz = density_.Nz();
+  long Nx = density_->Nx();
+  long Ny = density_->Ny();
+  long Nz = density_->Nz();
 
   for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.initialize(Nx, Ny, Nz);
@@ -317,9 +317,9 @@ double G_txy(double R, double X, double Vy, double Vz, double Tx, double Ty, dou
 
 void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights)
 {
-  double dx = density_.getDX();
-  double dy = density_.getDY();
-  double dz = density_.getDZ();
+  double dx = density_->getDX();
+  double dy = density_->getDY();
+  double dz = density_->getDZ();
 
   double dV = dx*dy*dz;
 
@@ -480,7 +480,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 	    for(int iy = 0; iy < (Sy == 0 ? 1 : 2); iy++)
 	      for(int iz = 0; iz < (Sz == 0 ? 1 : 2); iz++)
 		{		  
-		  long pos = density_.get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
+		  long pos = density_->get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
 		  fmt_weights[EI()].addToWeight(pos,w_eta);
 		  if(std::isnan(fmt_weights[EI()].getWeight(pos)))
 		    {
@@ -508,9 +508,9 @@ FMT_Species_EOS::FMT_Species_EOS(double D_EOS, Density& density, double hsd, dou
   : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1), D_EOS_(D_EOS)
 										    
 {
-  long Nx = density_.Nx();
-  long Ny = density_.Ny();
-  long Nz = density_.Nz();
+  long Nx = density_->Nx();
+  long Ny = density_->Ny();
+  long Nz = density_->Nz();
 
   eos_weighted_density_[0].initialize(Nx, Ny, Nz);
   generateWeights(D_EOS*hsd, eos_weighted_density_);
@@ -527,9 +527,9 @@ void FMT_Species_EOS::generate_additional_Weight()
 {
   cout << "Generating additional FMT eos weight" << endl;
   
-  double dx = density_.getDX();
-  double dy = density_.getDY();
-  double dz = density_.getDZ();
+  double dx = density_->getDX();
+  double dy = density_->getDY();
+  double dz = density_->getDZ();
 
   double dV = dx*dy*dz;
   double dS = dx*dy;
@@ -631,9 +631,9 @@ void FMT_Species_EOS::generate_additional_Weight()
 	    for(int iy = 0; iy < (Sy == 0 ? 1 : 2); iy++)
 	      for(int iz = 0; iz < (Sz == 0 ? 1 : 2); iz++)
 		{		  
-		  long pos = density_.get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
-		  eos_weighted_density_.addToWeight(pos,w_eta);
-		  if(std::isnan(eos_weighted_density_.getWeight(pos)))
+		  long pos = density_->get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
+		  eos_weighted_density_->addToWeight(pos,w_eta);
+		  if(std::isnan(eos_weighted_density_->getWeight(pos)))
 		    {
 		      cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
 		      throw std::runtime_error("Found NAN");
@@ -656,9 +656,9 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
   : Rp_(Rp), reservoir_density_(reservoir_density), FMT_Species(density,hsd,mu,seq), fmt_weighted_densitiesAO_(11)
 {
   // get the polymer species weights
-  long Nx = density_.Nx();
-  long Ny = density_.Ny();
-  long Nz = density_.Nz();
+  long Nx = density_->Nx();
+  long Ny = density_->Ny();
+  long Nz = density_->Nz();
 
   for(FMT_Weighted_Density &d: fmt_weighted_densitiesAO_)
     d.initialize(Nx, Ny, Nz);  
@@ -730,7 +730,7 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   F *= -reservoir_density_;
 
   // This is the "standard" shift of the free energy. The Ntot eventually gets multiplied by dV to become V. 
-  F += reservoir_density_*density_.Ntot();
+  F += reservoir_density_*density_->Ntot();
   
   // This is to prepare for the force calculation which comes later. Strictly speaking, it is not a part of the free energy calculation. 
   // Upsilon requires convoluting the (now exponentiated) PSI with the various weights

@@ -103,7 +103,9 @@ class fireMinimizer2 : public Minimizer
   void setAlphaStart(double a)   { alpha_start_ = a;}
   void setAlphaFac(double a)     { f_alf_ = a;}
   void setBacktrackFac(double a) { f_back_ = a;}  
-
+  void set_initial_delay(bool b) { initial_delay_ = b;}
+  void set_N_delay(int n)        { N_delay_ = n;}
+  
   virtual double get_convergence_monitor() const { return fabs(vv_/dft_->get_lattice().getVolume());}
   
  protected:

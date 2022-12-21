@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(USE_OMP false)
+set(USE_OMP true)
 
 #This allows us to include the git SHA to identify exactly which code is being used
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_stuff/")
@@ -36,10 +36,11 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/Species.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT_Species.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT.cpp
+  ${PROJECT_SOURCE_DIR}/src/Potential.cpp
   ${PROJECT_SOURCE_DIR}/src/Minimizer.cpp
   ${PROJECT_SOURCE_DIR}/src/DDFT.cpp
   ${PROJECT_SOURCE_DIR}/src/Arnoldi.cpp
-  ${PROJECT_SOURCE_DIR}/src/Eigenvalues.cpp
+#  ${PROJECT_SOURCE_DIR}/src/Eigenvalues.cpp
   ${PROJECT_SOURCE_DIR}/src/Log_Det.cpp
   ${PROJECT_SOURCE_DIR}/src/Interaction.cpp
   ${PROJECT_SOURCE_DIR}/src/GitSHA1.cpp

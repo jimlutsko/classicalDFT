@@ -24,6 +24,13 @@ using namespace std;
 #include "Enskog.h"
 
 
+BOOST_CLASS_EXPORT(FMT)
+BOOST_CLASS_EXPORT(Rosenfeld)
+BOOST_CLASS_EXPORT(RSLT)
+BOOST_CLASS_EXPORT(esFMT)
+BOOST_CLASS_EXPORT(WhiteBearI)
+BOOST_CLASS_EXPORT(WhiteBearII)
+
 ostringstream Eta_Too_Large_Exception::cnvt;
 
 // This is only correct for a single species

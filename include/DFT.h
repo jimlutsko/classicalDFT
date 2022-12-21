@@ -63,6 +63,10 @@ class DFT : public Dynamical_Matrix
   double   get_convergence_monitor() const { double d = 0; for(auto& s: allSpecies_) d += s->get_convergence_monitor(); return d;}
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
 
+  string get_potential()                      const { return Interactions_[0]->get_name();}
+  double get_temperature()                    const { return Interactions_[0]->get_temperature();}
+  double get_number_of_atoms(int species = 0) const { return allSpecies_[species]->getDensity().get_mass();}
+  
   // Set
   void setDF(int i, DFT_Vec &df) {return allSpecies_[i]->setDF(df);}
   void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
@@ -73,7 +77,7 @@ class DFT : public Dynamical_Matrix
   // A few actions  
   void doDisplay(string &title, string &file, void *param = NULL) { for(auto &x: allSpecies_) x->doDisplay(title,file, param);}
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
-  
+  void perturb_density(DFT_Vec& perturbation, int species = 0) { allSpecies_[species]->perturb_density(perturbation);} 
   double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
   double evaluate(bool onlyFex = false) { return calculateFreeEnergyAndDerivatives(onlyFex);}  
 
@@ -124,12 +128,13 @@ class DFT : public Dynamical_Matrix
   virtual bool     is_dynamic() const { return false;}
   
   void set_full_hessian(bool full) { full_hessian_ = full;}
-  
+
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
     ar & allSpecies_;
     ar & Interactions_;
+    ar & external_fields_;
     ar & fmt_;
     ar & F_id_;
     ar & F_ext_;

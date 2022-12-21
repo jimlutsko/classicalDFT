@@ -107,28 +107,12 @@ public:
   
 protected:
   
-  /**
-   *   @brief  This function just sums up phi(i) over the lattice to 
-   *           give the total free energy
-   *
-   *   @param  density is the Density object
-   *   @return The total free energy
-   */
+  // Sums up phi(i) over the lattice to give the total free energy
   double calculateFreeEnergy(vector<Species*> &allSpecies);
 
-  /**
-   *   @brief  name of model implemented by this class
-   *
-   *   @return the name as a string
-   */        
   virtual string Name() const = 0;
-
-
   friend class boost::serialization::access;
-  template<class Archive> void serialize(Archive & ar, const unsigned int version)
-  {
-  }
-  
+  template<class Archive> void serialize(Archive & ar, const unsigned int version){}  
 };
 
 /**
@@ -559,8 +543,8 @@ class WhiteBearI : public esFMT
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
-    ar & boost::serialization::base_object<FMT>(*this);
-    boost::serialization::void_cast_register<WhiteBearI, FMT>(static_cast<WhiteBearI *>(NULL),static_cast<FMT *>(NULL));    
+    ar & boost::serialization::base_object<esFMT>(*this);
+    boost::serialization::void_cast_register<WhiteBearI, FMT>(static_cast<WhiteBearI *>(NULL),static_cast<esFMT *>(NULL));    
   }
 
   
@@ -636,8 +620,8 @@ class WhiteBearII : public esFMT //WhiteBearI
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
-    ar & boost::serialization::base_object<WhiteBearI>(*this);
-    boost::serialization::void_cast_register<WhiteBearII, WhiteBearI>(static_cast<WhiteBearII *>(NULL),static_cast<WhiteBearI *>(NULL));    
+    ar & boost::serialization::base_object<esFMT>(*this);
+    boost::serialization::void_cast_register<WhiteBearII, esFMT>(static_cast<WhiteBearII *>(NULL),static_cast<esFMT *>(NULL));    
   }
   
 };
