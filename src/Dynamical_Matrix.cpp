@@ -31,9 +31,9 @@ void Dynamical_Matrix::set_boundary_points_to_zero(DFT_Vec &v) const
 }
 
 
-void Dynamical_Matrix::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
+void Dynamical_Matrix::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F) const
 {
-  matrix_dot_v_intern(v,result,param);
+  matrix_dot_v_intern(v,result,param,only_d2F);
   
   if(use_squared_matrix_)
     {
@@ -44,14 +44,14 @@ void Dynamical_Matrix::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &r
       v1[0].do_real_2_fourier();
       result[0].zeros();
       
-      matrix_dot_v_intern(v1, result, param);
+      matrix_dot_v_intern(v1, result, param,only_d2F);
       if(is_dynamic()) result[0].MultBy(-1);      
     }
 }
 
 
 
-void Dynamical_Matrix::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param) const
+void Dynamical_Matrix::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param, bool only_d2F) const
 {
   vector<DFT_FFT> vwork(1);
   vwork[0].initialize(get_dimension(0), get_dimension(1), get_dimension(2));
@@ -63,7 +63,7 @@ void Dynamical_Matrix::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *pa
 
   vector<DFT_Vec> rwork(1, result.size());
 
-  matrix_dot_v(vwork,rwork,param);
+  matrix_dot_v(vwork,rwork,param,only_d2F);
   result.set(rwork[0]);
 
   if(is_fixed_boundary()) set_boundary_points_to_zero(result);

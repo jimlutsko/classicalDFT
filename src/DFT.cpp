@@ -348,13 +348,19 @@ void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
 void DFT::set_densities_from_aliases(vector<DFT_Vec> &x_)
 {
   for(int s=0; s<allSpecies_.size();s++)
-    allSpecies_[s]->set_density_from_alias(x_[s]);        
+    allSpecies_[s]->set_density_from_alias(x_[s]);
 }
 
 void DFT::convert_dF_to_alias_derivs(vector<DFT_Vec> &x_)
 {
   for(int s = 0; s<allSpecies_.size(); s++)
-    allSpecies_[s]->convert_to_alias_deriv(x_[s],getDF(s));    
+    allSpecies_[s]->convert_to_alias_deriv(x_[s],getDF(s));
+}
+
+void DFT::convert_dF_to_alias_derivs()
+{
+  for(int s = 0; s<allSpecies_.size(); s++)
+    allSpecies_[s]->convert_to_alias_deriv(getDF(s));
 }
 
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
@@ -447,7 +453,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
    *   Cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
    */
 
-void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const
+void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F) const
 {
   // I would like to do this but it violates the const declaration of v
   //  for(int i=0;i<v.size();i++)
@@ -457,37 +463,35 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())
       for(unsigned p=0;p<allSpecies_[s]->getLattice().get_Nboundary();p++)
-	{
-	  unsigned pp = allSpecies_[s]->getLattice().boundary_pos_2_pos(p);
-	  if(fabs(v[s].cReal().get(pp)) > 0.0)
-	    throw std::runtime_error("Input vector v must have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
-	}
+      {
+        unsigned pp = allSpecies_[s]->getLattice().boundary_pos_2_pos(p);
+        if(fabs(v[s].cReal().get(pp)) > 0.0)
+          throw std::runtime_error("Input vector v must have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
+      }
 
   if(full_hessian_)
-    {
-      // ideal gas contribution: v_i/n_i
+  {
+    // ideal gas contribution: v_i/n_i
 
-      double dV = allSpecies_[0]->getDensity().dV();
+    double dV = allSpecies_[0]->getDensity().dV();
 
-      for(int s=0;s<allSpecies_.size();s++)
-	for(unsigned pos=0;pos<v[s].cReal().size();pos++)
-	  result[s].set(pos, dV*v[s].cReal().get(pos)/allSpecies_[s]->getDensity().get(pos));
-    }
+    for(int s=0;s<allSpecies_.size();s++)
+      #pragma omp parallel for
+      for(unsigned pos=0;pos<v[s].cReal().size();pos++)
+        result[s].set(pos, dV*v[s].cReal().get(pos)/allSpecies_[s]->getDensity().get(pos));
+  }
 
-  
   // Hard-sphere
   if(fmt_)
-    {    
-      try{
-	fmt_->add_second_derivative(v,result, allSpecies_);
-      } catch( Eta_Too_Large_Exception &e) {
-	throw e;
-      }
-    }
-  
-  if(!fmt_)
+  {
+    try {fmt_->add_second_derivative(v,result, allSpecies_);}
+    catch( Eta_Too_Large_Exception &e) {throw e;}
+  }
+  else
+  {
     for(auto &species : allSpecies_)
-      species->doFFT();  
+      species->doFFT(); 
+  } 
   
   // Mean field
   for(auto &interaction: DFT::Interactions_)    
@@ -496,10 +500,10 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
   // Remove boundary terms if the boundary is fixed
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())
-      {
-	long p = 0;
-	do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
-      }
+    {
+      long p = 0;
+      do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
+    }
 }
 
 

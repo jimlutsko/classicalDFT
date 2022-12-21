@@ -30,8 +30,8 @@ class Species
   // to replace the three above
   void set_fixed_mass()                     { fixedMass_          = density_->get_mass(); mu_ = 0.0; fixedBackground_ = false;}
   void set_fixed_mass(double m)             { fixedMass_          = m; if(m > 0.0) {mu_ = 0.0; fixedBackground_ = false;}}
-  void set_open_system(bool fixed)          { fixedBackground_    = fixed; fixedMass_ = -1;} 
-  void set_homogeneous_boundary(bool val)   { homogeneousBoundary_ = val;}  
+  void set_open_system(bool fixed)          { fixedBackground_    = fixed; if (fixed) fixedMass_ = -1;} 
+  void set_homogeneous_boundary(bool val)   { homgeneousBoundary_ = val;}  
 
   //void set_fixed_background_and_mass(double m) { fixedMass_ = m; fixedBackground_ = true; mu_ = 0;}
   
@@ -54,8 +54,15 @@ class Species
   const Density& getDensity() const { return *density_;}
   const double*  get_density_data() { return density_->get_density_pointer();}
   virtual void   get_density_alias(DFT_Vec &x) const;
-
+  virtual void   get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const; // only valid for local aliases
+  
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
+  virtual void convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const;
+  virtual void convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const;
+  
+  virtual void convert_to_alias_deriv(DFT_Vec &dF_dRho) const;
+  virtual void convert_to_alias_increment(DFT_Vec &dRho) const;
+  virtual void convert_to_density_increment(DFT_Vec &dRho) const;
   
   void doDisplay(string &title, string &file, void *param = NULL) const { density_->doDisplay(title,file, seq_num_, param);}
 
@@ -153,7 +160,15 @@ public:
 
   virtual void set_density_from_alias(const DFT_Vec &x);
   virtual void get_density_alias(DFT_Vec &x) const;
+  virtual void get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const;
+  
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
+  virtual void convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const;
+  virtual void convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const;
+  
+  virtual void convert_to_alias_deriv(DFT_Vec &dF_dRho) const;
+  virtual void convert_to_alias_increment(DFT_Vec &dRho) const;
+  virtual void convert_to_density_increment(DFT_Vec &dRho) const;
   
   const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
 

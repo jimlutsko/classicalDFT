@@ -29,7 +29,9 @@ class Minimizer
   void setForceTerminationCriterion(double v) {forceLimit_ = v;}
   void set_terminimation_criterion(double v) {forceLimit_ = v;}  
   void setVerbose(bool verbose) { verbose_ = verbose;}
-  void set_fixed_direction(const DFT_Vec& fixed) { fixed_direction_ = fixed;}
+  
+  const DFT_Vec&  get_fixed_direction() {return fixed_direction_;}
+  void set_fixed_direction(const DFT_Vec& fixed, bool already_using_density_alias);
   
   // report activity
   virtual void   draw_after() {};  // Display something after the minimization
@@ -100,7 +102,7 @@ class fireMinimizer2 : public Minimizer
   
   void setTimeStep(double dt)    { dt_ = dt;}
   void setTimeStepMax(double dt) { dt_max_ = dt;}  
-  void setAlphaStart(double a)   { alpha_start_ = a;}
+  void setAlphaStart(double a)   { alpha_start_ = a; alpha_ = alpha_start_;}
   void setAlphaFac(double a)     { f_alf_ = a;}
   void setBacktrackFac(double a) { f_back_ = a;}  
   void set_initial_delay(bool b) { initial_delay_ = b;}
@@ -225,7 +227,7 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   virtual long     boundary_pos_2_pos(int p)    const {return dft_->boundary_pos_2_pos(p);}    
   virtual bool     is_boundary_point(long p) const {return dft_->is_boundary_point(p);}
   virtual bool     is_fixed_boundary() const {return dft_->is_fixed_boundary();}
-  virtual void     matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param) const;
+  virtual void     matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F=false) const;
   virtual bool     is_dynamic() const { return true;}
   
 protected:
