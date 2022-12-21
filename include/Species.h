@@ -31,7 +31,7 @@ class Species
   void set_fixed_mass()                     { fixedMass_          = density_->get_mass(); mu_ = 0.0; fixedBackground_ = false;}
   void set_fixed_mass(double m)             { fixedMass_          = m; if(m > 0.0) {mu_ = 0.0; fixedBackground_ = false;}}
   void set_open_system(bool fixed)          { fixedBackground_    = fixed; if (fixed) fixedMass_ = -1;} 
-  void set_homogeneous_boundary(bool val)   { homgeneousBoundary_ = val;}  
+  void set_homogeneous_boundary(bool val)   { homogeneousBoundary_ = val;}  
 
   //void set_fixed_background_and_mass(double m) { fixedMass_ = m; fixedBackground_ = true; mu_ = 0;}
   

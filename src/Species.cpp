@@ -44,7 +44,7 @@ void Species::set_density_from_alias(const DFT_Vec &x)
   
 void Species::get_density_alias(DFT_Vec &x) const
 {
-  x.zeros(density_.size());
+  x.zeros(density_->size());
   
   long pos;
   
@@ -62,8 +62,8 @@ void Species::convert_to_alias_deriv(DFT_Vec &dF_dRho) const
   #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
   #endif
-  for(pos=0;pos<density_.size();pos++)
-    dF_dRho.set(pos, 2*dF_dRho.get(pos)*sqrt(density_.get(pos)));
+  for(pos=0;pos<density_->size();pos++)
+    dF_dRho.set(pos, 2*dF_dRho.get(pos)*sqrt(density_->get(pos)));
 }
 
 void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
@@ -79,8 +79,8 @@ void Species::convert_to_alias_increment(DFT_Vec &dRho) const
   #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
   #endif
-  for(pos=0;pos<density_.size();pos++)
-    dRho.set(pos, 0.5*dRho.get(pos)/sqrt(density_.get(pos)));
+  for(pos=0;pos<density_->size();pos++)
+    dRho.set(pos, 0.5*dRho.get(pos)/sqrt(density_->get(pos)));
 }
 
 void Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
@@ -94,18 +94,18 @@ void Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
     dRho.set(pos, 0.5*dRho.get(pos)/x.get(pos));
 }
 
-void Species::get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const {d2Rhodx2.zeros(density_.size()); d2Rhodx2.add(2.0);}
+void Species::get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const {d2Rhodx2.zeros(density_->size()); d2Rhodx2.add(2.0);}
 
 
 // Trivial alias
 /*
-void Species::set_density_from_alias(const DFT_Vec &x) {density_.set(x);}
-void Species::get_density_alias(DFT_Vec &x) const {x = density_.get_density_real();}
+void Species::set_density_from_alias(const DFT_Vec &x) {density_->set(x);}
+void Species::get_density_alias(DFT_Vec &x) const {x = density_->get_density_real();}
 void Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const {;}
 void Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dF_dRho) const {;}
 void Species::convert_to_alias_deriv(DFT_Vec &dF_dRho) const {;}
 void Species::convert_to_alias_increment(DFT_Vec &dF_dRho) const {;}
-void Species::get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const {d2Rhodx2.zeros(density_.size()); d2Rhodx2.add(1.0);}
+void Species::get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const {d2Rhodx2.zeros(density_->size()); d2Rhodx2.add(1.0);}
 */
 
 
