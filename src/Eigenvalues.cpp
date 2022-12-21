@@ -11,12 +11,6 @@ using namespace std;
 
 #include <complex>
 
-/*
-#define OPTIM_USE_OPENMP
-#define OPTIM_ENABLE_ARMA_WRAPPERS
-#include "optim.hpp"
-*/
-
 #ifdef USE_MPI
 #include <mpi.h>
 #endif
@@ -89,7 +83,7 @@ void Eigenvalues::g_dot_v(const DFT_Vec &v, DFT_Vec &gv) const
   if (gv.size() != v.size()) gv.zeros(v.size());
   
   matrix_.g_dot_x(v, gv);
-  gv.MultBy(-1); //TODO minus sign because original metric g is not positive definite
+  gv.MultBy(-1); //Note: minus sign because original metric g is not positive definite
 }
 
 
@@ -145,7 +139,6 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
   matrix_dot_eigen_vec_ = df;
   df.MultBy((change_sign_ ? -1 : 1)*scale_);
 
-  // No need to divide by x2 since we already normalised the eigenvector
   double x2 = v_dot_w(eigen_vec_,eigen_vec_);
   double f  = v_dot_w(eigen_vec_,df)/x2;
   
@@ -238,7 +231,7 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
   {
     DFT_Vec gv(v); g_dot_v(v, gv);
     matrix_.matrix_dot_v1(gv, result, param, true);
-    result.MultBy(-1); //TODO minus sign to be consistent with original metric g in DDFT object, which is not positive definite
+    result.MultBy(-1); //Note: minus sign to be consistent with original metric g in DDFT object, which is not positive definite
     
     if (verbose_) cout << "\t  L2-Norm of g*v: " << norm(gv) << endl;
   }
@@ -271,116 +264,6 @@ void Eigenvalues::matrix_dot_v(const vector<double> &vv, vector<double> &result,
   for (long i=0; i<vv.size(); i++) result[i] = r.get(i);
 }
 
-/*
-void Eigenvalues::calculate_eigenvector(Log& theLog)
-{
-  if(eigen_vec_.size() != matrix_.get_Ntot())
-  {
-      eigen_vec_.zeros(matrix_.get_Ntot());
-      eigen_vec_.set_random_normal();
-  
-      if(matrix_.is_fixed_boundary())
-      {
-        long pos = 0;
-        do{eigen_vec_.set(pos,0.0);} while(matrix_.get_next_boundary_point(pos));
-      }
-      
-      eigen_vec_.MultBy(1/norm(eigen_vec_));
-  }
-  
-  ////////////////////////////////////////
-  // Minimisation of xAx/xx with FIRE2
-  
-  // Initialize
-  DFT_Vec v; v.zeros(eigen_vec_.size());
-  DFT_Vec df; df.zeros(eigen_vec_.size());
-  DFT_Vec eigen_vec_old(eigen_vec_);
-  
-  double f = eigenvalues_objective_func(eigen_vec_, df, this);
-  double f_old = f;
-  double t = 0.0;
-  
-  // Parameters
-  double dt = 0.01/scale_;
-  double dt_max = 1;
-  double dt_min = 0.0;
-  double finc = 1.01;
-  double falf = 0.9;
-  double fdec = 0.1;
-  int Npos = 0;
-  int Nneg = 0;
-  int Nmax = 1e6;
-  int Ndelay = 5;
-  int Nneg_max = 20;
-  bool initialdelay = true;
-  
-  // Iterate
-  for (int i=0; i<Nmax; i++)
-  {
-    double P = -v_dot_w(v, df);
-    double vnorm = norm(v);
-    
-    if (verbose_)
-    {
-      cout << endl; cout << setprecision(12);
-      cout << "\tFire2 in Eigenvalues::calculate_eigenvector:" << endl;
-      cout << "\t  P  = " << P << endl;
-      cout << "\t  dt = " << dt << endl;
-      cout << "\t  vnorm  = " << vnorm << endl;
-      cout << "\t  f-fold = " << f-f_old << endl;
-    }
-    
-    if (P>=0) // && f<=f_old sometimes causes problems sending dt->0
-    {
-      Npos ++; Nneg = 0;
-      
-      dt = (dt*finc<dt_max)?dt*finc:dt_max;
-    }
-    else // if P<=0
-    {
-      Nneg ++; Npos = 0;
-      
-      if (Nneg>Nneg_max) throw runtime_error("Eigenvalues.cpp: Cannot stop going uphill in FIRE2");
-      
-      if (!initialdelay || i>=Ndelay) 
-      {
-        if (dt*fdec>dt_min) dt *= fdec;
-      }
-      
-      if (verbose_) cout << "\tBacktracking..." << endl;
-      
-      eigen_vec_.set(eigen_vec_old);
-      v.zeros();
-      
-      f = eigenvalues_objective_func(eigen_vec_, df, this);
-    }
-    
-    eigen_vec_old.set(eigen_vec_);
-    
-    // Semi-implicit Euler (purely inertial)
-    v.IncrementBy_Scaled_Vector(df, -dt);
-    eigen_vec_.IncrementBy_Scaled_Vector(v, dt);
-    vnorm = norm(v);
-    
-    f_old = f;
-    f = eigenvalues_objective_func(eigen_vec_, df, this);
-    t += dt;
-    
-    // Check if converged
-    if (!initialdelay || i>=Ndelay)
-    {
-      //if (P>0 && fabs(f-f_old)/fabs(f+f_old)<tol_) break;
-      if (calculate_residual_error(false) < tol_) break;
-    }
-  }
-  
-  ////////////////////////////////////////
-  // Finalise
-  
-  eigen_vec_.MultBy(1/norm(eigen_vec_));
-  calculate_gradients(df);
-}
-*/
 
 void Eigenvalues::calculate_eigenvector(Log& theLog)
 {
@@ -512,7 +395,6 @@ void Eigenvalues::calculate_eigenvector(Log& theLog)
     // Check if converged
     if (!initialdelay || i>=Ndelay)
     {
-      //if (P>0 && fabs(f-f_old)/fabs(f+f_old)<tol_) break;
       if (calculate_residual_error(false) < tol_) break;
     }
   }

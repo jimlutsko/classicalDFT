@@ -64,7 +64,6 @@ class Eigenvalues
   void matrix_dot_v(const vector<double> &vv, vector<double> &result, void *param);
   
   bool is_using_density_alias() const {return using_density_alias_;}
-  //bool is_using_density_alias() const {return matrix_.is_using_density_alias();}
   
   void clear() { eigen_vec_.zeros(1); matrix_dot_eigen_vec_.zeros(1); }
   
