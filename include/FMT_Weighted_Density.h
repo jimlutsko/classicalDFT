@@ -20,6 +20,7 @@ class FMT_Weighted_Density
   ~FMT_Weighted_Density(){}
 
   void zero() { weighted_density_.zeros(); weight_.zeros(); dPhi_.zeros();}
+  unsigned size() const { return weighted_density_.cReal().size();}
   
   void initialize(long Nx, long Ny, long Nz)
   {

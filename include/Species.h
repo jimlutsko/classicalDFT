@@ -4,6 +4,7 @@
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/export.hpp>
+#include <boost/serialization/split_member.hpp>
 
 #include "FMT_Weighted_Density.h"
 #include "Potential1.h"
@@ -98,7 +99,7 @@ class Species
   void   beginForceCalculation();
   double endForceCalculation();
 
-  friend class boost::serialization::access;  
+  friend class boost::serialization::access;
   template<typename Archive> void serialize(Archive & ar, const unsigned int version)
   {
     ar & density_;
@@ -112,8 +113,10 @@ class Species
     ar & fixedBackground_;
     ar & homogeneousBoundary_; 
     ar & verbose_;
+
+    cout << "Reading/Writing species ... " << endl;
   }    
-  
+
   
 protected:
  
@@ -148,7 +151,7 @@ class FMT_Species : public Species
 {
 public:
   FMT_Species(Density& density, double hsd, double mu = 0, bool verbose = true, int seq = -1);
-  FMT_Species(){}
+  FMT_Species(): fmt_weighted_densities(11) {}
   FMT_Species(const FMT_Species &) = delete;
   ~FMT_Species(){}
 
@@ -375,13 +378,45 @@ public:
 
   // streaming stuff
   friend class boost::serialization::access;
+  
   template<typename Archive> void serialize(Archive & ar, const unsigned int version)
   {
     ar & boost::serialization::base_object<Species>(*this);
     ar & hsd_;
-    ar & fmt_weighted_densities;
+    //    ar & fmt_weighted_densities;
+
+    cout << "fmt_weighted_densities[0].size = " << fmt_weighted_densities[0].size() << endl;
+    
+    if(Archive::is_saving::value == false)
+      {
+	Initialize(); 
+	cout << "Reading FMT species ... " << endl;
+      } else cout << "Writing FMT species ... " << endl;
+  }
+  
+  /*
+  template<class Archive> void save(Archive & ar, const unsigned int version) const
+  {
+    ar << boost::serialization::base_object<Species>(*this);
+    ar << hsd_;
+
+    cout << "Writing FMT species ... " << endl;
   }
 
+  template<class Archive> void load(Archive & ar, const unsigned int version) const
+  {
+    ar >> boost::serialization::base_object<Species>(*this);
+    ar >> hsd_;
+
+    // Restore constructed quantities
+    ((FMT_Species*) this)->Initialize(); 
+            
+    cout << "Reading FMT species ... " << endl;
+  } 
+   
+  BOOST_SERIALIZATION_SPLIT_MEMBER()  
+  */
+  void Initialize();  
   
 protected:
   // Indices of eta, scaler, vector and tensor weighted densities

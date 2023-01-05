@@ -22,9 +22,7 @@ Minimizer::Minimizer(DFT *dft) : dft_(dft), forceLimit_(0.1)
   for(auto &x: x_) x.resize(dft_->get_lattice().Ntot());
 
   for(int Jspecies=0;Jspecies<dft_->getNumberOfSpecies();Jspecies++)
-    dft_->getSpecies(Jspecies)->get_density_alias(x_[Jspecies]);        
-  
-  
+    dft_->getSpecies(Jspecies)->get_density_alias(x_[Jspecies]);          
 }
 
 void Minimizer::reset()

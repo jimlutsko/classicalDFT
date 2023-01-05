@@ -165,7 +165,11 @@ void FMT_Species::convert_to_density_increment(DFT_Vec &x, DFT_Vec &dRho) const 
 FMT_Species::FMT_Species(Density& density, double hsd, double mu, bool verbose, int seq): Species(density,mu,seq), hsd_(hsd), fmt_weighted_densities(11)
 {
   verbose_ = verbose;
-  
+  Initialize();
+}
+
+void FMT_Species::Initialize()
+{
   long Nx = density_->Nx();
   long Ny = density_->Ny();
   long Nz = density_->Nz();
@@ -173,12 +177,11 @@ FMT_Species::FMT_Species(Density& density, double hsd, double mu, bool verbose, 
   for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.initialize(Nx, Ny, Nz);
 
-  generateWeights(hsd, fmt_weighted_densities);
+  generateWeights(hsd_, fmt_weighted_densities);
 
   for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.transformWeights();
 }
-
 
 
 static void getI(double X, double A, double I[])
