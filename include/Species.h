@@ -51,11 +51,15 @@ class Species
 
   void perturb_density(DFT_Vec& perturbation) { *density_ += perturbation;} 
   
-  const Lattice& getLattice() const { return *density_;}
-  const Density& getDensity() const { return *density_;}
+  const Lattice& getLattice()  const { return *density_;}
+  const Density& getDensity()  const { return *density_;}
+  const Density& get_density() const { return *density_;}
   const double*  get_density_data() { return density_->get_density_pointer();}
   virtual void   get_density_alias(DFT_Vec &x) const;
   virtual void   get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const; // only valid for local aliases
+  const DFT_Vec& get_density_real() const { return density_->get_density_real();}
+  
+  void read_density(istream &in) { in >> (*density_);}      
   
   virtual void convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const;
   virtual void convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const;
