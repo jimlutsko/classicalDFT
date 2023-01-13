@@ -31,7 +31,6 @@ class String_Slave;
 class String_Slave2;
 
 
-
 /**
   *  @brief Base class for the density: basically, a wrapper for the array holding the density at each lattice site
   */  

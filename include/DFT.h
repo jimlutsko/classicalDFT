@@ -64,6 +64,9 @@ class DFT : public Dynamical_Matrix
   double   get_convergence_monitor() const { double d = 0; for(auto& s: allSpecies_) d += s->get_convergence_monitor(); return d;}
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
 
+  Species &get_species(int s = 0) const { return *(allSpecies_[s]);}
+
+  
   string get_potential()                      const { return Interactions_[0]->get_name();}
   double get_temperature()                    const { return Interactions_[0]->get_temperature();}
   double get_number_of_atoms(int species = 0) const { return allSpecies_[species]->getDensity().get_mass();}

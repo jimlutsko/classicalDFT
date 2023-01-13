@@ -20,10 +20,6 @@ using namespace std;
 BOOST_CLASS_EXPORT(Species)
 BOOST_CLASS_EXPORT(FMT_Species)
 
-
-
-
-
 int Species::SequenceNumber_ = 0;
 
 const double dmin = SMALL_VALUE;
