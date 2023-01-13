@@ -209,7 +209,12 @@ public:
 
     if(include_interaction_)
       {
-	potential1_ = new LJ(sigma1_, eps1_, rcut1_);
+	if(potential_name_ == LJ_name)
+	  potential1_ = new LJ(sigma1_, eps1_, rcut1_);
+	else if(potential_name_ == WHDF_name)
+	  potential1_ = new WHDF(sigma1_, eps1_, rcut1_);
+	else throw std::runtime_error("Requested potential " + potential_name_ + " unknown to DFT_Factory");
+	  
 	hsd1_ = potential1_->getHSD(kT_);
       }
 

@@ -171,9 +171,10 @@ double tWF::vr2(double r2) const
 
 /////////////////////////////////////////////
 /////// WHDF potential
+
 WHDF::WHDF(double sigma, double eps, double rcut) : Potential1(sigma, eps, rcut)
 {
-  eps_ *= 2*pow(rcut/sigma,2)*pow(2*((rcut/sigma)*(rcut/sigma)-1)/3.0,-3.0);
+  eps_rescaled_ = eps_*2*pow(rcut/sigma,2)*pow(2*((rcut/sigma)*(rcut/sigma)-1)/3.0,-3.0);
   
   shift_ = 0.0; // cutoff is built in
   rmin_  = getRmin(); 
@@ -196,12 +197,12 @@ double WHDF::vr(double r) const
 {
   double y = sigma_/r;
   double z = rcut_/r;
-  return eps_*(y*y-1)*(z*z-1)*(z*z-1);
+  return eps_rescaled_*(y*y-1)*(z*z-1)*(z*z-1);
 }
 
 double WHDF::vr2(double r2) const
 {
   double y2 = sigma_*sigma_/r2;
   double z2 = rcut_*rcut_/r2;
-  return eps_*(y2-1)*(z2-1)*(z2-1);
+  return eps_rescaled_*(y2-1)*(z2-1)*(z2-1);
 }  

@@ -157,6 +157,9 @@ class WHDF : public Potential1
  protected:
   virtual double vr(double r)   const;
   virtual double vr2(double r2) const;
+  
+ private:
+  double eps_rescaled_;
 
 };
 
