@@ -482,6 +482,43 @@ protected:
 
 
 /**
+  *  @brief  Variant of the "Explicitly Stable" FMT to enforce high vacancies
+  *
+  *   A parameter "lambda" is added to the numerator of Phi3 so that there
+  *   is a repulsion term "lambda/(1-eta)^2" that prevent the minimum from
+  *   being too close to the eta>=1 region which is unphysical and causes 
+  *   backtracking in calculations. This is an artificial functional that
+  *   should be used at the early stage of the minimisation.
+  */  
+class esFMT_lambda : public esFMT
+{
+ public:
+  esFMT_lambda(double A = 1, double B = 0, double lambda = 0) 
+  : esFMT(A,B), lambda_(lambda){};
+
+  virtual bool needsTensor() const { return true;}
+
+  virtual double Phi3(const FundamentalMeasures &fm) const
+  {
+    double s2     = fm.s2;
+    double vTv    = fm.vTv;
+    double v2_v2  = fm.v2_v2;
+    double T2     = fm.T2;
+    double T3     = fm.T3;
+    
+    return (A_/(24*M_PI))*(s2*s2*s2-3*s2*v2_v2+3*vTv-T3)
+      +(B_/(24*M_PI))*(s2*s2*s2-3*s2*T2+2*T3) + lambda_;
+  }
+  
+  virtual string Name() const { return string("esFMT_lambda with A = ") + to_string(A_) + string(" and B = ") + to_string(B_) + string(" and lambda = ") + to_string(lambda_);}
+  
+ protected:
+  double lambda_;
+};
+
+
+
+/**
   *  @brief  The original White Bear  FMT model 
   *
   *   White-bear FMT model with tensor densities and the CS equation of state
