@@ -174,6 +174,8 @@ void FMT_Species::Initialize()
   long Ny = density_->Ny();
   long Nz = density_->Nz();
 
+  verbose_ = false;
+  
   for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.initialize(Nx, Ny, Nz);
 

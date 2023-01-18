@@ -55,6 +55,9 @@ class Density : public Lattice
     Density_ = ref.Density_;
   }
   
+
+
+
   // Initialize
   
   //set/get density 

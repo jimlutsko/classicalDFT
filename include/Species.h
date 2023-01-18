@@ -117,8 +117,6 @@ class Species
     ar & fixedBackground_;
     ar & homogeneousBoundary_; 
     ar & verbose_;
-
-    cout << "Reading/Writing species ... " << endl;
   }    
 
   
@@ -387,39 +385,12 @@ public:
   {
     ar & boost::serialization::base_object<Species>(*this);
     ar & hsd_;
-    //    ar & fmt_weighted_densities;
-
-    cout << "fmt_weighted_densities[0].size = " << fmt_weighted_densities[0].size() << endl;
     
     if(Archive::is_saving::value == false)
       {
 	Initialize(); 
-	cout << "Reading FMT species ... " << endl;
-      } else cout << "Writing FMT species ... " << endl;
+      }
   }
-  
-  /*
-  template<class Archive> void save(Archive & ar, const unsigned int version) const
-  {
-    ar << boost::serialization::base_object<Species>(*this);
-    ar << hsd_;
-
-    cout << "Writing FMT species ... " << endl;
-  }
-
-  template<class Archive> void load(Archive & ar, const unsigned int version) const
-  {
-    ar >> boost::serialization::base_object<Species>(*this);
-    ar >> hsd_;
-
-    // Restore constructed quantities
-    ((FMT_Species*) this)->Initialize(); 
-            
-    cout << "Reading FMT species ... " << endl;
-  } 
-   
-  BOOST_SERIALIZATION_SPLIT_MEMBER()  
-  */
   void Initialize();  
   
 protected:
