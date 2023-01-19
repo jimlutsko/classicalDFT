@@ -422,6 +422,10 @@ public:
   */
   void Initialize();  
   
+  void Check(); 
+  void Check_Print(const vector<FMT_Weighted_Density> &fmt_weighted_densities_old, 
+                   const vector<FMT_Weighted_Density> &fmt_weighted_densities_new); 
+  
 protected:
   // Indices of eta, scaler, vector and tensor weighted densities
   int EI() const {return 0;}
@@ -436,7 +440,8 @@ protected:
   }
   //This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
   //           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
-  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
+  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights, double scale=1.0);
+  virtual void generateWeights_old(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
 
 protected:
   double hsd_ = 0.0; ///< hard sphere diameter 
