@@ -20,8 +20,9 @@ using namespace std;
 
 const double dmin = SMALL_VALUE;
 
-double SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION = 1e-11;
-double SMALL_VALUE_FOR_J_INTEGRAL = 1e-15; //does not matter
+double SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION = 1e-8;
+double SMALL_VALUE_FOR_J_INTEGRAL = 1e-14;
+//double SMALL_VALUE_FOR_ASIN = 1e-6;
 
 
 // These impose density limits based on the fact that in the most extreme case,
@@ -208,6 +209,7 @@ void FMT_Species::Check()
   vector<FMT_Weighted_Density> fmt_weighted_densities_new_scaled(11);
   for(FMT_Weighted_Density &d: fmt_weighted_densities_new_scaled) d.initialize(Nx, Ny, Nz);
   generateWeights(hsd_, fmt_weighted_densities_new_scaled, density_->getDX());
+  //generateWeights(hsd_, fmt_weighted_densities_new_scaled, 1.02198564635);
   
   Check_Print(fmt_weighted_densities_old, fmt_weighted_densities_new_scaled);
   
@@ -265,17 +267,17 @@ void FMT_Species::Check_Print(const vector<FMT_Weighted_Density> &fmt_weighted_d
     const FMT_Weighted_Density &d_new = fmt_weighted_densities_new[i];
     const FMT_Weighted_Density &d_old = fmt_weighted_densities_old[i];
     
-    if      (i== 0) cout << "eta   ";
-    else if (i== 1) cout << "s     ";
-    else if (i== 2) cout << "vx    ";
-    else if (i== 3) cout << "vy    ";
-    else if (i== 4) cout << "vz    ";
-    else if (i== 5) cout << "txx   ";
-    else if (i== 6) cout << "tyy   ";
-    else if (i== 7) cout << "tzz   ";
-    else if (i== 8) cout << "txy   ";
-    else if (i== 9) cout << "tyz   ";
-    else if (i==10) cout << "txz   ";
+    if      (i== EI()    ) cout << "eta   ";
+    else if (i== SI()    ) cout << "s     ";
+    else if (i== VI(0)   ) cout << "vx    ";
+    else if (i== VI(1)   ) cout << "vy    ";
+    else if (i== VI(2)   ) cout << "vz    ";
+    else if (i== TI(0,0) ) cout << "txx   ";
+    else if (i== TI(1,1) ) cout << "tyy   ";
+    else if (i== TI(2,2) ) cout << "tzz   ";
+    else if (i== TI(0,1) ) cout << "txy   ";
+    else if (i== TI(0,2) ) cout << "txz   ";
+    else if (i== TI(1,2) ) cout << "tyz   ";
     
     double norm = 0.0;
     double norm_diff = 0.0;
@@ -324,9 +326,74 @@ void FMT_Species::Check_Print(const vector<FMT_Weighted_Density> &fmt_weighted_d
 }
 
 
+double my_asin(double x)
+{
+  if (fabs(x)-1>SMALL_VALUE_FOR_J_INTEGRAL) 
+  {
+    cout << "|x|-1 = " << fabs(x)-1 << endl;
+    throw runtime_error("FMT_Species::my_asin was given argument |x|>1");
+  }
+  else
+  {
+    x = max(-1.0,min(1.0,x));
+  }
+  
+  return asin(x);
+  
+  // Trying to improve the evaluation of asin(x) when x near 1.
+  // Is it really why the evaluations of J(X,V) cause problems?
+  
+  /*
+  double y = 1-x;
+  double z = 1+x;
+  
+  if      (fabs(y)<SMALL_VALUE_FOR_J_INTEGRAL) return  M_PI/2;
+  else if (fabs(z)<SMALL_VALUE_FOR_J_INTEGRAL) return -M_PI/2;
+  else return asin(x);
+  */
+  
+  /*
+  if (y<SMALL_VALUE_FOR_ASIN)
+  {
+    double phi = sqrt(4*y-2*y*y);
+    cout << "Asin:    y = " << y << "    PI/2-asin(x) = " << M_PI/2-asin(x)  << "    PI/2-approx = " << phi << endl;
+    return M_PI/2-phi;
+  }
+  else if (z<SMALL_VALUE_FOR_ASIN)
+  {
+    double phi = sqrt(-4*z-2*z*z);
+    cout << "Asin:    z = " << z << "    PI/2+asin(x) = " << M_PI/2+asin(x)  << "    PI/2+approx = " << phi << endl;
+    return -M_PI/2+phi;
+  }
+  else
+  {
+    return asin(x);
+  }
+  */
+  
+  /*
+  if (x>1/sqrt(2)) // I expect more accuracy with acos --> no
+  {
+    double y = 1-x;
+    return acos(sqrt(2*y-y*y));
+  }
+  if (x<-1/sqrt(2)) // I expect more accuracy with acos --> no
+  {
+    double y = 1+x;
+    return acos(sqrt(-2*y-y*y));
+  }
+  else
+  {
+    return asin(x);
+  }
+  */
+}
+
+
 static void getI(double X, double A, double I[])
 {
-  double a = asin(X/A);
+  double a = asin(max(-1.0,min(1.0,X/A)));
+  //double a = my_asin(X/A);
   double b = sqrt(fabs(A*A-X*X));
   
   I[0] = 0.5*X*b+0.5*A*A*a;
@@ -338,9 +405,23 @@ static void getI(double X, double A, double I[])
   
 static void getJ(double X, double V, double R, double J[])
 {
+  // Aren't they supposed to be equal to zero when V=0?
+  /*if (fabs(V/R)<SMALL_VALUE_FOR_J_INTEGRAL)
+  {
+    //if (sqrt(R*R-X*X)<SMALL_VALUE_FOR_J_INTEGRAL)
+    //  cout << "J(X,V):    V = " << V << "    sqrt(R*R-X*X) = " << sqrt(R*R-X*X) << endl;
+    for (int i=0; i<5; i++) J[i]=0.0; //J[2] = (M_PI/8)*R*R*R*R;
+    return;
+  }*/
+  
   double aV  = asin(max(-1.0,min(1.0,V/max(SMALL_VALUE_FOR_J_INTEGRAL,sqrt(R*R-X*X)))));
   double aX  = asin(max(-1.0,min(1.0,X/sqrt(R*R-V*V))));
   double aVX = asin(max(-1.0,min(1.0,X*V/max(SMALL_VALUE_FOR_J_INTEGRAL,sqrt((R*R-V*V)*(R*R-X*X))))));
+  
+  //double aV  = my_asin(V/sqrt(R*R-X*X));
+  //double aX  = my_asin(X/sqrt(R*R-V*V));
+  //double aVX = my_asin(V*X/sqrt((R*R-V*V)*(R*R-X*X)));
+  
   double b   = sqrt(fabs(R*R-V*V-X*X));
   
   J[0] = X*aV+V*aX-R*aVX;
@@ -348,13 +429,24 @@ static void getJ(double X, double V, double R, double J[])
   J[2] = -(1.0/6)*V*(V*V-3*R*R)*aX+(1.0/3)*X*X*X*aV-(1.0/3)*R*R*R*aVX-(1.0/6)*V*X*b;
   J[3] = 0.25*(X*X*X*X-R*R*R*R)*aV+(M_PI/8)*R*R*R*R-(V/12.0)*(5*R*R+X*X-2*V*V)*b;
   J[4] = 0.025*X*V*(3*V*V-2*X*X-7*R*R)*b+0.025*V*(3*V*V*V*V-10*V*V*R*R+15*R*R*R*R)*aX+0.2*X*X*X*X*X*aV-0.2*R*R*R*R*R*aVX;
-
+  
   if(std::isnan(J[1]) || std::isnan(J[2]) || std::isnan(J[3]) || std::isnan(J[4]))
     {
+      cout << scientific << setprecision(2);
       cout << X << " " << V << " " << R << " | " << b << " " << R*R-V*V << " " << R*R-X*X << " " << R*R - V*V -X*X << endl;
       throw std::runtime_error("done");
     }
   
+  // Trying to identify where inaccuracies come from
+  //J[0] = J[1] = J[2] = J[3] = J[4] = 0; //ok (the inaccuracies come only from the evaluations of J(X,V))
+  //J[0] = J[2] = J[4] = 0; //err
+  //J[1] = J[3] = 0; //err
+  //       J[1] = J[2] = J[3] = J[4] = 0; //ok  except eta,s
+  //J[0] =        J[2] = J[3] = J[4] = 0; //err except txx,tyy,tzz
+  //J[0] = J[1]        = J[3] = J[4] = 0; //err except s
+  //J[0] = J[1] = J[2] =        J[4] = 0; //err except s,vx,vy,vz
+  //J[0] = J[1] = J[2] = J[3] =        0; //ok  except txy,txz,tyz
+  //---> basically the calculations are fine unless there is a J(X,V) involved
 }
 
 
@@ -366,13 +458,13 @@ double G_eta(double R, double X, double Vy, double Vz, double Tx, double Ty, dou
   double Jz[5];
 
   // A temporary workaround to avoid NAN.
-  R += SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION;
+  R *= (1+SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION);
   
   getI(X, sqrt(R*R-Vy*Vy), Iy);
   getI(X, sqrt(R*R-Vz*Vz), Iz);
   getJ(X,Vy,R,Jy);
   getJ(X,Vz,R,Jz);
-
+  
   double A = Ty*Tz*Vy*Vz+0.25*Vy*Vy*Vz*Vz+0.125*R*R*R*R
     -(1.0/6)*(Ty*Vy*Vy*Vy+Tz*Vz*Vz*Vz) -0.5*Tz*Vz*Vy*Vy-0.5*Ty*Vy*Vz*Vz
     +0.125*Vy*Vy*Vy*Vy+0.125*Vz*Vz*Vz*Vz+0.5*R*R*(Ty*Vy+Tz*Vz-0.5*Vy*Vy-0.5*Vz*Vz+0.5*M_PI*Ty*Tz);
@@ -413,7 +505,7 @@ double G_s(double R, double X, double Vy, double Vz, double Tx, double Ty, doubl
   double Jz[5];
 
   // A temporary workaround to avoid NAN.
-  R += SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION;
+  R *= (1+SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION);
   
   getI(X, sqrt(R*R-Vy*Vy), Iy);
   getI(X, sqrt(R*R-Vz*Vz), Iz);
@@ -441,7 +533,7 @@ double G_vx(double R, double X, double Vy, double Vz, double Tx, double Ty, doub
   double Jz[5];
 
   // A temporary workaround to avoid NAN.
-  R += SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION;  
+  R *= (1+SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION);  
 
   getI(X, sqrt(R*R-Vy*Vy), Iy);
   getI(X, sqrt(R*R-Vz*Vz), Iz);
@@ -470,7 +562,7 @@ double G_txx(double R, double X, double Vy, double Vz, double Tx, double Ty, dou
   double Jz[5];
 
   // A temporary workaround to avoid NAN.
-  R += SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION;
+  R *= (1+SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION);
   
   getI(X, sqrt(R*R-Vy*Vy), Iy);
   getI(X, sqrt(R*R-Vz*Vz), Iz);
@@ -498,7 +590,7 @@ double G_txy(double R, double X, double Vy, double Vz, double Tx, double Ty, dou
   double Jz[5];
 
   // A temporary workaround to avoid NAN.
-  R += SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION;
+  R *= (1+SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION);
   
   getI(X, sqrt(R*R-Vy*Vy), Iy);
   getI(X, sqrt(R*R-Vz*Vz), Iz);
@@ -980,6 +1072,14 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				}
 				////////////////////////
 				
+				
+				// Trying to identify where inaccuracies come from
+				/*if (fabs(Vx)<SMALL_VALUE_FOR_J_INTEGRAL ||    // problems with vy,vz and tyy,tzz,tyz
+				    fabs(Vy)<SMALL_VALUE_FOR_J_INTEGRAL ||    // problems with all but vy and tyy,tyz
+				    fabs(Vz)<SMALL_VALUE_FOR_J_INTEGRAL       // problems with all but vz and tzz
+				    ) continue;*/
+				
+				
 				num_contributions++;
 				
 				// Scaling here gives the DIFFERENT results
@@ -990,6 +1090,8 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				Vx /= scale; Vy /= scale; Vz /= scale;
 				Tx /= scale; Ty /= scale; Tz /= scale;
 				*/
+				
+				/*
 				w_eta += pow(scale,3)*(1/dV)*sgn*G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz);//- G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
 				w_eta -= pow(scale,3)*(1/dV)*sgn*G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
 				if(numWeights > 1)
@@ -997,12 +1099,12 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				    w_s   += pow(scale,2)*(1/dV)*sgn*G_s(R,Vx,Vy,Vz,Tx,Ty,Tz);//- G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
 				    w_s   -= pow(scale,2)*(1/dV)*sgn*G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
 
-				    w_vx += pow(scale,2)*(1/dV)*px*(1.0/R)*sgn*G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_vx -= pow(scale,2)*(1/dV)*px*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
-				    w_vy += pow(scale,2)*(1/dV)*py*(1.0/R)*sgn*G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz);// - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				    w_vy -= pow(scale,2)*(1/dV)*py*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz);
-				    w_vz += pow(scale,2)*(1/dV)*pz*(1.0/R)*sgn*G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx);// - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
-				    w_vz -= pow(scale,2)*(1/dV)*pz*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx);
+				    w_vx  += pow(scale,2)*(1/dV)*px*(1.0/R)*sgn*G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_vx  -= pow(scale,2)*(1/dV)*px*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+				    w_vy  += pow(scale,2)*(1/dV)*py*(1.0/R)*sgn*G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz);// - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_vy  -= pow(scale,2)*(1/dV)*py*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz);
+				    w_vz  += pow(scale,2)*(1/dV)*pz*(1.0/R)*sgn*G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx);// - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
+				    w_vz  -= pow(scale,2)*(1/dV)*pz*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx);
 
 				    w_txx += pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
 				    w_txx -= pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
@@ -1018,6 +1120,78 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				    w_tyz += pow(scale,2)*(1/dV)*py*pz*(1.0/(R*R))*sgn*G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx);// - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
 				    w_tyz -= pow(scale,2)*(1/dV)*py*pz*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx);
 				  }
+				*/
+				
+				// Here we compute twice the weight increment. Due to the small regulator
+				// in G-functions (SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION), the 
+				// expected result dW is off by a small amount dw. We can subtract this
+				// perturbation by multiplying our result dW+dw by a factor of 2 and then
+				// subtract the result dW+2*dw of a second calculation with a regulator
+				// twice as large. This effectively removes the perturbation introduced
+				// by the regulator (at first order).
+				
+				double prefac = 2;
+				w_eta += prefac*pow(scale,3)*(1/dV)*sgn*G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz);//- G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				w_eta -= prefac*pow(scale,3)*(1/dV)*sgn*G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+				if(numWeights > 1)
+				  {
+				    w_s   += prefac*pow(scale,2)*(1/dV)*sgn*G_s(R,Vx,Vy,Vz,Tx,Ty,Tz);//- G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_s   -= prefac*pow(scale,2)*(1/dV)*sgn*G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+
+				    w_vx  += prefac*pow(scale,2)*(1/dV)*px*(1.0/R)*sgn*G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_vx  -= prefac*pow(scale,2)*(1/dV)*px*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+				    w_vy  += prefac*pow(scale,2)*(1/dV)*py*(1.0/R)*sgn*G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz);// - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_vy  -= prefac*pow(scale,2)*(1/dV)*py*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz);
+				    w_vz  += prefac*pow(scale,2)*(1/dV)*pz*(1.0/R)*sgn*G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx);// - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
+				    w_vz  -= prefac*pow(scale,2)*(1/dV)*pz*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx);
+
+				    w_txx += prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_txx -= prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+				    w_tyy += prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz);// - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_tyy -= prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz);
+				    w_tzz += prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx);// - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
+				    w_tzz -= prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx);
+
+				    w_txy += prefac*pow(scale,2)*(1/dV)*px*py*(1.0/(R*R))*sgn*G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_txy -= prefac*pow(scale,2)*(1/dV)*px*py*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+				    w_txz += prefac*pow(scale,2)*(1/dV)*px*pz*(1.0/(R*R))*sgn*G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty);// - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
+				    w_txz -= prefac*pow(scale,2)*(1/dV)*px*pz*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty);
+				    w_tyz += prefac*pow(scale,2)*(1/dV)*py*pz*(1.0/(R*R))*sgn*G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx);// - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
+				    w_tyz -= prefac*pow(scale,2)*(1/dV)*py*pz*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx);
+				  }
+				
+				SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION *= 2;
+				prefac = -1;
+				w_eta += prefac*pow(scale,3)*(1/dV)*sgn*G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz);//- G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				w_eta -= prefac*pow(scale,3)*(1/dV)*sgn*G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+				if(numWeights > 1)
+				  {
+				    w_s   += prefac*pow(scale,2)*(1/dV)*sgn*G_s(R,Vx,Vy,Vz,Tx,Ty,Tz);//- G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_s   -= prefac*pow(scale,2)*(1/dV)*sgn*G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+
+				    w_vx  += prefac*pow(scale,2)*(1/dV)*px*(1.0/R)*sgn*G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_vx  -= prefac*pow(scale,2)*(1/dV)*px*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+				    w_vy  += prefac*pow(scale,2)*(1/dV)*py*(1.0/R)*sgn*G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz);// - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_vy  -= prefac*pow(scale,2)*(1/dV)*py*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz);
+				    w_vz  += prefac*pow(scale,2)*(1/dV)*pz*(1.0/R)*sgn*G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx);// - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
+				    w_vz  -= prefac*pow(scale,2)*(1/dV)*pz*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx);
+
+				    w_txx += prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_txx -= prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+				    w_tyy += prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz);// - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_tyy -= prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz);
+				    w_tzz += prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx);// - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
+				    w_tzz -= prefac*pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx);
+
+				    w_txy += prefac*pow(scale,2)*(1/dV)*px*py*(1.0/(R*R))*sgn*G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_txy -= prefac*pow(scale,2)*(1/dV)*px*py*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
+				    w_txz += prefac*pow(scale,2)*(1/dV)*px*pz*(1.0/(R*R))*sgn*G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty);// - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
+				    w_txz -= prefac*pow(scale,2)*(1/dV)*px*pz*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty);
+				    w_tyz += prefac*pow(scale,2)*(1/dV)*py*pz*(1.0/(R*R))*sgn*G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx);// - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
+				    w_tyz -= prefac*pow(scale,2)*(1/dV)*py*pz*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx);
+				  }
+				SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION /= 2;
+				
 				/*
 				R  = _R;  dV = _dV;
 				Vx = _Vx; Vy = _Vy; Vz = _Vz;
