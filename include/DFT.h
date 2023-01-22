@@ -65,7 +65,6 @@ class DFT : public Dynamical_Matrix
   DFT_Vec &getDF(int i) {return allSpecies_[i]->getDF();}
 
   Species &get_species(int s = 0) const { return *(allSpecies_[s]);}
-
   
   string get_potential()                      const { return Interactions_[0]->get_name();}
   double get_temperature()                    const { return Interactions_[0]->get_temperature();}
