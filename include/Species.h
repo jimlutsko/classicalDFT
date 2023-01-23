@@ -440,7 +440,7 @@ protected:
   }
   //This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
   //           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
-  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights, double scale=1.0);
+  virtual void generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights, double scale=1.0, bool subtract_regulator_contribution=true);
   virtual void generateWeights_old(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
 
 protected:
