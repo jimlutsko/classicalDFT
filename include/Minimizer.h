@@ -209,15 +209,10 @@ class DDFT : public Minimizer, public Dynamical_Matrix
 
   double get_time() const { return time_;}
   void   set_tmax(double tmax) { Tmax_ = tmax;}
-
   
   virtual double get_convergence_monitor() const { return RHS_max_;}
 
   void Display(double F, double dFmin, double dFmax, double N);
-
-  //  double F_string(Density &d, double *fmax = NULL);
-  //  void reverseForce(DFT_Vec *tangent);
-  //  virtual double step_string(double &dt, Density &d, unsigned &time_den, bool verbose = true) = 0;
 
   // Dynamical_Matrix interface
   virtual unsigned get_dimension(int direction) const {return dft_->get_dimension(direction);}
@@ -229,9 +224,11 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   virtual bool     is_fixed_boundary() const {return dft_->is_fixed_boundary();}
   virtual void     matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F=false) const;
   virtual bool     is_dynamic() const { return true;}
+
+  virtual void     g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
+
   
 protected:
-  void   g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
   double get_neighbors(const DFT_Vec &x, int species, long pos, int stride,
 			     double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;
 
