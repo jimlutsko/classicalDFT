@@ -20,6 +20,7 @@ using namespace std;
 
 const double dmin = SMALL_VALUE;
 
+bool SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = false;// true guarantees no NAN (?)
 bool USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
 double SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION = 1e-8;
 double SMALL_VALUE_FOR_J_INTEGRAL = 1e-14;
@@ -297,6 +298,23 @@ void FMT_Species::Check()
   
   Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_scaled);
   
+  cout << endl;
+  cout << scientific << setprecision(2);
+  cout << "=====================================================================" << endl;
+  cout << "  Testing FMT weights calculation: new vs new (G: small value x 10)  " << endl;
+  cout << "  Subtracting contribution of (new) regulator = " << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << endl;
+  cout << endl;
+  
+  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION *= 10;
+  
+  fmt_weighted_densities_new_Gx10.clear(); fmt_weighted_densities_new_Gx10 = vector<FMT_Weighted_Density>(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_Gx10) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new_Gx10, 1.0, true);
+  
+  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION /= 10;
+  
+  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_Gx10);
+  
   /* //No effect
   cout << endl;
   cout << scientific << setprecision(2);
@@ -318,20 +336,21 @@ void FMT_Species::Check()
   
   cout << endl;
   cout << scientific << setprecision(2);
-  cout << "=====================================================================" << endl;
-  cout << "  Testing FMT weights calculation: new vs new (G: small value x 10)  " << endl;
+  cout << "========================================================================" << endl;
+  cout << "  Testing FMT weights calculation: new with vs without J(X,0) set to 0  " << endl;
   cout << "  Subtracting contribution of (new) regulator = " << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << endl;
   cout << endl;
   
-  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION *= 10;
+  const bool default_policy = SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY;
+  SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = true;
   
-  fmt_weighted_densities_new_Gx10.clear(); fmt_weighted_densities_new_Gx10 = vector<FMT_Weighted_Density>(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_Gx10) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new_Gx10, 1.0, true);
+  vector<FMT_Weighted_Density> fmt_weighted_densities_new_J_zero(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_J_zero) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new_J_zero, 1.0, true);
   
-  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION /= 10;
+  SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = default_policy;
   
-  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_Gx10);
+  Check_Print(fmt_weighted_densities_new_J_zero, fmt_weighted_densities_new);
 }
 
 
@@ -414,19 +433,19 @@ double my_asin(double x)
     x = max(-1.0,min(1.0,x));
   }
   
-  return asin(x);
+  //return asin(x);
   
   // Trying to improve the evaluation of asin(x) when x near 1.
   // Is it really why the evaluations of J(X,V) cause problems?
   
-  /*
+  
   double y = 1-x;
   double z = 1+x;
   
   if      (fabs(y)<SMALL_VALUE_FOR_J_INTEGRAL) return  M_PI/2;
   else if (fabs(z)<SMALL_VALUE_FOR_J_INTEGRAL) return -M_PI/2;
   else return asin(x);
-  */
+  
   
   /*
   if (y<SMALL_VALUE_FOR_ASIN)
@@ -482,13 +501,13 @@ static void getI(double X, double A, double I[])
 static void getJ(double X, double V, double R, double J[])
 {
   // Aren't they supposed to be equal to zero when V=0?
-  /*if (fabs(V/R)<SMALL_VALUE_FOR_J_INTEGRAL)
+  if (fabs(V/R)<SMALL_VALUE_FOR_J_INTEGRAL && SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY)
   {
     //if (sqrt(R*R-X*X)<SMALL_VALUE_FOR_J_INTEGRAL)
     //  cout << "J(X,V):    V = " << V << "    sqrt(R*R-X*X) = " << sqrt(R*R-X*X) << endl;
     for (int i=0; i<5; i++) J[i]=0.0; //J[2] = (M_PI/8)*R*R*R*R;
     return;
-  }*/
+  }
   
   double aV  = asin(max(-1.0,min(1.0,V/max(SMALL_VALUE_FOR_J_INTEGRAL,sqrt(R*R-X*X)))));
   double aX  = asin(max(-1.0,min(1.0,X/sqrt(R*R-V*V))));
@@ -1155,11 +1174,11 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				
 				
 				// Trying to identify where inaccuracies come from
-				/*if (fabs(Vx)<SMALL_VALUE_FOR_J_INTEGRAL ||    // problems with vy,vz and tyy,tzz,tyz
-				    fabs(Vy)<SMALL_VALUE_FOR_J_INTEGRAL ||    // problems with all but vy and tyy,tyz
-				    fabs(Vz)<SMALL_VALUE_FOR_J_INTEGRAL       // problems with all but vz and tzz
-				    ) continue;*/
-				
+				/*if (fabs(Vx/R)<SMALL_VALUE_FOR_J_INTEGRAL ||    // problems with vy,vz and tyy,tzz,tyz
+				    fabs(Vy/R)<SMALL_VALUE_FOR_J_INTEGRAL ||    // problems with all but vy and tyy,tyz
+				    fabs(Vz/R)<SMALL_VALUE_FOR_J_INTEGRAL       // problems with all but vz and tzz
+				//    ) continue;
+				    ); else continue;*/
 				
 				num_contributions++;
 				
@@ -1204,7 +1223,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				  }
 				}
 				else
-                                {
+				{
 				// Here we compute twice the weight increment. Due to the small regulator
 				// in G-functions (SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION), the 
 				// expected result dW is off by a small amount dw. We can subtract this
@@ -1275,7 +1294,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				  }
 				SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION /= 2;
 				}
-                                
+				
 				/*
 				R  = _R;  dV = _dV;
 				Vx = _Vx; Vy = _Vy; Vz = _Vz;
