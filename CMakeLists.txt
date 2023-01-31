@@ -77,5 +77,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD  COMMAND mv libclassicalDFT* ../)
 
+# Select here the version of FMT weights calculation
+#target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_WEIGHTS_BEFORE_JUN_2021)
+#target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_WEIGHTS_BEFORE_JAN_2023)
+#target_compile_definitions(${PROJECT_NAME} PUBLIC DEBUG_FMT_WEIGHTS)
 
 
