@@ -422,9 +422,11 @@ public:
   */
   void Initialize();  
   
+  #ifdef DEBUG_FMT_WEIGHTS
   void Check(); 
   void Check_Print(const vector<FMT_Weighted_Density> &fmt_weighted_densities_old, 
                    const vector<FMT_Weighted_Density> &fmt_weighted_densities_new); 
+  #endif
   
 protected:
   // Indices of eta, scaler, vector and tensor weighted densities
@@ -438,10 +440,17 @@ protected:
     else if (j == 1) return 7+k;
     return 10;
   }
+  
   //This is a one-time-only evaluation of the numerical approximation to the FMT weight functions. These are all 
   //           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
   virtual void generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights, double scale=1.0, bool subtract_regulator_contribution=true);
-  virtual void generateWeights_old(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
+  
+  #ifdef FMT_WEIGHTS_BEFORE_JUN_2021
+    virtual void generateWeights_before_jun_2021(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
+  #endif
+  #ifdef FMT_WEIGHTS_BEFORE_JAN_2023
+    virtual void generateWeights_before_jan_2023(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
+  #endif
 
 protected:
   double hsd_ = 0.0; ///< hard sphere diameter 

@@ -19,12 +19,26 @@ using namespace std;
 
 
 const double dmin = SMALL_VALUE;
+const double SMALL_VALUE_FOR_J_INTEGRAL = 1e-14; //value does not affect results
 
-bool SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = false;// true guarantees no NAN (?)
-bool USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
+// TODO: Declare constant --> should be passed as an argument to G functions
 double SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION = 1e-8;
-double SMALL_VALUE_FOR_J_INTEGRAL = 1e-14;
-//double SMALL_VALUE_FOR_ASIN = 1e-6;
+
+#ifdef DEBUG_FMT_WEIGHTS
+  bool USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
+  bool SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = false;
+#else
+  #if defined FMT_WEIGHTS_BEFORE_JUN_2021
+    const bool USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = true; //small value will be 1e-15
+    const bool SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = false;
+  #elif defined FMT_WEIGHTS_BEFORE_JAN_2023
+    const bool USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = true; //small value will be 1e-15
+    const bool SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = false;
+  #else
+    const bool USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
+    const bool SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = false; // true should guarantee no NAN
+  #endif
+#endif
 
 
 // These impose density limits based on the fact that in the most extreme case,
@@ -176,7 +190,9 @@ FMT_Species::FMT_Species(Density& density, double hsd, double mu, bool verbose, 
 
 void FMT_Species::Initialize()
 {
-  Check(); // TODO: temporary
+  #ifdef DEBUG_FMT_WEIGHTS
+    Check();
+  #endif
   
   long Nx = density_->Nx();
   long Ny = density_->Ny();
@@ -185,162 +201,188 @@ void FMT_Species::Initialize()
   for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.initialize(Nx, Ny, Nz);
 
-  generateWeights(hsd_, fmt_weighted_densities);
+  #if defined FMT_WEIGHTS_BEFORE_JUN_2021
+    generateWeights_before_jun_2021(hsd_, fmt_weighted_densities);
+  #elif defined FMT_WEIGHTS_BEFORE_JAN_2023
+    generateWeights_before_jan_2023(hsd_, fmt_weighted_densities);
+  #else
+    generateWeights(hsd_, fmt_weighted_densities);
+  #endif
 
   for(FMT_Weighted_Density &d: fmt_weighted_densities)
     d.transformWeights();
 }
 
 
+#ifdef DEBUG_FMT_WEIGHTS
 void FMT_Species::Check()
 {
   long Nx = density_->Nx();
   long Ny = density_->Ny();
   long Nz = density_->Nz();
   
+  // New code version
+  vector<FMT_Weighted_Density> fmt_weighted_densities_new(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new);
+  
+  // New code with parameters set to reproduce old calculations
   USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = true;
-  vector<FMT_Weighted_Density> fmt_weighted_densities_old(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_old) d.initialize(Nx, Ny, Nz);
-  generateWeights_old(hsd_, fmt_weighted_densities_old);
+  
+  vector<FMT_Weighted_Density> fmt_weighted_densities_new_as_before_jun_2021(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_as_before_jun_2021) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new_as_before_jun_2021, density_->getDX(), false);
+  
+  vector<FMT_Weighted_Density> fmt_weighted_densities_new_as_before_jan_2023(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_as_before_jan_2023) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new_as_before_jan_2023, 1.0, false);
+  
   USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
   
-  vector<FMT_Weighted_Density> fmt_weighted_densities_old_2(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_old_2) d.initialize(Nx, Ny, Nz);
-  generateWeights_old(hsd_, fmt_weighted_densities_old_2);
+  // Old code versions
+  #ifdef FMT_WEIGHTS_BEFORE_JUN_2021
+    USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = true;
+    
+    vector<FMT_Weighted_Density> fmt_weighted_densities_before_jun_2021(11);
+    for(FMT_Weighted_Density &d: fmt_weighted_densities_before_jun_2021) d.initialize(Nx, Ny, Nz);
+    generateWeights_before_jun_2021(hsd_, fmt_weighted_densities_before_jun_2021);
+    
+    USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
+    
+    cout << endl;
+    cout << scientific << setprecision(2);
+    cout << "===========================================================" << endl;
+    cout << "  Testing FMT weights calculation: new vs old (<jun 2021)  " << endl;
+    cout << endl;
+    
+    Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_before_jun_2021); cout << endl;
+    
+    cout << endl;
+    cout << scientific << setprecision(2);
+    cout << "===========================================================" << endl;
+    cout << "  Testing FMT weights calculation: new vs old (<jun 2021)  " << endl;
+    cout << "  Reproducing old calculation using new code scaled, the   " << endl;
+    cout << "  old G-function regulator (1e-15) and keep contribution   " << endl;
+    cout << endl;
+    
+    Check_Print(fmt_weighted_densities_new_as_before_jun_2021, fmt_weighted_densities_before_jun_2021); cout << endl;
+  #endif
+  
+  #ifdef FMT_WEIGHTS_BEFORE_JAN_2023
+    USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = true;
+    
+    vector<FMT_Weighted_Density> fmt_weighted_densities_before_jan_2023(11);
+    for(FMT_Weighted_Density &d: fmt_weighted_densities_before_jan_2023) d.initialize(Nx, Ny, Nz);
+    generateWeights_before_jan_2023(hsd_, fmt_weighted_densities_before_jan_2023);
+    
+    USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
+    
+    cout << endl;
+    cout << scientific << setprecision(2);
+    cout << "===========================================================" << endl;
+    cout << "  Testing FMT weights calculation: new vs old (<jan 2023)  " << endl;
+    cout << endl;
+    
+    Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_before_jan_2023); cout << endl;
+    
+    cout << endl;
+    cout << scientific << setprecision(2);
+    cout << "===========================================================" << endl;
+    cout << "  Testing FMT weights calculation: new vs old (<jan 2023)  " << endl;
+    cout << "  Reproducing old calculation using new code unscaled, the " << endl;
+    cout << "  old G-function regulator (1e-15) and keep contribution   " << endl;
+    cout << endl;
+    
+    Check_Print(fmt_weighted_densities_new_as_before_jan_2023, fmt_weighted_densities_before_jan_2023); cout << endl;
+  #endif
+  
+  // Modification of G-function regulator
+  USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = true;
+  
+  vector<FMT_Weighted_Density> fmt_weighted_densities_new_but_old_regulator(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_but_old_regulator) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new_but_old_regulator);
+  
+  USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
   
   cout << endl;
   cout << scientific << setprecision(2);
-  cout << "========================================================" << endl;
-  cout << "  Testing FMT weights calculation: old vs new (scaled)  " << endl;
-  cout << "  Old G-function regulator of 1e-15, keep contribution   " << endl;
+  cout << "=======================================================================" << endl;
+  cout << "  Testing FMT weights calculation: old vs new (handling of regulator)  " << endl;
+  cout << "  old: regulator R += " << setw(8) << 1e-15 << ", not subtracting contribution to G  " << endl;
+  cout << "  new: regulator R *= (1+" << setw(8) << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << "), subtracting contribution to G  " << endl;
+  cout << "  This is what changed before and after January 2023" << endl;
   cout << endl;
   
-  USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = true;
+  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_but_old_regulator); cout << endl;
+  
+  // Scaling under old G-function regulator
+  cout << endl;
+  cout << scientific << setprecision(2);
+  cout << "==========================================================" << endl;
+  cout << "  Testing FMT weights calculation: /=1 vs /=dx (scaling)  " << endl;
+  cout << "  Using old regulator R += " << setw(8) << 1e-15 << ", not subtracting contribution to G  " << endl;
+  cout << "  This is what changed before and after June 2021" << endl;
+  cout << endl;
+  
+  Check_Print(fmt_weighted_densities_new_as_before_jan_2023, fmt_weighted_densities_new_as_before_jun_2021); cout << endl;
+  
+  // Scaling under new G-function regulator
+  vector<FMT_Weighted_Density> fmt_weighted_densities_new_unscaled(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_unscaled) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new_unscaled, 1.0, true);
   
   vector<FMT_Weighted_Density> fmt_weighted_densities_new_scaled(11);
   for(FMT_Weighted_Density &d: fmt_weighted_densities_new_scaled) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new_scaled, density_->getDX(), false);
-  
-  Check_Print(fmt_weighted_densities_old, fmt_weighted_densities_new_scaled);
-  
-  cout << endl;
-  cout << scientific << setprecision(2);
-  cout << "========================================================" << endl;
-  cout << "  Testing FMT weights calculation: new vs new (scaled)  " << endl;
-  cout << "  Old G-function regulator of 1e-15, keep contribution   " << endl;
-  cout << endl;
-  
-  vector<FMT_Weighted_Density> fmt_weighted_densities_new(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new, 1.0, false);
-  
-  USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
-  
-  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_scaled);
-  
-  cout << endl;
-  cout << scientific << setprecision(2);
-  cout << "========================================================" << endl;
-  cout << "  Testing FMT weights calculation: old vs new (scaled)  " << endl;
-  cout << "  New scalable regulator of " << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << ", keep contribution" << endl;
-  cout << endl;
-  
-  fmt_weighted_densities_new_scaled.clear(); fmt_weighted_densities_new_scaled = vector<FMT_Weighted_Density>(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_scaled) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new_scaled, density_->getDX(), false);
-  
-  Check_Print(fmt_weighted_densities_old_2, fmt_weighted_densities_new_scaled);
-  
-  cout << endl;
-  cout << scientific << setprecision(2);
-  cout << "========================================================" << endl;
-  cout << "  Testing FMT weights calculation: new vs new (scaled)  " << endl;
-  cout << "  New scalable regulator of " << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << ", keep contribution" << endl;
-  cout << endl;
-  
-  fmt_weighted_densities_new.clear(); fmt_weighted_densities_new = vector<FMT_Weighted_Density>(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new, 1.0, false);
-  
-  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_scaled);
-  
-  cout << endl;
-  cout << scientific << setprecision(2);
-  cout << "=====================================================================" << endl;
-  cout << "  Testing FMT weights calculation: new vs new (G: small value x 10)  " << endl;
-  cout << "  New scalable regulator of " << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << ", keep contribution" << endl;
-  cout << endl;
-  
-  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION *= 10;
-  
-  vector<FMT_Weighted_Density> fmt_weighted_densities_new_Gx10(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_Gx10) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new_Gx10, 1.0, false);
-  
-  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION /= 10;
-  
-  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_Gx10);
-  
-  cout << endl;
-  cout << scientific << setprecision(2);
-  cout << "========================================================" << endl;
-  cout << "  Testing FMT weights calculation: new vs new (scaled)  " << endl;
-  cout << "  Subtracting contribution of (new) regulator = " << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << endl;
-  cout << endl;
-  
-  fmt_weighted_densities_new.clear(); fmt_weighted_densities_new = vector<FMT_Weighted_Density>(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new, 1.0, true);
-  
-  fmt_weighted_densities_new_scaled.clear(); fmt_weighted_densities_new_scaled = vector<FMT_Weighted_Density>(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_scaled) d.initialize(Nx, Ny, Nz);
   generateWeights(hsd_, fmt_weighted_densities_new_scaled, density_->getDX(), true);
   
-  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_scaled);
+  cout << endl;
+  cout << scientific << setprecision(2);
+  cout << "==========================================================" << endl;
+  cout << "  Testing FMT weights calculation: /=1 vs /=dx (scaling)  " << endl;
+  cout << "  Using new regulator R *= (1+" << setw(8) << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << "), subtracting contribution to G  " << endl;
+  cout << endl;
+  
+  Check_Print(fmt_weighted_densities_new_unscaled, fmt_weighted_densities_new_scaled); cout << endl;
+  
+  // Contribution of the G-function regulator
+  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION *= 2;
+  
+  vector<FMT_Weighted_Density> fmt_weighted_densities_new_Gx2(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_Gx2) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new_Gx2, 1.0, false);
+  
+  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION /= 2;
   
   cout << endl;
   cout << scientific << setprecision(2);
   cout << "=====================================================================" << endl;
-  cout << "  Testing FMT weights calculation: new vs new (G: small value x 10)  " << endl;
-  cout << "  Subtracting contribution of (new) regulator = " << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << endl;
+  cout << "  Testing FMT weights calculation: new vs new (G: small value x 2)  " << endl;
+  cout << "  Using new regulator R *= (1+" << setw(8) << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << "), scale=1 and NOT subtracting contribution to G  " << endl;
   cout << endl;
   
-  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION *= 10;
+  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_Gx2); cout << endl;
   
-  fmt_weighted_densities_new_Gx10.clear(); fmt_weighted_densities_new_Gx10 = vector<FMT_Weighted_Density>(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_Gx10) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new_Gx10, 1.0, true);
+  // Contribution of the G-function regulator (after subtraction of 1st order perturbation)
+  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION *= 2;
   
-  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION /= 10;
+  fmt_weighted_densities_new_Gx2.clear();
+  fmt_weighted_densities_new_Gx2 = vector<FMT_Weighted_Density>(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_Gx2) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new_Gx2, 1.0, true);
   
-  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_Gx10);
+  SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION /= 2;
   
-  /* //No effect
   cout << endl;
   cout << scientific << setprecision(2);
   cout << "=====================================================================" << endl;
-  cout << "  Testing FMT weights calculation: new vs new (J: small value x 10)  " << endl;
-  cout << "  Subtracting contribution of (new) regulator = " << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << endl;
+  cout << "  Testing FMT weights calculation: new vs new (G: small value x 2)  " << endl;
+  cout << "  Using new regulator R *= (1+" << setw(8) << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << "), scale=1 and subtracting contribution to G  " << endl;
   cout << endl;
   
-  SMALL_VALUE_FOR_J_INTEGRAL *= 10;
+  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_Gx2); cout << endl;
   
-  vector<FMT_Weighted_Density> fmt_weighted_densities_new_Jx10(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_Jx10) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new_Jx10, 1.0, true);
-  
-  SMALL_VALUE_FOR_J_INTEGRAL /= 10;
-  
-  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_Jx10);
-  */
-  
-  cout << endl;
-  cout << scientific << setprecision(2);
-  cout << "========================================================================" << endl;
-  cout << "  Testing FMT weights calculation: new with vs without J(X,0) set to 0  " << endl;
-  cout << "  Subtracting contribution of (new) regulator = " << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << endl;
-  cout << endl;
-  
+  // Setting or not setting J(X,V) to zero when V=0
   const bool default_policy = SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY;
   SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = true;
   
@@ -350,7 +392,14 @@ void FMT_Species::Check()
   
   SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY = default_policy;
   
-  Check_Print(fmt_weighted_densities_new_J_zero, fmt_weighted_densities_new);
+  cout << endl;
+  cout << scientific << setprecision(2);
+  cout << "========================================================================" << endl;
+  cout << "  Testing FMT weights calculation: new with vs without J(X,0) set to 0  " << endl;
+  cout << "  Using new regulator R *= (1+" << setw(8) << SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION << "), scale=1 and subtracting contribution to G  " << endl;
+  cout << endl;
+  
+  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_J_zero); cout << endl;
 }
 
 
@@ -381,21 +430,6 @@ void FMT_Species::Check_Print(const vector<FMT_Weighted_Density> &fmt_weighted_d
     {
       norm += pow(d_new.getWeight(p),2);
       norm_diff += pow(d_new.getWeight(p)-d_old.getWeight(p),2);
-      
-      /*double tol = 1e-10;
-      if (//(d.getWeight(p)>tol || d_old.getWeight(p)>tol) && 
-          fabs(d.getWeight(p)-d_old.getWeight(p))>tol)
-      {
-        int ix, iy, iz; density_->cartesian(p,ix,iy,iz);
-        cout << endl; cout << scientific << setprecision(2);
-        cout << "p = " << p << " (" << ix << " " << iy << " " << iz << ")" << endl;
-        cout << endl; cout << scientific << setprecision(2);
-				cout << "w = " << d_new.getWeight(p) << endl;
-				cout << "w_old = " << d_old.getWeight(p) << endl;
-				cout << "fabs(w-w_old) = " << fabs(d_new.getWeight(p)-d_old.getWeight(p)) << endl;
-				
-				throw runtime_error("Found anormal weight value");
-      }*/
     }
     
     norm      = sqrt(norm      /density_->Ntot());
@@ -405,20 +439,9 @@ void FMT_Species::Check_Print(const vector<FMT_Weighted_Density> &fmt_weighted_d
     cout << "    norm_diff = " << setw(10) << norm_diff;
     cout << "    norm_diff/norm = " << setw(10) << norm_diff/norm;
     cout << endl;
-    
-    /*
-    int ix = int(hsd_/density_->getDX()/2); int iy = 0; int iz = 0;
-    long p = density_->pos(ix,iy,iz);
-    double w = d_new.getWeight(p);
-    double w_diff = d_new.getWeight(p)-d_old.getWeight(p);
-    
-    cout << "    w = " << setw(10) << w;
-    cout << "    w_diff = " << setw(10) << w_diff;
-    cout << "    fabs(w_diff/w) = " << setw(10) << fabs(w_diff/w);
-    cout << endl;
-    */
   }
 }
+#endif // DEBUG_FMT_WEIGHTS
 
 
 double my_asin(double x)
@@ -437,7 +460,6 @@ double my_asin(double x)
   
   // Trying to improve the evaluation of asin(x) when x near 1.
   // Is it really why the evaluations of J(X,V) cause problems?
-  
   
   double y = 1-x;
   double z = 1+x;
@@ -487,6 +509,7 @@ double my_asin(double x)
 
 static void getI(double X, double A, double I[])
 {
+  //double a = asin(X/A);
   double a = asin(max(-1.0,min(1.0,X/A)));
   //double a = my_asin(X/A);
   double b = sqrt(fabs(A*A-X*X));
@@ -500,11 +523,10 @@ static void getI(double X, double A, double I[])
   
 static void getJ(double X, double V, double R, double J[])
 {
-  // Aren't they supposed to be equal to zero when V=0?
+  // Aren't they supposed to be equal to zero when V=0? 
+  // Why is there a R^4 term in the SI of the PRE 2020?
   if (fabs(V/R)<SMALL_VALUE_FOR_J_INTEGRAL && SET_J_INTEGRAL_TO_ZERO_WHEN_V_ON_BOUNDARY)
   {
-    //if (sqrt(R*R-X*X)<SMALL_VALUE_FOR_J_INTEGRAL)
-    //  cout << "J(X,V):    V = " << V << "    sqrt(R*R-X*X) = " << sqrt(R*R-X*X) << endl;
     for (int i=0; i<5; i++) J[i]=0.0; //J[2] = (M_PI/8)*R*R*R*R;
     return;
   }
@@ -712,7 +734,9 @@ double G_txy(double R, double X, double Vy, double Vz, double Tx, double Ty, dou
   return g;
 }
 
-void FMT_Species::generateWeights_old(double hsd, vector<FMT_Weighted_Density> &fmt_weights)
+
+#ifdef FMT_WEIGHTS_BEFORE_JUN_2021
+void FMT_Species::generateWeights_before_jun_2021(double hsd, vector<FMT_Weighted_Density> &fmt_weights)
 {
   cout << "OK: Generating weights" << endl;
   
@@ -746,7 +770,6 @@ void FMT_Species::generateWeights_old(double hsd, vector<FMT_Weighted_Density> &
   cout << myColor::RESET << endl;
 
   long counter = 0;
-  long num_contributions = 0;
 
   int numWeights = fmt_weights.size();
 
@@ -769,16 +792,13 @@ void FMT_Species::generateWeights_old(double hsd, vector<FMT_Weighted_Density> &
 	  double R2_min = dx*dx*(Sx-(Sx == 0 ? 0 : 1))*(Sx-(Sx == 0 ? 0 : 1))+dy*dy*(Sy-(Sy == 0 ? 0 : 1))*(Sy-(Sy == 0 ? 0 : 1))+dz*dz*(Sz-(Sz == 0 ? 0 : 1))*(Sz-(Sz == 0 ? 0 : 1));
 	  double R2_max = dx*dx*(Sx+1)*(Sx+1)+dy*dy*(Sy+1)*(Sy+1)+dz*dz*(Sz+1)*(Sz+1);
 	  
-	  /*
 	  double w_eta = 0.0;
 	  double w_s   = 0.0;
 	  double w_v[3] = {0.0,0.0,0.0};
 	  double w_T[3][3] = {{0.0,0.0,0.0},
 			      {0.0,0.0,0.0},
 			      {0.0,0.0,0.0}};
-    */
-    Summation w_eta, w_s, w_vx, w_vy, w_vz, w_txx, w_tyy, w_tzz, w_txy, w_txz, w_tyz;
-    
+
 	  // The weight for point Sx,Sy,Sz has contributions from all adjoining cells
 	  // The furthest corner is Sx+1,Sy+1,Sz+1 and if this less than hsr*hsr, the volume weights are 1, and the surface weights are zero
 	  // else, the nearest corner is Sx-1,Sy-1,Sz-1 (unless Sx, Sy or Sz = 0) and if this is less than hsr*hsr, then the boundary is between these limits and we must compute
@@ -786,30 +806,32 @@ void FMT_Species::generateWeights_old(double hsd, vector<FMT_Weighted_Density> &
 
 	  //Note: Special cases of I-sums, e.g. when one or more components of S are zero, are handled in the called functions.
 	  
-	  if(R*R > R2_max) {w_eta += dV;}
+	  if(R*R > R2_max) {w_eta = dV;}
 	  else if(R*R > R2_min)
 	    for(int ax:I)
 	      {
 		int ix = ax;
 		double Tx = dx*(Sx+ix);
-		int px = (Tx < -dx/10 ? -1 : 1);
-		if(Tx < -dx/10) {ix = 1; Tx = dx;}		   
+		int px = (Tx < 0 ? -1 : 1);
+		if(Tx < 0) {ix = 1; Tx = dx;}		   
 		for(int ay:I)
 		  {
 		    int iy = ay;
 		    double Ty = dy*(Sy+iy);
-		    int py = (Ty < -dy/10 ? -1 : 1);
-		    if(Ty < -dy/10) {iy = 1; Ty = dy;}	       		    
+		    int py = (Ty < 0 ? -1 : 1);
+		    if(Ty < 0) {iy = 1; Ty = dy;}	       		    
 		    for(int az:I)
 		      {
 			int iz = az;
 			double Tz = dz*(Sz+iz);
-			int pz = (Tz < -dz/10 ? -1 : 1);
-			if(Tz < -dz/10) {iz = 1; Tz = dz;}
+			int pz = (Tz < 0 ? -1 : 1);
+			if(Tz < 0) {iz = 1; Tz = dz;}
   
 			int vx[2] = {0,ix};
 			int vy[2] = {0,iy};
 			int vz[2] = {0,iz};
+
+			double j = 0.0;
 
 			for(int jx = 0; jx < 2; jx++)
 			  for(int jy = 0; jy < 2; jy++)
@@ -829,69 +851,34 @@ void FMT_Species::generateWeights_old(double hsd, vector<FMT_Weighted_Density> &
 
 				//!!! Replace dV and dS in the following by (1/dV) in all cases
 				
-				num_contributions++;
-				/*w_eta += dV*sgn*(G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				w_eta += dV*sgn*(G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
 				if(numWeights > 1)
 				  {
 				    w_s   += dS*sgn*(G_s(R,Vx,Vy,Vz,Tx,Ty,Tz)   - G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
 
-				    w_vx += dS*px*(1.0/R)*sgn*(G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_vy += dS*py*(1.0/R)*sgn*(G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				    w_vz += dS*pz*(1.0/R)*sgn*(G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
+				    w_v[0] += dS*px*(1.0/R)*sgn*(G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_v[1] += dS*py*(1.0/R)*sgn*(G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_v[2] += dS*pz*(1.0/R)*sgn*(G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
 
-				    w_txx += dS*(1.0/(R*R))*sgn*(G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_tyy += dS*(1.0/(R*R))*sgn*(G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				    w_tzz += dS*(1.0/(R*R))*sgn*(G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
+				    w_T[0][0] += dS*(1.0/(R*R))*sgn*(G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[1][1] += dS*(1.0/(R*R))*sgn*(G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_T[2][2] += dS*(1.0/(R*R))*sgn*(G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
 
-				    w_txy += dS*px*py*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_txz += dS*px*pz*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
-				    w_tyz += dS*py*pz*(1.0/(R*R))*sgn*(G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx) - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
-				  }*/
-				w_eta += dV*sgn*G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz);//- G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				w_eta -= dV*sgn*G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
-				if(numWeights > 1)
-				  {
-				    w_s   += dS*sgn*G_s(R,Vx,Vy,Vz,Tx,Ty,Tz);//- G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_s   -= dS*sgn*G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
-
-				    w_vx += dS*px*(1.0/R)*sgn*G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_vx -= dS*px*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
-				    w_vy += dS*py*(1.0/R)*sgn*G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz);// - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				    w_vy -= dS*py*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz);
-				    w_vz += dS*pz*(1.0/R)*sgn*G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx);// - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
-				    w_vz -= dS*pz*(1.0/R)*sgn*G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx);
-
-				    w_txx += dS*(1.0/(R*R))*sgn*G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_txx -= dS*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
-				    w_tyy += dS*(1.0/(R*R))*sgn*G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz);// - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
-				    w_tyy -= dS*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz);
-				    w_tzz += dS*(1.0/(R*R))*sgn*G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx);// - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
-				    w_tzz -= dS*(1.0/(R*R))*sgn*G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx);
-
-				    w_txy += dS*px*py*(1.0/(R*R))*sgn*G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz);// - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
-				    w_txy -= dS*px*py*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
-				    w_txz += dS*px*pz*(1.0/(R*R))*sgn*G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty);// - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
-				    w_txz -= dS*px*pz*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty);
-				    w_tyz += dS*py*pz*(1.0/(R*R))*sgn*G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx);// - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
-				    w_tyz -= dS*py*pz*(1.0/(R*R))*sgn*G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx);
+				    w_T[0][1] += dS*px*py*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[0][2] += dS*px*pz*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
+				    w_T[1][2] += dS*py*pz*(1.0/(R*R))*sgn*(G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx) - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
 				  }
 			      }
 		      }
 		  }
-	      }
-	  
-	  double w_v[3] = {w_vx.sum(),w_vy.sum(),w_vz.sum()};
-	  double w_T[3][3] = {{w_txx.sum(),w_txy.sum(),w_txz.sum()},
-	                      {        0.0,w_tyy.sum(),w_tyz.sum()},
-		                    {        0.0,        0.0,w_tzz.sum()}};
-	  
+	      }	
 	  // Add in for all octants of the sphere: take account of parity of vector and tensor quantities
 	  for(int ix = 0; ix < (Sx == 0 ? 1 : 2); ix++)
 	    for(int iy = 0; iy < (Sy == 0 ? 1 : 2); iy++)
 	      for(int iz = 0; iz < (Sz == 0 ? 1 : 2); iz++)
 		{		  
 		  long pos = density_->get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
-		  fmt_weights[EI()].addToWeight(pos,w_eta.sum());
+		  fmt_weights[EI()].addToWeight(pos,w_eta);
 		  if(isnan(fmt_weights[EI()].getWeight(pos)))
 		    {
 		      cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
@@ -899,7 +886,7 @@ void FMT_Species::generateWeights_old(double hsd, vector<FMT_Weighted_Density> &
 		    }
 		  if(numWeights > 1)
 		    {
-		      fmt_weights[SI()].addToWeight(pos,w_s.sum());
+		      fmt_weights[SI()].addToWeight(pos,w_s);
 		      for(int iv = 0;iv < 3;iv++)
 			{
 			  fmt_weights[VI(iv)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*w_v[iv]);
@@ -915,13 +902,170 @@ void FMT_Species::generateWeights_old(double hsd, vector<FMT_Weighted_Density> &
   cout << "/////  Finished.  " << endl;
   cout << "///////////////////////////////////////////////////////////" << endl;
   cout << myColor::RESET << endl;
-  
-  cout << endl;
-  cout << "num_contributions (old) = " << num_contributions << endl;
 }
+#endif //FMT_WEIGHTS_BEFORE_JUN_2021
 
+#ifdef FMT_WEIGHTS_BEFORE_JAN_2023
+void FMT_Species::generateWeights_before_jan_2023(double hsd, vector<FMT_Weighted_Density> &fmt_weights)
+{
+  double dx = density_->getDX();
+  double dy = density_->getDY();
+  double dz = density_->getDZ();
+
+  double dV = dx*dy*dz;
+
+  double R = hsd/2; // the hard-sphere radius
+  
+  // This saves having to a code a useless special case
+  if(hsd < min(min(dx,dy),dz))
+    throw std::runtime_error("hsd is less than the lattice spacing ... aborting");
+  
+  int Sx_max = 2+int(R/dx);
+  int Sy_max = 2+int(R/dy);
+  int Sz_max = 2+int(R/dz);
+
+  long pmax = (Sx_max+1)*(Sy_max+1)*(Sz_max+1);
+  
+  int I[2] = {-1,1};
+
+  if(verbose_) cout << endl;
+  if(verbose_) cout << myColor::YELLOW;
+  if(verbose_) cout << "/////  Generating FMT weights using analytic formulae" << endl;
+  if(verbose_) cout << myColor::RESET;
+
+  long counter = 0;
+
+  int numWeights = fmt_weights.size();
+  
+  for(int Sx = 0; Sx <= Sx_max; Sx++)
+    for(int Sy = 0; Sy <= Sy_max; Sy++)
+      for(int Sz = 0; Sz <= Sz_max; Sz++)
+	{
+	  counter++;
+	  if(counter%1000 == 0) {if(counter > 0) if(verbose_) cout << '\r'; if(verbose_) cout << "\t" << int(double(counter)*100.0/pmax) << "% finished: " << counter << " out of " << pmax; if(verbose_) cout.flush();}
+
+	  double R2_min = dx*dx*(Sx-(Sx == 0 ? 0 : 1))*(Sx-(Sx == 0 ? 0 : 1))+dy*dy*(Sy-(Sy == 0 ? 0 : 1))*(Sy-(Sy == 0 ? 0 : 1))+dz*dz*(Sz-(Sz == 0 ? 0 : 1))*(Sz-(Sz == 0 ? 0 : 1));
+	  double R2_max = dx*dx*(Sx+1)*(Sx+1)+dy*dy*(Sy+1)*(Sy+1)+dz*dz*(Sz+1)*(Sz+1);
+	  
+	  double w_eta = 0.0;
+	  double w_s   = 0.0;
+	  double w_v[3] = {0.0,0.0,0.0};
+	  double w_T[3][3] = {{0.0,0.0,0.0},
+			      {0.0,0.0,0.0},
+			      {0.0,0.0,0.0}};
+
+	  // The weight for point Sx,Sy,Sz has contributions from all adjoining cells
+	  // The furthest corner is Sx+1,Sy+1,Sz+1 and if this less than hsr*hsr, the volume weights are 1, and the surface weights are zero
+	  // else, the nearest corner is Sx-1,Sy-1,Sz-1 (unless Sx, Sy or Sz = 0) and if this is less than hsr*hsr, then the boundary is between these limits and we must compute
+	  // else, all hsd boundary is less than the nearest corner and all weights are zero.
+
+	  //Note: Special cases of I-sums, e.g. when one or more components of S are zero, are handled in the called functions.
+	  
+	  if(R*R > R2_max) {w_eta = dV;}
+	  else if(R*R > R2_min)
+	    for(int ax:I)
+	      {
+		int ix = ax;
+		double Tx = dx*(Sx+ix);
+		int px = (Tx < 0 ? -1 : 1);
+		if(Tx < 0) {ix = 1; Tx = dx;}		   
+		for(int ay:I)
+		  {
+		    int iy = ay;
+		    double Ty = dy*(Sy+iy);
+		    int py = (Ty < 0 ? -1 : 1);
+		    if(Ty < 0) {iy = 1; Ty = dy;}	       		    
+		    for(int az:I)
+		      {
+			int iz = az;
+			double Tz = dz*(Sz+iz);
+			int pz = (Tz < 0 ? -1 : 1);
+			if(Tz < 0) {iz = 1; Tz = dz;}
+  
+			int vx[2] = {0,ix};
+			int vy[2] = {0,iy};
+			int vz[2] = {0,iz};
+
+			double j = 0.0;
+
+			for(int jx = 0; jx < 2; jx++)
+			  for(int jy = 0; jy < 2; jy++)
+			    for(int jz = 0; jz < 2; jz++)
+			      {
+				double Vx = Tx - dx*vx[jx];
+				double Vy = Ty - dy*vy[jy];
+				double Vz = Tz - dz*vz[jz];
+			    
+				int sgn = 1;
+				if(jx == 1) sgn *= -1;
+				if(jy == 1) sgn *= -1;
+				if(jz == 1) sgn *= -1;
+			    
+				// test up to machine precision
+				if((R*R - (Vx*Vx+Vy*Vy+Vz*Vz)) < std::nextafter(0.d,1.d)) continue;
+				
+				w_eta += (1/dV)*sgn*(G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				if(numWeights > 1)
+				  {
+				    w_s   += (1/dV)*sgn*(G_s(R,Vx,Vy,Vz,Tx,Ty,Tz)   - G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+
+				    w_v[0] += (1/dV)*px*(1.0/R)*sgn*(G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_v[1] += (1/dV)*py*(1.0/R)*sgn*(G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_v[2] += (1/dV)*pz*(1.0/R)*sgn*(G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
+
+				    w_T[0][0] += (1/dV)*(1.0/(R*R))*sgn*(G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[1][1] += (1/dV)*(1.0/(R*R))*sgn*(G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_T[2][2] += (1/dV)*(1.0/(R*R))*sgn*(G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
+
+				    w_T[0][1] += (1/dV)*px*py*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[0][2] += (1/dV)*px*pz*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
+				    w_T[1][2] += (1/dV)*py*pz*(1.0/(R*R))*sgn*(G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx) - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
+				  }
+			      }
+		      }
+		  }
+	      }
+	  
+	  // Add in for all octants of the sphere: take account of parity of vector and tensor quantities
+	  for(int ix = 0; ix < (Sx == 0 ? 1 : 2); ix++)
+	    for(int iy = 0; iy < (Sy == 0 ? 1 : 2); iy++)
+	      for(int iz = 0; iz < (Sz == 0 ? 1 : 2); iz++)
+		{		  
+		  long pos = density_->get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
+		  fmt_weights[EI()].addToWeight(pos,w_eta);
+		  if(std::isnan(fmt_weights[EI()].getWeight(pos)))
+		    {
+		      if(verbose_) cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
+		      throw std::runtime_error("Found NAN");
+		    }
+		  if(numWeights > 1)
+		    {
+		      fmt_weights[SI()].addToWeight(pos,w_s);
+		      for(int iv = 0;iv < 3;iv++)
+			{
+			  fmt_weights[VI(iv)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*w_v[iv]);
+			  for(int it=iv;it<3;it++)
+			    fmt_weights[TI(iv,it)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*(it == 0 ? (1-2*ix) : (it == 1 ? (1-2*iy) : (1-2*iz)))*w_T[iv][it]);
+			}
+		    }
+		}		  
+	}
+
+  if(verbose_) cout << '\r'; if(verbose_) cout << ""; if(verbose_) cout.flush();
+}
+#endif //FMT_WEIGHTS_BEFORE_JAN_2023
+
+//New FMT weight calculation (after january 2023)
 void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights, double scale, bool subtract_regulator_contribution)
 {
+  #ifndef DEBUG_FMT_WEIGHTS
+    #if   defined FMT_WEIGHTS_BEFORE_JUN_2021
+      throw runtime_error("FMT_Species::generateWeights should not be called in this context");
+    #elif defined FMT_WEIGHTS_BEFORE_JAN_2023
+      throw runtime_error("FMT_Species::generateWeights should not be called in this context");
+    #endif
+  #endif
+  
   double dx = density_->getDX();
   double dy = density_->getDY();
   double dz = density_->getDZ();
@@ -989,7 +1133,6 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 
 	  double R2_min = dx*dx*(Sx-(Sx == 0 ? 0 : 1))*(Sx-(Sx == 0 ? 0 : 1))+dy*dy*(Sy-(Sy == 0 ? 0 : 1))*(Sy-(Sy == 0 ? 0 : 1))+dz*dz*(Sz-(Sz == 0 ? 0 : 1))*(Sz-(Sz == 0 ? 0 : 1));
 	  double R2_max = dx*dx*(Sx+1)*(Sx+1)+dy*dy*(Sy+1)*(Sy+1)+dz*dz*(Sz+1)*(Sz+1);
-	  
 	  /*
 	  double w_eta = 0.0;
 	  double w_s   = 0.0;
@@ -1063,136 +1206,57 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				if((R*R - (Vx*Vx+Vy*Vy+Vz*Vz)) < std::nextafter(0.d,1.d)) continue;
 				
 				////////////////////////
-				/*
-				try
-				{
-				  double tol = 1e-15;
-				  double g1, g2, gg; 
-				  
-				  g1 = G_eta(R,   Vx,   Vy,   Vz,   Tx,   Ty,   Tz);
-				  g2 = G_eta(R/dx,Vx/dx,Vy/dx,Vz/dx,Tx/dx,Ty/dx,Tz/dx);
-				  //g1 = G_eta(R,   sqrt(R*R-Vy*Vy-Vz*Vz),   Vy,   Vz,   Tx,   Ty,   Tz);
-				  //g2 = G_eta(R/dx,sqrt(R*R-Vy*Vy-Vz*Vz)/dx,Vy/dx,Vz/dx,Tx/dx,Ty/dx,Tz/dx);
-				  //g1 = G_eta(R,   Vx,   Vy,   Vz,   Tx,   Ty,   Tz)    - G_eta(R,   sqrt(R*R-Vy*Vy-Vz*Vz),   Vy,   Vz,   Tx,   Ty,   Tz);
-				  //g2 = G_eta(R/dx,Vx/dx,Vy/dx,Vz/dx,Tx/dx,Ty/dx,Tz/dx) - G_eta(R/dx,sqrt(R*R-Vy*Vy-Vz*Vz)/dx,Vy/dx,Vz/dx,Tx/dx,Ty/dx,Tz/dx);
-				  gg = fabs(g1 - g2*pow(dx,6));
-				  
-				  if (g1>tol && gg>tol) 
-				  {
-				    cout << endl; cout << scientific << setprecision(2);
-				    cout << "G_eta(1) = " << G_eta(R,   Vx,   Vy,   Vz,   Tx,   Ty,   Tz) << endl;
-				    cout << "g1 = " << g1 << endl;
-				    cout << "gg = " << gg << endl;
-				    cout << "gg/g1 = " << gg/g1 << endl;
-				    throw runtime_error("G_eta does not scale properly");
-				  }
-				  
-				  g1 = G_s(R,   Vx,   Vy,   Vz,   Tx,   Ty,   Tz);
-				  g2 = G_s(R/dx,Vx/dx,Vy/dx,Vz/dx,Tx/dx,Ty/dx,Tz/dx);
-				  gg = fabs(g1 - g2*pow(dx,5));
-				  
-				  if (g1>tol && gg>tol)
-				  {
-				    cout << endl; cout << scientific << setprecision(2);
-				    cout << "g1 = " << g1 << endl;
-				    cout << "gg = " << gg << endl;
-				    cout << "gg/g1 = " << gg/g1 << endl;
-				    throw runtime_error("G_s does not scale properly");
-				  }
-				  
-				  g1 = G_vx(R,   Vx,   Vy,   Vz,   Tx,   Ty,   Tz);
-				  g2 = G_vx(R/dx,Vx/dx,Vy/dx,Vz/dx,Tx/dx,Ty/dx,Tz/dx);
-				  gg = fabs(g1 - g2*pow(dx,6));
-				  
-				  if (g1>tol && gg>tol)
-				  {
-				    cout << endl; cout << scientific << setprecision(2);
-				    cout << "g1 = " << g1 << endl;
-				    cout << "gg = " << gg << endl;
-				    cout << "gg/g1 = " << gg/g1 << endl;
-				    throw runtime_error("G_vx does not scale properly");
-				  }
-				  
-				  g1 = G_txx(R,   Vx,   Vy,   Vz,   Tx,   Ty,   Tz);
-				  g2 = G_txx(R/dx,Vx/dx,Vy/dx,Vz/dx,Tx/dx,Ty/dx,Tz/dx);
-				  gg = fabs(g1 - g2*pow(dx,7));
-				  
-				  if (g1>tol && gg>tol)
-				  {
-				    cout << endl; cout << scientific << setprecision(2);
-				    cout << "g1 = " << g1 << endl;
-				    cout << "gg = " << gg << endl;
-				    cout << "gg/g1 = " << gg/g1 << endl;
-				    throw runtime_error("G_txx does not scale properly");
-				  }
-				  
-				  g1 = G_txy(R,   Vx,   Vy,   Vz,   Tx,   Ty,   Tz);
-				  g2 = G_txy(R/dx,Vx/dx,Vy/dx,Vz/dx,Tx/dx,Ty/dx,Tz/dx);
-				  gg = fabs(g1 - g2*pow(dx,7));
-				  
-				  if (g1>tol && gg>tol)
-				  {
-				    cout << endl; cout << scientific << setprecision(2);
-				    cout << "g1 = " << g1 << endl;
-				    cout << "gg = " << gg << endl;
-				    cout << "gg/g1 = " << gg/g1 << endl;
-				    throw runtime_error("G_txy does not scale properly");
-				  }
-				} 
-				catch (const runtime_error& e)
-				{
-				  cout << endl; cout << fixed << setprecision(2);
-				  cout << "Sx = " << setw(6) << Sx << endl;
-				  cout << "Sy = " << setw(6) << Sy << endl;
-				  cout << "Sz = " << setw(6) << Sz << endl;
-				  cout << endl;
-				  cout << "Vx/dx = " << setw(6) << Vx/dx << endl;
-				  cout << "Vy/dy = " << setw(6) << Vy/dy << endl;
-				  cout << "Vz/dz = " << setw(6) << Vz/dz << endl;
-				  cout << "Tx/dx = " << setw(6) << Tx/dx << endl;
-				  cout << "Ty/dy = " << setw(6) << Ty/dy << endl;
-				  cout << "Tz/dz = " << setw(6) << Tz/dz << endl;
-				  cout << endl;
-				  
-				  //cout << endl;
-				  //cout << "Caught error: " << e.what() << endl;
-				  throw e;
-				}
-				*/
-				////////////////////////
-				
-				
-				////////////////////////
-				if (fabs(dx-dy)>0 || fabs(dx-dz)>0)
+				/*if (fabs(dx-dy)>0 || fabs(dx-dz)>0)
 				{
 				  cout << endl; cout << scientific << setprecision(2);
 				  cout << "dx-dy = " << dx-dy << endl;
 				  cout << "dx-dz = " << dx-dz << endl;
 				  throw runtime_error("dx!=dy!=dz");
-				}
+				}*/
 				////////////////////////
 				
-				
+				////////////////////////
 				// Trying to identify where inaccuracies come from
 				/*if (fabs(Vx/R)<SMALL_VALUE_FOR_J_INTEGRAL ||    // problems with vy,vz and tyy,tzz,tyz
 				    fabs(Vy/R)<SMALL_VALUE_FOR_J_INTEGRAL ||    // problems with all but vy and tyy,tyz
 				    fabs(Vz/R)<SMALL_VALUE_FOR_J_INTEGRAL       // problems with all but vz and tzz
 				//    ) continue;
 				    ); else continue;*/
+				////////////////////////
 				
 				num_contributions++;
 				
 				// Scaling here gives the DIFFERENT results
+				/*
 				double _Vx = Vx; double _Vy = Vy; double _Vz = Vz;
 				double _Tx = Tx; double _Ty = Ty; double _Tz = Tz;
-				/*
+				
 				R  /= scale; dV /= pow(scale,3);
 				Vx /= scale; Vy /= scale; Vz /= scale;
 				Tx /= scale; Ty /= scale; Tz /= scale;
 				*/
+				/*
+				w_eta += pow(scale,3)*(1/dV)*sgn*(G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				if(numWeights > 1)
+				  {
+				    w_s   += pow(scale,2)*(1/dV)*sgn*(G_s(R,Vx,Vy,Vz,Tx,Ty,Tz)   - G_s(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+
+				    w_v[0] += pow(scale,2)*(1/dV)*px*(1.0/R)*sgn*(G_vx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_vx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_v[1] += pow(scale,2)*(1/dV)*py*(1.0/R)*sgn*(G_vx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_vx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_v[2] += pow(scale,2)*(1/dV)*pz*(1.0/R)*sgn*(G_vx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_vx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));
+
+				    w_T[0][0] += pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*(G_txx(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txx(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[1][1] += pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*(G_txx(R,Vy,Vx,Vz,Ty,Tx,Tz) - G_txx(R,sqrt(R*R-Vx*Vx-Vz*Vz),Vx,Vz,Ty,Tx,Tz));
+				    w_T[2][2] += pow(scale,2)*(1/dV)*(1.0/(R*R))*sgn*(G_txx(R,Vz,Vy,Vx,Tz,Ty,Tx) - G_txx(R,sqrt(R*R-Vy*Vy-Vx*Vx),Vy,Vx,Tz,Ty,Tx));			    
+
+				    w_T[0][1] += pow(scale,2)*(1/dV)*px*py*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vy,Vz,Tx,Ty,Tz) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
+				    w_T[0][2] += pow(scale,2)*(1/dV)*px*pz*(1.0/(R*R))*sgn*(G_txy(R,Vx,Vz,Vy,Tx,Tz,Ty) - G_txy(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vz,Vy,Tx,Tz,Ty));
+				    w_T[1][2] += pow(scale,2)*(1/dV)*py*pz*(1.0/(R*R))*sgn*(G_txy(R,Vy,Vz,Vx,Ty,Tz,Tx) - G_txy(R,sqrt(R*R-Vz*Vz-Vx*Vx),Vz,Vx,Ty,Tz,Tx));
+				  }
+				*/
 				
 				if (!subtract_regulator_contribution)
-                                {
+				{
 				w_eta += pow(scale,3)*(1/dV)*sgn*G_eta(R,Vx,Vy,Vz,Tx,Ty,Tz);//- G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz));
 				w_eta -= pow(scale,3)*(1/dV)*sgn*G_eta(R,sqrt(R*R-Vy*Vy-Vz*Vz),Vy,Vz,Tx,Ty,Tz);
 				if(numWeights > 1)
@@ -1294,7 +1358,6 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				  }
 				SMALL_VALUE_FOR_WORKAROUND_NAN_IN_G_FUNCTION /= 2;
 				}
-				
 				/*
 				R  = _R;  dV = _dV;
 				Vx = _Vx; Vy = _Vy; Vz = _Vz;
@@ -1318,6 +1381,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 		{		  
 		  long pos = density_->get_PBC_Pos((1-2*ix)*Sx,(1-2*iy)*Sy,(1-2*iz)*Sz);	  
 		  fmt_weights[EI()].addToWeight(pos,w_eta.sum());
+		  //fmt_weights[EI()].addToWeight(pos,w_eta);
 		  if(std::isnan(fmt_weights[EI()].getWeight(pos)))
 		    {
 		      if(verbose_) cout << ix << " " << iy << " " << iz << " " << Sx << " " << Sy << " " << Sz << endl;
@@ -1326,6 +1390,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 		  if(numWeights > 1)
 		    {
 		      fmt_weights[SI()].addToWeight(pos,w_s.sum());
+		      //fmt_weights[SI()].addToWeight(pos,w_s);
 		      for(int iv = 0;iv < 3;iv++)
 			{
 			  fmt_weights[VI(iv)].addToWeight(pos,(iv == 0 ? (1-2*ix) : (iv == 1 ? (1-2*iy) : (1-2*iz)))*w_v[iv]);
@@ -1355,7 +1420,7 @@ FMT_Species_EOS::FMT_Species_EOS(double D_EOS, Density& density, double hsd, dou
   generateWeights(D_EOS*hsd, eos_weighted_density_);
   eos_weighted_density_[0].transformWeights();  
 }
-/*
+/*  //NOW OUTDATED
 // This is an exact copy of FMT_Species::generateWeights. It is necessary because we want to do
 // the same but with a different hsd. Obviously, these could (and probably SHOULD) be combined
 // with some additional logic to only do the work required. For now, this is a quick solution
@@ -1500,8 +1565,16 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
   long Nz = density_->Nz();
 
   for(FMT_Weighted_Density &d: fmt_weighted_densitiesAO_)
-    d.initialize(Nx, Ny, Nz);  
-  generateWeights(2*Rp_, fmt_weighted_densitiesAO_);
+    d.initialize(Nx, Ny, Nz);
+  
+  #if defined FMT_WEIGHTS_BEFORE_JUN_2021
+    generateWeights_before_jun_2021(2*Rp_, fmt_weighted_densitiesAO_);
+  #elif defined FMT_WEIGHTS_BEFORE_JAN_2023
+    generateWeights_before_jan_2023(2*Rp_, fmt_weighted_densitiesAO_);
+  #else
+    generateWeights(2*Rp_, fmt_weighted_densitiesAO_);
+  #endif
+  
   for(FMT_Weighted_Density &d: fmt_weighted_densitiesAO_)
     d.transformWeights();
 
