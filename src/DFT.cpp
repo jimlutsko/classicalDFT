@@ -442,6 +442,29 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   //    F_ext_ += species->externalField(true); // bCalcForces = true: obsolete?
   F += F_ext_;
 
+  if(offset_)
+    {
+      double Foff = 0;
+      for(auto &species : allSpecies_)
+	{
+	  const Density& density = species->getDensity();
+	  double dV = density.dV();
+	  long Ntot = density.Ntot();
+	  long pos;
+#ifdef USE_OMP    
+#pragma omp parallel for shared(species, dV) private(pos) schedule(static) reduction(SummationPlus:F)
+#endif
+	  for(pos=0;pos<Ntot;pos++)
+	    {
+	      double d0 = density.get(pos);
+	      Foff -= log(d0);
+	      species->addToForce(pos,-1.0/d0); //HERE
+	    }
+	}
+      F += Foff;      
+
+    }
+
   return F.sum();  
 }
 
