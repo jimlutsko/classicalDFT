@@ -217,7 +217,7 @@ public:
 	hsd1_ = potential1_->getHSD(kT_);
       }
 
-    species1_ = new FMT_Species(*theDensity_,hsd1_,0.0,0);      
+    species1_ = new FMT_Species(*theDensity_,hsd1_,0.0,verbose_, 0);
     dft_      = new DFT(species1_);
 
     species1_->setFixedBackground(fixed_background_);
@@ -226,7 +226,7 @@ public:
 
     if(include_interaction_)
       {
-	interaction1_ = new Interaction_Interpolation_QF(species1_,species1_,potential1_,kT_);
+	interaction1_ = new Interaction_Interpolation_QF(species1_,species1_,potential1_,kT_,verbose_);
 	dft_->addInteraction(interaction1_);
       }
 
