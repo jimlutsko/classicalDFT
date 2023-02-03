@@ -17,7 +17,6 @@ using namespace std;
 #include "Species.h"
 #include "myColor.h"
 
-
 const double dmin = SMALL_VALUE;
 
 
