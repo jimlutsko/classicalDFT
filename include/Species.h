@@ -149,6 +149,45 @@ protected:
    *             Note that each of these, e.g. eta(N), is an N-dimensional vector holding the value of the weighted density at each point.
    */
 
+// Notes concerning the calculation of FMT weights:
+//
+// The implementation of the analytic formulas has been changed twice and older
+// versions can be enabled by setting the appropriate compiler flag in the
+// CMakeLists.txt.
+//
+// In June 2021 the code was changed to correctly handle different lattice 
+// spacings in each direction (dx!=dy!=dz). The prefactors in FMT weight
+// increments were incorrect and have been replaced by 1/dV as they should be.
+//
+// This also affected the dx=dy=dz calculations because the lenghts were not
+// scaled in the new code (while they were scaled by dx in the old one) and the 
+// way the G-functions were implemented did not preserve the results after 
+// scaling distances. The reason is that a small number was added to the 
+// hard-sphere radius to regularise some integrals and for some reason the
+// FMT weights are quite sensitive to this regularisation operation.
+//
+// In January 2023 the issue was noted and the implementation of G-functions
+// was revisited to reduce the impact of this regularisation step. The
+// operation is now scaling-friendly as we are now *multiplying* the hard-
+// sphere radius by (1 + a small number), and we also subtract the first-order
+// contribution of this small perturbation.
+//
+// The old code used before June 2021 can be enabled by defining the flag 
+// "FMT_WEIGHTS_BEFORE_JUN_2021", and the code used from June 2021 to January 
+// 2023 by defining "FMT_WEIGHTS_BEFORE_JAN_2023" (and make sure the other flag 
+// is set not defined anymore). A debug report will be printed to the console
+// if you define "FMT_WEIGHTS_DEBUG" in the CMakeLists.txt. Enable all flags
+// for a full report including comparisons with old versions.
+//
+// Alternatively, one could remove the old functions 
+// "generateWeights_before_jun_2021" and "generateWeights_before_jan_2023" 
+// as the new code in function "generateWeights" can reproduce the same 
+// calculation (down to machine precision) by passing the corresponding
+// scale as an argument and by disabling the subtraction of the contribution
+// of the regulator. The changes are explained in the source code of
+// FMT_Species::Initialize() were new calls have to be made to the 
+// "generateWeights" function.
+
 class FMT_Species : public Species
 {
 public:
@@ -416,6 +455,10 @@ protected:
   //           functions w_{alpha}(i,j) = w_{alpha}(abs(i-j)). 
   virtual void generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_weights, double scale=1.0, bool subtract_regulator_contribution=true);
   
+  // Here we have older versions of the generateWeights function that can be
+  // used by setting the appropriate compiler flags in the CMakeLists.txt
+  // This functions could be removed following instructions in the source code
+  // of FMT_Species::Initialize(), FMT_Species::Check() and FMT_AO_Species::FMT_AO_Species()
   #ifdef FMT_WEIGHTS_BEFORE_JUN_2021
     virtual void generateWeights_before_jun_2021(double hsd, vector<FMT_Weighted_Density> &fmt_weights);
   #endif

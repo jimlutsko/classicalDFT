@@ -204,9 +204,17 @@ void FMT_Species::Initialize()
     d.initialize(Nx, Ny, Nz);
 
   #if defined FMT_WEIGHTS_BEFORE_JUN_2021
+    // The old function "generateWeights_before_jun_2021" could be removed 
+    // as the new one does reproduce the same calculation to machine precision
+    // by using here the arguments on the commented line below.
     generateWeights_before_jun_2021(hsd_, fmt_weighted_densities);
+    //generateWeights(hsd_, fmt_weighted_densities, density_->getDX(), false);
   #elif defined FMT_WEIGHTS_BEFORE_JAN_2023
+    // The old function "generateWeights_before_jan_2023" could be removed 
+    // as the new one does reproduce the same calculation to machine precision
+    // by using here the arguments on the commented line below.
     generateWeights_before_jan_2023(hsd_, fmt_weighted_densities);
+    //generateWeights(hsd_, fmt_weighted_densities, 1.0, false);
   #else
     generateWeights(hsd_, fmt_weighted_densities);
   #endif
@@ -240,6 +248,10 @@ void FMT_Species::Check()
   generateWeights(hsd_, fmt_weighted_densities_new_as_before_jan_2023, 1.0, false);
   
   USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
+  
+  //////////////////////////////////////////////////////////////////////////////
+  // This can go if we decide to remove the old functions
+  // "generateWeights_before_jun_2021" and "generateWeights_before_jan_2023"
   
   // Old code versions
   #ifdef FMT_WEIGHTS_BEFORE_JUN_2021
@@ -297,13 +309,14 @@ void FMT_Species::Check()
     
     Check_Print(fmt_weighted_densities_new_as_before_jan_2023, fmt_weighted_densities_before_jan_2023); cout << endl;
   #endif
+  //////////////////////////////////////////////////////////////////////////////
   
   // Modification of G-function regulator
   USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = true;
   
-  vector<FMT_Weighted_Density> fmt_weighted_densities_new_but_old_regulator(11);
-  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_but_old_regulator) d.initialize(Nx, Ny, Nz);
-  generateWeights(hsd_, fmt_weighted_densities_new_but_old_regulator);
+  vector<FMT_Weighted_Density> fmt_weighted_densities_new_code_but_old_regulator(11);
+  for(FMT_Weighted_Density &d: fmt_weighted_densities_new_code_but_old_regulator) d.initialize(Nx, Ny, Nz);
+  generateWeights(hsd_, fmt_weighted_densities_new_code_but_old_regulator);
   
   USE_OLD_WORKAROUND_NAN_IN_G_FUNCTION = false;
   
@@ -316,7 +329,7 @@ void FMT_Species::Check()
   cout << "  This is what changed before and after January 2023" << endl;
   cout << endl;
   
-  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_but_old_regulator); cout << endl;
+  Check_Print(fmt_weighted_densities_new, fmt_weighted_densities_new_code_but_old_regulator); cout << endl;
   
   // Scaling under old G-function regulator
   cout << endl;
@@ -445,7 +458,7 @@ void FMT_Species::Check_Print(const vector<FMT_Weighted_Density> &fmt_weighted_d
 }
 #endif // DEBUG_FMT_WEIGHTS
 
-
+/*
 double my_asin(double x)
 {
   if (fabs(x)-1>SMALL_VALUE_FOR_J_INTEGRAL) 
@@ -471,42 +484,39 @@ double my_asin(double x)
   else return asin(x);
   
   
-  /*
-  if (y<SMALL_VALUE_FOR_ASIN)
-  {
-    double phi = sqrt(4*y-2*y*y);
-    cout << "Asin:    y = " << y << "    PI/2-asin(x) = " << M_PI/2-asin(x)  << "    PI/2-approx = " << phi << endl;
-    return M_PI/2-phi;
-  }
-  else if (z<SMALL_VALUE_FOR_ASIN)
-  {
-    double phi = sqrt(-4*z-2*z*z);
-    cout << "Asin:    z = " << z << "    PI/2+asin(x) = " << M_PI/2+asin(x)  << "    PI/2+approx = " << phi << endl;
-    return -M_PI/2+phi;
-  }
-  else
-  {
-    return asin(x);
-  }
-  */
+  //if (y<SMALL_VALUE_FOR_ASIN)
+  //{
+  //  double phi = sqrt(4*y-2*y*y);
+  //  cout << "Asin:    y = " << y << "    PI/2-asin(x) = " << M_PI/2-asin(x)  << "    PI/2-approx = " << phi << endl;
+  //  return M_PI/2-phi;
+  //}
+  //else if (z<SMALL_VALUE_FOR_ASIN)
+  //{
+  //  double phi = sqrt(-4*z-2*z*z);
+  //  cout << "Asin:    z = " << z << "    PI/2+asin(x) = " << M_PI/2+asin(x)  << "    PI/2+approx = " << phi << endl;
+  //  return -M_PI/2+phi;
+  //}
+  //else
+  //{
+  //  return asin(x);
+  //}
   
-  /*
-  if (x>1/sqrt(2)) // I expect more accuracy with acos --> no
-  {
-    double y = 1-x;
-    return acos(sqrt(2*y-y*y));
-  }
-  if (x<-1/sqrt(2)) // I expect more accuracy with acos --> no
-  {
-    double y = 1+x;
-    return acos(sqrt(-2*y-y*y));
-  }
-  else
-  {
-    return asin(x);
-  }
-  */
+  //if (x>1/sqrt(2)) // I expect more accuracy with acos --> no
+  //{
+  //  double y = 1-x;
+  //  return acos(sqrt(2*y-y*y));
+  //}
+  //if (x<-1/sqrt(2)) // I expect more accuracy with acos --> no
+  //{
+  //  double y = 1+x;
+  //  return acos(sqrt(-2*y-y*y));
+  //}
+  //else
+  //{
+  //  return asin(x);
+  //}
 }
+*/
 
 
 static void getI(double X, double A, double I[])
@@ -737,7 +747,7 @@ double G_txy(double R, double X, double Vy, double Vz, double Tx, double Ty, dou
 }
 
 
-#ifdef FMT_WEIGHTS_BEFORE_JUN_2021
+#ifdef FMT_WEIGHTS_BEFORE_JUN_2021 // could be removed following instructions in FMT_Species::Initialize()
 void FMT_Species::generateWeights_before_jun_2021(double hsd, vector<FMT_Weighted_Density> &fmt_weights)
 {
   cout << "OK: Generating weights" << endl;
@@ -907,7 +917,7 @@ void FMT_Species::generateWeights_before_jun_2021(double hsd, vector<FMT_Weighte
 }
 #endif //FMT_WEIGHTS_BEFORE_JUN_2021
 
-#ifdef FMT_WEIGHTS_BEFORE_JAN_2023
+#ifdef FMT_WEIGHTS_BEFORE_JAN_2023 // could be removed following instructions in FMT_Species::Initialize()
 void FMT_Species::generateWeights_before_jan_2023(double hsd, vector<FMT_Weighted_Density> &fmt_weights)
 {
   double dx = density_->getDX();
@@ -1153,7 +1163,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 	  //Note: Special cases of I-sums, e.g. when one or more components of S are zero, are handled in the called functions.
 	  
 	  if(R*R > R2_max) {w_eta += dV;}
-	  //if(R*R > R2_max) {w_eta += dV*pow(scale,3);}
+	  //if(R*R > R2_max) {w_eta += dV*pow(scale,3);} // use this line if you scale above
 	  else if(R*R > R2_min)
 	  {
 	    ////////////////////////////
@@ -1228,7 +1238,7 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 				
 				num_contributions++;
 				
-				// Scaling here gives the DIFFERENT results
+				// Scaling here gives the DIFFERENT results if you are using the old regulator
 				/*
 				double _Vx = Vx; double _Vy = Vy; double _Vz = Vz;
 				double _Tx = Tx; double _Ty = Ty; double _Tz = Tz;
@@ -1570,9 +1580,17 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
     d.initialize(Nx, Ny, Nz);
   
   #if defined FMT_WEIGHTS_BEFORE_JUN_2021
+    // The old function "generateWeights_before_jun_2021" could be removed 
+    // as the new one does reproduce the same calculation to machine precision
+    // by using here the arguments on the commented line below.
     generateWeights_before_jun_2021(2*Rp_, fmt_weighted_densitiesAO_);
+    //generateWeights(2*Rp_, fmt_weighted_densitiesAO_, density_->getDX(), false);
   #elif defined FMT_WEIGHTS_BEFORE_JAN_2023
+    // The old function "generateWeights_before_jan_2023" could be removed 
+    // as the new one does reproduce the same calculation to machine precision
+    // by using here the arguments on the commented line below.
     generateWeights_before_jan_2023(2*Rp_, fmt_weighted_densitiesAO_);
+    //generateWeights(2*Rp_, fmt_weighted_densitiesAO_, 1.0, false);
   #else
     generateWeights(2*Rp_, fmt_weighted_densitiesAO_);
   #endif
