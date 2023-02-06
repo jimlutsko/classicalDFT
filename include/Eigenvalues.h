@@ -28,6 +28,7 @@ class Eigenvalues
   void set_tolerence(double d) {tol_ = d;}  
   void set_change_sign(bool b) {change_sign_ = b;}
   void set_vshift(DFT_Vec& v)  {vshift_ = v;}
+  void set_normal_direction(DFT_Vec& v)  {vnormal_ = v; vnormal_.normalise();}
   void set_max_num_eval(int i) {max_num_eval_ = i;}
   void set_use_density_alias(bool v) { using_density_alias_  = v;}
   
@@ -71,6 +72,7 @@ class Eigenvalues
   const Dynamical_Matrix& matrix_;
   Species* species_;
   DFT_Vec vshift_;
+  DFT_Vec vnormal_;
   
   double scale_     = 1;
   double tol_       = 1e-6;
