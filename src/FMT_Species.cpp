@@ -17,7 +17,6 @@ using namespace std;
 #include "Species.h"
 #include "myColor.h"
 
-
 const double dmin = SMALL_VALUE;
 const double SMALL_VALUE_FOR_J_INTEGRAL = 1e-14; //value does not affect results
 

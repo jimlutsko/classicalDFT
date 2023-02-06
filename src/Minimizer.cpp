@@ -304,6 +304,11 @@ double fireMinimizer2::step()
       s << "snapshot_s" << Jspecies << ".dat";
       string of = s.str();
       dft_->writeDensity(Jspecies,of);
+
+      stringstream s1;
+      s1 << "snapshot_s" << Jspecies << ".vtk";
+      string of1 = s1.str();
+      dft_->write_density_vtk(Jspecies,of1);      
     }
   }
   ic++;

@@ -77,10 +77,14 @@ class DFT : public Dynamical_Matrix
   void set_densities_from_aliases(vector<DFT_Vec> &x_);
   void convert_dF_to_alias_derivs(vector<DFT_Vec> &x_);
   void convert_dF_to_alias_derivs();
+
+  void set_offset(bool val) { offset_ = val;}
   
   // A few actions  
   void doDisplay(string &title, string &file, void *param = NULL) { for(auto &x: allSpecies_) x->doDisplay(title,file, param);}
   void writeDensity(int i, string &of) const {allSpecies_[i]->getDensity().writeDensity(of);}
+  void write_density_vtk(int i, string &of) const {allSpecies_[i]->getDensity().write_VTK_File
+      (of);}
   void perturb_density(DFT_Vec& perturbation, int species = 0) { allSpecies_[species]->perturb_density(perturbation);} 
   double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
   double evaluate(bool onlyFex = false) { return calculateFreeEnergyAndDerivatives(onlyFex);}  
@@ -160,6 +164,8 @@ class DFT : public Dynamical_Matrix
   double F_mf_  = 0.0; ///< Mean-field contribution to free energy
   
   mutable bool full_hessian_ = true; // used in matrix_holder to distinguish full hessian from excess hessian.
+
+  bool offset_ = false;
 };
 
 
