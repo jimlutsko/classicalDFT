@@ -654,3 +654,16 @@ void Grace::format_phys_rev(bool overrite_sets, int Graph)
 }
 
 
+void Grace::duplicate(int set, int Graph) const
+{
+  std::stringstream s;
+
+  if(Graph >= 0) s << "FOCUS G" << Graph;
+  sendCommand(s.str());
+  s.str(std::string());
+
+  std::stringstream s1;
+  s1 << "DUPLICATE s" << set;
+  
+  sendCommand(s1.str());
+}
