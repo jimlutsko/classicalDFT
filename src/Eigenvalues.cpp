@@ -65,6 +65,8 @@ void Eigenvalues::set_from_density_space_eigenvector(const DFT_Vec &v)
   if(eigen_vec_.size() != v.size()) eigen_vec_.zeros(v.size());
   
   matrix_.matrix_dot_v1(v, eigen_vec_, NULL, true); // (d2F)v
+  if(vnormal_.size() == v.size()) eigen_vec_.IncrementBy_Scaled_Vector(vnormal_, -vnormal_.dotWith(eigen_vec_));
+  
   eigen_vec_.MultBy(1/norm(eigen_vec_));
 }
 
@@ -75,6 +77,8 @@ void Eigenvalues::set_eigen_vec(const vector<double> &v_in)
   
   #pragma omp parallel for
   for(long i=0;i<v_in.size();i++) eigen_vec_.set(i,v_in[i]);
+  
+  if(vnormal_.size() == v_in.size()) eigen_vec_.IncrementBy_Scaled_Vector(vnormal_, -vnormal_.dotWith(eigen_vec_));
 }
 
 
@@ -86,19 +90,46 @@ void Eigenvalues::g_dot_v(const DFT_Vec &v, DFT_Vec &gv) const
   gv.MultBy(-1); //Note: minus sign because original metric g is not positive definite
 }
 
-
 double Eigenvalues::v_dot_w(const DFT_Vec &v, const DFT_Vec &w) const
 {
   double vw = 0.0;
   
-  if (matrix_.is_dynamic())
+  // Here I copy twice the code that performs the actual dot calculation
+  // The reason is that in case I work in a subspace orthogonal to vnormal_,
+  // I have to make a copy of both input vectors, which is a computationally 
+  // expensive operation that can be avoided in the more common cases where
+  // we don't use this feature.
+  
+  if(vnormal_.size() == v.size()) 
   {
-    DFT_Vec gw(w); g_dot_v(w, gw);
-    vw = v.dotWith(gw);
+    DFT_Vec vv = v; vv.IncrementBy_Scaled_Vector(vnormal_, -vnormal_.dotWith(vv));
+    DFT_Vec ww = w; ww.IncrementBy_Scaled_Vector(vnormal_, -vnormal_.dotWith(ww));
+    
+    /// Actual dot calculation
+    if (matrix_.is_dynamic())
+    {
+      DFT_Vec gw(ww); g_dot_v(ww, gw);
+      vw = vv.dotWith(gw);
+    }
+    else
+    {
+      vw = vv.dotWith(ww);
+    }
+    ///
   }
   else
   {
-    vw = v.dotWith(w);
+    /// Actual dot calculation
+    if (matrix_.is_dynamic())
+    {
+      DFT_Vec gw(w); g_dot_v(w, gw);
+      vw = v.dotWith(gw);
+    }
+    else
+    {
+      vw = v.dotWith(w);
+    }
+    ///
   }
   
   return vw;
@@ -198,13 +229,16 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
 }
 
 
-void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const
+void Eigenvalues::matrix_dot_v(const DFT_Vec &v_in, DFT_Vec &result, void *param) const
 {
   if (is_using_density_alias() && matrix_.is_dynamic())
     throw runtime_error("(In Eigenvalues.cpp) Incompatible use of alias with dynamics");
   
   if (is_using_density_alias() && matrix_.get_use_squared_matrix())
     throw runtime_error("(In Eigenvalues.cpp) Incompatible use of alias with squared matrix (not implemented)");
+  
+  DFT_Vec v = v_in;
+  if(vnormal_.size() == v.size()) v.IncrementBy_Scaled_Vector(vnormal_, -vnormal_.dotWith(v));
   
   if (verbose_)
   {
@@ -215,7 +249,7 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) c
   
   if (is_using_density_alias())
   {
-    DFT_Vec vv; vv.set(v);
+    DFT_Vec vv = v;
     species_->convert_to_density_increment(vv);
     matrix_.matrix_dot_v1(vv,result,param);
     species_->convert_to_alias_deriv(result);
