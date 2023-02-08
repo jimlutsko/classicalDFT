@@ -8,5 +8,4 @@ log.*
 **/*.d
 .idea/**
 libclassicalDFT.a
-Lib/src/GitSHA1.cpp
-
+*GitSHA1.cpp
