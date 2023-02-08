@@ -55,9 +55,6 @@ class Density : public Lattice
     Density_ = ref.Density_;
   }
   
-
-
-
   // Initialize
   
   //set/get density 
@@ -78,7 +75,8 @@ class Density : public Lattice
   
   //Decendents of the Density object can implement this method to do graphical displays
   virtual void doDisplay(string &title, string &file, int seq = 0, void *param = NULL) const {}
-
+  virtual void turn_on_display(){}
+  
   //Some simple properties
   double getNumberAtoms()      const;
   double get_number_of_atoms() const { return getNumberAtoms();}
@@ -100,6 +98,7 @@ class Density : public Lattice
 
   void   operator*=(double a)   { Density_.MultBy(a);}
   void   operator+=(DFT_Vec &v) { Density_.IncrementBy(v);} 
+  void   shift(DFT_Vec &direction, double scale) { Density_.Real().IncrementBy_Scaled_Vector(direction, scale);}
   
   void   doFFT() {Density_.do_real_2_fourier();}
   
