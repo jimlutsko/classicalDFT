@@ -27,6 +27,7 @@ const double dmin = SMALL_VALUE;
 
 // These functions just alias the density so that it is always non-zero and in fact bigger than SMALL_VALUE.
 
+// This is for rho = dmin + x^2
 void Species::set_density_from_alias(const DFT_Vec &x)
 {
   long pos;
@@ -88,6 +89,17 @@ void Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
   #endif
   for(pos=0;pos<x.size();pos++)
     dRho.set(pos, 0.5*dRho.get(pos)/x.get(pos));
+}
+
+void Species::shift_alias(DFT_Vec &direction, double shift)
+{
+  DFT_Vec x; x.zeros(direction.size());
+  get_density_alias(x);
+
+  for(long pos=0;pos<x.size();pos++)
+    x.set(pos, x.get(pos) + shift*direction.get(pos)/(2*x.get(pos)));
+
+  set_density_from_alias(x);
 }
 
 void Species::get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const {d2Rhodx2.zeros(density_->size()); d2Rhodx2.add(2.0);}

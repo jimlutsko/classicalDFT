@@ -75,8 +75,9 @@ class Species
   void         set_density(DFT_Vec &x) {density_->set(x); density_->doFFT();}
   void         set_density(long j, double x) {density_->set(j,x);}
   virtual void set_density_from_alias(const DFT_Vec &x);
-  void shift_density(DFT_Vec &direction, double scale) { density_->shift(direction,scale);}
-  
+  void         shift_density(DFT_Vec &direction, double scale) { density_->shift(direction,scale);}
+  void         shift_alias(DFT_Vec &direction, double shift);
+    
   void fft_density() { density_->doFFT();}
   
   void zeroForce() {dF_.zeros();}
