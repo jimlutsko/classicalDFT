@@ -530,7 +530,7 @@ void Grace::size(int dataSet, double size, int Graph)
     sendCommand(ss.str());
 }
 
-void Grace::format_phys_rev(bool overrite_sets, int Graph)
+void Grace::format_phys_rev(int Graph, bool overrite_sets, bool overrite_style)
 {
   std::stringstream ss;
   
@@ -575,15 +575,15 @@ void Grace::format_phys_rev(bool overrite_sets, int Graph)
   
   if (overrite_sets)
   {
-    //ss << "s0 line type 1";            sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s0 line type 1";            sendCommand(ss.str()); ss.str(std::string());
     ss << "s0 line linewidth 2.0";     sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s0 line linestyle 1";       sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s0 line linestyle 1";       sendCommand(ss.str()); ss.str(std::string());
     ss << "s0 line color 1";           sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s0 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s0 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
+    //if (overrite_style) ss << "s0 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s0 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
     ss << "s0 fill color 1";           sendCommand(ss.str()); ss.str(std::string());
     ss << "s0 fill pattern 4";         sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s0 symbol 1";               sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s0 symbol 1";               sendCommand(ss.str()); ss.str(std::string());
     ss << "s0 symbol size 1.0";        sendCommand(ss.str()); ss.str(std::string());
     ss << "s0 symbol linewidth 2.0";   sendCommand(ss.str()); ss.str(std::string());
     ss << "s0 symbol linestyle 1";     sendCommand(ss.str()); ss.str(std::string());
@@ -593,15 +593,15 @@ void Grace::format_phys_rev(bool overrite_sets, int Graph)
     ss << "s0 symbol fill pattern 1";  sendCommand(ss.str()); ss.str(std::string());
     ss << "s0 errorbar linewidth 2.0"; sendCommand(ss.str()); ss.str(std::string());
     
-    //ss << "s1 line type 1";            sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s1 line type 1";            sendCommand(ss.str()); ss.str(std::string());
     ss << "s1 line linewidth 2.0";     sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s1 line linestyle 3";       sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s1 line linestyle 3";       sendCommand(ss.str()); ss.str(std::string());
     ss << "s1 line color 2";           sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s1 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s1 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
+    //if (overrite_style) ss << "s1 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s1 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
     ss << "s1 fill color 2";           sendCommand(ss.str()); ss.str(std::string());
     ss << "s1 fill pattern 5";         sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s1 symbol 2";               sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s1 symbol 2";               sendCommand(ss.str()); ss.str(std::string());
     ss << "s1 symbol size 1.0";        sendCommand(ss.str()); ss.str(std::string());
     ss << "s1 symbol linewidth 2.0";   sendCommand(ss.str()); ss.str(std::string());
     ss << "s1 symbol linestyle 1";     sendCommand(ss.str()); ss.str(std::string());
@@ -611,15 +611,15 @@ void Grace::format_phys_rev(bool overrite_sets, int Graph)
     ss << "s1 symbol fill pattern 1";  sendCommand(ss.str()); ss.str(std::string());
     ss << "s1 errorbar linewidth 2.0"; sendCommand(ss.str()); ss.str(std::string());
     
-    //ss << "s2 line type 1";            sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s2 line type 1";            sendCommand(ss.str()); ss.str(std::string());
     ss << "s2 line linewidth 2.0";     sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s2 line linestyle 2";       sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s2 line linestyle 2";       sendCommand(ss.str()); ss.str(std::string());
     ss << "s2 line color 3";           sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s2 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s2 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
+    //if (overrite_style) ss << "s2 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s2 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
     ss << "s2 fill color 3";           sendCommand(ss.str()); ss.str(std::string());
     ss << "s2 fill pattern 6";         sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s2 symbol 3";               sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s2 symbol 3";               sendCommand(ss.str()); ss.str(std::string());
     ss << "s2 symbol size 1.0";        sendCommand(ss.str()); ss.str(std::string());
     ss << "s2 symbol linewidth 2.0";   sendCommand(ss.str()); ss.str(std::string());
     ss << "s2 symbol linestyle 1";     sendCommand(ss.str()); ss.str(std::string());
@@ -629,15 +629,15 @@ void Grace::format_phys_rev(bool overrite_sets, int Graph)
     ss << "s2 symbol fill pattern 1";  sendCommand(ss.str()); ss.str(std::string());
     ss << "s2 errorbar linewidth 2.0"; sendCommand(ss.str()); ss.str(std::string());
     
-    //ss << "s3 line type 1";            sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s3 line type 1";            sendCommand(ss.str()); ss.str(std::string());
     ss << "s3 line linewidth 2.0";     sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s3 line linestyle 5";       sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s3 line linestyle 5";       sendCommand(ss.str()); ss.str(std::string());
     ss << "s3 line color 4";           sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s3 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s3 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
+    //if (overrite_style) ss << "s3 fill type 2";            sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s3 fill rule 0";            sendCommand(ss.str()); ss.str(std::string());
     ss << "s3 fill color 4";           sendCommand(ss.str()); ss.str(std::string());
     ss << "s3 fill pattern 7";         sendCommand(ss.str()); ss.str(std::string());
-    //ss << "s3 symbol 10";              sendCommand(ss.str()); ss.str(std::string());
+    if (overrite_style) ss << "s3 symbol 10";              sendCommand(ss.str()); ss.str(std::string());
     ss << "s3 symbol size 1.0";        sendCommand(ss.str()); ss.str(std::string());
     ss << "s3 symbol linewidth 2.0";   sendCommand(ss.str()); ss.str(std::string());
     ss << "s3 symbol linestyle 1";     sendCommand(ss.str()); ss.str(std::string());

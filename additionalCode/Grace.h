@@ -65,7 +65,7 @@ class Grace
 
   void duplicate(int set, int Graph) const;
   
-  void format_phys_rev(bool overrite_sets = false, int Graph = -1);
+  void format_phys_rev(int Graph = -1, bool overrite_sets = false, bool overrite_style = false);
 
   static int CIRCLE;
   static int SQUARE;
