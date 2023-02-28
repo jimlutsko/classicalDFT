@@ -13,6 +13,12 @@ do
                ;;
 	lib) Lib1=1
             ;;
+        ceci)
+            module load releases/2018b
+            module load Boost/1.67.0-foss-2018b
+            module load CMake/3.12.1-GCCcore-7.3.0
+            module load GSL/2.5-GCC-7.3.0-2.30
+            ;;
         *) echo "bad option $1"
             ;;
     esac

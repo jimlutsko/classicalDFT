@@ -1,3 +1,5 @@
+#ifdef ARNOLDI // do not compile this file otherwise
+
 #include <cmath>
 #include <iostream>
 #include <iomanip>
@@ -527,3 +529,4 @@ void Arnoldi::extend_arnoldi_factorisation(arma::cx_mat &V, arma::cx_mat &H, arm
 		throw runtime_error("Arnoldi factorisation does not check out");
 }
 
+#endif //ifdef ARNOLDI
