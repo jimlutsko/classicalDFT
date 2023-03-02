@@ -76,6 +76,36 @@ void Density::set_from_smaller_density(const Density &density)
 	    }
 }
 
+
+// Here we also assume equal lattice spacings and demand that Nx1-Nx2 is even.
+void Density::crop_from_larger_density(const Density &density)
+{
+  int Nx1 = density.Nx();
+  int Ny1 = density.Ny();
+  int Nz1 = density.Nz();
+  
+  int dNx = Nx1 - Nx_;
+  int dNy = Ny1 - Ny_;
+  int dNz = Nz1 - Nz_;
+
+  int Mx = dNx/2;
+  int My = dNy/2;
+  int Mz = dNz/2;
+
+  if(dNx != 2*Mx) cout << "Warning: difference in density lattices is not even in x direction" << endl;
+  if(dNy != 2*My) cout << "Warning: difference in density lattices is not even in y direction" << endl;
+  if(dNz != 2*Mz) cout << "Warning: difference in density lattices is not even in z direction" << endl;
+  
+  for(int ix=0;ix<Nx_;ix++)
+  for(int iy=0;iy<Ny_;iy++)
+  for(int iz=0;iz<Nz_;iz++)
+  {
+    double d = density.get(ix+Mx,iy+My,iz+Mz);
+    set(ix,iy,iz,d);
+  }
+}
+
+
 void Density::get_particles(double threshold, vector< vector<long> > &clusters)
 {
   /*
