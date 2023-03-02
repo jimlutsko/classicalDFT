@@ -1,3 +1,14 @@
+while test $# -gt 0
+do
+    case "$1" in
+	ceci) source ceci_modules
+            ;;
+        *) echo "bad option $1"
+            ;;
+    esac
+    shift
+done
+
 #! /bin/sh
 root_dir=$(pwd)
 parent_dir="$(dirname "$root_dir")"

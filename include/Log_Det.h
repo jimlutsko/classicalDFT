@@ -10,8 +10,9 @@
 
 #include <boost/serialization/vector.hpp>
 
+#ifdef ARNOLDI
 #include <armadillo> // for arnoldi
-
+#endif
 
 #include "Dynamical_Matrix.h"
 
