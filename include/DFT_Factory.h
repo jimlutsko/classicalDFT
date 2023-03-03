@@ -8,6 +8,10 @@
 #include "Grace.h"
 #endif
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #include "DFT.h"
 #include "Log.h"
 #include "myColor.h"
