@@ -1,3 +1,6 @@
+#### This file is now obsolete but I will not delete it immediately 
+#### because some of my jobs in the queue are expecting it
+
 ## Available on dragon2
 #module load releases/2020b
 #module load Armadillo/10.5.3-foss-2020b
@@ -14,6 +17,14 @@
 #module load GSL/2.5-GCC-7.3.0-2.30
 
 ## Available on hercules2
+#module load releases/2019b
+#module load Boost/1.71.0-gompi-2019b
+#module load CMake/3.15.3-GCCcore-8.3.0
+#module load Eigen/3.3.7
+#module load GSL/2.6-GCC-8.3.0
+#module load FFTW/3.3.8-gompi-2019b
+
+## Available on dragon1
 module load releases/2019b
 module load Boost/1.71.0-gompi-2019b
 module load CMake/3.15.3-GCCcore-8.3.0
