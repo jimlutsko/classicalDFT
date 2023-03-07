@@ -13,7 +13,7 @@ do
                ;;
 	lib) Lib1=1
             ;;
-        ceci) source ceci_modules
+        ceci) source load_ceci_modules.sh
             ;;
         *) echo "bad option $1"
             ;;

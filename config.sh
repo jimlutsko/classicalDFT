@@ -1,7 +1,7 @@
 while test $# -gt 0
 do
     case "$1" in
-	ceci) source ceci_modules
+	ceci) source load_ceci_modules.sh
             ;;
         *) echo "bad option $1"
             ;;
