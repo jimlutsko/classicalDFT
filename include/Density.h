@@ -60,6 +60,7 @@ class Density : public Lattice
   //set/get density 
   void set_from_smaller_density(const Density &density);
   void crop_from_larger_density(const Density &density);
+  void set_from_coarser_density(const Density &density);
 
   void set(const char *filename){ readDensity(filename);} // read from file
   void set(const DFT_Vec &x) { Density_.set(x);}
