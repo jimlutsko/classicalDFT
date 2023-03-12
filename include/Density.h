@@ -59,6 +59,7 @@ class Density : public Lattice
   
   //set/get density 
   void set_from_smaller_density(const Density &density);
+  void crop_larger_density(const Density &density);
 
   void set(const char *filename){ readDensity(filename);} // read from file
   void set(const DFT_Vec &x) { Density_.set(x);}
@@ -68,6 +69,7 @@ class Density : public Lattice
   void set(unsigned pos, double val)  { Density_.set(pos,val);}  
 
   void set_background_density(double val);
+  virtual void shrink(double distance, double width, double gap_size);
   
   virtual double  get(long pos) const { return Density_.cReal().get(pos);}   
   virtual double  get(int ix, int iy, int iz) const {putIntoBox(ix,iy,iz); return Density_.cReal().get(pos(ix,iy,iz));}

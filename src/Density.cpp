@@ -76,6 +76,71 @@ void Density::set_from_smaller_density(const Density &density)
 	    }
 }
 
+
+// Here we also assume equal lattice spacings and demand that Nx1-Nx2 is even.
+void Density::crop_larger_density(const Density &density)
+{
+  int Nx1 = density.Nx();
+  int Ny1 = density.Ny();
+  int Nz1 = density.Nz();
+  
+  int dNx = Nx1 - Nx_;
+  int dNy = Ny1 - Ny_;
+  int dNz = Nz1 - Nz_;
+
+  int Mx = dNx/2;
+  int My = dNy/2;
+  int Mz = dNz/2;
+
+  if(dNx != 2*Mx) cout << "Warning: difference in density lattices is not even in x direction" << endl;
+  if(dNy != 2*My) cout << "Warning: difference in density lattices is not even in y direction" << endl;
+  if(dNz != 2*Mz) cout << "Warning: difference in density lattices is not even in z direction" << endl;
+  
+  for(int ix=0;ix<Nx_;ix++)
+  for(int iy=0;iy<Ny_;iy++)
+  for(int iz=0;iz<Nz_;iz++)
+  {
+    double d = density.get(ix+Mx,iy+My,iz+Mz);
+    set(ix,iy,iz,d);
+  }
+}
+
+
+// Shrink smoothly by multiplying by a sigmoid function
+// Restore background density beyond cropping distance using another sigmoid
+// Can leave a gap between the two sigmoids in order to avoid eta>1 errors with solid profiles
+// The default cropping geometry is spherical (intented for clusters) 
+// but the function can be re-defined in children classes.
+void Density::shrink(double distance, double width, double gap_size)
+{
+    double xcm, ycm, zcm; get_center_of_mass(xcm, ycm, zcm);
+    xcm = getX(xcm); ycm = getY(ycm); zcm = getZ(zcm);
+    
+    double rho_bg = get_ave_background_density();
+    
+    double R1 = distance;
+    double R2 = distance + gap_size;
+
+    for(int p=0; p<Ntot_; p++)
+    if (!is_boundary_point(p))
+    {
+      int i,j,k;
+      cartesian(p, i, j, k);
+      
+      double x = getX(i);
+      double y = getY(j);
+      double z = getZ(k);
+      
+      double r = sqrt((x-xcm)*(x-xcm)+(y-ycm)*(y-ycm)+(z-zcm)*(z-zcm));
+      double rho_old = get(i,j,k);
+      
+      double rho_new = rho_old * 0.5*(1-tanh((r-R2)/width))  // sigmoid 1
+                     + rho_bg  * 0.5*(tanh((r-R1)/width)+1); // sigmoid 2
+      set(i,j,k,rho_new);
+    }
+  }
+
+
 void Density::get_particles(double threshold, vector< vector<long> > &clusters)
 {
   /*
