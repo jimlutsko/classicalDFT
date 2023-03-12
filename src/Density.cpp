@@ -245,7 +245,6 @@ void Density::shrink(double distance, double width, double gap_size)
                      + rho_bg  * 0.5*(tanh((r-R1)/width)+1); // sigmoid 2
       set(i,j,k,rho_new);
     }
-  }
 }
 
 
