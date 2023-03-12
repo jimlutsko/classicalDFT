@@ -13,6 +13,8 @@ do
                ;;
 	lib) Lib1=1
             ;;
+        ceci) source load_ceci_modules.sh
+            ;;
         *) echo "bad option $1"
             ;;
     esac

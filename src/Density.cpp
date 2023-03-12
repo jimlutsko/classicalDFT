@@ -78,7 +78,7 @@ void Density::set_from_smaller_density(const Density &density)
 
 
 // Here we also assume equal lattice spacings and demand that Nx1-Nx2 is even.
-void Density::crop_larger_density(const Density &density)
+void Density::crop_from_larger_density(const Density &density)
 {
   int Nx1 = density.Nx();
   int Ny1 = density.Ny();
@@ -104,6 +104,113 @@ void Density::crop_larger_density(const Density &density)
     set(ix,iy,iz,d);
   }
 }
+
+
+// Here I assume the dimensions of the box (Lx, Ly, Lz) are the same.
+// I also assume that the lengths Lx, Ly, Lz are multiples of both spacings.
+// The density is a trilinear interpolation of the nearest points on the coarse lattice.
+void Density::set_from_coarser_density(const Density &density)
+{
+  double dx1 = density.getDX();
+  double dy1 = density.getDY();
+  double dz1 = density.getDZ();
+  
+  double dV1 = dx1*dy1*dz1;
+  double Natoms1 = density.get_number_of_atoms();
+  
+  int Nx1 = int( Lx()/dx1 + 0.5 );
+  int Ny1 = int( Ly()/dy1 + 0.5 );
+  int Nz1 = int( Lz()/dz1 + 0.5 );
+  
+  cout << endl;
+  cout << "Fine   spacings: " << setw(12) << dx_ << setw(12) << dy_ << setw(12) << dz_ << endl;
+  cout << "Coarse spacings: " << setw(12) << dx1 << setw(12) << dy1 << setw(12) << dz1 << endl;
+  
+  cout << endl;
+  cout << "Box dimensions:  " << setw(12) << Lx() << setw(12) << Ly() << setw(12) << Lz() << endl;
+  cout << "Coarse Nx1*dx1:  " << setw(12) << Nx1*dx1 << setw(12) << Ny1*dy1 << setw(12) << Nz1*dz1 << endl;
+  
+  if (fabs(Lx()-Nx1*dx1)>1e-8*dx1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the x direction");
+  if (fabs(Ly()-Ny1*dy1)>1e-8*dy1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the y direction");
+  if (fabs(Lz()-Nz1*dz1)>1e-8*dz1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the z direction");
+  
+  for (int ix=0; ix<Nx_; ix++)
+  for (int iy=0; iy<Ny_; iy++)
+  for (int iz=0; iz<Nz_; iz++)
+  {
+    double x = getX(ix);
+    double y = getY(iy);
+    double z = getZ(iz);
+    
+    int ix1 = int( (x+Lx()/2+0.01*dx_)/dx1 ); // +0.01*dx_ makes sure it is rounded correctly
+    int iy1 = int( (y+Ly()/2+0.01*dx_)/dy1 );
+    int iz1 = int( (z+Lz()/2+0.01*dx_)/dz1 );
+    
+    double x1 = density.getX(ix1);
+    double y1 = density.getY(iy1);
+    double z1 = density.getZ(iz1);
+    
+    double lx = (x-x1)/dx1; while (lx>=1.0) lx-=1.0; while (lx<0.0) lx+=1.0;
+    double ly = (y-y1)/dy1; while (ly>=1.0) ly-=1.0; while (ly<0.0) ly+=1.0;
+    double lz = (z-z1)/dz1; while (lz>=1.0) lz-=1.0; while (lz<0.0) lz+=1.0;
+    
+    double d000 = density.get(ix1+0,iy1+0,iz1+0);
+    double d100 = density.get(ix1+1,iy1+0,iz1+0);
+    double d010 = density.get(ix1+0,iy1+1,iz1+0);
+    double d001 = density.get(ix1+0,iy1+0,iz1+1);
+    double d011 = density.get(ix1+0,iy1+1,iz1+1);
+    double d101 = density.get(ix1+1,iy1+0,iz1+1);
+    double d110 = density.get(ix1+1,iy1+1,iz1+0);
+    double d111 = density.get(ix1+1,iy1+1,iz1+1);
+    
+    double d  = (1-lx)*(1-ly)*(1-lz)*d000;
+           d +=    lx *(1-ly)*(1-lz)*d100;
+           d += (1-lx)*   ly *(1-lz)*d010;
+           d += (1-lx)*(1-ly)*   lz *d001;
+           d += (1-lx)*   ly *   lz *d011;
+           d +=    lx *(1-ly)*   lz *d101;
+           d +=    lx *   ly *(1-lz)*d110;
+           d +=    lx *   ly *   lz *d111;
+    
+    set(ix,iy,iz,d);
+    
+    // Check
+    /*
+    if (ix==Nx_-1 && iy==Ny_/2 && iz==Nz_/2+1)
+    {
+      cout << endl;
+      cout << "Fine   ix, iy, iz: " << setw(12) << ix  << setw(12) << iy  << setw(12) << iz  << endl;
+      cout << "Coarse ix, iy, iz: " << setw(12) << ix1 << setw(12) << iy1 << setw(12) << iz1 << endl;
+      
+      cout << endl;
+      cout << "Fine   x, y, z: " << setw(12) << x  << setw(12) << y  << setw(12) << z  << endl;
+      cout << "Coarse x, y, z: " << setw(12) << x1 << setw(12) << y1 << setw(12) << z1 << endl;
+      
+      cout << endl;
+      cout << "lx, ly, lz: " << setw(12) << lx << setw(12) << ly << setw(12) << lz << endl;
+      
+      cout << endl;
+      cout << "d000: " << setw(12) << d000 << endl;
+      cout << "d100: " << setw(12) << d100 << endl;
+      cout << "d010: " << setw(12) << d010 << endl;
+      cout << "d001: " << setw(12) << d001 << endl;
+      cout << "d011: " << setw(12) << d011 << endl;
+      cout << "d101: " << setw(12) << d101 << endl;
+      cout << "d110: " << setw(12) << d110 << endl;
+      cout << "d111: " << setw(12) << d111 << endl;
+      
+      
+      cout << endl;
+      cout << "Trilinear interpolation d : " << setw(12) << d << endl;
+    }
+    */
+  }
+  
+  cout << endl;
+  cout << "Number of particles in coarse density: " << setw(12) << Natoms1 << endl;
+  cout << "Number of particles in fine   density: " << setw(12) << get_number_of_atoms() << endl;
+}
+
 
 
 // Shrink smoothly by multiplying by a sigmoid function
@@ -139,6 +246,7 @@ void Density::shrink(double distance, double width, double gap_size)
       set(i,j,k,rho_new);
     }
   }
+}
 
 
 void Density::get_particles(double threshold, vector< vector<long> > &clusters)

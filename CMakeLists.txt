@@ -82,4 +82,5 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD  COMMAND mv libclassicalDFT
 #target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_WEIGHTS_BEFORE_JAN_2023)
 #target_compile_definitions(${PROJECT_NAME} PUBLIC DEBUG_FMT_WEIGHTS)
 
-
+# Enable/Disable Arnoldi (can pose problems as the current implementation only works with Armadillo)
+target_compile_definitions(${PROJECT_NAME} PUBLIC ARNOLDI)

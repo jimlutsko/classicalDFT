@@ -1,3 +1,5 @@
+#ifdef ARNOLDI // do not include this file otherwise
+
 #ifndef __LUTSKO_DFT_ARNOLDI__
 #define __LUTSKO_DFT_ARNOLDI__
 
@@ -82,3 +84,4 @@ class Arnoldi
 };
 
 #endif // __LUTSKO_DFT_ARNOLDI_ sentinal
+#endif //ifdef ARNOLDI
