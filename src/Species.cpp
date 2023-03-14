@@ -158,7 +158,6 @@ void Species::beginForceCalculation()
 {
   if(fixedMass_ > 0.0)
     {
-      //      density_->scale_to(fixedMass_/density_->getNumberAtoms());
       *density_ *= (fixedMass_/density_->getNumberAtoms());
       mu_ = 0.0;
     }
@@ -166,9 +165,6 @@ void Species::beginForceCalculation()
 
 double Species::endForceCalculation()
 {
-  //  if(fixedBackground_ && fixedMass_ > 0.0)
-  //    throw std::runtime_error("Cannot have both fixed background and fixed mass .... aborting");
-        
   if(fixedBackground_)
     {
       for(long pos = 0; pos < density_->get_Nboundary(); pos++)
@@ -197,11 +193,9 @@ double Species::endForceCalculation()
       double Mtarget = fixedMass_;
 
       for(long p=0;p<density_->Ntot();p++)
-	//	if(!fixedBackground_ || !(density_->is_boundary_point(p)))
 	  mu_ += dF_.get(p)*density_->get(p);
       mu_ /= Mtarget; //fixedMass_;
       for(long p=0;p<density_->Ntot();p++)
-	//	if(!fixedBackground_ || !(density_->is_boundary_point(p)))
 	  dF_.set(p, dF_.get(p)-mu_*density_->dV());
     }
 

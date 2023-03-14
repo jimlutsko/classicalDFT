@@ -22,8 +22,8 @@ class Dynamical_Matrix
   // The first does A*v : the second will do A*A*v if use_squared_matrix_= true,
   // the third is a simpler interface for the second  
   virtual void matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F) const =0;
-          void matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F=false) const;
-          void matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param, bool only_d2F=false) const;
+  void matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F=false) const;
+  void matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param = NULL, bool only_d2F=false) const;
 
   virtual void g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const =0;
 

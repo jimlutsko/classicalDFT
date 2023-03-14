@@ -73,6 +73,7 @@ class DFT : public Dynamical_Matrix
   // Set
   void setDF(int i, DFT_Vec &df) {return allSpecies_[i]->setDF(df);}
   void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
+  void set_density(DFT_Vec &x) {allSpecies_[0]->set_density(x);}
   void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
   void set_densities_from_aliases(vector<DFT_Vec> &x_);
   void convert_dF_to_alias_derivs(vector<DFT_Vec> &x_);

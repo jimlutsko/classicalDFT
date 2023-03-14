@@ -468,13 +468,9 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   return F.sum();  
 }
 
-
-
-
-  /**
-   *   computes (d2F/dn_i dn_j) v_j: 
-   *   Cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
-   */
+// computes (d2F/dn_i dn_j) v_j: 
+//
+//  Uses a cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
 
 void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F) const
 {
@@ -492,10 +488,9 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
           throw std::runtime_error("Input vector v must have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
       }
 
+  // ideal gas contribution: v_i/n_i  
   if(full_hessian_)
   {
-    // ideal gas contribution: v_i/n_i
-
     double dV = allSpecies_[0]->getDensity().dV();
 
     for(int s=0;s<allSpecies_.size();s++)
@@ -509,12 +504,8 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
   {
     try {fmt_->add_second_derivative(v,result, allSpecies_);}
     catch( Eta_Too_Large_Exception &e) {throw e;}
-  }
-  else
-  {
-    for(auto &species : allSpecies_)
-      species->doFFT(); 
-  } 
+  } else for(auto &species : allSpecies_) // needed for interactions - its done automatically if there is an fmt evaluation
+	   species->doFFT(); 
   
   // Mean field
   for(auto &interaction: DFT::Interactions_)    
@@ -529,9 +520,46 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
     }
 }
 
+// computes result_I = F_{I I+J} for fixed J
+void DFT::diagonal_matrix_elements(int jx, int jy, int jz, , vector<DFT_Vec> &result) const
+{
+  // ideal gas contribution: delta_J0/n_i  
 
+  int Nx = allSpecies_[0].getDensity().Nx();
+  int Ny = allSpecies_[0].getDensity().Ny();
+  int Nz = allSpecies_[0].getDensity().Nz();
+  
+  if((jx%Nx == 0) && (jy%Ny == 0) && (jz%Nz == 0))
+  {
+    double dV = allSpecies_[0]->getDensity().dV();
 
+    for(int s=0;s<allSpecies_.size();s++)
+      #pragma omp parallel for
+      for(unsigned pos=0;pos<v[s].cReal().size();pos++)
+        result[s].set(pos, dV/allSpecies_[s]->get_density(pos));
+  }
+  /*
+  // Hard-sphere
+  if(fmt_)
+  {
+    try {fmt_->add_second_derivative(v,result, allSpecies_);}
+    catch( Eta_Too_Large_Exception &e) {throw e;}
+  } else for(auto &species : allSpecies_)
+	   species->doFFT(); 
+  
+  // Mean field
+  for(auto &interaction: DFT::Interactions_)    
+    interaction->add_second_derivative(v,result);
 
+  // Remove boundary terms if the boundary is fixed
+  for(int s=0;s<allSpecies_.size();s++)  
+    if(allSpecies_[s]->is_fixed_boundary())
+    {
+      long p = 0;
+      do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
+    }
+  */
+}
 
 
 namespace dft_util {
