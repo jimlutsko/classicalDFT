@@ -125,6 +125,7 @@ class DFT : public Dynamical_Matrix
 
   // Implement Dynamical_Matrix interface.
   // Second derivatives contracted into arbitrary vector
+  virtual void diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &result) const;  
   virtual void matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param = NULL, bool only_d2F=true) const;
   virtual void g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const {gx.set(x);}
 

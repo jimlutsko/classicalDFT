@@ -8,6 +8,7 @@
 #include <cstring>
 #include <complex>
 
+#include "DFT_LinAlg.h"
 #include "Species.h"
 #include "Density.h"
 #include "Point.h"
@@ -60,6 +61,9 @@ public:
   void calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const;
 
   void calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const;  
+
+  // adds F_{I,I+J} contribution { sum_{a,b} sum_K d2Phi(K)_dn_a_dn_b w_a(K-I) w_b(K-I-J) }  to d2F - single species only!
+  void add_second_derivative(int jx, int jy, int jz, const vector<Species*> &allSpecies, vector<DFT_Vec> &d2F) const;
   
   // Calculates the fundamental measures at lattice point i
   FundamentalMeasures getWeightedDensities(long i, const vector<Species*> &allSpecies);
@@ -96,6 +100,8 @@ public:
   virtual double dPhi3_dV2_dT(int i, int j,int k, const FundamentalMeasures &fm) const { return 0;}
   virtual double dPhi3_dT_dT(int i, int j,int k, int l, const FundamentalMeasures &fm) const{ return 0;}
 
+  double d2Phi_a_b(int a, int b, const FundamentalMeasures& n) const;
+  
   virtual bool needsTensor() const  = 0;
 
   // the homogeneous dcf

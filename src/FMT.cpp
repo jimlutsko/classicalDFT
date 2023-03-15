@@ -672,7 +672,7 @@ void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, 
 }
 
 // Adds contribution to F_{I,I+J}
-void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &allSpecies) , vector<DFT_Vec> &d2F) const 
+void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &allSpecies , vector<DFT_Vec> &d2F) const 
 {
   if(allSpecies.size() < 1)  throw std::runtime_error("No species for FMT::add_second_derivative to work with");
   if(allSpecies.size() > 1)  throw std::runtime_error("FMT::add_second_derivative not implemented for more than one species");
@@ -680,14 +680,14 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
   FMT_Species *species = dynamic_cast<FMT_Species*>(allSpecies[0]);
   if(!species) return; // Not an FMT_Species      
 
-  const Density &density1 = species->getDensity();
+  const Density &density = species->getDensity();
 
   int Nfmt     = FundamentalMeasures::NumberOfMeasures;  // number of fmt densities
-  int Nx       = density1.Nx();
-  int Ny       = density1.Ny();
-  int Nz       = density1.Nz();
-  long Ntot    = density1.Ntot();
-  double dV    = density1.dV();
+  int Nx       = density.Nx();
+  int Ny       = density.Ny();
+  int Nz       = density.Nz();
+  long Ntot    = density.Ntot();
+  double dV    = density.dV();
   
   // Some working space
   DFT_FFT result(Nx,Ny,Nz);
@@ -695,8 +695,8 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
   for(int a = 0;a<Nfmt;a++)
     for(int b = 0;b<Nfmt;b++)
       {
-	DFT_FFT working(Nx,Ny,Nz);
-	working.zeros();
+	DFT_FFT weights(Nx,Ny,Nz);
+	weights.zeros();
 
 	DFT_FFT phi(Nx,Ny,Nz);
 	phi.zeros();	
@@ -705,23 +705,26 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
 	  for(int iy = 0; iy < Ny; iy++)
 	    for(int iz = 0; iz < Nz; iz++)
 	      {
-		long I  = density.get_PBC_pos(ix,iy,iz);
-		long IJ = density.get_PBC_pos(ix+jx,iy+jy,iz+jz);
-	
-		working.set(I, species.getExtendedWeight(I,a)*species.getExtendedWeight(IJ,b));
-		phi.set(I,d2Phi_a_b(a,b,n)); // n == fundamental measures
+		long I  = density.get_PBC_Pos(ix,iy,iz);
+		long IJ = density.get_PBC_Pos(ix+jx,iy+jy,iz+jz);
+
+		FundamentalMeasures fm;
+		species->getFundamentalMeasures(I,fm);
+		
+		weights.set(I, species->getExtendedWeight(I,a)*species->getExtendedWeight(IJ,b));
+		phi.set(I,d2Phi_a_b(a,b,fm)); 
 	      }
 
-	working.do_real_2_fourier();
+	weights.do_real_2_fourier();
 	phi.do_real_2_fourier();
 
 	DFT_FFT result(Nx,Ny,Nz);
 	result.zeros();		
 
-	result.Four().Schur(working.Four(),phi.Four()); 
+	result.Four().Schur(phi.Four(),weights.Four()); 
 	result.do_fourier_2_real();
 
-	d2F[0].IncrementBy(result);
+	d2F[0].IncrementBy(result.Real());
       }  
 }
 

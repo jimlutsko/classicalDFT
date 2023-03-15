@@ -294,9 +294,10 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &resu
 {
   // ideal gas contribution: delta_J0/n_i  
 
-  int Nx = allSpecies_[0].getDensity().Nx();
-  int Ny = allSpecies_[0].getDensity().Ny();
-  int Nz = allSpecies_[0].getDensity().Nz();
+  int Nx = allSpecies_[0]->getDensity().Nx();
+  int Ny = allSpecies_[0]->getDensity().Ny();
+  int Nz = allSpecies_[0]->getDensity().Nz();
+  long Ntot = allSpecies_[0]->getDensity().Ntot();
   
   if((jx%Nx == 0) && (jy%Ny == 0) && (jz%Nz == 0))
   {
@@ -304,14 +305,14 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &resu
 
     for(int s=0;s<allSpecies_.size();s++)
       #pragma omp parallel for
-      for(unsigned pos=0;pos<v[s].cReal().size();pos++)
+      for(unsigned pos=0;pos<Ntot;pos++)
         result[s].set(pos, dV/allSpecies_[s]->get_density(pos));
   }
 
   // Hard-sphere
   if(fmt_)
   {
-    try {fmt_->add_second_derivative(v,result, allSpecies_);}
+    try {fmt_->add_second_derivative(jx,jy,jz, allSpecies_,result);}
     catch( Eta_Too_Large_Exception &e) {throw e;}
   } else for(auto &species : allSpecies_)
 	   species->doFFT(); 
