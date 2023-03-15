@@ -210,7 +210,27 @@ class FundamentalMeasures
       throw std::runtime_error("Setting element out of range in FundamentalMeasures::get(element)");
 
     return;
-  }  
+  }
+
+
+  static bool is_eta(int a) {return a == 0;}
+  static bool is_s0(int a)  {return a == 1;}
+  static bool is_s1(int a)  {return a == 2;}
+  static bool is_s2(int a)  {return a == 3;}
+  static bool is_v1(int a)  {return (a>=4 && a<=6);}
+  static bool is_v2(int a)  {return (a>=7 && a<=9);}
+  static bool is_T(int a)   {return (a>=10 && a<=18);}
+
+  static int  v1_indx(int indx) { return indx-4;}
+  static int  v2_indx(int indx) { return indx-7;}  
+  static void T_indx(int indx, int &a, int &b)
+  {
+    indx -= 10;
+    if(indx < 0 || indx > 8) throw std::runtime_error("Requested out of range translate_T");
+    if(indx < 3) {a = 0; b = indx;}
+    else if(indx < 6) { a = 1; b = indx-3;}
+    else { a=2; b = indx-6;}
+  }
 
   static const int NumberOfMeasures = 19;
 

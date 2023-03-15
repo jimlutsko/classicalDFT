@@ -113,237 +113,6 @@ double DFT::fhelmholtz_times_beta_over_volume(const vector<double> &x) const
 
   return F;  
 }  
-/*
-double DFT::XLiq_From_Mu(double mu, double high_density) const
-{
-  if(allSpecies_.size() > 1) throw std::runtime_error("Xliq_From_Mu only implemented for single component systems");
-
-  vector<double> x(1);
-
-  // Find the liquid that has the correct chemical potential,
-  // Start at the high density and go down until the chemical potential is bracketed.
-  double ax = high_density;
-  double bx = ax;
-  double fa = 0.0;
-  double fb = 0.0;
-
-  x[0] = ax; fa = Mu(x,0);
-  
-  do {
-    bx = ax; fb = fa;
-    ax -= 0.01;
-    if(ax < 0) throw std::runtime_error("No liquid found");
-
-    x[0] = ax; fa = Mu(x,0);
-  } while((fa-mu)*(fb-mu) > 0);
-
-  double cx;
-  do {
-    cx = (ax+bx)/2; x[0] = cx;
-    double fc = Mu(x,0);
-
-    if(fa > mu)
-      {
-	if(fc > mu) { fa = fc; ax = cx;}
-	else {fb = fc; bx = cx;}
-      } else {
-      	if(fc > mu) { fb = fc; bx = cx;}
-	else {fa = fc; ax = cx;}
-    }
-  } while(fabs(fa-fb) > 1e-12 + 1e-12*fabs(fa+fb));
-  return cx;
-}
-
-double DFT::XVap_From_Mu(double mu, double maxDensity) const
-{
-  if(allSpecies_.size() > 1) throw std::runtime_error("XVap_From_Mu only implemented for single component systems");
-
-  vector<double> x(1);
-  
-  // first, find a lower bound:
-  // this is a guess for ideal gas
-  x[0] = exp(mu)/2;
-  while(Mu(x,0) > mu) x[0] /= 2;
-  double x1 = x[0];
-  
-  // now we need an upper bound: is there a spinodal?
-  double xs1 = -1;
-  double xs2 = -1;
-  double x2  = -1;
-  try {
-    //    spinodal(xs1,xs2);
-    findSpinodal(maxDensity, 0.01, xs1, xs2, 1e-8);
-    cout << "Spinodal: " << x1 << " " << x2 << endl;
-    x2 = min(xs1,xs2);
-  } catch(...) {
-    // no problem - there is no spinodal.
-    x2 = maxDensity;
-  }
-
-  x[0] = x2;
-  if(Mu(x,0) < mu) return -1;
-
-  // do bisection
-  x[0] = x1; double f1 = Mu(x,0);
-  x[0] = x2; double f2 = Mu(x,0);
-  double f = f1;
-  
-  while(fabs(f-mu) > 1e-8*fabs(f+mu))
-    {
-      x[0] = (x1+x2)/2;
-      f = Mu(x,0);
-      if(f > mu) x2 = x[0];
-      else x1 = x[0];
-    }
-  return x[0];
-}
-
-// To find the spinodal, we just need the roots of dP/dx
-// and here 
-//     double e = M_PI*x*d_*d_*d_/6;
-//    double e1 = 1-e;
-//    dbetaP/dx (1+e*(4+e*(4+e*(-4+e))))/(e1*e1*e1*e1) + a_*x 
-// so we wish to solve
-// 1+4e+4e^2-4e^3+e4 + a_ x(1-4e+6e^2-4e^3+e^4)
-void DFT::spinodal(double &xs1, double &xs2) const
-{
-  if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
-  if(Interactions_.size() != 1) throw std::runtime_error("DFT::spinodal only implemented for a single attractive interaction");
-
-  xs1 = xs2 = -1;
-  
-  double d = allSpecies_[0]->getHSD();
-  double fac = 6/(M_PI*d*d*d);
-  double ae = Interactions_[0]->getVDWParameter()*fac;
-
-  vector<double> num;
-  vector<double> denom;
-  if(fmt_) fmt_->get_dPdx_coeffs(num,denom);
-
-  int sz = max(num.size(),denom.size()+1);
-  vector<double> a(sz,0.0);
-  for(int i=0;i<num.size();i++)
-    a[i] += num[i];
-  for(int i=0;i<denom.size();i++)
-    a[i+1] += ae*denom[i];  
-
-  double roots[2*(a.size()-1)];
-  gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(a.size());
-  gsl_poly_complex_solve(a.data(), a.size(), w, roots);
-  gsl_poly_complex_workspace_free(w);
-
-  for(int i=0;i<a.size()-1;i++)
-    if(fabs(gsl_poly_eval(a.data(),a.size(),roots[2*i])) < 1e-8) // only check real roots
-      if(roots[2*i] > 0 && roots[2*i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
-	{
-	  if(xs2 < 0) xs2 = roots[2*i];
-	  else {
-	    if(xs1 < 0) xs1 = min(roots[2*i],xs2);
-	    else xs1 = min(xs1, roots[2*i]);
-	    xs2 = max(xs2, roots[2*i]);
-	  }
-	}
-
-  if(xs1 < 0 || xs2 < 0) throw std::runtime_error("Determination of spinodal failed 2");
-
-  // convert from e to x
-  xs1 *= 6/(M_PI*d*d*d);
-  xs2 *= 6/(M_PI*d*d*d);
-  return;
-}
-
-// Solve  P = x1*(1+e+e*e-e*e*e)*pow(1.0-e,-3) + 0.5*a*x1*x1 + 2b*x1*x1*x1
-// or     (P*pi*d^3/6)(1.0-e)^3 = e*(1+e+e*e-e*e*e) + 0.5*ae*e*e*(1-e)^3 + 2*be*e*e*e*(1-e)^3
-double DFT::XLiq_from_P(double P) const
-{
-  if(allSpecies_.size() != 1)   throw std::runtime_error("DFT::spinodal only implemented for a single component systems");
-  if(Interactions_.size() != 1) throw std::runtime_error("DFT::spinodal only implemented for a single attractive interaction");
-
-  double d = allSpecies_[0]->getHSD();
-  double fac = 6/(M_PI*d*d*d);
-  double ae = (Interactions_.size() == 0 ? 0.0 : Interactions_[0]->getVDWParameter()*fac);
-  
-  P *= M_PI*d*d*d/6;
-
-  double x = -1;
-
-  vector<double> num;
-  vector<double> denom;
-  if(fmt_) fmt_->get_P_coeffs(num,denom);
-
-  int sz = max(num.size()+1,denom.size()+2);
-  vector<double> a(sz,0.0);
-
-  for(int i=0;i<num.size();i++)
-    a[i+1] += num[i];
-  for(int i=0;i<denom.size();i++)
-    {
-      a[i]   += -P*denom[i];
-      a[i+2] += 0.5*ae*denom[i];  
-    }
-
-  /?
-  a.push_back(-P);
-  a.push_back(  3*P+1);
-  a.push_back( -3*P+1+0.5*ae);
-  a.push_back(  P+1-1.5*ae);
-  a.push_back(  -1+1.5*ae);
-  a.push_back(   -0.5*ae);
-  ?/
-  double roots[2*(a.size()-1)];
-  gsl_poly_complex_workspace * w= gsl_poly_complex_workspace_alloc(a.size());
-  gsl_poly_complex_solve(a.data(), a.size(), w, roots);
-  gsl_poly_complex_workspace_free(w);
-
-  for(int i=0;i<a.size()-1;i++)
-    if(fabs(gsl_poly_eval(a.data(),a.size(),roots[2*i])) < 1e-12) // only check real roots      
-      if(roots[2*i] > 0 && roots[2*i] < (M_PI/3)*M_SQRT1_2) // i.e. pi/(3sqrt(2)) =  close packing limit
-        x = max(x, roots[2*i]);
-
-  if(x < 0) throw std::runtime_error("DFT::Xliq_From_P failed");
-
-  // convert from e to x
-  x *= 6/(M_PI*d*d*d);
-  return x;
-}
-
-void DFT::liq_vap_coex(double &xs1, double &xs2, double &x1, double &x2) const
-{
-  xs1 = xs2 = x1 = x2 = -1;
-
-  spinodal(xs1,xs2);
-  if(xs1 < 0 || xs2 < 0) throw std::runtime_error("No liq-vap coexistence found");
-
-  if(xs1 > xs2) swap(xs1,xs2);
-  
-  x1 = xs1;  
-  vector<double> v1(1); v1[0] = x1;
-  double Mu1 = Mu(v1,0);
-
-  vector<double> v2(1);
-  v2[0] = max(XLiq_from_P(-Omega(v1)),xs2);
-  double Mu2 = Mu(v2,0);
-
-  if(Mu2 > Mu1) throw std::runtime_error("DFT::liq_vap_coex failed at point 1");
-
-  while(Mu2 < Mu1){ v1[0] /= 2; Mu1 = Mu(v1,0);}
-
-  // the value is between v1[0] and v1[0]*2
-  double a = v1[0];
-  double b = 2*a;
-  while(fabs(b-a) > 1e-12 + 1e-12*fabs(a+b))
-    {
-      v1[0] = (a+b)/2;
-      v2[0] = max(XLiq_from_P(-Omega(v1)),xs2);      
-      Mu1 = Mu(v1,0);
-      Mu2 = Mu(v2,0);
-      if(Mu1 < Mu2) a = v1[0];
-      else b = v1[0];
-    }
-  x1 = v1[0];
-  x2 = v2[0];
-}
-*/
 
 void DFT::set_densities_from_aliases(vector<DFT_Vec> &x_)
 {
@@ -521,7 +290,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
 }
 
 // computes result_I = F_{I I+J} for fixed J
-void DFT::diagonal_matrix_elements(int jx, int jy, int jz, , vector<DFT_Vec> &result) const
+void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &result) const
 {
   // ideal gas contribution: delta_J0/n_i  
 
@@ -538,7 +307,7 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, , vector<DFT_Vec> &re
       for(unsigned pos=0;pos<v[s].cReal().size();pos++)
         result[s].set(pos, dV/allSpecies_[s]->get_density(pos));
   }
-  /*
+
   // Hard-sphere
   if(fmt_)
   {
@@ -546,7 +315,7 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, , vector<DFT_Vec> &re
     catch( Eta_Too_Large_Exception &e) {throw e;}
   } else for(auto &species : allSpecies_)
 	   species->doFFT(); 
-  
+  /*  
   // Mean field
   for(auto &interaction: DFT::Interactions_)    
     interaction->add_second_derivative(v,result);
