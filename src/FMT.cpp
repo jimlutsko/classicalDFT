@@ -721,7 +721,7 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
 	DFT_FFT result(Nx,Ny,Nz);
 	result.zeros();		
 
-	result.Four().Schur(phi.Four(),weights.Four()); 
+	result.Four().Schur(phi.Four(),weights.Four(), /* useConj = */ true); 
 	result.do_fourier_2_real();
 
 	d2F[0].IncrementBy(result.Real());
