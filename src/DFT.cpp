@@ -298,16 +298,17 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &resu
   int Ny = allSpecies_[0]->getDensity().Ny();
   int Nz = allSpecies_[0]->getDensity().Nz();
   long Ntot = allSpecies_[0]->getDensity().Ntot();
-  
-  if((jx%Nx == 0) && (jy%Ny == 0) && (jz%Nz == 0))
-  {
-    double dV = allSpecies_[0]->getDensity().dV();
 
-    for(int s=0;s<allSpecies_.size();s++)
-      #pragma omp parallel for
-      for(unsigned pos=0;pos<Ntot;pos++)
-        result[s].set(pos, dV/allSpecies_[s]->get_density(pos));
-  }
+  if(full_hessian_)
+    if((jx%Nx == 0) && (jy%Ny == 0) && (jz%Nz == 0))
+      {
+	double dV = allSpecies_[0]->getDensity().dV();
+	
+	for(int s=0;s<allSpecies_.size();s++)
+#pragma omp parallel for
+	  for(unsigned pos=0;pos<Ntot;pos++)
+	    result[s].set(pos, dV/allSpecies_[s]->get_density(pos));
+      }
 
   // Hard-sphere
   if(fmt_)

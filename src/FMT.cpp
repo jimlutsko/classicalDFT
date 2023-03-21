@@ -695,36 +695,39 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
   for(int a = 0;a<Nfmt;a++)
     for(int b = 0;b<Nfmt;b++)
       {
-	DFT_FFT weights(Nx,Ny,Nz);
-	weights.zeros();
+	cout << "a = " << a << " b = " << b << endl;
 
 	DFT_FFT phi(Nx,Ny,Nz);
 	phi.zeros();	
+	for(long K=0;K<Ntot;K++)
+	  {
+	    FundamentalMeasures fm;
+	    species->getFundamentalMeasures(K,fm);
+	    phi.set(K,d2Phi_a_b(a,b,fm));
+	  }
 
+	DFT_FFT weight_prod(Nx,Ny,Nz);
+	weight_prod.zeros();	
+	
 	for(int ix = 0; ix < Nx; ix++)
 	  for(int iy = 0; iy < Ny; iy++)
 	    for(int iz = 0; iz < Nz; iz++)
 	      {
 		long I  = density.get_PBC_Pos(ix,iy,iz);
-		long IJ = density.get_PBC_Pos(ix+jx,iy+jy,iz+jz);
-
-		FundamentalMeasures fm;
-		species->getFundamentalMeasures(I,fm);
-		
-		weights.set(I, species->getExtendedWeight(I,a)*species->getExtendedWeight(IJ,b));
-		phi.set(I,d2Phi_a_b(a,b,fm)); 
+		long IJ = density.get_PBC_Pos(ix+jx,iy+jy,iz+jz);       	
+		weight_prod.set(I, species->getExtendedWeight(I,a)*species->getExtendedWeight(IJ,b));
 	      }
 
-	weights.do_real_2_fourier();
+	weight_prod.do_real_2_fourier();
 	phi.do_real_2_fourier();
 
 	DFT_FFT result(Nx,Ny,Nz);
 	result.zeros();		
 
-	result.Four().Schur(phi.Four(),weights.Four(), /* useConj = */ true); 
+	result.Four().Schur(phi.Four(),weight_prod.Four(), /* useConj = */ true); 
 	result.do_fourier_2_real();
 
-	d2F[0].IncrementBy(result.Real());
+	d2F[0].IncrementBy_Scaled_Vector(result.Real(),dV);
       }  
 }
 
