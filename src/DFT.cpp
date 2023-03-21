@@ -298,31 +298,39 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &resu
   int Ny = allSpecies_[0]->getDensity().Ny();
   int Nz = allSpecies_[0]->getDensity().Nz();
   long Ntot = allSpecies_[0]->getDensity().Ntot();
+  long J = allSpecies_[0]->getDensity().get_PBC_Pos(jx,jy,jz);
+  double dV = allSpecies_[0]->getDensity().dV();
 
+
+  
   if(full_hessian_)
     if((jx%Nx == 0) && (jy%Ny == 0) && (jz%Nz == 0))
       {
-	double dV = allSpecies_[0]->getDensity().dV();
-	
 	for(int s=0;s<allSpecies_.size();s++)
 #pragma omp parallel for
 	  for(unsigned pos=0;pos<Ntot;pos++)
 	    result[s].set(pos, dV/allSpecies_[s]->get_density(pos));
       }
 
+  for(auto &species : allSpecies_)
+    species->doFFT(); 
+  
   // Hard-sphere
   if(fmt_)
-  {
+  {    
     try {fmt_->add_second_derivative(jx,jy,jz, allSpecies_,result);}
     catch( Eta_Too_Large_Exception &e) {throw e;}
   } else for(auto &species : allSpecies_)
 	   species->doFFT(); 
-  /*  
-  // Mean field
-  for(auto &interaction: DFT::Interactions_)    
-    interaction->add_second_derivative(v,result);
+  
+  // Mean field: just shift all entries by w(0)*dV*dV
+  // N.B. w already contains one factor of dV.
+  for(auto &interaction: DFT::Interactions_)
+    if(interaction->get_s1() == interaction->get_s2())
+      result[0].add(interaction->getW(J)*dV);
 
   // Remove boundary terms if the boundary is fixed
+  /*
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())
     {

@@ -162,7 +162,7 @@ class FundamentalMeasures
     return f;
   }
 
-  double get(int element)
+  double get(int element) const
   {
     if(element == 0) return eta;
 
