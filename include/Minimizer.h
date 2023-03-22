@@ -228,7 +228,8 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   virtual bool     is_dynamic() const { return true;}
 
   virtual void     g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
-
+  virtual void get_matrix_diag(DFT_Vec &diag) const {throw std::runtime_error("DDFT::get_matrix_diag not implemented");}
+  virtual void get_metric_diag(DFT_Vec &diag) const {throw std::runtime_error("DDFT::get_metric_diag not implemented");}
   
 protected:
   double get_neighbors(const DFT_Vec &x, int species, long pos, int stride,

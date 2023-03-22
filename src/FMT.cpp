@@ -607,6 +607,8 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
   for(int a = 0;a<Nfmt;a++)
     for(int b = a;b<Nfmt;b++)
       {
+	cout << "a = " << a << " b = " << b << endl;
+	
 	DFT_FFT phi(Nx,Ny,Nz);
 	phi.zeros();	
 	for(long K=0;K<Ntot;K++)

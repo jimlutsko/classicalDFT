@@ -128,7 +128,9 @@ class DFT : public Dynamical_Matrix
   virtual void diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &result) const;  
   virtual void matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param = NULL, bool only_d2F=true) const;
   virtual void g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const {gx.set(x);}
-
+  virtual void get_matrix_diag(DFT_Vec &diag) const { vector<DFT_Vec> tmp(1); tmp[0].zeros(get_Ntot()); diagonal_matrix_elements(0, 0, 0, tmp); diag.set(tmp[0]);}
+  virtual void get_metric_diag(DFT_Vec &diag) const { diag.set(1);}
+  
   virtual unsigned get_dimension(int direction) const {return allSpecies_[0]->getLattice().get_dimension(direction);}
   virtual long     get_Nboundary()              const {return allSpecies_[0]->getDensity().get_Nboundary();}
   virtual long     boundary_pos_2_pos(int p)    const {return allSpecies_[0]->getDensity().boundary_pos_2_pos(p);}
