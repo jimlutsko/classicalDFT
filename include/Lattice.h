@@ -121,6 +121,9 @@ void init(double L[])
   double getY(int i) const { return dy_*(i-double(Ny_)/2);}
   double getZ(int i) const { return dz_*(i-double(Nz_)/2);}
 
+  double getX(double i) const { return dx_*(i-double(Nx_)/2);}
+  double getY(double i) const { return dy_*(i-double(Ny_)/2);}
+  double getZ(double i) const { return dz_*(i-double(Nz_)/2);}
 
   // Cartesian indices into vector index
   inline long pos(int v[]) const { return pos(v[0],v[1],v[2]);}

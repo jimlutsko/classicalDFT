@@ -58,6 +58,7 @@ class Species
   virtual void   get_density_alias(DFT_Vec &x) const;
   virtual void   get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const; // only valid for local aliases
   const DFT_Vec& get_density_real() const { return density_->get_density_real();}
+  double get_density(long pos) const { return density_->get(pos);}
   
   void read_density(istream &in) { in >> (*density_);}      
   
@@ -68,7 +69,7 @@ class Species
   virtual void convert_to_alias_deriv(DFT_Vec &dF_dRho) const;
   virtual void convert_to_alias_increment(DFT_Vec &dRho) const;
   virtual void convert_to_density_increment(DFT_Vec &dRho) const;
-  
+
   void turn_on_display() {density_->turn_on_display();}
   void doDisplay(string &title, string &file, void *param = NULL) const { density_->doDisplay(title,file, seq_num_, param);}
 

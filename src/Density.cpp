@@ -211,6 +211,42 @@ void Density::set_from_coarser_density(const Density &density)
 }
 
 
+
+// Shrink smoothly by multiplying by a sigmoid function
+// Restore background density beyond cropping distance using another sigmoid
+// Can leave a gap between the two sigmoids in order to avoid eta>1 errors with solid profiles
+// The default cropping geometry is spherical (intented for clusters) 
+// but the function can be re-defined in children classes.
+void Density::shrink(double distance, double width, double gap_size)
+{
+    double xcm, ycm, zcm; get_center_of_mass(xcm, ycm, zcm);
+    xcm = getX(xcm); ycm = getY(ycm); zcm = getZ(zcm);
+    
+    double rho_bg = get_ave_background_density();
+    
+    double R1 = distance;
+    double R2 = distance + gap_size;
+
+    for(int p=0; p<Ntot_; p++)
+    if (!is_boundary_point(p))
+    {
+      int i,j,k;
+      cartesian(p, i, j, k);
+      
+      double x = getX(i);
+      double y = getY(j);
+      double z = getZ(k);
+      
+      double r = sqrt((x-xcm)*(x-xcm)+(y-ycm)*(y-ycm)+(z-zcm)*(z-zcm));
+      double rho_old = get(i,j,k);
+      
+      double rho_new = rho_old * 0.5*(1-tanh((r-R2)/width))  // sigmoid 1
+                     + rho_bg  * 0.5*(tanh((r-R1)/width)+1); // sigmoid 2
+      set(i,j,k,rho_new);
+    }
+}
+
+
 void Density::get_particles(double threshold, vector< vector<long> > &clusters)
 {
   /*

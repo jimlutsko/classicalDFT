@@ -61,7 +61,7 @@ void Dynamical_Matrix::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *pa
   
   vwork[0].do_real_2_fourier();
 
-  vector<DFT_Vec> rwork(1, result.size());
+  vector<DFT_Vec> rwork(1); rwork[0].zeros(result.size());
 
   matrix_dot_v(vwork,rwork,param,only_d2F);
   result.set(rwork[0]);

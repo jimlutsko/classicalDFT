@@ -187,6 +187,24 @@ static int count1 = 0;
 //This computes sum_b (d2Phi(n)/dn_{a} dn_{b}) v_{b} for some array v and where n_{a} are the fundamental measures.
 void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const
 {
+  
+  const int Nfmt = FundamentalMeasures::NumberOfMeasures;  // number of fmt densities
+  for(int a = 0; a < Nfmt; a++)
+    {
+      double s = 0;
+      for(int b = 0; b < Nfmt; b++)
+	s += d2Phi_a_b(a,b,n)*v.get(b);
+      result.set(a, s);
+    }
+  return;
+}
+
+//This computes  (d2Phi(n)/dn_{a} dn_{b}) where n_{a} are the fundamental measures.
+double FMT::d2Phi_a_b(int a, int b, const FundamentalMeasures& n) const
+{
+  // Second derivative is symmetric
+  if(b < a) { int c = a; a = b; b = c;}
+  
   // These are the eta-dependendent cofactors that lie at the heart of FMT
   double eta = n.eta;
   
@@ -208,82 +226,68 @@ void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalM
   double s2 = n.s2;
   double v1_v2 = n.v1_v2;
 
-  result.fillUniform(0);
-  //eta-eta
-  result.eta += ( -(1/M_PI)*s0*f1pp 
-  		  +(1/(2*M_PI))*(s1*s2-v1_v2)*f2pp
-  		  + Phi3(n)*f3pp ) * v.eta;
-  //eta-s0
-  result.eta += -(1/M_PI)*f1p * v.s0;
-  result.s0  += -(1/M_PI)*f1p * v.eta;    
+  double d2Phi = 0.0;
 
-  //eta-s1
-  result.eta += (1/(2*M_PI))*(s2)*f2p * v.s1;
-  result.s1  += (1/(2*M_PI))*(s2)*f2p * v.eta;
+  if(n.is_eta(a))
+    {
+      if(n.is_eta(b))  d2Phi += ( -(1/M_PI)*s0*f1pp 
+				  +(1/(2*M_PI))*(s1*s2-v1_v2)*f2pp
+				  + Phi3(n)*f3pp );
+      // eta-s0,s1,s2
+      if(n.is_s0(b)) d2Phi += -(1/M_PI)*f1p;
+      if(n.is_s1(b)) d2Phi += (1/(2*M_PI))*(s2)*f2p;
+      if(n.is_s2(b)) d2Phi += ( (1/(2*M_PI))*(s1)*f2p + dPhi3_dS2(n)*f3p);
 
-  //eta-s2
-  result.eta += ( (1/(2*M_PI))*(s1)*f2p + dPhi3_dS2(n)*f3p) * v.s2;
-  result.s2  += ( (1/(2*M_PI))*(s1)*f2p + dPhi3_dS2(n)*f3p) * v.eta;
+      //eta-v1
+      if(n.is_v1(b)) d2Phi += -(1/(2*M_PI))*n.v2[n.v1_indx(b)]*f2p;
 
-  //eta-v1
-  result.eta += -(1/(2*M_PI))*n.v2[0]*f2p * v.v1[0];
-  result.eta += -(1/(2*M_PI))*n.v2[1]*f2p * v.v1[1];
-  result.eta += -(1/(2*M_PI))*n.v2[2]*f2p * v.v1[2];
-
-  result.v1[0] += -(1/(2*M_PI))*n.v2[0]*f2p * v.eta;
-  result.v1[1] += -(1/(2*M_PI))*n.v2[1]*f2p * v.eta;
-  result.v1[2] += -(1/(2*M_PI))*n.v2[2]*f2p * v.eta;
-
-  //eta-v2
-  result.eta += (-(1/(2*M_PI))*n.v1[0]*f2p + dPhi3_dV2(0,n)*f3p) * v.v2[0];
-  result.eta += (-(1/(2*M_PI))*n.v1[1]*f2p + dPhi3_dV2(1,n)*f3p) * v.v2[1];
-  result.eta += (-(1/(2*M_PI))*n.v1[2]*f2p + dPhi3_dV2(2,n)*f3p) * v.v2[2];
-
-  result.v2[0] += (-(1/(2*M_PI))*n.v1[0]*f2p + dPhi3_dV2(0,n)*f3p) * v.eta;
-  result.v2[1] += (-(1/(2*M_PI))*n.v1[1]*f2p + dPhi3_dV2(1,n)*f3p) * v.eta;
-  result.v2[2] += (-(1/(2*M_PI))*n.v1[2]*f2p + dPhi3_dV2(2,n)*f3p) * v.eta;
-
+      //eta-v2
+      if(n.is_v2(b)) d2Phi += (-(1/(2*M_PI))*n.v1[n.v2_indx(b)]*f2p + dPhi3_dV2(n.v2_indx(b),n)*f3p);
+    }
+  
   // s0-s0, s0-s1, s1-s1 are all zero
 
   // s1-s2
-  result.s1 += (1/(2*M_PI))*f2 * v.s2;
-  result.s2 += (1/(2*M_PI))*f2 * v.s1;
+  if(n.is_s1(a) && n.is_s2(b)) d2Phi += (1/(2*M_PI))*f2;
 
   //s2-s2
-  result.s2 += dPhi3_dS2_dS2(n)*f3 * v.s2;
+  if(n.is_s2(a) && n.is_s2(b)) d2Phi += dPhi3_dS2_dS2(n)*f3;
   
-  for(int i=0;i<3;i++)
-    {
-      // s2-v2
-      result.s2    += dPhi3_dV2_dS2(i, n)*f3 * v.v2[i];
-      result.v2[i] += dPhi3_dV2_dS2(i, n)*f3 * v.s2;
+  // s2-v2
+  if(n.is_s2(a) && n.is_v2(b)) d2Phi += dPhi3_dV2_dS2(n.v2_indx(b), n)*f3;
 
-      // v1-v2
-      result.v1[i] += -(1/(2*M_PI))*f2 * v.v2[i];
-      result.v2[i] += -(1/(2*M_PI))*f2 * v.v1[i];
+  // v1-v2 (from v1 dot v2)
+  if(n.is_v1(a) && n.is_v2(b) && n.v1_indx(a) == n.v2_indx(b)) d2Phi += -(1/(2*M_PI))*f2;
       
-      for(int j=0;j<3;j++)
+  // v2-v2
+  if(n.is_v2(a) && n.is_v2(b)) d2Phi += dPhi3_dV2_dV2(n.v2_indx(a), n.v2_indx(b),n)*f3;
+
+  if(n.is_T(b))
+    {
+      int i,j;
+      n.T_indx(b,i,j);
+
+      // eta-T
+      if(n.is_eta(a)) d2Phi += dPhi3_dT(i,j,n)*f3p;
+      
+      // s0-T and s1-T are zero
+      
+      // s2-T[b]
+      if(n.is_s2(a)) d2Phi += dPhi3_dS2_dT(i,j,n)*f3;
+      // v1-T is zero
+      // v2-T
+      if(n.is_v2(a)) d2Phi   += dPhi3_dV2_dT(n.v2_indx(a),i,j,n)*f3;
+
+      // T-T
+      if(n.is_T(a))
 	{
-	  double fac = (i == j ? 1.0 : 0.5);
-	  // v2-v2
-	  result.v2[i] += dPhi3_dV2_dV2(i,j,n)*f3 * v.v2[j];
-
-	  result.eta     += dPhi3_dT(i,j,n)*f3p * v.T[i][j];
-	  result.T[i][j] += dPhi3_dT(i,j,n)*f3p * v.eta;
-
-	  // assuming s0-T and s1-T are zero
-	  result.s2      += dPhi3_dS2_dT(i,j,n)*f3 * v.T[i][j];
-	  result.T[i][j] += dPhi3_dS2_dT(i,j,n)*f3 * v.s2;
-	  
-	  for(int k=0;k<3;k++)
-	    {
-	      result.v2[i]   += dPhi3_dV2_dT(i,j,k,n)*f3 * v.T[j][k];
-	      result.T[j][k] += dPhi3_dV2_dT(i,j,k,n)*f3 * v.v2[i];
-	      for(int l=0;l<3;l++)
-		result.T[i][j] += dPhi3_dT_dT(i,j,k,l,n)*f3 * v.T[k][l];
-	    }
+	  int k,l;
+	  n.T_indx(a,k,l);
+	  d2Phi += dPhi3_dT_dT(k,l,i,j,n)*f3;
 	}
     }
+
+  return d2Phi;
 }
 
 
@@ -580,8 +584,74 @@ void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, 
 
 }
 
+// Adds contribution to F_{I,I+J} = sum_{a,b} sum_K dV Phi_{ab}(K) w_a(K-I) w_b(K-I-J)
+// As usual, we note that the weights w_a(K) have the dV factor baked in.
+
+void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &allSpecies , vector<DFT_Vec> &d2F) const 
+{
+  if(allSpecies.size() < 1)  throw std::runtime_error("No species for FMT::add_second_derivative to work with");
+  if(allSpecies.size() > 1)  throw std::runtime_error("FMT::add_second_derivative not implemented for more than one species");
+
+  FMT_Species *species = dynamic_cast<FMT_Species*>(allSpecies[0]);
+  if(!species) return; // Not an FMT_Species      
+
+  const Density &density = species->getDensity();
+
+  int Nfmt     = FundamentalMeasures::NumberOfMeasures;  // number of fmt densities
+  int Nx       = density.Nx();
+  int Ny       = density.Ny();
+  int Nz       = density.Nz();
+  long Ntot    = density.Ntot();
+  double dV    = density.dV();
+  
+  for(int a = 0;a<Nfmt;a++)
+    for(int b = a;b<Nfmt;b++)
+      {
+	cout << "a = " << a << " b = " << b << endl;
+	
+	DFT_FFT phi(Nx,Ny,Nz);
+	phi.zeros();	
+	for(long K=0;K<Ntot;K++)
+	  {
+	    FundamentalMeasures fm;
+	    species->getFundamentalMeasures(K,fm);
+	    phi.set(K,d2Phi_a_b(a,b,fm));
+	  }
+
+	DFT_FFT weight_prod(Nx,Ny,Nz);
+	weight_prod.zeros();
+
+	int ix;
+#pragma omp parallel for  private(ix) schedule(static)
+	for(ix = 0; ix < Nx; ix++)
+	  for(int iy = 0; iy < Ny; iy++)
+	    for(int iz = 0; iz < Nz; iz++)
+	      {
+		long I  = density.get_PBC_Pos(ix,iy,iz);
+		long IJ = density.get_PBC_Pos(ix+jx,iy+jy,iz+jz);
+
+		double val = species->getExtendedWeight(I,a)*species->getExtendedWeight(IJ,b);
+		if(a != b) val += species->getExtendedWeight(I,b)*species->getExtendedWeight(IJ,a);
+		weight_prod.set(I, val);		
+	      }
+
+	weight_prod.do_real_2_fourier();
+	phi.do_real_2_fourier();
+
+	DFT_FFT result(Nx,Ny,Nz);
+	result.zeros();		
+
+	result.Four().Schur(weight_prod.Four(), phi.Four(), /* useConj = */ true); 
+	result.do_fourier_2_real();
+
+	d2F[0].IncrementBy_Scaled_Vector(result.Real(),dV/Ntot); // Ntot because FFTW normalization
+      }  
+}
+
+
+
 // Brute-force evaluation of second derivatives
-//        sum_J sum_K dV (d2PHI(K)/dn_a(K) dn_b(K)) w_a(K-I) w_b(K-J)v(J)
+//        sum_K dV (d2PHI(K)/dn_a(K) dn_b(K)) w_a(K-I) w_b(K-J)
 double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies)
 {
   FMT_Species *s1 = dynamic_cast<FMT_Species*>(allSpecies[si]);

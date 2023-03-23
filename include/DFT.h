@@ -73,6 +73,7 @@ class DFT : public Dynamical_Matrix
   // Set
   void setDF(int i, DFT_Vec &df) {return allSpecies_[i]->setDF(df);}
   void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
+  void set_density(DFT_Vec &x) {allSpecies_[0]->set_density(x);}
   void set_density(int i, long j, double x) {allSpecies_[i]->set_density(j,x);}
   void set_densities_from_aliases(vector<DFT_Vec> &x_);
   void convert_dF_to_alias_derivs(vector<DFT_Vec> &x_);
@@ -124,9 +125,12 @@ class DFT : public Dynamical_Matrix
 
   // Implement Dynamical_Matrix interface.
   // Second derivatives contracted into arbitrary vector
+  virtual void diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &result) const;  
   virtual void matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param = NULL, bool only_d2F=true) const;
   virtual void g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const {gx.set(x);}
-
+  virtual void get_matrix_diag(DFT_Vec &diag) const { vector<DFT_Vec> tmp(1); tmp[0].zeros(get_Ntot()); diagonal_matrix_elements(0, 0, 0, tmp); diag.set(tmp[0]);}
+  virtual void get_metric_diag(DFT_Vec &diag) const { diag.set(1);}
+  
   virtual unsigned get_dimension(int direction) const {return allSpecies_[0]->getLattice().get_dimension(direction);}
   virtual long     get_Nboundary()              const {return allSpecies_[0]->getDensity().get_Nboundary();}
   virtual long     boundary_pos_2_pos(int p)    const {return allSpecies_[0]->getDensity().boundary_pos_2_pos(p);}

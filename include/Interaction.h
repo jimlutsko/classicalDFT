@@ -56,6 +56,9 @@ class Interaction_Base
 
   string get_name() const { return (v_ == NULL ? string("none") : v_->getIdentifier());}
   double get_temperature() const { return kT_;}
+
+  const Species*  get_s1() const { return s1_;}
+  const Species*  get_s2() const { return s2_;}
   
  protected:  
   virtual void generateWeights();    
