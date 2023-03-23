@@ -358,7 +358,7 @@ void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result
   
   dft_->matrix_dot_v(v, result, param);
   
-  if (!only_d2F)
+  if(!only_d2F)
   {
     DFT_Vec intermediate_result(result[0]);
     result[0].zeros();
@@ -366,12 +366,101 @@ void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result
   }
 }
 
+void DDFT::get_matrix_diag(DFT_Vec &diag) const
+{
+  long Ntot = get_Ntot();
+  int alf   = (central_differences_ ? 2 : 1);
+  
+  vector<DFT_Vec> G0(1);  G0[0].zeros(Ntot);
+  vector<DFT_Vec> Gx(1);  Gx[0].zeros(Ntot);
+  vector<DFT_Vec> Gy(1);  Gy[0].zeros(Ntot);
+  vector<DFT_Vec> Gz(1);  Gz[0].zeros(Ntot);
+  vector<DFT_Vec> G2x(1); G2x[0].zeros(Ntot);
+  vector<DFT_Vec> G2y(1); G2y[0].zeros(Ntot);
+  vector<DFT_Vec> G2z(1); G2z[0].zeros(Ntot);
+  
+  vector<DFT_Vec> Gxy(1); Gxy[0].zeros(Ntot);
+  vector<DFT_Vec> Gxz(1); Gxz[0].zeros(Ntot);
+  vector<DFT_Vec> Gyz(1); Gyz[0].zeros(Ntot);
 
-//void DDFT::reverseForce(DFT_Vec *tangent) 
-//{
-//  double prod = dF_.dotWith(*tangent);
-//  dF_.Increment_And_Scale(*tangent,-2*prod);
-//}
+  vector<DFT_Vec> Gyx(1); Gyx[0].zeros(Ntot);
+  vector<DFT_Vec> Gzx(1); Gzx[0].zeros(Ntot);
+  vector<DFT_Vec> Gzy(1); Gzy[0].zeros(Ntot);  
+
+  dft_->diagonal_matrix_elements(0,     0,   0, G0);
+
+  dft_->diagonal_matrix_elements(alf,   0,   0, Gx);
+  dft_->diagonal_matrix_elements(  0, alf,   0, Gy);
+  dft_->diagonal_matrix_elements(  0,   0, alf, Gz);
+
+  dft_->diagonal_matrix_elements(2*alf,     0,     0, G2x);
+  dft_->diagonal_matrix_elements(    0, 2*alf,     0, G2y);
+  dft_->diagonal_matrix_elements(    0,     0, 2*alf, G2z);
+
+  dft_->diagonal_matrix_elements(-alf,  -alf,    0, Gxy);
+  dft_->diagonal_matrix_elements(-alf,     0, -alf, Gxz);
+  dft_->diagonal_matrix_elements(   0,  -alf, -alf, Gyz);
+
+  dft_->diagonal_matrix_elements(-alf,  alf,   0, Gyx);
+  dft_->diagonal_matrix_elements(-alf,    0, alf, Gzx);
+  dft_->diagonal_matrix_elements(   0, -alf, alf, Gzy);
+
+  for(int ix=0; ix<Nx; ix++)
+    for(int iy=0; iy<Ny; iy++)
+      for(int iz=0; iz<Nz; iz++)
+	{
+	  long I = density.pos(ix,iy,iz);
+	  double d0 = density.get(ix,iy,iz);
+
+	  double fp[3];
+	  double fm[3];
+	  long Ip[3];
+	  long Im[3];
+	  for(int a=0;a<3;a++)
+	    {
+	      int ax = (a == 0 ? 1 : 0);
+	      int ay = (a == 2 ? 1 : 0);
+	      int az = (a == 4 ? 1 : 0);
+
+	      double da = density.get(ix+ax, iy+ay, iz+az);
+	      if(central_differences_) fp[a] = 0.25*da;
+	      else fp[a] = 0.5*(d0 + da);
+
+	      da = density.get(ix-ax, iy-ay, iz-az);
+
+	      if(central_differences_) fm[a] = 0.25*da;
+	      else fm[a] = 0.5*(d0 + da);
+	      	      
+	      Ip[a] = density.get_PBC_Pos(ix+alf*ax, iy+alf*ay, iz+alf*az);
+	      Im[a] = density.get_PBC_Pos(ix-alf*ax, iy-alf*ay, iz-alf*az);
+	    }
+
+	  double sum = 0.0;
+	  sum += fp[0]*fp[0]*G0[0].get(Ip[0])+fp[1]*fp[1]*G0[0].get(Ip[1])+fp[2]*fp[2]*G0[0].get(Ip[2]);
+	  sum += fm[3]*fm[0]*G0[0].get(Im[0])+fm[1]*fm[1]*G0[0].get(Im[1])+fn[2]*fm[2]*G0[0].get(Im[2]);
+
+	  sum += 2*(fp[0]*fm[0]*G2[0].get(Im[0])+fp[1]*fm[1]*G2[0].get(Im[1])+fp[2]*fm[2]*G0[0].get(Im[2]));
+
+	  sum += 2*(fp[0]*fp[1]*Gyx[0].get(Ip[0])+fm[0]*fm[1]*Gyx[0].get(Im[1])+fp[0]*fm[1]*Gxy[0].get(Ip[0])+fm[0]*fp[1]*Gxy[0].get(Ip[1]));
+	  sum += 2*(fp[0]*fp[2]*Gyx[0].get(Ip[0])+fm[0]*fm[2]*Gyx[0].get(Im[2])+fp[0]*fm[2]*Gxy[0].get(Ip[0])+fm[0]*fp[2]*Gxy[0].get(Ip[2]));
+	  sum += 2*(fp[1]*fp[2]*Gyx[0].get(Ip[1])+fm[1]*fm[2]*Gyx[0].get(Im[2])+fp[1]*fm[2]*Gxy[0].get(Ip[1])+fm[1]*fp[2]*Gxy[0].get(Ip[2]));
+
+	  double f1 = fp[0]+fp[1]+fp[2]+fm[0]+fm[1]+fm[2];
+	  sum += -2*f1*(fp[0]*Gx[0].get(I)+fm[0]*Gx[0].getIm[0]);
+	  sum += -2*f1*(fp[1]*Gx[1].get(I)+fm[1]*Gx[1].getIm[1]);
+	  sum += -2*f1*(fp[2]*Gx[2].get(I)+fm[2]*Gx[2].getIm[2]);
+
+	  sum += f1*f1*G0(I);
+	  
+	  diag.set(I,sum/(dV*dV*dV*dV));
+	}
+}
+
+void DDFT::get_metric_diag(DFT_Vec &diag) const
+{
+  throw std::runtime_error("DDFT::get_metric_diag not implemented");
+}
+
 
 void DDFT::Display(double F, double dFmin, double dFmax, double N)
 {
