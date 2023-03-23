@@ -127,7 +127,7 @@ void Density::set_from_coarser_density(const Density &density)
   cout << "Coarse spacings: " << setw(12) << dx1 << setw(12) << dy1 << setw(12) << dz1 << endl;
   
   cout << endl;
-  cout << "Box dimensions:  " << setw(12) << Lx() << setw(12) << Ly() << setw(12) << Lz() << endl;
+  cout << "Box dimensions:  " << setw(12) << Lx()    << setw(12) << Ly()    << setw(12) << Lz()    << endl;
   cout << "Coarse Nx1*dx1:  " << setw(12) << Nx1*dx1 << setw(12) << Ny1*dy1 << setw(12) << Nz1*dz1 << endl;
   
   if (fabs(Lx()-Nx1*dx1)>1e-8*dx1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the x direction");
@@ -198,7 +198,6 @@ void Density::set_from_coarser_density(const Density &density)
       cout << "d101: " << setw(12) << d101 << endl;
       cout << "d110: " << setw(12) << d110 << endl;
       cout << "d111: " << setw(12) << d111 << endl;
-      
       
       cout << endl;
       cout << "Trilinear interpolation d : " << setw(12) << d << endl;
@@ -364,6 +363,8 @@ void Density::readDensity(const char *filename) // read from binary file: obsole
     }
   // everything OK so read it. 
   Density_.Real().load(in);
+  
+  if (Density_.Real().size() != Ntot_) throw runtime_error("(Density::readDensity) Unexpected size for the input density");
 }
 
 double Density::get_ave_background_density() const
