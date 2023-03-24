@@ -368,8 +368,15 @@ void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result
 
 void DDFT::get_matrix_diag(DFT_Vec &diag) const
 {
+  const Density &density = dft_->getDensity(0);
+
   long Ntot = get_Ntot();
+  int Nx    = get_dimension(0);
+  int Ny    = get_dimension(1);
+  int Nz    = get_dimension(2);  
   int alf   = (central_differences_ ? 2 : 1);
+
+  double dV = density.dV();
   
   vector<DFT_Vec> G0(1);  G0[0].zeros(Ntot);
   vector<DFT_Vec> Gx(1);  Gx[0].zeros(Ntot);
@@ -437,20 +444,20 @@ void DDFT::get_matrix_diag(DFT_Vec &diag) const
 
 	  double sum = 0.0;
 	  sum += fp[0]*fp[0]*G0[0].get(Ip[0])+fp[1]*fp[1]*G0[0].get(Ip[1])+fp[2]*fp[2]*G0[0].get(Ip[2]);
-	  sum += fm[3]*fm[0]*G0[0].get(Im[0])+fm[1]*fm[1]*G0[0].get(Im[1])+fn[2]*fm[2]*G0[0].get(Im[2]);
+	  sum += fm[3]*fm[0]*G0[0].get(Im[0])+fm[1]*fm[1]*G0[0].get(Im[1])+fm[2]*fm[2]*G0[0].get(Im[2]);
 
-	  sum += 2*(fp[0]*fm[0]*G2[0].get(Im[0])+fp[1]*fm[1]*G2[0].get(Im[1])+fp[2]*fm[2]*G0[0].get(Im[2]));
+	  sum += 2*(fp[0]*fm[0]*G2x[0].get(Im[0])+fp[1]*fm[1]*G2y[0].get(Im[1])+fp[2]*fm[2]*G2z[0].get(Im[2]));
 
 	  sum += 2*(fp[0]*fp[1]*Gyx[0].get(Ip[0])+fm[0]*fm[1]*Gyx[0].get(Im[1])+fp[0]*fm[1]*Gxy[0].get(Ip[0])+fm[0]*fp[1]*Gxy[0].get(Ip[1]));
 	  sum += 2*(fp[0]*fp[2]*Gyx[0].get(Ip[0])+fm[0]*fm[2]*Gyx[0].get(Im[2])+fp[0]*fm[2]*Gxy[0].get(Ip[0])+fm[0]*fp[2]*Gxy[0].get(Ip[2]));
 	  sum += 2*(fp[1]*fp[2]*Gyx[0].get(Ip[1])+fm[1]*fm[2]*Gyx[0].get(Im[2])+fp[1]*fm[2]*Gxy[0].get(Ip[1])+fm[1]*fp[2]*Gxy[0].get(Ip[2]));
 
 	  double f1 = fp[0]+fp[1]+fp[2]+fm[0]+fm[1]+fm[2];
-	  sum += -2*f1*(fp[0]*Gx[0].get(I)+fm[0]*Gx[0].getIm[0]);
-	  sum += -2*f1*(fp[1]*Gx[1].get(I)+fm[1]*Gx[1].getIm[1]);
-	  sum += -2*f1*(fp[2]*Gx[2].get(I)+fm[2]*Gx[2].getIm[2]);
+	  sum += -2*f1*(fp[0]*Gx[0].get(I)+fm[0]*Gx[0].get(Im[0]));
+	  sum += -2*f1*(fp[1]*Gy[0].get(I)+fm[1]*Gy[0].get(Im[1]));
+	  sum += -2*f1*(fp[2]*Gz[0].get(I)+fm[2]*Gz[0].get(Im[2]));
 
-	  sum += f1*f1*G0(I);
+	  sum += f1*f1*G0[0].get(I);
 	  
 	  diag.set(I,sum/(dV*dV*dV*dV));
 	}
