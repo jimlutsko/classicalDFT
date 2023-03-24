@@ -375,8 +375,6 @@ void DDFT::get_matrix_diag(DFT_Vec &diag) const
   int Ny    = get_dimension(1);
   int Nz    = get_dimension(2);  
   int alf   = (central_differences_ ? 2 : 1);
-
-  double dV = density.dV();
   
   vector<DFT_Vec> G0(1);  G0[0].zeros(Ntot);
   vector<DFT_Vec> Gx(1);  Gx[0].zeros(Ntot);
@@ -426,8 +424,8 @@ void DDFT::get_matrix_diag(DFT_Vec &diag) const
 	  for(int a=0;a<3;a++)
 	    {
 	      int ax = (a == 0 ? 1 : 0);
-	      int ay = (a == 2 ? 1 : 0);
-	      int az = (a == 4 ? 1 : 0);
+	      int ay = (a == 1 ? 1 : 0);
+	      int az = (a == 2 ? 1 : 0);
 
 	      double da = density.get(ix+ax, iy+ay, iz+az);
 	      if(central_differences_) fp[a] = 0.25*da;
@@ -444,13 +442,13 @@ void DDFT::get_matrix_diag(DFT_Vec &diag) const
 
 	  double sum = 0.0;
 	  sum += fp[0]*fp[0]*G0[0].get(Ip[0])+fp[1]*fp[1]*G0[0].get(Ip[1])+fp[2]*fp[2]*G0[0].get(Ip[2]);
-	  sum += fm[3]*fm[0]*G0[0].get(Im[0])+fm[1]*fm[1]*G0[0].get(Im[1])+fm[2]*fm[2]*G0[0].get(Im[2]);
+	  sum += fm[0]*fm[0]*G0[0].get(Im[0])+fm[1]*fm[1]*G0[0].get(Im[1])+fm[2]*fm[2]*G0[0].get(Im[2]);
 
 	  sum += 2*(fp[0]*fm[0]*G2x[0].get(Im[0])+fp[1]*fm[1]*G2y[0].get(Im[1])+fp[2]*fm[2]*G2z[0].get(Im[2]));
 
 	  sum += 2*(fp[0]*fp[1]*Gyx[0].get(Ip[0])+fm[0]*fm[1]*Gyx[0].get(Im[1])+fp[0]*fm[1]*Gxy[0].get(Ip[0])+fm[0]*fp[1]*Gxy[0].get(Ip[1]));
-	  sum += 2*(fp[0]*fp[2]*Gyx[0].get(Ip[0])+fm[0]*fm[2]*Gyx[0].get(Im[2])+fp[0]*fm[2]*Gxy[0].get(Ip[0])+fm[0]*fp[2]*Gxy[0].get(Ip[2]));
-	  sum += 2*(fp[1]*fp[2]*Gyx[0].get(Ip[1])+fm[1]*fm[2]*Gyx[0].get(Im[2])+fp[1]*fm[2]*Gxy[0].get(Ip[1])+fm[1]*fp[2]*Gxy[0].get(Ip[2]));
+	  sum += 2*(fp[0]*fp[2]*Gzx[0].get(Ip[0])+fm[0]*fm[2]*Gzx[0].get(Im[2])+fp[0]*fm[2]*Gxz[0].get(Ip[0])+fm[0]*fp[2]*Gxz[0].get(Ip[2]));
+	  sum += 2*(fp[1]*fp[2]*Gzy[0].get(Ip[1])+fm[1]*fm[2]*Gzy[0].get(Im[2])+fp[1]*fm[2]*Gyz[0].get(Ip[1])+fm[1]*fp[2]*Gyz[0].get(Ip[2]));
 
 	  double f1 = fp[0]+fp[1]+fp[2]+fm[0]+fm[1]+fm[2];
 	  sum += -2*f1*(fp[0]*Gx[0].get(I)+fm[0]*Gx[0].get(Im[0]));
@@ -459,13 +457,45 @@ void DDFT::get_matrix_diag(DFT_Vec &diag) const
 
 	  sum += f1*f1*G0[0].get(I);
 	  
-	  diag.set(I,sum/(dV*dV*dV*dV));
+	  diag.set(I,sum/(dx_*dx_*dx_*dx_));
 	}
 }
 
 void DDFT::get_metric_diag(DFT_Vec &diag) const
 {
-  throw std::runtime_error("DDFT::get_metric_diag not implemented");
+  const Density &density = dft_->getDensity(0);
+
+  long Ntot = get_Ntot();
+  int Nx    = get_dimension(0);
+  int Ny    = get_dimension(1);
+  int Nz    = get_dimension(2);  
+  
+  for(int ix=0; ix<Nx; ix++)
+    for(int iy=0; iy<Ny; iy++)
+      for(int iz=0; iz<Nz; iz++)
+	{
+	  long I = density.pos(ix,iy,iz);
+	  double d0 = density.get(ix,iy,iz);
+
+	  double f = 0;
+	  
+	  for(int a=0;a<3;a++)
+	    {
+	      int ax = (a == 0 ? 1 : 0);
+	      int ay = (a == 1 ? 1 : 0);
+	      int az = (a == 2 ? 1 : 0);
+
+	      f += density.get(ix+ax, iy+ay, iz+az);
+	      f += density.get(ix-ax, iy-ay, iz-az);
+	    }
+
+	  if(central_differences_) { f /= 4;}
+	  else { f = (f+6*d0)/2;}
+
+	  f /= (dx_*dx_);
+	  // minus ???
+	  diag.set(I,-f);
+	}
 }
 
 
