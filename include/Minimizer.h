@@ -229,6 +229,7 @@ class DDFT : public Minimizer, public Dynamical_Matrix
 
   virtual void     g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
   virtual void get_matrix_diag(DFT_Vec &diag) const;
+  virtual void get_matrix_diag_nonhermetian(DFT_Vec &diag) const;  
   virtual void get_metric_diag(DFT_Vec &diag) const;
   
 protected:
