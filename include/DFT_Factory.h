@@ -55,6 +55,8 @@ public:
     options_.addOption("Dy", &dy_);
     options_.addOption("Dz", &dz_);
 
+    options_.addOption("HomogeneousBoundary", &homogeneous_boundary_);
+    options_.addOption("FixedBoundary", &fixed_background_);
     options_.addOption("FixedBackground", &fixed_background_);
     options_.addOption("Open_System", &fixed_background_);
       
@@ -96,11 +98,14 @@ public:
   void initialize()
   {
     options_.read(argc_, argv_, verbose_);
-
+    
+    if (homogeneous_boundary_ && fixed_background_)
+      throw runtime_error("Ambiguous options: You cannot have both homogeneous_boundary_ and fixed_background_ set to true.");
+    
     if(SourceInput_.empty() == false)
       options_.read(SourceInput_.c_str(), verbose_);
 
-    if(include_log_) theLog_ = new Log("log.dat",-1,-1,NULL, -1, true, verbose_);
+    if(include_log_ && theLog_ == NULL) theLog_ = new Log("log.dat",-1,-1,NULL, -1, true, verbose_);
     if(verbose_ && theLog_ != NULL) *theLog_ << myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
 
     if(verbose_ && theLog_ != NULL) *theLog_ << myColor::RED << myColor::BOLD << "Input parameters:" << myColor::RESET << endl <<  "#" << endl;
@@ -152,7 +157,8 @@ public:
 	species1_   = new FMT_Species(*theDensity_,hsd1_,0.0,verbose_, 0);
 	dft_        = new DFT(species1_);
 
-	species1_->setFixedBackground(fixed_background_);
+	species1_->set_fixed_background(fixed_background_);
+	species1_->set_homogeneous_boundary(homogeneous_boundary_);
       
 	if(include_hs_) dft_->addHardCoreContribution(fmt_);
 
@@ -224,7 +230,8 @@ public:
     species1_ = new FMT_Species(*theDensity_,hsd1_,0.0,verbose_, 0);
     dft_      = new DFT(species1_);
 
-    species1_->setFixedBackground(fixed_background_);
+    species1_->set_fixed_background(fixed_background_);
+    species1_->set_homogeneous_boundary(homogeneous_boundary_);
       
     if(include_hs_) dft_->addHardCoreContribution(fmt_);
 
@@ -289,6 +296,7 @@ public:
   string get_outfile()          const { return outfile_;}
   string get_outstream()          const { return outstream_;}
 
+  bool   get_homogeneous_boundary() const { return homogeneous_boundary_;}
   bool   get_fixed_background() const { return fixed_background_;}
   
   void check() const {    if(!is_initialized_) throw std::runtime_error("DFT factory not initialized");}
@@ -340,6 +348,7 @@ public:
   string SourceInput_;
 
   bool fixed_background_ = false;
+  bool homogeneous_boundary_ = false;
   
   double maxIterations_ = 1000;
   double tol_           = 1e-8;   

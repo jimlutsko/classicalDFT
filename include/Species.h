@@ -22,25 +22,28 @@ class Species
   int getSequenceNumber() const { return seq_num_;}
 
   void doFFT(){ density_->doFFT();}
-
-  // To be replaced
-  void setFixedMass(double m)           { set_fixed_mass(m);}
-  void setFixedBackground(bool fixed)   { set_open_system(fixed);}
-  void setHomogeneousBoundary(bool val) { set_homogeneous_boundary(val);}
-
-  // to replace the three above
-  void set_fixed_mass()                     { fixedMass_          = density_->get_mass(); mu_ = 0.0; fixedBackground_ = false;}
-  void set_fixed_mass(double m)             { fixedMass_          = m; if(m > 0.0) {mu_ = 0.0; fixedBackground_ = false;}}
-  void set_open_system(bool fixed)          { fixedBackground_    = fixed; if (fixed) fixedMass_ = -1;} 
-  void set_homogeneous_boundary(bool val)   { homogeneousBoundary_ = val;}  
-
-  //void set_fixed_background_and_mass(double m) { fixedMass_ = m; fixedBackground_ = true; mu_ = 0;}
+  
+  // 31/03/2023: I removed the line setting fixedBackground_ to false.
+  // It should be the case to get a physically meaningful result but sometimes
+  // we need to keep the mass AND boundary fixed and should be able to do it. 
+  // This function should only take care of the fixed mass and it should be the
+  // role of another function to setup the physical system (set_closed_system).
+  void set_fixed_mass()         { fixedMass_ = density_->get_mass(); mu_ = 0.0; }
+  void set_fixed_mass(double m) { fixedMass_ = m; if(m > 0.0) {mu_ = 0.0;} }
+  
+  // These two options are mutually exclusive: The boundary forces are either averaged or set to zero
+  void set_homogeneous_boundary(bool val) { homogeneousBoundary_ = val; if (val) fixedBackground_     = false; }
+  void set_fixed_boundary(bool val)       { fixedBackground_     = val; if (val) homogeneousBoundary_ = false; }
+  void set_fixed_background(bool val)     { set_fixed_boundary(val); }
+  
+  void set_open_system(bool val=true)   { set_fixed_boundary(val);  if (val) fixedMass_ = -1;  }
+  void set_closed_system(bool val=true) { set_fixed_boundary(!val); if (val) set_fixed_mass(); }
   
   void set_verbose(bool verbose) { verbose_ = verbose;}
   
   bool is_background_fixed() const { return fixedBackground_;}
   bool is_mass_fixed()       const { return (fixedMass_ > 0);}
-  bool is_fixed_boundary() const { return   fixedBackground_;}
+  bool is_fixed_boundary()   const { return fixedBackground_;}
   
   double get_chemical_potential() const {return mu_;}
   void   set_chemical_potential(double m) {mu_ = m; fixedMass_ = -1;} // turn off fixed mass 
@@ -137,8 +140,8 @@ protected:
   double fixedMass_ = -1;  
   int index_ = -1;
   
-  bool fixedBackground_    = false; // if true, forces are set to zero on the background
-  bool homogeneousBoundary_ = false; 
+  bool fixedBackground_     = false; // if true, forces are set to zero on the background
+  bool homogeneousBoundary_ = false; // if true, forces are averaged on the background
   bool verbose_ = true;
 
 };
