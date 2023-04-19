@@ -566,6 +566,8 @@ void Density::center_cluster()
   int dx = 0.5*Nx_-rx;
   int dy = 0.5*Ny_-ry;
   int dz = 0.5*Nz_-rz;
+
+  cout << "dx = " << dx << " dy = " << dy << " dz = " << dz << endl;
   
   DFT_Vec dcpy(Ntot());
 
