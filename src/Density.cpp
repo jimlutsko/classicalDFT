@@ -555,6 +555,38 @@ double Density::get_neighbor_values(long pos,double &xpx, double &xmx, double &x
   return get(ix,   iy,   iz);
 }
 
+void Density::center_cluster()
+{
+
+  double rx,ry,rz;
+  get_center_of_mass(rx,ry,rz);
+
+  cout << "CM is " << rx << " " << ry << " " << rz << endl;
+  
+  int dx = 0.5*Nx_-rx;
+  int dy = 0.5*Ny_-ry;
+  int dz = 0.5*Nz_-rz;
+  
+  DFT_Vec dcpy(Ntot());
+
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iy=0;iy<Ny_;iy++)
+      for(int iz=0;iz<Nz_;iz++)
+	{
+	  long p = pos(ix,iy,iz);
+	  long p1 = get_PBC_Pos(ix+dx,iy+dy,iz+dz);
+	  
+	  dcpy.set(p1,get(p));
+	}
+  set(dcpy);
+
+  get_center_of_mass(rx,ry,rz);
+  cout << "CM is " << rx << " " << ry << " " << rz << endl;
+  
+  return;  
+
+}
+
 //template<typename Archive> void Density::serialize(Archive & ar, const unsigned int version)
 /*
 template<class Archive> void Density::serialize(Archive & ar, const unsigned int version)
