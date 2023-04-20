@@ -1412,10 +1412,8 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 		}		  
 	}
 
-  if(verbose_) cout << '\r'; if(verbose_) cout << ""; if(verbose_) cout.flush();
-  
-  cout << endl;
-  cout << "num_contributions = " << num_contributions << endl;
+  if(verbose_)
+    cout << '\r'; if(verbose_) cout << ""; if(verbose_) cout.flush();
 }
 
 
