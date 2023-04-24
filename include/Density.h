@@ -103,7 +103,7 @@ class Density : public Lattice
   void   operator+=(DFT_Vec &v) { Density_.IncrementBy(v);} 
   void   shift(DFT_Vec &direction, double scale) { Density_.Real().IncrementBy_Scaled_Vector(direction, scale);}
 
-  void center_cluster();
+  void center_cluster(bool homogeneousBoundary);
   
   void   doFFT() {Density_.do_real_2_fourier();}
   

@@ -555,9 +555,8 @@ double Density::get_neighbor_values(long pos,double &xpx, double &xmx, double &x
   return get(ix,   iy,   iz);
 }
 
-void Density::center_cluster()
+void Density::center_cluster(bool fixed_boundary)
 {
-
   double rx,ry,rz;
   get_center_of_mass(rx,ry,rz);
 
@@ -567,13 +566,13 @@ void Density::center_cluster()
   int dy = 0.5*Ny_-ry;
   int dz = 0.5*Nz_-rz;
 
-  cout << "dx = " << dx << " dy = " << dy << " dz = " << dz << endl;
-  
   DFT_Vec dcpy(Ntot());
 
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iy=0;iy<Ny_;iy++)
-      for(int iz=0;iz<Nz_;iz++)
+  int Nmin = (fixed_boundary ? 1 : 0);
+
+  for(int ix=Nmin;ix<Nx_;ix++)
+    for(int iy=Nmin;iy<Ny_;iy++)
+      for(int iz=Nmin;iz<Nz_;iz++)
 	{
 	  long p = pos(ix,iy,iz);
 	  long p1 = get_PBC_Pos(ix+dx,iy+dy,iz+dz);
