@@ -87,7 +87,7 @@ class Density : public Lattice
 
   double get_min()  const { return Density_.cReal().min();}
   double get_max()  const { return Density_.cReal().max();}
-  void   get_center_of_mass(double &rx, double &ry, double &rz) const;
+  void   get_center_of_mass(double &rx, double &ry, double &rz) const;  
   double get_msd() const;
   void   get_particles(double threshold, vector< vector<long> > &clusters); // detect particles
   double get_ave_background_density() const;
@@ -102,6 +102,8 @@ class Density : public Lattice
   void   operator*=(double a)   { Density_.MultBy(a);}
   void   operator+=(DFT_Vec &v) { Density_.IncrementBy(v);} 
   void   shift(DFT_Vec &direction, double scale) { Density_.Real().IncrementBy_Scaled_Vector(direction, scale);}
+
+  void center_cluster(bool homogeneousBoundary);
   
   void   doFFT() {Density_.do_real_2_fourier();}
   

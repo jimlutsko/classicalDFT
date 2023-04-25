@@ -301,8 +301,6 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &resu
   long J = allSpecies_[0]->getDensity().get_PBC_Pos(jx,jy,jz);
   double dV = allSpecies_[0]->getDensity().dV();
 
-
-  
   if(full_hessian_)
     if((jx%Nx == 0) && (jy%Ny == 0) && (jz%Nz == 0))
       {
@@ -330,14 +328,14 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &resu
       result[0].add(interaction->getW(J)*dV);
 
   // Remove boundary terms if the boundary is fixed
-  /*
+  
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())
     {
       long p = 0;
       do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
     }
-  */
+  
 }
 
 

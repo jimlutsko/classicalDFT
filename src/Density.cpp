@@ -558,6 +558,54 @@ double Density::get_neighbor_values(long pos,double &xpx, double &xmx, double &x
   return get(ix,   iy,   iz);
 }
 
+void Density::center_cluster(bool fixed_boundary)
+{
+  double rx,ry,rz;
+  get_center_of_mass(rx,ry,rz);
+
+  cout << "CM is " << rx << " " << ry << " " << rz << endl;
+  
+  int dx = 0.5*Nx_-rx;
+  int dy = 0.5*Ny_-ry;
+  int dz = 0.5*Nz_-rz;
+  /*
+  if(dx > 0) dx = 1;
+  if(dy > 0) dy = 1;
+  if(dz > 0) dz = 1;
+
+  if(dx < 0) dx = -1;
+  if(dy < 0) dy = -1;
+  if(dz < 0) dz = -1;
+  */
+  DFT_Vec dcpy(get_density_real());
+
+  int Nmin = (fixed_boundary ? 1 : 0);
+
+  for(int ix=Nmin;ix<Nx_;ix++)
+    for(int iy=Nmin;iy<Ny_;iy++)
+      for(int iz=Nmin;iz<Nz_;iz++)
+	{
+	  long p = pos(ix,iy,iz);
+
+	  int jx = ix-dx; //if(jx == 0 || jx == Nx_) jx = ix-2*dx;
+	  int jy = iy-dy; //if(jy == 0 || jy == Ny_) jy = iy-2*dy;
+	  int jz = iz-dz; //if(jz == 0 || jz == Nz_) jz = iz-2*dz;
+
+	  long p1 = get_PBC_Pos(jx,jy,jz);
+	  dcpy.set(p,get(p1));
+	  
+	  //	  long p1 = get_PBC_Pos(ix+dx,iy+dy,iz+dz);	  
+	  //	  dcpy.set(p1,get(p));
+	}
+  set(dcpy);
+
+  get_center_of_mass(rx,ry,rz);
+  cout << "CM is " << rx << " " << ry << " " << rz << endl;
+  
+  return;  
+
+}
+
 //template<typename Archive> void Density::serialize(Archive & ar, const unsigned int version)
 /*
 template<class Archive> void Density::serialize(Archive & ar, const unsigned int version)
