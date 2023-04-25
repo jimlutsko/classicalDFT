@@ -99,9 +99,6 @@ public:
   {
     options_.read(argc_, argv_, verbose_);
     
-    if (homogeneous_boundary_ && fixed_background_)
-      throw runtime_error("Ambiguous options: You cannot have both homogeneous_boundary_ and fixed_background_ set to true.");
-    
     if(SourceInput_.empty() == false)
       options_.read(SourceInput_.c_str(), verbose_);
 

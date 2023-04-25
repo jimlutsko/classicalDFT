@@ -185,7 +185,7 @@ double Species::endForceCalculation()
 	dF_.set(density_->boundary_pos_2_pos(pos),0.0);
     }
 
-  if(homogeneousBoundary_)
+  else if(homogeneousBoundary_)
     {
 	
       double average_border_force = 0;
