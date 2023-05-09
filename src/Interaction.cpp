@@ -226,12 +226,16 @@ void Interaction_Base::generateWeightsXYZSym()
   long p = 0;
   double global_factor = dx*dx*dy*dy*dz*dz;
 
+#ifdef USE_OMP
 #pragma omp parallel shared( chunk, w2) private(p)
+#endif
   {
     size_t local_count = 0;
     long pold = -1;
     int Sx,Sy,Sz;
-#pragma omp for  
+    #ifdef USE_OMP
+    #pragma omp for  
+    #endif
     for(p=0;p<=Nmax;p++)
       {
 	if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
@@ -261,11 +265,15 @@ void Interaction_Base::generateWeightsXYZSym()
 	
 	if(local_count++ % chunk == chunk-1)
 	  {
-#pragma omp atomic	    
+#ifdef USE_OMP
+#pragma omp atomic	
+#endif    
 	    ++steps_completed;
 	    if (steps_completed % 100 == 1)
 	      {
+#ifdef USE_OMP
 #pragma omp critical
+#endif
 		if(verbose_) cout << '\r';
 		if(verbose_) cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
 		if(verbose_) cout.flush();
@@ -365,12 +373,16 @@ void Interaction_Base::generateWeights()
   long p = 0;
   double global_factor = dx*dx*dy*dy*dz*dz;
 
+#ifdef USE_OMP
 #pragma omp parallel shared( chunk, w2) private(p)
+#endif
   {
     size_t local_count = 0;
     long pold = -1;
     int Sx,Sy,Sz;
+#ifdef USE_OMP
 #pragma omp for  
+#endif
     for(p=0;p<=Nmax;p++)
       {
         if(pold > 0 && (p-pold) < 100) // normally, the difference is just 1
@@ -399,11 +411,15 @@ void Interaction_Base::generateWeights()
         
         if(local_count++ % chunk == chunk-1)
           {
+#ifdef USE_OMP
 #pragma omp atomic
+#endif
             ++steps_completed;
             if (steps_completed % 100 == 1)
               {
+#ifdef USE_OMP
 #pragma omp critical
+#endif
                 if(verbose_) cout << '\r';
                 if(verbose_) cout << "\tProgress: " << steps_completed << " of " << total_steps << " (" << std::fixed << std::setprecision(1) << (100.0*steps_completed/total_steps) << "%)";
                 if(verbose_) cout.flush();

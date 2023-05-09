@@ -622,7 +622,9 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
 	weight_prod.zeros();
 
 	int ix;
+#ifdef USE_OMP
 #pragma omp parallel for  private(ix) schedule(static)
+#endif
 	for(ix = 0; ix < Nx; ix++)
 	  for(int iy = 0; iy < Ny; iy++)
 	    for(int iz = 0; iz < Nz; iz++)

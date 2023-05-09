@@ -227,7 +227,9 @@ void DDFT::subtract_ideal_gas(const DFT_Vec &density, DFT_Vec& RHS) const
   const double D[] = {1.0/(dx_*dx_), 1.0/(dy_*dy_), 1.0/(dz_*dz_)};
   
   unsigned pos;
+#ifdef USE_OMP
 #pragma omp parallel for  private(pos) schedule(static)
+#endif
   for(pos = 0;pos<RHS.size();pos++)
     {      
       double dpx,dmx,dpy,dmy,dpz,dmz; // density
@@ -329,7 +331,9 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
   const double D[]       = {1/(2*stride*dx_*dx_), 1/(2*stride*dy_*dy_), 1/(2*stride*dz_*dz_)};
 
   long pos;
+#ifdef USE_OMP
 #pragma omp parallel for  private(pos) schedule(static)
+#endif
   for(pos = 0;pos<gx.size();pos++)
     {      
       if(is_fixed_boundary() && density.is_boundary_point(pos))
@@ -388,7 +392,9 @@ void DDFT::get_matrix_diag_nonhermetian(DFT_Vec &diag) const
   dft_->diagonal_matrix_elements(  0,   0, alf, Gz);
 
   int ix;
+#ifdef USE_OMP
 #pragma omp parallel for  private(ix) schedule(static)  
+#endif
   for(ix=0; ix<Nx; ix++)
     for(int iy=0; iy<Ny; iy++)
       for(int iz=0; iz<Nz; iz++)
