@@ -63,11 +63,11 @@ class DFT_Vec
   void add(double shift);
   void IncrementBy(unsigned pos, double val);
 
-  void   operator*=(double a)   { MultBy(a);}
-  void   operator+=(double d)   { add(d);}
-  void   operator+=(DFT_Vec &v) { IncrementBy(v);}
-  void   operator-=(DFT_Vec &v) { DecrementBy(v);}
-  
+  void operator*=(double a) { MultBy(a);}
+  void operator+=(double d) { add(d);}
+  void operator+=(const DFT_Vec &v) { IncrementBy(v);}
+  void operator-=(const DFT_Vec &v) { DecrementBy(v);}
+
   void IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale);
 
   void Schur(const DFT_Vec &v1, const DFT_Vec &v2);
@@ -117,8 +117,7 @@ class DFT_Vec
   void *data_;
 };
 
-
-
+double operator*(const DFT_Vec &v1, const DFT_Vec &v2);
 
 /**
   *  @brief UTILITY: A wrapper for linear algebra packages. This one handles complex values.
@@ -347,3 +346,4 @@ class DFT_FFT
 };
 
 #endif // __DFT_LINALG_LUTSKO__
+

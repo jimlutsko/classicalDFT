@@ -27,6 +27,8 @@ Density::Density(): Lattice(), Density_(){}
 Density::Density(const Density &dd)
   : Lattice(dd), Density_(dd.Density_){}
 
+// Has to go somewhere and I do not know a better place ...
+double operator*(const DFT_Vec &v1, const DFT_Vec &v2) { return v1.dotWith(v2);}
 
 // We are assuming that the lattice spacing is the same ...
 // Assume that the input density has lattice points ix=0,...,Nx1-1
