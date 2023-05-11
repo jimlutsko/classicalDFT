@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <stdexcept>
 #include <sstream>
 #include <string>
@@ -463,6 +464,7 @@ void Grace::addPoint(double x, double y, int N, int G) const
 {
   if(G < 0) G = 0;
   std::stringstream s;
+  s << std::setprecision(12);
   s << "g" << G << ".s" << N << " point " << x << "," <<  y;
   sendCommand(s.str());
 }

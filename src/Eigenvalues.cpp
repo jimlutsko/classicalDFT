@@ -30,7 +30,9 @@ static double eigenvalues_objective_func(const std::vector<double> &xx, std::vec
 
   if (!grad.empty()) 
   {
+    #ifdef USE_OMP
     #pragma omp parallel for
+    #endif
     for(long i=0;i<grad.size();i++) grad[i] = df.get(i);
   }
   
@@ -75,7 +77,9 @@ void Eigenvalues::set_eigen_vec(const vector<double> &v_in)
 {
   if(eigen_vec_.size() != v_in.size()) eigen_vec_.zeros(v_in.size());
   
+  #ifdef USE_OMP
   #pragma omp parallel for
+  #endif
   for(long i=0;i<v_in.size();i++) eigen_vec_.set(i,v_in[i]);
   
   if(vnormal_.size() == v_in.size()) eigen_vec_.IncrementBy_Scaled_Vector(vnormal_, -vnormal_.dotWith(eigen_vec_));
@@ -289,12 +293,16 @@ void Eigenvalues::matrix_dot_v(const vector<double> &vv, vector<double> &result,
   DFT_Vec r; r.zeros(vv.size());
   result.resize(vv.size());
   
+  #ifdef USE_OMP
   #pragma omp parallel for
+  #endif
   for (long i=0; i<vv.size(); i++) v.set(i, vv[i]);
   
   matrix_dot_v(v, r, param);
   
+  #ifdef USE_OMP
   #pragma omp parallel for
+  #endif
   for (long i=0; i<vv.size(); i++) result[i] = r.get(i);
 }
 

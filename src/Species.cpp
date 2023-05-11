@@ -157,10 +157,24 @@ double Species::evaluate_external_field(const External_Field &f)
 void Species::beginForceCalculation()
 {
   if(fixedMass_ > 0.0)
+  {
+    if (fixedBackground_) // in that case only scale the interior, leaving the boundary intact
     {
-      *density_ *= (fixedMass_/density_->getNumberAtoms());
-      mu_ = 0.0;
+      double Mtot = density_->getNumberAtoms();
+      double Mboundary = density_->get_ave_background_density() * density_->dV() * density_->get_Nboundary();
+      double Mtarget = fixedMass_;
+      
+      for (long p=0;p<density_->Ntot();p++) if (!density_->is_boundary_point(p))
+      {
+        double d = density_->get(p);
+        d *= (Mtarget-Mboundary)/(Mtot-Mboundary);
+        density_->set(p,d);
+      }
     }
+    else *density_ *= (fixedMass_/density_->getNumberAtoms());
+    
+    mu_ = 0.0;
+  }
 }
 
 double Species::endForceCalculation()
@@ -168,10 +182,10 @@ double Species::endForceCalculation()
   if(fixedBackground_)
     {
       for(long pos = 0; pos < density_->get_Nboundary(); pos++)
-	dF_.set(density_->boundary_pos_2_pos(pos),0.0);	
+	dF_.set(density_->boundary_pos_2_pos(pos),0.0);
     }
 
-  if(homogeneousBoundary_)
+  else if(homogeneousBoundary_)
     {
 	
       double average_border_force = 0;
@@ -186,7 +200,7 @@ double Species::endForceCalculation()
     }    
 
     
-  if(fixedMass_ > 0.0)
+  if(fixedMass_ > 0.0 && !fixedBackground_)
     {
       mu_ = 0.0;
 
@@ -199,12 +213,23 @@ double Species::endForceCalculation()
 	  dF_.set(p, dF_.get(p)-mu_*density_->dV());
     }
 
-  // 
-  //  if(fixedBackground_ && fixedMass_ > 0.0) // need to do this again for case of both constraints ...
-  //    {
-  //      for(long pos = 0; pos < density_->get_Nboundary(); pos++)
-  //	dF_.set(density_->boundary_pos_2_pos(pos),0.0);	
-  //    }
+   
+  if(fixedMass_ > 0.0 && fixedBackground_) // In this case we do not include the mass on the boundary in the calculation of mu
+    {
+      mu_ = 0.0;
+      
+      double Mboundary = density_->get_ave_background_density() * density_->dV() * density_->get_Nboundary();
+      double Mtarget = fixedMass_ - Mboundary;
+      
+      for(long p=0;p<density_->Ntot();p++) if (!density_->is_boundary_point(p))
+          mu_ += dF_.get(p)*density_->get(p);
+      mu_ /= Mtarget;
+      for(long p=0;p<density_->Ntot();p++) if (!density_->is_boundary_point(p))
+          dF_.set(p, dF_.get(p)-mu_*density_->dV());
+      
+      for(long pos = 0; pos < density_->get_Nboundary(); pos++)
+	dF_.set(density_->boundary_pos_2_pos(pos),0.0);
+    }
 
   
   return 0;

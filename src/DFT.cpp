@@ -263,7 +263,9 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
     double dV = allSpecies_[0]->getDensity().dV();
 
     for(int s=0;s<allSpecies_.size();s++)
+      #ifdef USE_OMP
       #pragma omp parallel for
+      #endif
       for(unsigned pos=0;pos<v[s].cReal().size();pos++)
         result[s].set(pos, dV*v[s].cReal().get(pos)/allSpecies_[s]->getDensity().get(pos));
   }
@@ -305,7 +307,9 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &resu
     if((jx%Nx == 0) && (jy%Ny == 0) && (jz%Nz == 0))
       {
 	for(int s=0;s<allSpecies_.size();s++)
+#ifdef USE_OMP
 #pragma omp parallel for
+#endif
 	  for(unsigned pos=0;pos<Ntot;pos++)
 	    result[s].set(pos, dV/allSpecies_[s]->get_density(pos));
       }

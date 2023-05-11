@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 
 set(USE_OMP true)
 
+set(USE_FMT_WEIGHTS_BEFORE_JUN_2021 false)
+set(USE_FMT_WEIGHTS_BEFORE_JAN_2023 false)
+
 #This allows us to include the git SHA to identify exactly which code is being used
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_stuff/")
 include(GetGitRevisionDescription)
@@ -77,10 +80,21 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD  COMMAND mv libclassicalDFT* ../)
 
-# Select here the version of FMT weights calculation
-#target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_WEIGHTS_BEFORE_JUN_2021)
-#target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_WEIGHTS_BEFORE_JAN_2023)
+## Uncomment the next line for debug information on the FMT weights calculation
 #target_compile_definitions(${PROJECT_NAME} PUBLIC DEBUG_FMT_WEIGHTS)
 
-# Enable/Disable Arnoldi (can pose problems as the current implementation only works with Armadillo)
-target_compile_definitions(${PROJECT_NAME} PUBLIC ARNOLDI)
+message("USE_FMT_WEIGHTS_BEFORE_JUN_2021 = " ${USE_FMT_WEIGHTS_BEFORE_JUN_2021})
+message("USE_FMT_WEIGHTS_BEFORE_JAN_2023 = " ${USE_FMT_WEIGHTS_BEFORE_JAN_2023})
+
+if(USE_FMT_WEIGHTS_BEFORE_JUN_2021)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_WEIGHTS_BEFORE_JUN_2021)
+endif()
+
+if(USE_FMT_WEIGHTS_BEFORE_JAN_2023)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_WEIGHTS_BEFORE_JAN_2023)
+endif()
+
+## Enable/Disable Arnoldi (can pose problems as the current implementation only works with Armadillo)
+#target_compile_definitions(${PROJECT_NAME} PUBLIC ARNOLDI)
+
+
