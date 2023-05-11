@@ -1,7 +1,9 @@
 while test $# -gt 0
 do
     case "$1" in
-	ceci) source load_ceci_modules.sh
+	ceci)
+            source load_ceci_modules.sh
+            ln -s $(pwd) ~/classicalDFT
             ;;
         *) echo "bad option $1"
             ;;
