@@ -61,9 +61,13 @@ class DFT_Vec
   void IncrementBy(const DFT_Vec& v);
   void DecrementBy(const DFT_Vec& v);
   void add(double shift);
-
   void IncrementBy(unsigned pos, double val);
-    
+
+  void   operator*=(double a)   { MultBy(a);}
+  void   operator+=(double d)   { add(d);}
+  void   operator+=(DFT_Vec &v) { IncrementBy(v);}
+  void   operator-=(DFT_Vec &v) { DecrementBy(v);}
+  
   void IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale);
 
   void Schur(const DFT_Vec &v1, const DFT_Vec &v2);
