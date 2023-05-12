@@ -19,12 +19,20 @@ if [ $host == "hercules" ]
 then
     	echo "Creating file $destination on hercules"
 
-	echo "module load releases/2019b" >> $destination
-	echo "module load Boost/1.71.0-gompi-2019b" >> $destination
-	echo "module load CMake/3.15.3-GCCcore-8.3.0" >> $destination
-	echo "module load Eigen/3.3.7" >> $destination
-	echo "module load GSL/2.6-GCC-8.3.0" >> $destination
-	echo "module load FFTW/3.3.8-gompi-2019b" >> $destination
+        echo "module load releases/2019b" >> $destination
+        echo "module load Boost/1.71.0-gompi-2019b" >> $destination
+        echo "module load CMake/3.15.3-GCCcore-8.3.0" >> $destination
+        echo "module load Eigen/3.3.7" >> $destination
+        echo "module load GSL/2.6-GCC-8.3.0" >> $destination
+        echo "module load FFTW/3.3.8-gompi-2019b" >> $destination
+        echo "module load OpenMPI/3.1.4-GCC-8.3.0" >> $destination
+
+#	echo "module load releases/2020b" >> $destination
+#	echo "module load Boost/1.74.0-GCC-10.2.0" >> $destination
+#	echo "module load CMake/3.18.4-GCCcore-10.2.0" >> $destination
+#	echo "module load Eigen/3.3.8-GCCcore-10.2.0" >> $destination
+#	echo "module load GSL/2.6-GCC-10.2.0" >> $destination
+#	echo "module load FFTW/3.3.8-gompi-2020b" >> $destination
 
 elif [ $host == "dragon1" ]
 then
@@ -53,6 +61,24 @@ then
 #	echo "module load Boost/1.67.0-foss-2018b" >> $destination
 #	echo "module load CMake/3.12.1-GCCcore-7.3.0" >> $destination
 #	echo "module load GSL/2.5-GCC-7.3.0-2.30" >> $destination
+
+elif [ $host == "nic5" ]
+then
+	echo "Creating file $destination on nic5"
+	
+        echo "module load releases/2020a" >> $destination
+        echo "module load Boost/1.72.0-gompi-2020a" >> $destination
+        echo "module load CMake/3.16.4-GCCcore-9.3.0" >> $destination
+        echo "module load Eigen/3.3.7-GCCcore-9.3.0" >> $destination
+        echo "module load FFTW/3.3.8-gompi-2020a" >> $destination
+        echo "module load GSL/2.6-GCC-9.3.0" >> $destination
+	
+#	echo "module load releases/2020b" >> $destination
+#	echo "module load Boost/1.74.0-GCC-10.2.0" >> $destination
+#	echo "module load CMake/3.18.4-GCCcore-10.2.0" >> $destination
+#	echo "module load Eigen/3.3.8-GCCcore-10.2.0" >> $destination
+#	echo "module load FFTW/3.3.8-gompi-2020b" >> $destination
+#	echo "module load GSL/2.6-GCC-10.2.0" >> $destination
 
 else
     	echo "Unknown host. Cannot load modules"
