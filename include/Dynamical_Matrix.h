@@ -24,7 +24,7 @@ class Dynamical_Matrix
   virtual void matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F) const =0;
   void matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F=false) const;
   void matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param = NULL, bool only_d2F=false) const;
-
+  
   virtual void get_matrix_diag(DFT_Vec &diag) const = 0;
   virtual void get_matrix_diag_nonhermetian(DFT_Vec &diag) const = 0;
   virtual void get_metric_diag(DFT_Vec &diag) const = 0;

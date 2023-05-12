@@ -33,8 +33,7 @@ class Log_Det
   
 protected:
   void get_coefficients(int order);
-  void set_boundary_points_to_zero(DFT_Vec &v) const;
-  void matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param) const;
+  void matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result) const;
   
  private:
   const Dynamical_Matrix& matrix_;

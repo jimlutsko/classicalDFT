@@ -22,14 +22,15 @@ using namespace std;
 Log_Det::Log_Det(const Dynamical_Matrix& matrix, int order, double lam_max, double lam_min, bool verbose)
   : matrix_(matrix), verbose_(verbose), lam_max_(lam_max), lam_min_(lam_min)
 {
+  //  if(matrix_.is_dynamic()) { lam_min_ *= lam_min_; lam_max_ *= lam_max_;}
+  lam_min_ *= lam_min_; lam_max_ *= lam_max_;
+  
   scale_ = 1.0/(lam_min_+lam_max_);
   a_     = lam_min_*scale_;
   b_     = lam_max_*scale_;
   
   get_coefficients(order);
 }
-
-
 
 void Log_Det::get_coefficients(int order)
 {
@@ -56,36 +57,24 @@ void Log_Det::get_coefficients(int order)
   for(int j=0;j<=order;j++) c_[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
 }
 
-void Log_Det::set_boundary_points_to_zero(DFT_Vec &v) const
+// if the matrix is symmetric (static case) we just call the method on the dm
+// if it is dynamic, D= gF, we want (D^T D)v = (D*v)*D
+void Log_Det::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result) const
 {
-  long pos = 0.0;
-
-  do{v.set(pos,0.0);} while(matrix_.get_next_boundary_point(pos));  
+  DFT_Vec r1(v);
+  matrix_.matrix_dot_v1(v,r1,NULL);
+  matrix_.matrix_dot_v1(r1,result,NULL);      
 }
-
-void Log_Det::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param) const
-{
-  vector<DFT_FFT> vwork(1);
-  vwork[0].initialize(matrix_.get_dimension(0), matrix_.get_dimension(1), matrix_.get_dimension(2));
-  vwork[0].Real().set(v);
-
-  if(matrix_.is_fixed_boundary()) set_boundary_points_to_zero(vwork[0].Real());
   
-  vwork[0].do_real_2_fourier();
-
-  vector<DFT_Vec> rwork(1, result.size());
-
-  matrix_.matrix_dot_v(vwork,rwork,param);
-  result.set(rwork[0]);
-
-  if(matrix_.is_fixed_boundary()) set_boundary_points_to_zero(result);
-}
 
 double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eigenvalue, double &variance)
 {
   double lam_mid = (lam_max_+lam_min_)/2;
 
   // first, we need the interpolation coefficients for log(x) 
+
+  cout << "is_dynamic        = " << matrix_.is_dynamic() << endl;
+  cout << "is_fixed_boundary = " << matrix_.is_fixed_boundary() << endl;
   
   long Ntot    = matrix_.get_Ntot();
   long Nactive = Ntot - (matrix_.is_fixed_boundary() ? matrix_.get_Nboundary() : 0);
@@ -97,7 +86,6 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
   DFT_Vec  u(Ntot);  u.zeros();
   DFT_Vec result(Ntot); result.zeros();
   
-  //  double log_det = -Nactive*log(scale_);
   double log_det = 0;
   double var_log_det = 0;
  
@@ -108,10 +96,9 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
   for(int i=1;i<=num_samples;i++)
     {
       for(long pos = 0; pos < Ntot; pos++) v.set(pos,(distrib(rng) > 0 ? 1 : -1));
-      if(matrix_.is_fixed_boundary()) set_boundary_points_to_zero(v);
+      if(matrix_.is_fixed_boundary()) matrix_.set_boundary_points_to_zero(v);
       
-      matrix_dot_v1(v,result,NULL);      
-      if(matrix_.is_dynamic())        result.MultBy(-1);
+      matrix_dot_v1(v,result);      
       if(has_zero_eigenvalue) result.add(lam_mid*v.accu()/Ntot);
 	
       result.MultBy(scale_); // This is because we use A/( lam_min+ lam_max)	        
@@ -127,8 +114,7 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
       
       for(int k=2;k<c_.size();k++)
 	{
-	  matrix_dot_v1(w1,result,NULL);
-	  if(matrix_.is_dynamic())        result.MultBy(-1); 
+	  matrix_dot_v1(w1,result);
 	  if(has_zero_eigenvalue) result.add(lam_mid*w1.accu()/Ntot);
 	  
 	  result.MultBy(scale_); // This is because we use A/( lam_min+ lam_max)	  
@@ -142,13 +128,19 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
 	  w0.set(w1);
 	  w1.set(w2);
 	}
-      log_det     += v.dotWith(u); ///num_samples;
+      log_det     += v.dotWith(u); 
       var_log_det += v.dotWith(u)*v.dotWith(u);
 
       double av          = log_det/i;
       double av2         = var_log_det/i;
       double current_val = -Nactive*log(scale_) + (has_zero_eigenvalue ? -log(lam_mid) : 0) + av;
-      variance           = sqrt(fabs(av2-av*av));
+
+      // becuase in dynamic case this is log det D^2      
+      current_val /= 2;
+      av /= 2;
+      av2 /= 4;
+      
+      variance = sqrt(fabs(av2-av*av));
       
       cout << myColor::YELLOW;
       cout << setprecision(6);      
@@ -161,6 +153,8 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
   log_det /= num_samples;				     
   if(has_zero_eigenvalue) log_det -= log(lam_mid);
   log_det -= Nactive*log(scale_);
+
+  log_det /= 2;// becuase in dynamic case this is log det D^2
   
   return log_det;
 }

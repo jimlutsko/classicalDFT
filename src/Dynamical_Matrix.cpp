@@ -1,6 +1,3 @@
-
-
-
 #include <cmath>
 #include <iostream>
 #include <iomanip>
@@ -49,8 +46,6 @@ void Dynamical_Matrix::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &r
     }
 }
 
-
-
 void Dynamical_Matrix::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *param, bool only_d2F) const
 {
   vector<DFT_FFT> vwork(1);
@@ -68,4 +63,5 @@ void Dynamical_Matrix::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result, void *pa
 
   if(is_fixed_boundary()) set_boundary_points_to_zero(result);
 }
+
 
