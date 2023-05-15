@@ -111,6 +111,15 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
       
       for(int k=2;k<c_.size();k++)
 	{
+	  if(i == 1)
+	    {
+	      cout << myColor::YELLOW;
+	      cout << setprecision(6);      
+	      cout << '\r'; cout << "\t First sample: evaluating order " << k << " of " << c_.size() <<  "                         ";
+	      cout << myColor::RESET;
+	    }
+
+
 	  matrix_dot_v1(w1,result);
 	  if(has_zero_eigenvalue) result.add(lam_mid*w1.accu()/Ntot);
 	  
@@ -141,8 +150,8 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
       
       cout << myColor::YELLOW;
       cout << setprecision(6);      
-      cout << '\r'; cout << "\t samples = " << i << " log_det = " << current_val //(has_zero_eigenvalue ? -log(lam_mid) : 0)  + num_samples*log_det/i;
-	   << " variance = " << sqrt(fabs(av2-av*av)) << " = " << 100*sqrt(fabs(av2-av*av))/current_val << " \%                         ";
+      cout << '\r'; cout << "\t samples = " << i << " out of << " << num_samples << " log_det = " << current_val 
+	   << " stderr = " << sqrt(fabs(av2-av*av))/sqrt(i) << "                         ";
       cout << myColor::RESET;	      
     }
   cout << endl;
