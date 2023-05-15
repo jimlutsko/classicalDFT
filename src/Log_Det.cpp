@@ -73,9 +73,6 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
 
   // first, we need the interpolation coefficients for log(x) 
 
-  cout << "is_dynamic        = " << matrix_.is_dynamic() << endl;
-  cout << "is_fixed_boundary = " << matrix_.is_fixed_boundary() << endl;
-  
   long Ntot    = matrix_.get_Ntot();
   long Nactive = Ntot - (matrix_.is_fixed_boundary() ? matrix_.get_Nboundary() : 0);
 
@@ -97,17 +94,17 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
     {
       for(long pos = 0; pos < Ntot; pos++) v.set(pos,(distrib(rng) > 0 ? 1 : -1));
       if(matrix_.is_fixed_boundary()) matrix_.set_boundary_points_to_zero(v);
-      
+
       matrix_dot_v1(v,result);      
       if(has_zero_eigenvalue) result.add(lam_mid*v.accu()/Ntot);
-	
+
       result.MultBy(scale_); // This is because we use A/( lam_min+ lam_max)	        
       result.MultBy(2.0/(b_-a_));
       result.IncrementBy_Scaled_Vector(v, -(b_+a_)/(b_-a_));
 
       w0.set(v);
       w1.set(result); 
-      
+
       u.set(w0);
       u.MultBy(c_[0]);
       u.IncrementBy_Scaled_Vector(w1,c_[1]);

@@ -49,6 +49,7 @@ class LogStreamBuf: public std::stringbuf
 
   void putOutput()
   {
+    cout << std::boolalpha;
     // Called by destructor.
     // destructor can not call virtual methods.
     const string &s = str();
