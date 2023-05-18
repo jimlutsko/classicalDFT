@@ -64,6 +64,7 @@ class DFT_Vec
   void IncrementBy(unsigned pos, double val);
 
   void operator*=(double a) { MultBy(a);}
+  void operator/=(double a) { MultBy(1.0/a);}
   void operator+=(double d) { add(d);}
   void operator+=(const DFT_Vec &v) { IncrementBy(v);}
   void operator-=(const DFT_Vec &v) { DecrementBy(v);}
