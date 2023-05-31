@@ -34,6 +34,7 @@ class Minimizer
   
   const DFT_Vec&  get_fixed_direction() {return fixed_direction_;}
   void set_fixed_direction(const DFT_Vec& fixed, bool already_using_density_alias);
+  void flip_forces_along_fixed_direction(bool b=true) {flip_forces_along_fixed_direction_ = b;}
   
   // report activity
   virtual void   draw_after() {};  // Display something after the minimization
@@ -63,6 +64,7 @@ protected:
   int image_number_  = 0;
 
   DFT_Vec fixed_direction_;
+  bool flip_forces_along_fixed_direction_ = false;
   
   mutable std::chrono::duration<double> elapsed_seconds_;
 

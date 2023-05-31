@@ -120,19 +120,18 @@ double Minimizer::getDF_DX()
   
   dft_->convert_dF_to_alias_derivs(x_);
   
-  // Project the forces into the orthogonal subspace
-  // of this vector, if it is given
-  // Cedric: This is not a projection, because of the factor 2. 
-  // It actually reverts the sign of the forces in the fixed 
-  // direcion but does not cancel them. (Uncomment the version needed)
+  // Project the forces into the subspace orthogonal to "fixed_direction_",
+  // or revert the sign of the normal force if "flip_forces_along_fixed_direction_"
+  // is set to true.
   
   if(fixed_direction_.size() == dft_->getDF(0).size())
   {
     for(int s=0;s<dft_->getNumberOfSpecies();s++)
     {
       DFT_Vec& df = dft_->getDF(s);
-      //df.IncrementBy_Scaled_Vector(fixed_direction_, -2*fixed_direction_.dotWith(df));
-      df.IncrementBy_Scaled_Vector(fixed_direction_, -fixed_direction_.dotWith(df));
+      
+      double fac = 1; if (flip_forces_along_fixed_direction_) fac = 2;
+      df.IncrementBy_Scaled_Vector(fixed_direction_, -fac*fixed_direction_.dotWith(df));
     }
   }
   
