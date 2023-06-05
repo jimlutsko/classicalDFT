@@ -243,8 +243,8 @@ public:
       fmt_weighted_densities[i].convoluteWith(rho_k);      
   }
 
-  void convolute_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
-  { convolute_weight_with(EI(),v,result,bConjugate);}
+    void convolute_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
+    { convolute_weight_with(EI(),v,result,bConjugate);}
 
   void convolute_s_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
   { convolute_weight_with(SI(),v,result,bConjugate);}
@@ -588,6 +588,9 @@ public:
   // over-ride to calculate the new measure
   virtual void calculateFundamentalMeasures(bool needsTensor);
   double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
+
+  // Evaluate EOS free energy at point I
+  double fex(long I) const { return eos_.fex(density_->get(I));}
   
   // TODO
   //  friend class boost::serialization::access;

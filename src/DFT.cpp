@@ -21,6 +21,7 @@ using namespace std;
 
 
 // note that here, r = |r1-r2|
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::real_space_dcf(double r, double x) const
 {
   if(allSpecies_.size() != 1)
@@ -37,6 +38,7 @@ double DFT::real_space_dcf(double r, double x) const
   return dcf;
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::fourier_space_dcf(double k, double x) const
 {
   if(allSpecies_.size() != 1)
@@ -50,11 +52,13 @@ double DFT::fourier_space_dcf(double k, double x) const
   return dcf;
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::mu_times_beta(double density) const
 {
   return mu_times_beta(vector<double>(1,density),0);
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::mu_times_beta(const vector<double> &x, int species) const
 {
   Summation mu;
@@ -70,11 +74,13 @@ double DFT::mu_times_beta(const vector<double> &x, int species) const
   return mu.sum();
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::omega_times_beta_over_volume(double density) const
 {
   return omega_times_beta_over_volume(vector<double>(1,density));
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::omega_times_beta_over_volume(const vector<double> &x) const
 {
   double omega = fhelmholtz_times_beta_over_volume(x);
@@ -84,11 +90,13 @@ double DFT::omega_times_beta_over_volume(const vector<double> &x) const
   return omega;
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::fhelmholtz_times_beta_over_volume(double density) const
 {
   return fhelmholtz_times_beta_over_volume(vector<double>(1,density));
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::fhelmholtz_times_beta_over_volume(const vector<double> &x) const
 {
   double F = 0.0;
@@ -114,24 +122,28 @@ double DFT::fhelmholtz_times_beta_over_volume(const vector<double> &x) const
   return F;  
 }  
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void DFT::set_densities_from_aliases(vector<DFT_Vec> &x_)
 {
   for(int s=0; s<allSpecies_.size();s++)
     allSpecies_[s]->set_density_from_alias(x_[s]);
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void DFT::convert_dF_to_alias_derivs(vector<DFT_Vec> &x_)
 {
   for(int s = 0; s<allSpecies_.size(); s++)
     allSpecies_[s]->convert_to_alias_deriv(x_[s],getDF(s));
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void DFT::convert_dF_to_alias_derivs()
 {
   for(int s = 0; s<allSpecies_.size(); s++)
     allSpecies_[s]->convert_to_alias_deriv(getDF(s));
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
   for(auto &species : allSpecies_)  
@@ -150,7 +162,7 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 #ifdef USE_OMP    
 #pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
 #endif
-
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
   Summation F;
@@ -241,6 +253,7 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 //
 //  Uses a cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F) const
 {
   // I would like to do this but it violates the const declaration of v
@@ -292,6 +305,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
 }
 
 // computes result_I = F_{I I+J} for fixed J
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &result) const
 {
   // ideal gas contribution: delta_J0/n_i  

@@ -4,13 +4,16 @@
 class EOS
 {
  public:
-  EOS(){}
+ EOS(double kT):  kT_(kT) {}
   ~EOS(){}
 
-  virtual double f(double density, double kT) {return 0.0;}
-  virtual double dfdx(double density, double kT) {return 0.0;}
-  virtual double d2fd2xf(double density, double kT) {return 0.0;}
+  virtual double fex(double density) {return 0.0;}
+  virtual double dfexdx(double density) {return 0.0;}
+  virtual double d2fexdx2(double density) {return 0.0;}
 
+ protected:
+  double kT_ = 1;
+  
 };
 
 

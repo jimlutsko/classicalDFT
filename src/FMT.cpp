@@ -34,6 +34,7 @@ BOOST_CLASS_EXPORT(WhiteBearII)
 ostringstream Eta_Too_Large_Exception::cnvt;
 
 // This is only correct for a single species
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double FMT::get_real_space_dcf(double r, double rho, double d) const
 {
   double d3 = d*d*d;
@@ -51,6 +52,7 @@ double FMT::get_real_space_dcf(double r, double rho, double d) const
 }
 
 // This is only correct for a single species
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double FMT::get_fourier_space_dcf(double k, double rho, double d) const
 {
   double d3 = d*d*d;
@@ -117,7 +119,7 @@ FundamentalMeasures FMT::getWeightedDensities(long i, const vector<Species*> &al
   return fm;
 }
 
-
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double FMT::calculate_Phi(const FundamentalMeasures& fm) const
 {
   // These are the eta-dependendent cofactors that lie at the heart of FMT
@@ -141,6 +143,7 @@ double FMT::calculate_Phi(const FundamentalMeasures& fm) const
   return phi;
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void FMT::calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm, FundamentalMeasures& dPhi) const
 {
   // These are the eta-dependendent cofactors that lie at the heart of FMT
@@ -184,6 +187,7 @@ void FMT::calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm,
 
 static int count1 = 0;
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 //This computes sum_b (d2Phi(n)/dn_{a} dn_{b}) v_{b} for some array v and where n_{a} are the fundamental measures.
 void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalMeasures &v, FundamentalMeasures &result) const
 {
@@ -199,6 +203,7 @@ void FMT::calculate_d2Phi_dot_V(const FundamentalMeasures& n, const FundamentalM
   return;
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 //This computes  (d2Phi(n)/dn_{a} dn_{b}) where n_{a} are the fundamental measures.
 double FMT::d2Phi_a_b(int a, int b, const FundamentalMeasures& n) const
 {
@@ -290,7 +295,7 @@ double FMT::d2Phi_a_b(int a, int b, const FundamentalMeasures& n) const
   return d2Phi;
 }
 
-
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double FMT::dPHI(long i, vector<Species*> &allSpecies)
 {
   FundamentalMeasures fm = getWeightedDensities(i, allSpecies);
@@ -319,6 +324,7 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 #pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
 #endif
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
   // Do FFT of density and compute the fundamental measures by convolution
@@ -352,7 +358,16 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   // rethrow exception if it occurred: this messiness is do to the parallel evaluation. 
   if(hadCatch) 
     throw Eta_Too_Large_Exception();
-  
+
+  // Add in contributions from any EOS corrections
+  double FEOS = 0;
+  for(auto s: allSpecies)
+    {
+      FMT_Species_EOS *eos_species = dynamic_cast<FMT_Species_EOS*>(s);
+      if(eos_species)
+	FEOS += EOS_Correction(*eos_species);
+    }
+    
   // For the AO species, there is additional work to do for both the free energy and the forces. 
   // Do FFT of density and compute the fundamental measures by convolution
   double FAO = 0;
@@ -365,6 +380,25 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   return F.sum()+ FAO;
 }
 
+double FMT::EOS_Correction(FMT_Species_EOS &eos_species)
+{
+  long Ntot = eos_species.getLattice().Ntot();
+  double dV = eos_species.getLattice().dV();
+  
+  double F = 0;
+  
+  for(long I=0;I<Ntot;I++)
+    {
+      F += (eos_species.fex(I) - 0)*dV;
+      FundamentalMeasures fm1(eos_species.get_density(I),eos_species.getHSD());
+    }
+
+  return F;
+}
+
+
+
+
 // Calculate dF[i] = dPhi/drho(i)
 //                 = sum_j dV * dPhi(j)/drho(i)
 //                 = sum_j dV * sum_alpha dPhi(j)/dn_{alpha}(j)  dn_{alpha}(j)/drho(i)
@@ -374,6 +408,7 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 // It therefore FFT's both of these and adds them to dPhi_.Four.
 // Once this is done of all alpha, dPhi_ FFT's back to real space and the result is put into dF (with a factor of dV thrown in).
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 {
   double F = 0;
@@ -450,6 +485,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 // or we define Lambda_a(K) = (d2PHI(K)/dn_a(K) dn_b(K))psi_b(K)
 // and then calculate conv(Lam_a, w; I)
 //
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, const vector<Species*> &allSpecies)
 {
   if(allSpecies.size() < 1)  throw std::runtime_error("No species for FMT::add_second_derivative to work with");
@@ -586,7 +622,7 @@ void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, 
 
 // Adds contribution to F_{I,I+J} = sum_{a,b} sum_K dV Phi_{ab}(K) w_a(K-I) w_b(K-I-J)
 // As usual, we note that the weights w_a(K) have the dV factor baked in.
-
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &allSpecies , vector<DFT_Vec> &d2F) const 
 {
   if(allSpecies.size() < 1)  throw std::runtime_error("No species for FMT::add_second_derivative to work with");
@@ -652,6 +688,7 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
 
 
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 // Brute-force evaluation of second derivatives
 //        sum_K dV (d2PHI(K)/dn_a(K) dn_b(K)) w_a(K-I) w_b(K-J)
 double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &allSpecies)
@@ -701,6 +738,7 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
 }
 
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double FMT::BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
 {
   FundamentalMeasures fm(0.0,1.0);
@@ -757,6 +795,7 @@ double FMT::BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies
   return mu;
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double FMT::BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
 {
   FundamentalMeasures fm(0.0,1.0);
