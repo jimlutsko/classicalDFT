@@ -15,8 +15,8 @@ using namespace std;
 #include "Species.h"
 
 
-FMT_Species_EOS::FMT_Species_EOS(double D_EOS, Density& density, double hsd, double mu, int seq)
-  : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1), D_EOS_(D_EOS)
+FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, Density& density, double hsd, double mu, int seq)
+  : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1), D_EOS_(D_EOS), eos_(eos)
 										    
 {
   long Nx = density_->Nx();
@@ -28,7 +28,7 @@ FMT_Species_EOS::FMT_Species_EOS(double D_EOS, Density& density, double hsd, dou
   eos_weighted_density_[0].transformWeights();  
 }
 
-virtual void FMT_Species_EOS::calculateFundamentalMeasures(bool needsTensor)
+void FMT_Species_EOS::calculateFundamentalMeasures(bool needsTensor)
 {
   FMT_Species::calculateFundamentalMeasures(needsTensor);  
   const DFT_Vec_Complex &rho_k = density_->get_density_fourier();    
