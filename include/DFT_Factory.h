@@ -102,7 +102,7 @@ public:
     if(SourceInput_.empty() == false)
       options_.read(SourceInput_.c_str(), verbose_);
 
-    if(include_log_ && theLog_ == NULL) theLog_ = new Log("log.dat",-1,-1,NULL, -1, true, verbose_);
+    if(include_log_ && theLog_ == NULL) theLog_ = new Log(log_file_name_.c_str(),-1,-1,NULL, -1, true, verbose_);
     if(verbose_ && theLog_ != NULL) *theLog_ << myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
 
     if(verbose_ && theLog_ != NULL) *theLog_ << myColor::RED << myColor::BOLD << "Input parameters:" << myColor::RESET << endl <<  "#" << endl;
@@ -299,6 +299,7 @@ public:
   void check() const {    if(!is_initialized_) throw std::runtime_error("DFT factory not initialized");}
 
   void set_show_graphics(bool show) { show_graphics_ = show;}
+  void set_log_file_name(string name) { log_file_name_ = name;}
 
   
 protected:
@@ -360,6 +361,6 @@ public:
   bool verbose_  = true;
 
   string potential_name_ = "LJ";
-  
+  string log_file_name_ = "log.dat";
 };
 #endif // __LUTSKO_DFT_FACTORY__
