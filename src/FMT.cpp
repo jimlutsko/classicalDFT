@@ -324,7 +324,7 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
 #pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
 #endif
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
+// NEEDS UPDATE FOR FMT_SPECIES_EOS: FINISHED!
 double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
 {
   // Do FFT of density and compute the fundamental measures by convolution
@@ -431,6 +431,8 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 	{      
 	  dPhi_.Four().zeros();
 	  species->Accumulate_dPhi(dPhi_.Four(), needsTensor());
+
+	  // ADD EOS STUFF HERE
 	  
 	  dPhi_.do_fourier_2_real();
 
