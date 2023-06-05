@@ -1417,18 +1417,6 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 }
 
 
-FMT_Species_EOS::FMT_Species_EOS(double D_EOS, Density& density, double hsd, double mu, int seq)
-  : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1), D_EOS_(D_EOS)
-										    
-{
-  long Nx = density_->Nx();
-  long Ny = density_->Ny();
-  long Nz = density_->Nz();
-
-  eos_weighted_density_[0].initialize(Nx, Ny, Nz);
-  generateWeights(D_EOS*hsd, eos_weighted_density_);
-  eos_weighted_density_[0].transformWeights();  
-}
 /*  //NOW OUTDATED
 // This is an exact copy of FMT_Species::generateWeights. It is necessary because we want to do
 // the same but with a different hsd. Obviously, these could (and probably SHOULD) be combined

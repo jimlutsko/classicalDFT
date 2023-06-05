@@ -11,6 +11,7 @@
 #include "Density.h"
 #include "Fundamental_Measures.h"
 #include "External_Field.h"
+#include "EOS.h"
 
 class Species
 {
@@ -574,35 +575,18 @@ protected:
 
 
 
-  /**
-   *  @brief Extend FMT_Species to include EOS correction
-   *
-   */
+// Extend FMT_Species to include EOS correction
 
 class FMT_Species_EOS : public FMT_Species
 {
 public:
-  /**
-   *   @brief  Default  constructor for FMT_Species 
-   *  
-   *   @param  hsd is the hard-sphere diameter
-   *   @param  lattice describes the mesh
-   *   @return nothing 
-   */    
-  FMT_Species_EOS(double D_EOS, Density& density, double hsd, double mu = 0, int seq = -1);
-
+  // D_EOS is the ratio of the new hsd to the real one
+  FMT_Species_EOS(double D_EOS, EOS &eos, Density& density, double hsd, double mu = 0, int seq = -1);
   FMT_Species_EOS(const FMT_Species &) = delete;
-  
   ~FMT_Species_EOS(){}
 
-  virtual void calculateFundamentalMeasures(bool needsTensor)
-  {
-    FMT_Species::calculateFundamentalMeasures(needsTensor);
-
-    const DFT_Vec_Complex &rho_k = density_->get_density_fourier();    
-    eos_weighted_density_[0].convoluteWith(rho_k);          
-  }
-
+  // over-ride to calculate the new measure
+  virtual void calculateFundamentalMeasures(bool needsTensor);
   double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
   
   // TODO
@@ -618,6 +602,7 @@ protected:
   //  virtual void generate_additional_Weight();
   vector<FMT_Weighted_Density> eos_weighted_density_; ///< all weighted densities in real & fourier space
   double D_EOS_;
+  EOS &eos_;
 };
 
 #endif // __LUTSKO__SPECIES__

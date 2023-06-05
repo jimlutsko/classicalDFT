@@ -38,6 +38,7 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/DFT_Coex.cpp
   ${PROJECT_SOURCE_DIR}/src/Species.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT_Species.cpp
+  ${PROJECT_SOURCE_DIR}/src/FMT_Species_EOS.cpp
   ${PROJECT_SOURCE_DIR}/src/FMT.cpp
   ${PROJECT_SOURCE_DIR}/src/Potential.cpp
   ${PROJECT_SOURCE_DIR}/src/Minimizer.cpp
