@@ -375,10 +375,7 @@ class esFMT : public Rosenfeld
  public:
   esFMT(double A = 1, double B = 0) : Rosenfeld(), A_(A), B_(B){};
 
-  virtual double get_fex(double eta) const {
-
-    throw std::runtime_error("Check this");
-    return Rosenfeld::get_fex(eta) + (1.0/6)*(8*A_+2*B_-9)*(eta*eta*eta/((1-eta)*(1-eta)));}
+  virtual double get_fex(double eta) const {return Rosenfeld::get_fex(eta) + (1.0/6)*(8*A_+2*B_-9)*(eta*eta/((1-eta)*(1-eta)));}
 									          
   virtual void get_coeffs_dcf(double eta, double &a0, double &a1, double &a3) const
   {
