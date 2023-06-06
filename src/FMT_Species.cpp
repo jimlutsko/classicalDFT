@@ -15,6 +15,7 @@ using namespace std;
 #endif
 
 #include "Species.h"
+#include "FMT.h"
 #include "myColor.h"
 
 const double dmin = SMALL_VALUE;
@@ -1551,6 +1552,29 @@ void FMT_Species_EOS::generate_additional_Weight()
 */
 
 
+void FMT_Species::calculateForce(bool needsTensor, void* param)
+{
+  double dV = getLattice().dV();
+  int Nx    = getLattice().Nx();
+  int Ny    = getLattice().Ny();
+  int Nz    = getLattice().Nz();
+  
+  DFT_FFT dPhi(Nx,Ny,Nz);
+  dPhi.Four().zeros();
+  
+  int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
+  for(int i=0;i<imax;i++)      
+    fmt_weighted_densities[i].add_weight_schur_dPhi_to_arg(dPhi.Four());  
+
+  dPhi.do_fourier_2_real();
+
+  dPhi.Real().MultBy(dV);
+  addToForce(dPhi.cReal()); 
+}
+
+
+
+
 ////////////////////////////
 // AO model
 FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double reservoir_density, double mu, int seq)
@@ -1659,3 +1683,35 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   
   return F;
 }
+
+
+void FMT_AO_Species::calculateForce(bool needsTensor, void* param)
+{
+  double dV = getLattice().dV();
+  long Ntot = getLattice().Ntot();
+
+  FMT_Species::calculateForce(needsTensor);
+
+  for(long pos=0; pos<Ntot;pos++)
+    {
+      FundamentalMeasures n;
+      getFundamentalMeasures(pos, n);
+	      
+      FundamentalMeasures upsilon;
+      getFundamentalMeasures_AO(pos, upsilon);		  
+	      
+      // This calculates SUM_b (d2Phi(n)/dn_a dn_b) upsilon_b
+      // The vector gets a minus sign because there is a parity factor.
+      FundamentalMeasures result;		  
+      ((FMT*) param)->calculate_d2Phi_dot_V(n, upsilon, result);
+      double hsd1 = 1.0/(getHSD());
+      double eta = result.eta;
+      double s   = result.s0*hsd1*hsd1+result.s1*hsd1+result.s2;
+      double v[3];
+      for(int direction=0;direction<3;direction++)
+	v[direction] = -result.v1[direction]*hsd1 - result.v2[direction];
+      setFundamentalMeasures_AO(pos,eta,s,v,result.T);
+    }
+  computeAOForceContribution();
+}
+ 

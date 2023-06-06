@@ -95,6 +95,8 @@ class Species
   void addToForce(const DFT_Vec &f) {dF_.IncrementBy(f);}
   void setForce(const DFT_Vec &f) {dF_.set(f);}
   void multForce(double f) {dF_.MultBy(f);}  
+
+  virtual void calculateForce(bool needsTensor, void* param = NULL){ return;} // Generic species does nothing here
   
   double get_convergence_monitor() const { return dF_.inf_norm()/density_->dV();}
   
@@ -243,8 +245,10 @@ public:
       fmt_weighted_densities[i].convoluteWith(rho_k);      
   }
 
-    void convolute_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
-    { convolute_weight_with(EI(),v,result,bConjugate);}
+  virtual void calculateForce(bool needsTensor, void* param = NULL);
+  
+  void convolute_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
+  { convolute_weight_with(EI(),v,result,bConjugate);}
 
   void convolute_s_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
   { convolute_weight_with(SI(),v,result,bConjugate);}
@@ -265,14 +269,14 @@ public:
   
   // Loop over the weighted densities and ask each one to add its contribution to dPhi
   //       In other words:   SUM_{a} SUM_j d PHI/d n_{a}(j) w_{a}(j-i)
-  void Accumulate_dPhi(DFT_Vec_Complex& dPhi, bool needsTensor)
+  /*  void Accumulate_dPhi(DFT_Vec_Complex& dPhi, bool needsTensor)
   {
     int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
 
     for(int i=0;i<imax;i++)      
       fmt_weighted_densities[i].add_weight_schur_dPhi_to_arg(dPhi);
   }
-  
+  */
   // These return the real weight at position K using the extended notation: eta, s0,s1,s2,v1,v2
   double getExtendedWeight(long K, int a)
   {
@@ -514,7 +518,6 @@ public:
   
   void getFundamentalMeasures_AO(long K, FundamentalMeasures &fm) {getFundamentalMeasures_Helper(K,fm,fmt_weighted_densitiesAO_, 2*Rp_);}
 
-  
   void setFundamentalMeasures_AO(long K, double eta, double s, const double v[3], const double T[3][3])
   {
     fmt_weighted_densitiesAO_[EI()].setDensity(K,eta);
@@ -536,7 +539,8 @@ public:
     fmt_weighted_densitiesAO_[TI(2,1)].setDensity(K,T[2][1]);
     fmt_weighted_densitiesAO_[TI(2,2)].setDensity(K,T[2][2]);        
   }
-  
+
+  void calculateForce(bool needsTensor, void *param = NULL);
   void computeAOForceContribution()
   {
     
@@ -591,6 +595,8 @@ public:
 
   // Evaluate EOS free energy at point I
   double fex(long I) const { return eos_.fex(density_->get(I));}
+
+  void calculateForce(bool needsTensor, void *param = NULL);
   
   // TODO
   //  friend class boost::serialization::access;

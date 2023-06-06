@@ -396,9 +396,6 @@ double FMT::EOS_Correction(FMT_Species_EOS &eos_species)
   return F;
 }
 
-
-
-
 // Calculate dF[i] = dPhi/drho(i)
 //                 = sum_j dV * dPhi(j)/drho(i)
 //                 = sum_j dV * sum_alpha dPhi(j)/dn_{alpha}(j)  dn_{alpha}(j)/drho(i)
@@ -408,73 +405,23 @@ double FMT::EOS_Correction(FMT_Species_EOS &eos_species)
 // It therefore FFT's both of these and adds them to dPhi_.Four.
 // Once this is done of all alpha, dPhi_ FFT's back to real space and the result is put into dF (with a factor of dV thrown in).
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
+// NEEDS UPDATE FOR FMT_SPECIES_EOS: NEEDS TO BE TESTED
 double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
 {
+  double dV = allSpecies.front()->getLattice().dV();
+  int Nx    = allSpecies.front()->getLattice().Nx();
+  int Ny    = allSpecies.front()->getLattice().Ny();
+  int Nz    = allSpecies.front()->getLattice().Nz();
+ 
   double F = 0;
   try {
     F = calculateFreeEnergy(allSpecies);
-  } catch( Eta_Too_Large_Exception &e) {
-    throw e;
-  }
+  } catch( Eta_Too_Large_Exception &e) {throw e;}
+
   // The  derivatives: for each species s  we need the deriv wrt the species' density at each lattice site: dF/d n_{s}(i) 
-  double dV = allSpecies.front()->getLattice().dV();
-
-  DFT_FFT dPhi_(allSpecies.front()->getLattice().Nx(),
-		allSpecies.front()->getLattice().Ny(),
-		allSpecies.front()->getLattice().Nz());
-  
+  DFT_FFT dPhi_(Nx,Ny,Nz);  
   for(auto &s: allSpecies)
-    {
-      FMT_Species *species = dynamic_cast<FMT_Species*>(s);
-      if(species)
-	{      
-	  dPhi_.Four().zeros();
-	  species->Accumulate_dPhi(dPhi_.Four(), needsTensor());
-
-	  // ADD EOS STUFF HERE
-	  
-	  dPhi_.do_fourier_2_real();
-
-	  dPhi_.Real().MultBy(dV);
-	  species->addToForce(dPhi_.cReal()); //HERE
-	}
-
-  // Add in AO part, if there is any
-      FMT_AO_Species *fao_species = dynamic_cast<FMT_AO_Species*>(s);
-      if(fao_species)
-	{
-	  // The weights now hold Upsilon for each measure. We now need Upsilon-bar
-	  // PSI will be used to hold intermediate results
-
-	  long pos;
-#ifdef USE_OMP
-#pragma omp parallel for  private(pos)  schedule(static)
-#endif
-	  for(pos=0; pos<fao_species->getLattice().Ntot();pos++)
-	    {
-	      FundamentalMeasures n;
-	      fao_species->getFundamentalMeasures(pos, n);
-	      
-	      FundamentalMeasures upsilon;
-	      fao_species->getFundamentalMeasures_AO(pos, upsilon);		  
-	      
-	      // This calculates SUM_b (d2Phi(n)/dn_a dn_b) upsilon_b
-	      // The vector gets a minus sign because there is a parity factor.
-	      FundamentalMeasures result;		  
-	      calculate_d2Phi_dot_V(n, upsilon, result);
-	      double hsd1 = 1.0/(fao_species->getHSD());
-	      double eta = result.eta;
-	      double s   = result.s0*hsd1*hsd1+result.s1*hsd1+result.s2;
-	      double v[3];
-	      for(int direction=0;direction<3;direction++)
-		v[direction] = -result.v1[direction]*hsd1 - result.v2[direction];
-	      fao_species->setFundamentalMeasures_AO(pos,eta,s,v,result.T);
-	    }
-	  fao_species->computeAOForceContribution();
-	}
-    }
-
+    s->calculateForce(needsTensor(), this);
   
   return F*dV;
 };

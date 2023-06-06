@@ -35,5 +35,22 @@ void FMT_Species_EOS::calculateFundamentalMeasures(bool needsTensor)
   eos_weighted_density_[0].convoluteWith(rho_k);          
 }
 
+void FMT_Species_EOS::calculateForce(bool needsTensor, void *param)
+{
+  FMT_Species::calculateForce(needsTensor);
 
+  double dV = getLattice().dV();
+  int Nx    = getLattice().Nx();
+  int Ny    = getLattice().Ny();
+  int Nz    = getLattice().Nz();
+  
+  DFT_FFT dPhi(Nx,Ny,Nz);
+  dPhi.Four().zeros();
+  
+  eos_weighted_density_[0].add_weight_schur_dPhi_to_arg(dPhi.Four());  
+
+  dPhi.do_fourier_2_real();
+  dPhi.Real().MultBy(dV);
+  addToForce(dPhi.cReal());   
+}
 
