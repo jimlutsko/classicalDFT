@@ -296,9 +296,9 @@ double FMT::d2Phi_a_b(int a, int b, const FundamentalMeasures& n) const
 }
 
 // NEEDS UPDATE FOR FMT_SPECIES_EOS
-double FMT::dPHI(long i, vector<Species*> &allSpecies)
+double FMT::dPHI(long pos, vector<Species*> &allSpecies)
 {
-  FundamentalMeasures fm = getWeightedDensities(i, allSpecies);
+  FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
 
   double phi = calculate_Phi(fm);
 
@@ -315,7 +315,7 @@ double FMT::dPHI(long i, vector<Species*> &allSpecies)
   calculate_dPhi_wrt_fundamental_measures(fm,dPhi);
   
   for(Species* &generic_species : allSpecies)
-      generic_species->set_fundamental_measure_derivatives(dPhi, i, needsTensor());
+    generic_species->set_fundamental_measure_derivatives(pos, fm, this);
 
   return phi;
 }
@@ -389,7 +389,7 @@ double FMT::EOS_Correction(FMT_Species_EOS &eos_species)
   
   for(long I=0;I<Ntot;I++)
     {
-      F += (eos_species.fex(I) - 0)*dV;
+      F += eos_species.dfex(I, this)*dV;
       FundamentalMeasures fm1(eos_species.get_density(I),eos_species.getHSD());
     }
 

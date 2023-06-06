@@ -1572,6 +1572,29 @@ void FMT_Species::calculateForce(bool needsTensor, void* param)
   addToForce(dPhi.cReal()); 
 }
 
+void FMT_Species::set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param)
+{
+  FundamentalMeasures DPHI;
+  ((FMT*) param)->calculate_dPhi_wrt_fundamental_measures(fm,DPHI);
+  
+  double dPhi_dEta = DPHI.eta;
+  double dPhi_dS = (DPHI.s0/(hsd_*hsd_)) + (DPHI.s1/hsd_) + DPHI.s2;
+  double dPhi_dV[3] = {DPHI.v2[0] + DPHI.v1[0]/hsd_,
+    DPHI.v2[1] + DPHI.v1[1]/hsd_,
+    DPHI.v2[2] + DPHI.v1[2]/hsd_};
+  
+  fmt_weighted_densities[EI()].Set_dPhi(pos,dPhi_dEta);
+  fmt_weighted_densities[SI()].Set_dPhi(pos,dPhi_dS);    
+  
+  // Note the parity factor in the vector term which is needed when we calculate forces
+  for(int j=0;j<3;j++)
+    {
+      fmt_weighted_densities[VI(j)].Set_dPhi(pos, -dPhi_dV[j]);	
+      if(((FMT*) param)->needsTensor())
+	for(int k=j;k<3;k++)
+	  fmt_weighted_densities[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
+    }  
+}
 
 
 
@@ -1613,9 +1636,13 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
 
 // The job of this function is to take the information concerning dF/dn_{a}(pos) (stored in DPHI) and to construct the dPhi_dn for partial measures that are stored in fmt_weighted_densities.
 // This is done via the call to FMT_Species::set_fundamental_measure_derivatives. 
-void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
+
+void FMT_AO_Species::set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param)
 {
-  FMT_Species::set_fundamental_measure_derivatives(DPHI,pos,needsTensor);
+  FMT_Species::set_fundamental_measure_derivatives(pos,fm,param);
+  
+  FundamentalMeasures DPHI;
+  ((FMT*) param)->calculate_dPhi_wrt_fundamental_measures(fm,DPHI);    
 
   double hsdp = 2*Rp_;
   
@@ -1632,7 +1659,7 @@ void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DP
   for(int j=0;j<3;j++)
     {
       fmt_weighted_densitiesAO_[VI(j)].Set_dPhi(pos, -dPhi_dV[j]);	
-      if(needsTensor)
+      if(((FMT*) param)->needsTensor())
 	for(int k=j;k<3;k++)
 	  fmt_weighted_densitiesAO_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
     }

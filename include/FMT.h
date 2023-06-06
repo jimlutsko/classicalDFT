@@ -104,7 +104,8 @@ public:
   
   virtual bool needsTensor() const  = 0;
 
-  // the homogeneous dcf
+  // the homogeneous fluid
+  virtual double get_fex(double eta) const = 0;
   virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const = 0;  
   double get_real_space_dcf(double r, double rho, double d) const;
   double get_fourier_space_dcf(double r, double rho, double d) const;
@@ -116,7 +117,6 @@ protected:
   // Sums up phi(i) over the lattice to give the total free energy
   double calculateFreeEnergy(vector<Species*> &allSpecies);
   double EOS_Correction(FMT_Species_EOS &eos_species);
-
   
   virtual string Name() const = 0;
   friend class boost::serialization::access;
@@ -132,6 +132,8 @@ class Rosenfeld: public FMT
 {
  public:
   Rosenfeld() : FMT(){};
+
+  virtual double get_fex(double eta) const { return -log(1-eta)+1.5*eta*(2-eta)/((1-eta)*(1-eta));}
 
   virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
@@ -256,6 +258,8 @@ class RSLT : public Rosenfeld
  public:
   RSLT() : Rosenfeld(){};
 
+  virtual double get_fex(double eta) const { return eta*(4-3*eta)/((1-eta)*(1-eta));}
+
   virtual double f3_(double eta) const
   {
     if(eta < 1e-12)
@@ -364,13 +368,19 @@ class RSLT : public Rosenfeld
   *  @brief  "Explicitly Stable" FMT
   *
   *   Note that the bulk eos for the fluid is neither PY nor CS.
-  */  
+  */
+
 class esFMT : public Rosenfeld
 {
  public:
   esFMT(double A = 1, double B = 0) : Rosenfeld(), A_(A), B_(B){};
 
-  virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
+  virtual double get_fex(double eta) const {
+
+    throw std::runtime_error("Check this");
+    return Rosenfeld::get_fex(eta) + (1.0/6)*(8*A_+2*B_-9)*(eta*eta*eta/((1-eta)*(1-eta)));}
+									          
+  virtual void get_coeffs_dcf(double eta, double &a0, double &a1, double &a3) const
   {
     Rosenfeld::get_dcf_coeffs(eta,a0,a1,a3);
 
@@ -538,6 +548,8 @@ class WhiteBearI : public esFMT
   // In the paper, it says that this should be esFMT(3/2, -3/2): here the 3/2 has been moved into f3. 
   WhiteBearI() : esFMT(1,-1){};
 
+  virtual double get_fex(double eta) const { return eta*(4-3*eta)/((1-eta)*(1-eta));}
+  
   virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
     a0 = -(1+4*eta+3*eta*eta-2*eta*eta*eta)*pow(1-eta,-4);
@@ -609,6 +621,9 @@ class WhiteBearII : public esFMT //WhiteBearI
   // In the paper, it says that this should be esFMT(3/2, -3/2): here the 3/2 has been moved into f3. 
   WhiteBearII() : esFMT(1,-1){};
 
+  // CS
+  virtual double get_fex(double eta) const { return eta*(4-3*eta)/((1-eta)*(1-eta));}
+  
   virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
     throw std::runtime_error("WhiteBearII::get_dcf_coeffs not implemented");    

@@ -112,7 +112,8 @@ class Species
 
   // Placeholders for FMT-specific functionality: non-FMT classes do nothing  
   virtual double getHSD() const { return 0.0;}  
-  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &fm, long pos, bool needsTensor) {}
+  //  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &fm, long pos, bool needsTensor) {}
+  virtual void set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param = NULL) {}
  
   //Enforce constraints on forces: constant particle number, uniform or fixed background, etc.
   void   beginForceCalculation();
@@ -403,7 +404,8 @@ public:
    *   @param pos: spatial point (in 1D indexing)
    *   @param needsTensor: true if we need to calculate tensor quantities too.
    *  
-   */  
+   */
+  /*
   virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
   {
     double dPhi_dEta = DPHI.eta;
@@ -423,7 +425,8 @@ public:
 	  for(int k=j;k<3;k++)
 	    fmt_weighted_densities[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
       }
-  }
+      }*/
+  virtual void set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param = NULL);
 
     
   FMT_Weighted_Density& getEta() { return fmt_weighted_densities[0];}
@@ -508,7 +511,8 @@ public:
   FMT_AO_Species(const FMT_Species &) = delete;
   ~FMT_AO_Species(){}
 
-  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor);
+  //  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor);
+  virtual void set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param = NULL);  
   virtual double free_energy_post_process(bool needsTensor);
 
   unsigned size() const { return fmt_weighted_densitiesAO_.size();}
@@ -540,7 +544,7 @@ public:
     fmt_weighted_densitiesAO_[TI(2,2)].setDensity(K,T[2][2]);        
   }
 
-  void calculateForce(bool needsTensor, void *param = NULL);
+  virtual void calculateForce(bool needsTensor, void *param = NULL);
   void computeAOForceContribution()
   {
     
@@ -585,18 +589,19 @@ class FMT_Species_EOS : public FMT_Species
 {
 public:
   // D_EOS is the ratio of the new hsd to the real one
-  FMT_Species_EOS(double D_EOS, EOS &eos, Density& density, double hsd, double mu = 0, int seq = -1);
+  FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& density, double hsd, double mu = 0, int seq = -1);
   FMT_Species_EOS(const FMT_Species &) = delete;
   ~FMT_Species_EOS(){}
 
-  // over-ride to calculate the new measure
+  // Evaluate EOS free energy functional at point I
+  double effDensity(long I);
+  double dfex(long pos, void *param);  
+
   virtual void calculateFundamentalMeasures(bool needsTensor);
-  double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
+  virtual void set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param = NULL);  
+  virtual void calculateForce(bool needsTensor, void *param = NULL);
 
-  // Evaluate EOS free energy at point I
-  double fex(long I) const { return eos_.fex(density_->get(I));}
-
-  void calculateForce(bool needsTensor, void *param = NULL);
+  //  double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
   
   // TODO
   //  friend class boost::serialization::access;
@@ -610,7 +615,8 @@ public:
 protected:
   //  virtual void generate_additional_Weight();
   vector<FMT_Weighted_Density> eos_weighted_density_; ///< all weighted densities in real & fourier space
-  double D_EOS_;
+  double D_EOS_ = 1;
+  double avdw_  = 0;
   EOS &eos_;
 };
 
