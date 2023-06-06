@@ -40,9 +40,9 @@ double FMT_Species_EOS::effDensity(long I)
 double FMT_Species_EOS::dfex(long pos, void* param)
 {
   double x = effDensity(pos);
-  double e = M_PI*x*hsd_*hsd_*hsd_/6;
+  FundamentalMeasures fm(x,hsd_);
   
-  return eos_.fex(x) - ((FMT*) param)->get_fex(e)-0.5*avdw_*x*x;
+  return eos_.fex(x) - ((FMT*) param)->calculate_Phi(fm)-0.5*avdw_*x*x;
 }
 
 void FMT_Species_EOS::calculateFundamentalMeasures(bool needsTensor)

@@ -105,7 +105,7 @@ public:
   virtual bool needsTensor() const  = 0;
 
   // the homogeneous fluid
-  virtual double get_fex(double eta) const = 0;
+  //  virtual double get_fex(double eta) const = 0;
   virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const = 0;  
   double get_real_space_dcf(double r, double rho, double d) const;
   double get_fourier_space_dcf(double r, double rho, double d) const;
@@ -133,7 +133,8 @@ class Rosenfeld: public FMT
  public:
   Rosenfeld() : FMT(){};
 
-  virtual double get_fex(double eta) const { return -log(1-eta)+1.5*eta*(2-eta)/((1-eta)*(1-eta));}
+  // this is F/N
+  //  virtual double get_fex(double eta) const { return -log(1-eta)+1.5*eta*(2-eta)/((1-eta)*(1-eta));}
 
   virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
@@ -258,7 +259,8 @@ class RSLT : public Rosenfeld
  public:
   RSLT() : Rosenfeld(){};
 
-  virtual double get_fex(double eta) const { return eta*(4-3*eta)/((1-eta)*(1-eta));}
+    // this is F/N
+  //  virtual double get_fex(double eta) const { return eta*(4-3*eta)/((1-eta)*(1-eta));}
 
   virtual double f3_(double eta) const
   {
@@ -375,7 +377,8 @@ class esFMT : public Rosenfeld
  public:
   esFMT(double A = 1, double B = 0) : Rosenfeld(), A_(A), B_(B){};
 
-  virtual double get_fex(double eta) const {return Rosenfeld::get_fex(eta) + (1.0/6)*(8*A_+2*B_-9)*(eta*eta/((1-eta)*(1-eta)));}
+    // this is F/N
+  //  virtual double get_fex(double eta) const {return Rosenfeld::get_fex(eta) + (1.0/6)*(8*A_+2*B_-9)*(eta*eta/((1-eta)*(1-eta)));}
 									          
   virtual void get_coeffs_dcf(double eta, double &a0, double &a1, double &a3) const
   {
@@ -545,7 +548,8 @@ class WhiteBearI : public esFMT
   // In the paper, it says that this should be esFMT(3/2, -3/2): here the 3/2 has been moved into f3. 
   WhiteBearI() : esFMT(1,-1){};
 
-  virtual double get_fex(double eta) const { return eta*(4-3*eta)/((1-eta)*(1-eta));}
+    // this is F/N
+  //  virtual double get_fex(double eta) const { return eta*(4-3*eta)/((1-eta)*(1-eta));}
   
   virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
@@ -619,7 +623,8 @@ class WhiteBearII : public esFMT //WhiteBearI
   WhiteBearII() : esFMT(1,-1){};
 
   // CS
-  virtual double get_fex(double eta) const { return eta*(4-3*eta)/((1-eta)*(1-eta));}
+    // this is F/N
+  //  virtual double get_fex(double eta) const { return eta*(4-3*eta)/((1-eta)*(1-eta));}
   
   virtual void get_dcf_coeffs(double eta, double &a0, double &a1, double &a3) const
   {
