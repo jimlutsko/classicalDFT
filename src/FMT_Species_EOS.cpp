@@ -15,6 +15,17 @@ using namespace std;
 #include "Species.h"
 #include "FMT.h"
 
+
+
+// This class adds a new weighted density which is the packing fraction over an extended volume defined by the effective hsd = D_EOS*hsd.
+// Typically, one uses D_EOS = 2.
+// It is intended to shift the free energy of the uniform system from F_dft(rho) to F_EOS(rho).
+// This is done by defining dF_EOS(x) = F_dft(x)-F_EOS(x) and then calculating
+// the contribution to the free energy as sum_I dF_eos(rho_eos(I))dV
+// Here, rho_eos(I) is determined from the new packing fraction as eta_eos(I)*(6/M_PI)/(D_EOS*hsd)^3.
+//
+// Note that F_dft(x) = F_HS(x) + 0.5*avdW*x*x.
+//
 FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& density, double hsd, double mu, int seq)
   : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1), D_EOS_(D_EOS), eos_(eos), avdw_(avdw)
 										    
@@ -28,6 +39,7 @@ FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& d
   eos_weighted_density_[0].transformWeights();  
 }
 
+//  rho_eos(I) = eta_eos(I)*(6/M_PI)/(D_EOS*hsd)^3.
 double FMT_Species_EOS::effDensity(long I)
 {
   double eta = eos_weighted_density_[0].real(I);
@@ -37,6 +49,7 @@ double FMT_Species_EOS::effDensity(long I)
   return x;
 }
 
+// dF_EOS(x) = F_EOS(x)-F_dft(x) = F_EOS(x)_excess - F_HS_excess(x) - 0.5*a*x*x 
 double FMT_Species_EOS::dfex(long pos, void* param)
 {
   double x = effDensity(pos);
