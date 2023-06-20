@@ -73,6 +73,8 @@ public:
     options_.addOption("Include_Interaction", &include_interaction_);
 
     options_.addOption("Potential", &potential_name_);
+    options_.addOption("EOS_Correction", &eos_correction_);
+    options_.addOption("D_EOS", &D_EOS_);
   }
 
   ~DFT_Factory()
@@ -145,13 +147,22 @@ public:
 
     if(include_density_)
       {
-  #ifdef DENSITY_CONSTRUCTOR_DX_DY_DZ
-	  theDensity_ = new DensityType(dx_, dy_, dz_, L_, show_graphics_);
-	#else
-	  theDensity_ = new DensityType(dx_, L_, show_graphics_);
-	#endif
-	
-	species1_   = new FMT_Species(*theDensity_,hsd1_,0.0,verbose_, 0);
+#ifdef DENSITY_CONSTRUCTOR_DX_DY_DZ
+	theDensity_ = new DensityType(dx_, dy_, dz_, L_, show_graphics_);
+#else
+	theDensity_ = new DensityType(dx_, L_, show_graphics_);
+#endif
+
+	if(eos_correction_ == LJ_JZG_EOS) eos_ = new LJ_JZG(kT_, rcut1_); // need to add no-shift option
+	double avdw = 0;
+	if(potential1_) avdw = potential1_->getVDW_Parameter(kT_);
+	  
+	if(eos_ == NULL)	  
+	  species1_   = new FMT_Species(*theDensity_,hsd1_,0.0,verbose_, 0);
+	else 
+	  species1_   = new FMT_Species_EOS(D_EOS_, *eos_, avdw, *theDensity_,hsd1_,0.0,0);
+
+	    
 	dft_        = new DFT(species1_);
 
 	species1_->set_fixed_background(fixed_background_);
@@ -254,7 +265,8 @@ public:
   }  
 
   DFT& get_DFT() { check(); return *dft_;}
-
+  EOS &get_EOS() { if(eos_ == NULL) throw std::runtime_error("No EOS found"); return *eos_;}
+  
   void get_thermodynamics(bool verbose_ = true)
   {
     check();
@@ -345,6 +357,10 @@ public:
   string outstream_;
   string SourceInput_;
 
+  string eos_correction_;
+  double D_EOS_;
+  EOS *eos_ = NULL;
+  
   bool fixed_background_ = false;
   bool homogeneous_boundary_ = false;
   

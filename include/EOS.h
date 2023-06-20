@@ -5,6 +5,9 @@
 
 // Empirical equations of state.
 
+const string LJ_JZG_EOS("LJ_JZG_EOS");
+
+
 class EOS
 {
 public:
