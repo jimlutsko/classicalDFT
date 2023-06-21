@@ -377,21 +377,17 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
       if(fao_species)
 	  FAO += fao_species->free_energy_post_process(needsTensor());
     }
-  return F.sum()+ FAO;
+
+  return F.sum()+FEOS+FAO;
 }
 
 double FMT::EOS_Correction(FMT_Species_EOS &eos_species)
 {
+  double F = 0;  
+
   long Ntot = eos_species.getLattice().Ntot();
-  double dV = eos_species.getLattice().dV();
-  
-  double F = 0;
-  
   for(long I=0;I<Ntot;I++)
-    {
-      F += eos_species.dfex(I, this)*dV;
-      FundamentalMeasures fm1(eos_species.get_density(I),eos_species.getHSD());
-    }
+      F += eos_species.dfex(I, this);
 
   return F;
 }

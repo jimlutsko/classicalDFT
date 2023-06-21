@@ -6,6 +6,7 @@
 // Empirical equations of state.
 
 const string LJ_JZG_EOS("LJ_JZG_EOS");
+const string LJ_MECKE_EOS("LJ_MECKE_EOS");
 
 
 class EOS
@@ -30,10 +31,10 @@ public:
   virtual double f2ex(double density) {return 2*phi1x(density) + density*phi2x(density);}
   
   // excess free energy per atom and density derivatives
-  virtual double phix(double density)  const { throw std::runtime_error("phix not implemented in EOS object");}
-  virtual double phi1x(double density) const { throw std::runtime_error("phix not implemented in EOS object");}
-  virtual double phi2x(double density) const { throw std::runtime_error("phix not implemented in EOS object");}
-  virtual double phi3x(double density) const { throw std::runtime_error("phix not implemented in EOS object");}
+  virtual double phix(double density)  const = 0; //{ throw std::runtime_error("phix not implemented in EOS object");}
+  virtual double phi1x(double density) const = 0; //{ throw std::runtime_error("phix not implemented in EOS object");}
+  virtual double phi2x(double density) const = 0; //{ throw std::runtime_error("phix not implemented in EOS object");}
+  virtual double phi3x(double density) const = 0; //{ throw std::runtime_error("phix not implemented in EOS object");}
 
   void set_temperature(double kT) {kT_ = kT;}
   

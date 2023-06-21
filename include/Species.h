@@ -103,7 +103,8 @@ class Species
   DFT_Vec       &getDF() {return dF_;}
   const DFT_Vec &get_const_DF() const {return dF_;}
   void setDF(DFT_Vec &df) {return dF_.set(df);}
-
+  double get_force(long pos) const { return dF_.get(pos);}
+  
   // This species is held as allSpecies_[index_]
   void setIndex(int i)  { index_ = i;}
   int  getIndex() const { return index_;}

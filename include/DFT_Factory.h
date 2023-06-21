@@ -153,7 +153,9 @@ public:
 	theDensity_ = new DensityType(dx_, L_, show_graphics_);
 #endif
 
-	if(eos_correction_ == LJ_JZG_EOS) eos_ = new LJ_JZG(kT_, rcut1_); // need to add no-shift option
+	if(eos_correction_ == LJ_JZG_EOS)   eos_ = new LJ_JZG(kT_, rcut1_); // need to add no-shift option
+	//	if(eos_correction_ == LJ_MECKE_EOS) eos_ = new LJ_Mecke(kT_, rcut1_); // need to add no-shift option
+	
 	double avdw = 0;
 	if(potential1_) avdw = potential1_->getVDW_Parameter(kT_);
 	  
@@ -265,7 +267,7 @@ public:
   }  
 
   DFT& get_DFT() { check(); return *dft_;}
-  EOS &get_EOS() { if(eos_ == NULL) throw std::runtime_error("No EOS found"); return *eos_;}
+  EOS &get_eos() { if(eos_ == NULL) throw std::runtime_error("No EOS found"); return *eos_;}
   
   void get_thermodynamics(bool verbose_ = true)
   {

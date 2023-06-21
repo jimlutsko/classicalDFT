@@ -26,6 +26,11 @@ using namespace std;
 //
 // Note that F_dft(x) = F_HS(x) + 0.5*avdW*x*x.
 //
+//
+// For the forces, we need
+//        d/drho_I sum_J dfex(rho_eos_J) = sum_I dfex'(rho_eos_J) w^{EOS}_JI
+//
+
 FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& density, double hsd, double mu, int seq)
   : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1), D_EOS_(D_EOS), eos_(eos), avdw_(avdw)
 										    
@@ -53,9 +58,10 @@ double FMT_Species_EOS::effDensity(long I)
 double FMT_Species_EOS::dfex(long pos, void* param)
 {
   double x = effDensity(pos);
-  FundamentalMeasures fm(x,hsd_);
-  
-  return eos_.fex(x) - ((FMT*) param)->calculate_Phi(fm)-0.5*avdw_*x*x;
+  double eta = M_PI*x*hsd_*hsd_*hsd_/6;  
+  double fdft = x*((FMT*) param)->get_fex(eta) + avdw_*x*x;
+
+  return eos_.fex(x) - fdft;
 }
 
 void FMT_Species_EOS::calculateFundamentalMeasures(bool needsTensor)
@@ -65,14 +71,26 @@ void FMT_Species_EOS::calculateFundamentalMeasures(bool needsTensor)
   eos_weighted_density_[0].convoluteWith(rho_k);          
 }
 
+
+
+// Here, we need d
 void FMT_Species_EOS::set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param)
 {
+  if(pos == 10) cout << "Set EOS phi" << endl;
   FMT_Species::set_fundamental_measure_derivatives(pos,fm,param);
-  eos_weighted_density_[0].Set_dPhi(pos,dfex(pos, param));
+
+  double x = effDensity(pos);
+  double eta = M_PI*x*hsd_*hsd_*hsd_/6;  
+  double dfdft = ((FMT*) param)->get_fex(eta) + eta*((FMT*) param)->get_dfex_deta(eta) + 2*avdw_*x;
+  // HERE
+  // convert to df/deta_EOS
+  eos_weighted_density_[0].Set_dPhi(pos,(eos_.f1ex(x) - dfdft)*6/(M_PI*hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_));
 }
 
 void FMT_Species_EOS::calculateForce(bool needsTensor, void *param)
 {
+  cout << "EOS force" << endl;
+  
   FMT_Species::calculateForce(needsTensor);
 
   double dV = getLattice().dV();
