@@ -28,7 +28,7 @@ using namespace std;
 //
 //
 // For the forces, we need
-//        d/drho_I sum_J dfex(rho_eos_J) = sum_I dfex'(rho_eos_J) w^{EOS}_JI
+//        d/drho_I sum_J dfex(rho_eos_J) = sum_I (d/d_eta_EOS_J) dfex(rho_eos_J) w^{EOS}_JI
 //
 
 FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& density, double hsd, double mu, int seq)
@@ -57,9 +57,11 @@ double FMT_Species_EOS::effDensity(long I)
 // dF_EOS(x) = F_EOS(x)-F_dft(x) = F_EOS(x)_excess - F_HS_excess(x) - 0.5*a*x*x 
 double FMT_Species_EOS::dfex(long pos, void* param)
 {
-  double x = effDensity(pos);
-  double eta = M_PI*x*hsd_*hsd_*hsd_/6;  
-  double fdft = x*((FMT*) param)->get_fex(eta) + avdw_*x*x;
+  double x   = effDensity(pos);
+  double eta = M_PI*x*hsd_*hsd_*hsd_/6;
+  FMT &fmt   = *((FMT*) param);  
+
+  double fdft = x*fmt.get_fex(eta) + avdw_*x*x;
 
   return eos_.fex(x) - fdft;
 }
@@ -76,21 +78,22 @@ void FMT_Species_EOS::calculateFundamentalMeasures(bool needsTensor)
 // Here, we need d
 void FMT_Species_EOS::set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param)
 {
-  if(pos == 10) cout << "Set EOS phi" << endl;
+
   FMT_Species::set_fundamental_measure_derivatives(pos,fm,param);
 
-  double x = effDensity(pos);
-  double eta = M_PI*x*hsd_*hsd_*hsd_/6;  
-  double dfdft = ((FMT*) param)->get_fex(eta) + eta*((FMT*) param)->get_dfex_deta(eta) + 2*avdw_*x;
-  // HERE
+  double x   = effDensity(pos);
+  double eta = M_PI*x*hsd_*hsd_*hsd_/6;
+  FMT &fmt   = *((FMT*) param);
+
+  double dfdft = (fmt.get_fex(eta) + eta*fmt.get_dfex_deta(eta)) + 2*avdw_*x;
+
   // convert to df/deta_EOS
-  eos_weighted_density_[0].Set_dPhi(pos,(eos_.f1ex(x) - dfdft)*6/(M_PI*hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_));
+  double fac = 6/(M_PI*hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_);
+  eos_weighted_density_[0].Set_dPhi(pos,(eos_.f1ex(x) - dfdft)*fac);
 }
 
 void FMT_Species_EOS::calculateForce(bool needsTensor, void *param)
 {
-  cout << "EOS force" << endl;
-  
   FMT_Species::calculateForce(needsTensor);
 
   double dV = getLattice().dV();

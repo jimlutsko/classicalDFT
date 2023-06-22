@@ -387,8 +387,7 @@ double FMT::EOS_Correction(FMT_Species_EOS &eos_species)
 
   long Ntot = eos_species.getLattice().Ntot();
   for(long I=0;I<Ntot;I++)
-      F += eos_species.dfex(I, this);
-
+      F += eos_species.dfex(I, this);  
   return F;
 }
 

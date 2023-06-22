@@ -382,7 +382,7 @@ class esFMT : public Rosenfeld
 
     // this is F/N
   virtual double get_fex(double eta) const {return -log(1-eta)+1.5*eta*(2-eta)/((1-eta)*(1-eta)) + (1.0/6)*(8*A_+2*B_-9)*(eta*eta/((1-eta)*(1-eta)));}
-  virtual double get_dfex_deta(double eta) const { return ((4-2*eta+eta*eta)/((1-eta)*(1-eta)*(1-eta))) + (1.0/6)*(8*A_+2*B_-9)*2*eta/((1-eta)*(1-eta));}
+  virtual double get_dfex_deta(double eta) const { return ((4-2*eta+eta*eta)/((1-eta)*(1-eta)*(1-eta))) + (1.0/6)*(8*A_+2*B_-9)*2*eta/((1-eta)*(1-eta)*(1-eta));}
   
   virtual void get_coeffs_dcf(double eta, double &a0, double &a1, double &a3) const
   {
