@@ -21,7 +21,8 @@ class Species
   ~Species(){}
 
   int getSequenceNumber() const { return seq_num_;}
-
+  virtual bool is_eos() const { return false;}
+  
   void doFFT(){ density_->doFFT();}
   
   // To be replaced by the functions below
@@ -594,6 +595,11 @@ public:
   FMT_Species_EOS(const FMT_Species &) = delete;
   ~FMT_Species_EOS(){}
 
+  virtual bool is_eos() const { return true;}  
+
+  // pass through from the EOS object
+  double get_bulk_dfex(double x, const void *param) const;
+  
   // Evaluate EOS free energy functional at point I
   double effDensity(long I);
   double dfex(long pos, void *param);  

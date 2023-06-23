@@ -90,13 +90,11 @@ double DFT::omega_times_beta_over_volume(const vector<double> &x) const
   return omega;
 }
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::fhelmholtz_times_beta_over_volume(double density) const
 {
   return fhelmholtz_times_beta_over_volume(vector<double>(1,density));
 }
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::fhelmholtz_times_beta_over_volume(const vector<double> &x) const
 {
   double F = 0.0;
@@ -122,28 +120,24 @@ double DFT::fhelmholtz_times_beta_over_volume(const vector<double> &x) const
   return F;  
 }  
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void DFT::set_densities_from_aliases(vector<DFT_Vec> &x_)
 {
   for(int s=0; s<allSpecies_.size();s++)
     allSpecies_[s]->set_density_from_alias(x_[s]);
 }
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void DFT::convert_dF_to_alias_derivs(vector<DFT_Vec> &x_)
 {
   for(int s = 0; s<allSpecies_.size(); s++)
     allSpecies_[s]->convert_to_alias_deriv(x_[s],getDF(s));
 }
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void DFT::convert_dF_to_alias_derivs()
 {
   for(int s = 0; s<allSpecies_.size(); s++)
     allSpecies_[s]->convert_to_alias_deriv(getDF(s));
 }
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 {
   for(auto &species : allSpecies_)  
@@ -162,7 +156,6 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 #ifdef USE_OMP    
 #pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
 #endif
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
   Summation F;

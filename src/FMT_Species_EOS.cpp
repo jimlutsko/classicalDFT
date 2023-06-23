@@ -54,8 +54,18 @@ double FMT_Species_EOS::effDensity(long I)
   return x;
 }
 
-// dF_EOS(x) = F_EOS(x)-F_dft(x) = F_EOS(x)_excess - F_HS_excess(x) - 0.5*a*x*x 
-double FMT_Species_EOS::dfex(long pos, void* param)
+double FMT_Species_EOS::get_bulk_dfex(double x, const void *param) const
+{
+  double eta = M_PI*x*hsd_*hsd_*hsd_/6;
+  FMT &fmt   = *((FMT*) param);  
+
+  double fdft = x*fmt.get_fex(eta) + avdw_*x*x;
+
+  return eos_.fex(x) - fdft;
+}
+
+// dF_EOS(x) = F_EOS(x)-F_dft(x) = F_EOS(x)_excess - F_HS_excess(x) - 0.5*a*x*x
+ double FMT_Species_EOS::dfex(long pos, void* param)
 {
   double x   = effDensity(pos);
   double eta = M_PI*x*hsd_*hsd_*hsd_/6;
@@ -111,3 +121,62 @@ void FMT_Species_EOS::calculateForce(bool needsTensor, void *param)
   addToForce(dF_local.cReal());   
 }
 
+// For this we need sum_J sum_K dV (d2dfex(K)/deta(K) deta(K)) w_eta(K-I) w_eta(K-J)v(J)
+// Define psi(K) = dV conv(w_eta,v;K) = sum_J w_eta(K-J)V(J) dV
+// Then we need sum_K (d2dfex(K)/deta(K) deta(K)) w_eta(K-I) psi(K)
+// or conv((d2dfex(K)/deta(K) deta(K))psi(K), w; I)
+// or we define Lambda(K) = (d2PHI(K)/deta(K) deta(K))psi(K)
+// and then calculate conv(Lam, w; I)
+//
+// d2F is the force FOR THIS SPECIES
+void FMT_Species_EOS::add_second_derivative(const vector<DFT_FFT> &v, DFT_Vec &d2F)
+{
+  const Density &density1 = getDensity();
+
+  long Ntot    = density1.Ntot();
+  int Nx       = density1.Nx();
+  int Ny       = density1.Ny();
+  int Nz       = density1.Nz();
+  double dV    = density1.dV();
+  double hsd   = getHSD();
+  
+  // Some working space
+  DFT_FFT result(Nx,Ny,Nz);
+
+  // Get Psi: psi(K) = conv(w_eta,v;K) = sum_J w_eta(K-J)V(J)
+  DFT_FFT Psi(Nx,Ny,Nz);
+      
+  // N.B. the fmt weights have all necessary normalization factors built in, including dV
+  bool bConjugate = false;
+  convolute_eta_weight_with(v[s], result, bConjugate);
+  Psi.Real().IncrementBy(result.Real());
+
+  // Get Lambda: Lambda(K) = (d2dfex(K)/deta(K) deta(K))psi(K)  
+  DFT_FFT Lambda(Nx,Ny,Nz);
+
+  long pos;
+#ifdef USE_OMP
+#pragma omp parallel for  private(pos) schedule(static)
+#endif
+  for(pos = 0; pos < Ntot; pos++)
+    {
+      FundamentalMeasures fm = getWeightedDensities(pos, allSpecies);
+
+      FundamentalMeasures Psi_K;
+      for(int b=0;b<Nfmt;b++)
+	Psi_K.set(b, Psi[b].cReal().get(pos));
+            
+      FundamentalMeasures d2Phi_dot_Psi;
+      calculate_d2Phi_dot_V(fm,Psi_K,d2Phi_dot_Psi);
+
+      Lambda.Real().set(pos, d2Phi_dot_Psi.get(a));
+    }
+
+  // Do the last convolution to get d2F
+  Lambda.do_real_2_fourier();
+
+  //the fmt weights have all necessary normalization factors built in, including dV
+  bool bConjugate = true;
+  // replace: species->convolute_eta_weight_with(Lambda[0], result, bConjugate);
+  d2F.IncrementBy_Scaled_Vector(result.Real(),dV);
+}
