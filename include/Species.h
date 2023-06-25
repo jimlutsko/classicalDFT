@@ -599,6 +599,8 @@ public:
 
   // pass through from the EOS object
   double get_bulk_dfex(double x, const void *param) const;
+  double get_bulk_ddfex_deta(double x, const void *param) const;
+  double get_bulk_d2dfex_deta2(double x, const void *param) const;
   
   // Evaluate EOS free energy functional at point I
   double effDensity(long I);
@@ -608,6 +610,7 @@ public:
   virtual void set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param = NULL);  
   virtual void calculateForce(bool needsTensor, void *param = NULL);
 
+  void add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, const void *param);
   //  double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
   
   // TODO
