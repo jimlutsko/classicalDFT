@@ -15,6 +15,7 @@ using namespace std;
 #endif
 
 #include "Species.h"
+#include "FMT.h"
 #include "myColor.h"
 
 const double dmin = SMALL_VALUE;
@@ -1417,18 +1418,6 @@ void FMT_Species::generateWeights(double hsd, vector<FMT_Weighted_Density> &fmt_
 }
 
 
-FMT_Species_EOS::FMT_Species_EOS(double D_EOS, Density& density, double hsd, double mu, int seq)
-  : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1), D_EOS_(D_EOS)
-										    
-{
-  long Nx = density_->Nx();
-  long Ny = density_->Ny();
-  long Nz = density_->Nz();
-
-  eos_weighted_density_[0].initialize(Nx, Ny, Nz);
-  generateWeights(D_EOS*hsd, eos_weighted_density_);
-  eos_weighted_density_[0].transformWeights();  
-}
 /*  //NOW OUTDATED
 // This is an exact copy of FMT_Species::generateWeights. It is necessary because we want to do
 // the same but with a different hsd. Obviously, these could (and probably SHOULD) be combined
@@ -1563,6 +1552,52 @@ void FMT_Species_EOS::generate_additional_Weight()
 */
 
 
+void FMT_Species::calculateForce(bool needsTensor, void* param)
+{
+  double dV = getLattice().dV();
+  int Nx    = getLattice().Nx();
+  int Ny    = getLattice().Ny();
+  int Nz    = getLattice().Nz();
+  
+  DFT_FFT dPhi(Nx,Ny,Nz);
+  dPhi.Four().zeros();
+  
+  int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
+  for(int i=0;i<imax;i++)      
+    fmt_weighted_densities[i].add_weight_schur_dPhi_to_arg(dPhi.Four());  
+
+  dPhi.do_fourier_2_real();
+
+  dPhi.Real().MultBy(dV);
+  addToForce(dPhi.cReal()); 
+}
+
+void FMT_Species::set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param)
+{
+  FundamentalMeasures DPHI;
+  ((FMT*) param)->calculate_dPhi_wrt_fundamental_measures(fm,DPHI);
+  
+  double dPhi_dEta = DPHI.eta;
+  double dPhi_dS = (DPHI.s0/(hsd_*hsd_)) + (DPHI.s1/hsd_) + DPHI.s2;
+  double dPhi_dV[3] = {DPHI.v2[0] + DPHI.v1[0]/hsd_,
+    DPHI.v2[1] + DPHI.v1[1]/hsd_,
+    DPHI.v2[2] + DPHI.v1[2]/hsd_};
+  
+  fmt_weighted_densities[EI()].Set_dPhi(pos,dPhi_dEta);
+  fmt_weighted_densities[SI()].Set_dPhi(pos,dPhi_dS);    
+  
+  // Note the parity factor in the vector term which is needed when we calculate forces
+  for(int j=0;j<3;j++)
+    {
+      fmt_weighted_densities[VI(j)].Set_dPhi(pos, -dPhi_dV[j]);	
+      if(((FMT*) param)->needsTensor())
+	for(int k=j;k<3;k++)
+	  fmt_weighted_densities[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
+    }  
+}
+
+
+
 ////////////////////////////
 // AO model
 FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double reservoir_density, double mu, int seq)
@@ -1601,9 +1636,13 @@ FMT_AO_Species:: FMT_AO_Species(Density& density, double hsd, double Rp, double 
 
 // The job of this function is to take the information concerning dF/dn_{a}(pos) (stored in DPHI) and to construct the dPhi_dn for partial measures that are stored in fmt_weighted_densities.
 // This is done via the call to FMT_Species::set_fundamental_measure_derivatives. 
-void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DPHI, long pos, bool needsTensor)
+
+void FMT_AO_Species::set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param)
 {
-  FMT_Species::set_fundamental_measure_derivatives(DPHI,pos,needsTensor);
+  FMT_Species::set_fundamental_measure_derivatives(pos,fm,param);
+  
+  FundamentalMeasures DPHI;
+  ((FMT*) param)->calculate_dPhi_wrt_fundamental_measures(fm,DPHI);    
 
   double hsdp = 2*Rp_;
   
@@ -1620,7 +1659,7 @@ void FMT_AO_Species::set_fundamental_measure_derivatives(FundamentalMeasures &DP
   for(int j=0;j<3;j++)
     {
       fmt_weighted_densitiesAO_[VI(j)].Set_dPhi(pos, -dPhi_dV[j]);	
-      if(needsTensor)
+      if(((FMT*) param)->needsTensor())
 	for(int k=j;k<3;k++)
 	  fmt_weighted_densitiesAO_[TI(j,k)].Set_dPhi(pos,(j == k ? 1 : 2)*DPHI.T[j][k]); // taking account that we only use half the entries
     }
@@ -1671,3 +1710,35 @@ double FMT_AO_Species::free_energy_post_process(bool needsTensor)
   
   return F;
 }
+
+
+void FMT_AO_Species::calculateForce(bool needsTensor, void* param)
+{
+  double dV = getLattice().dV();
+  long Ntot = getLattice().Ntot();
+
+  FMT_Species::calculateForce(needsTensor);
+
+  for(long pos=0; pos<Ntot;pos++)
+    {
+      FundamentalMeasures n;
+      getFundamentalMeasures(pos, n);
+	      
+      FundamentalMeasures upsilon;
+      getFundamentalMeasures_AO(pos, upsilon);		  
+	      
+      // This calculates SUM_b (d2Phi(n)/dn_a dn_b) upsilon_b
+      // The vector gets a minus sign because there is a parity factor.
+      FundamentalMeasures result;		  
+      ((FMT*) param)->calculate_d2Phi_dot_V(n, upsilon, result);
+      double hsd1 = 1.0/(getHSD());
+      double eta = result.eta;
+      double s   = result.s0*hsd1*hsd1+result.s1*hsd1+result.s2;
+      double v[3];
+      for(int direction=0;direction<3;direction++)
+	v[direction] = -result.v1[direction]*hsd1 - result.v2[direction];
+      setFundamentalMeasures_AO(pos,eta,s,v,result.T);
+    }
+  computeAOForceContribution();
+}
+ 
