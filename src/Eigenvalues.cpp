@@ -205,7 +205,7 @@ double Eigenvalues::calculate_gradients(DFT_Vec& df)
 }
 
 
-double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
+double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v, bool first_order_correction_to_eigenvalue) const
 {
   if (eigen_vec_.size() != matrix_.get_Ntot())
     throw runtime_error("Eigenvalues: Eigenvector not initialized yet!");
@@ -219,11 +219,19 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v) const
     matrix_dot_v(eigen_vec_, residual, NULL);
   }
   
-  residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigen_val_);
-  double r = norm(residual)/norm(eigen_vec_)/fabs(eigen_val_);
+  double eigenvalue = eigen_val_;
+  if (first_order_correction_to_eigenvalue)
+  {
+    eigenvalue = v_dot_w(eigen_vec_,residual);
+    eigenvalue /= norm(eigen_vec_)*norm(eigen_vec_);
+  }
   
-  double alpha = v_dot_w(eigen_vec_,matrix_dot_eigen_vec_)
-                 /norm(eigen_vec_)/norm(matrix_dot_eigen_vec_);
+  // Note that at this stage "residual" is still just A*v
+  double alpha = v_dot_w(eigen_vec_,residual)
+                 /norm(eigen_vec_)/norm(residual);
+  
+  residual.IncrementBy_Scaled_Vector(eigen_vec_, -eigenvalue); // now "residual" is A*v-x*v
+  double r = norm(residual)/norm(eigen_vec_)/fabs(eigenvalue);
   
   double err = (r*r+1) - pow(alpha,-2);
   //if (fabs(err)>1e-8) throw runtime_error("Eigenvalues: Inconsistent residual calculation (r^2+1="+to_string(r*r+1)+" while 1/alpha^2="+to_string(pow(alpha,-2)));
@@ -267,6 +275,11 @@ void Eigenvalues::matrix_dot_v(const DFT_Vec &v_in, DFT_Vec &result, void *param
   }
   else if (matrix_.is_dynamic())
   {
+    // Here we first multiply by the metric THEN by the matrix of second derivatives
+    // The order of the operations is deliberate: In this generalized problem using
+    // an arbitrary metric, we work with the transpose of the matrix for which we want
+    // to solve the eigenproblem. The actual eigenvectors of the original matrix are g*v
+    
     DFT_Vec gv(v); g_dot_v(v, gv);
     matrix_.matrix_dot_v1(gv, result, param, true);
     result.MultBy(-1); //Note: minus sign to be consistent with original metric g in DDFT object, which is not positive definite
