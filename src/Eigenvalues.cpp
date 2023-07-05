@@ -241,6 +241,27 @@ double Eigenvalues::calculate_residual_error(bool recompute_matrix_dot_v, bool f
 }
 
 
+double Eigenvalues::calculate_angle_bound()
+{
+  if (eigen_vec_.size() != matrix_.get_Ntot())
+    throw runtime_error("Eigenvalues: Eigenvector not initialized yet!");
+  
+  if (matrix_.is_dynamic())
+    throw runtime_error("Eigenvalues: Can only compute an upper bound for eigenvector perturbation in the case of symmetric matrix");
+  
+  DFT_Vec Av(matrix_dot_eigen_vec_);
+  Av.zeros(matrix_.get_Ntot());
+  matrix_dot_v(eigen_vec_, Av, NULL);
+  
+  double eigenvalue_old = eigen_val_;
+  double eigenvalue_new = v_dot_w(eigen_vec_,Av); // at first order
+  eigenvalue_new /= norm(eigen_vec_)*norm(eigen_vec_);
+  
+  return sqrt(Av.dotWith(Av) - 2*eigenvalue_old*eigenvalue_new + eigenvalue_old*eigenvalue_old) 
+         / abs(eigenvalue_old); // From Davis-Kahan Theorem
+}
+
+
 void Eigenvalues::matrix_dot_v(const DFT_Vec &v_in, DFT_Vec &result, void *param) const
 {
   if (is_using_density_alias() && matrix_.is_dynamic())
