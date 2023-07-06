@@ -79,6 +79,17 @@ class DFT : public Dynamical_Matrix
   void convert_dF_to_alias_derivs(vector<DFT_Vec> &x_);
   void convert_dF_to_alias_derivs();
 
+  void dF_to_H_dot_dF()
+  {
+    for(int s = 0; s<allSpecies_.size(); s++)
+      {
+	DFT_Vec &dF = getDF(s);
+	DFT_Vec ff(dF.size());
+	matrix_dot_v1(dF,ff);
+	dF.set(ff);
+      }
+  }
+  
   void set_offset(bool val) { offset_ = val;}
   
   // A few actions  

@@ -117,6 +117,8 @@ double Minimizer::getDF_DX()
   double F = 0;
   try {F = get_energy_and_forces(); calls_++;} 
   catch( Eta_Too_Large_Exception &e) {throw e;}
+
+  if(use_squared_forces_) dft_->dF_to_H_dot_dF();
   
   dft_->convert_dF_to_alias_derivs(x_);
   
