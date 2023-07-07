@@ -118,7 +118,7 @@ double Minimizer::getDF_DX()
   try {F = get_energy_and_forces(); calls_++;} 
   catch( Eta_Too_Large_Exception &e) {throw e;}
 
-  if(use_squared_forces_) dft_->dF_to_H_dot_dF();
+  //  if(use_squared_forces_) dft_->dF_to_H_dot_dF();
   
   dft_->convert_dF_to_alias_derivs(x_);
   
@@ -221,19 +221,17 @@ double fireMinimizer2::step()
   //     << endl;
   
   // 15/12/2022: Changed so as to ALWAYS accept first iteration since v_ should be zero ...
-  if(P > 0 || it_ == 1) 
-  {
-    N_P_positive_++;
-    N_P_negative_ = 0;
-    
-    if(N_P_positive_ > N_delay_)
+  if(P > 0 || it_ == 1)
     {
-      dt_ = min(dt_*f_inc_,dt_max_);
-      alpha_ =alpha_*f_alf_;
-    }
-  }
-  else 
-  {
+      N_P_positive_++;
+      N_P_negative_ = 0;
+      
+      if(N_P_positive_ > N_delay_)
+	{
+	  dt_ = min(dt_*f_inc_,dt_max_);
+	  alpha_ =alpha_*f_alf_;
+	}
+    } else  {
     N_P_positive_ = 0;
     N_P_negative_++;
     
@@ -241,49 +239,44 @@ double fireMinimizer2::step()
     // This is the new, alternative stopping criterion: if there are too many steps in the wrong direction, hang up.
     // This needs to be communicated up the ladder so that it can be dealt with accordingly ... 
     if(N_P_negative_ > N_P_negative_max_) throw std::runtime_error("Cannot stop going uphill in Fire2");
-
+    
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Here, there is the possiblity of an initial delay of Ndelay_ steps before beginning the decrease of dt and of alpha. 
     if(!(initial_delay_ && it_ < N_delay_))
-    {
-      if(dt_*f_dec_ >= dt_min_) dt_ *= f_dec_;
-      alpha_ = alpha_start_;
-    }
+      {
+	if(dt_*f_dec_ >= dt_min_) dt_ *= f_dec_;
+	alpha_ = alpha_start_;
+      }
     
     reportMessage("Uphill motion stopped");
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    {
-      x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
-      v_[Jspecies].MultBy(0.1); vnorm_ *= 0.1;
-    }
+      {
+	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
+	v_[Jspecies].MultBy(0.1); vnorm_ *= 0.1;
+      }
     backtracks_++;
   }
-
+  
   // integration step
   // Changed handling of backtracking 21/10/2019
   double rem = fmax_;
-  try
-  {
+  try {
     SemiImplicitEuler(begin_relax, end_relax);
     vv_ = vv_*0.9 + 0.1*(fabs(F_ - fold)/dt_); // a measure of the rate at which the energy is changing
     dt_best_ = max(dt_,dt_best_);
-  } 
-  catch(Eta_Too_Large_Exception &e)
-  {
+  }  catch(Eta_Too_Large_Exception &e) {
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    {
-      x_[Jspecies].set(x_rem[Jspecies]);
-      v_[Jspecies].set(v_rem[Jspecies]);
-      v_[Jspecies].MultBy(0.5); vnorm_ *= 0.5;
-      dft_->setDF(Jspecies,dF_rem[Jspecies]);
-    }
+      {
+	x_[Jspecies].set(x_rem[Jspecies]);
+	v_[Jspecies].set(v_rem[Jspecies]);
+	v_[Jspecies].MultBy(0.5); vnorm_ *= 0.5;
+	dft_->setDF(Jspecies,dF_rem[Jspecies]);
+      }
     dt_ /= 2;
     //    dt_max_ *= f_back_; // old method of control of dt_max_
     fmax_ = 1000; //rem;
     backtracks_++;
-  }
-  catch(...)
-  {
+  }  catch(...)  {
     reportMessage("Unknown exception ...");
   }
   
@@ -354,13 +347,10 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   
   // Recalculate forces with back-tracking, if necessary
   bool bSuccess = false;
-  try
-  {  
+  try {  
     F_ = getDF_DX(); // get new forces
     bSuccess = true;
-  }
-  catch (Eta_Too_Large_Exception &e) 
-  {
+  } catch (Eta_Too_Large_Exception &e)  {
     reportMessage("Backtrack .. ");
     throw(e);
   }

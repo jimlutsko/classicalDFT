@@ -38,7 +38,7 @@
 class LogStreamBuf: public std::stringbuf
 {
  public:
- LogStreamBuf(ofstream& log) : log_(log) {}
+  LogStreamBuf(ofstream& log) : log_(log) {}
  ~LogStreamBuf(){ if(pbase() != pptr()) putOutput();}
 
   // When we sync the stream with the output. 
@@ -49,7 +49,7 @@ class LogStreamBuf: public std::stringbuf
 
   void putOutput()
   {
-    cout << std::boolalpha;
+    //    cout << std::boolalpha;
     // Called by destructor.
     // destructor can not call virtual methods.
     const string &s = str();

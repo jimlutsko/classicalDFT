@@ -138,7 +138,7 @@ void DFT::convert_dF_to_alias_derivs()
     allSpecies_[s]->convert_to_alias_deriv(getDF(s));
 }
 
-double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
+double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 {
   for(auto &species : allSpecies_)  
     species->zeroForce();
@@ -147,6 +147,15 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 
   double F = calculateFreeEnergyAndDerivatives_internal_(onlyFex);
 
+  if(H_dot_Force)
+    for(auto &s: allSpecies_)
+      {
+	DFT_Vec &dF = s->getDF();
+	DFT_Vec ff(dF.size());
+	matrix_dot_v1(dF,ff);
+	dF.set(ff);
+      }
+      
   for(auto &s: allSpecies_)
     s->endForceCalculation();
   

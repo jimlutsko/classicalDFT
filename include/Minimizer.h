@@ -43,7 +43,7 @@ class Minimizer
   virtual void   cleanup() {} // called when minimization is finished to allow decendents to clean up user output.
   
 protected:
-  double get_energy_and_forces() {calls_++;  return dft_->calculateFreeEnergyAndDerivatives(false);}
+  double get_energy_and_forces() {calls_++;  return dft_->calculateFreeEnergyAndDerivatives(false, use_squared_forces_);}
   virtual double getDF_DX();
   virtual double step() = 0;
   virtual bool   should_stop() const;

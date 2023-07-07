@@ -98,7 +98,7 @@ class DFT : public Dynamical_Matrix
   void write_density_vtk(int i, string &of) const {allSpecies_[i]->getDensity().write_VTK_File
       (of);}
   void perturb_density(DFT_Vec& perturbation, int species = 0) { allSpecies_[species]->perturb_density(perturbation);} 
-  double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
+  double calculateFreeEnergyAndDerivatives(bool onlyFex = false, bool H_dot_Force = false);
   double evaluate(bool onlyFex = false) { return calculateFreeEnergyAndDerivatives(onlyFex);}  
 
   // Bulk Thermodynamics
