@@ -126,7 +126,7 @@ class Log: public std::ostream
       if(verbose) *this << "*****************************************************************" << endl;
       if(verbose) if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
       if(verbose) *this << std::ctime(&now_time) << " " << endl;
-      if(verbose) *this << "Using:\tLib " << PROJECT_NAME << endl
+      if(verbose) *this << "#Using:\tLib " << PROJECT_NAME << endl
 	    << "\tversion: " << PROJECT_VER << endl
 	    << "\tgit revision: " << g_GIT_SHA1 << endl;
       //      *this << "Library built " << _TIMEZ_  << endl;
@@ -148,7 +148,7 @@ class Log: public std::ostream
    */
   void write(Options &options)
   {
-    *this << "Input parameters:" << endl <<  "#" << endl;
+    *this << "#Input parameters:" << endl <<  "#" << endl;
     options.write(*this);
     *this << "=================================" << endl;
     this->flush();
