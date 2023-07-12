@@ -147,6 +147,10 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 
   double F = calculateFreeEnergyAndDerivatives_internal_(onlyFex);
 
+  rms_force_ = 0;   
+  for(auto &s: allSpecies_)
+    rms_force_ += s->getDF().euclidean_norm();  
+  
   if(H_dot_Force)
     for(auto &s: allSpecies_)
       {
@@ -155,9 +159,9 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 	matrix_dot_v1(dF,ff);
 	dF.set(ff);
       }
-      
+
   for(auto &s: allSpecies_)
-    s->endForceCalculation();
+      s->endForceCalculation();
   
   return F;
 }

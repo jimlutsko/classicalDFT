@@ -100,7 +100,7 @@ class DFT : public Dynamical_Matrix
       (of);}
   void perturb_density(DFT_Vec& perturbation, int species = 0) { allSpecies_[species]->perturb_density(perturbation);} 
   double calculateFreeEnergyAndDerivatives(bool onlyFex = false, bool H_dot_Force = false);
-  double evaluate(bool onlyFex = false) { return calculateFreeEnergyAndDerivatives(onlyFex);}  
+  double evaluate(bool onlyFex = false, bool H_dot_Force = false) { return calculateFreeEnergyAndDerivatives(onlyFex,H_dot_Force);}  
 
   // Bulk Thermodynamics
 
@@ -155,6 +155,8 @@ class DFT : public Dynamical_Matrix
   
   void set_full_hessian(bool full) { full_hessian_ = full;}
 
+  double get_rms_force() const { return rms_force_;}
+  
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
@@ -174,14 +176,14 @@ class DFT : public Dynamical_Matrix
   FMT *fmt_;
   vector<External_Field*> external_fields_;
 
-
   double F_id_  = 0.0; ///< Ideal part of free energy
   double F_ext_ = 0.0; ///< External field contribution to free energy (including chemical potential)
   double F_hs_  = 0.0; ///< Hard-sphere contribution to free energy
   double F_mf_  = 0.0; ///< Mean-field contribution to free energy
   
   mutable bool full_hessian_ = true; // used in matrix_holder to distinguish full hessian from excess hessian.
-
+  mutable double rms_force_ = 0.0;   // updated everytime the forces are calculated.
+  
   bool offset_ = false;
 };
 
