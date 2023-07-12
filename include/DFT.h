@@ -56,6 +56,7 @@ class DFT : public Dynamical_Matrix
   // Accessors
   const Lattice& get_lattice() const {return allSpecies_.front()->getLattice();}
   const Density& getDensity(int species) const {return allSpecies_[species]->getDensity();}
+  const Density& get_density(int species) const {return allSpecies_[species]->getDensity();}
   Interaction_Base* getInteraction(int which) { return Interactions_[which];}
   
   Species *getSpecies(int s) const { return allSpecies_[s];}

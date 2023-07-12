@@ -73,7 +73,6 @@ class DFT_Vec
 
   void Schur(const DFT_Vec &v1, const DFT_Vec &v2);
 
-
   // There may be value in having library-specific implementations  of these functions
   // but for now, I do not see it. 
   friend ostream &operator<<(ostream &of, const DFT_Vec &v)

@@ -71,6 +71,7 @@ double DFT_Vec::accu() const { return DATA.sum();}
 void DFT_Vec::save(ofstream &of) const
 {
   of << DATA.size() << endl;
+  of << setprecision(20);
   for(long i=0;i<DATA.size();i++)
     of << DATA[i] << " ";
   of << endl;
