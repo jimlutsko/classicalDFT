@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(USE_OMP true)
-set(USE_MPI true)
-set(USE_SLEPC true)
+set(USE_MPI false)
+set(USE_SLEPC false)
 
 set(USE_FMT_WEIGHTS_BEFORE_JUN_2021 false)
 set(USE_FMT_WEIGHTS_BEFORE_JAN_2023 false)
