@@ -252,7 +252,9 @@ double fireMinimizer2::step()
     for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
       {
 	x_[Jspecies].IncrementBy_Scaled_Vector(v_[Jspecies], -0.5*dt_);
-	v_[Jspecies].MultBy(0.1); vnorm_ *= 0.1;
+	//v_[Jspecies].MultBy(0.1); vnorm_ *= 0.1;
+	//	v_[Jspecies].MultBy(0.01); vnorm_ *= 0.01;
+	v_[Jspecies].MultBy(0.0); vnorm_ *= 0.0;	
       }
     backtracks_++;
   }
@@ -282,6 +284,9 @@ double fireMinimizer2::step()
   
   if(backtracks_ >= 10) // new control of dt_max_
   {
+    stringstream s;
+    s << "Changinging dt_max_ from " << dt_max_ << " to " << min(dt_best_, 0.9*dt_max_) << endl;
+    reportMessage(s.str());
     dt_max_ = min(dt_best_, 0.9*dt_max_);
     dt_best_ = 0;
     backtracks_ = 0;
