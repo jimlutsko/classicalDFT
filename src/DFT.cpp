@@ -149,20 +149,23 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 
   rms_force_ = 0;   
   for(auto &s: allSpecies_)
-    rms_force_ += s->getDF().euclidean_norm();
+    {
+      s->endForceCalculation();
+      rms_force_ += s->getDF().euclidean_norm();
+    }
   rms_force_ /= sqrt(allSpecies_.size()*get_Ntot());
   
   if(H_dot_Force)
     for(auto &s: allSpecies_)
       {
+	if(s->is_mass_fixed()) throw std::runtime_error("Makes no sense to do H_dot_Force when mass is fixed");
+	
 	DFT_Vec &dF = s->getDF();
 	DFT_Vec ff(dF.size());
 	matrix_dot_v1(dF,ff);
 	dF.set(ff);
+	s->endForceCalculation(); // Need to do this again to make sure that the boundaries are fixed, when demanded	
       }
-
-  for(auto &s: allSpecies_)
-      s->endForceCalculation();
   
   return F;
 }

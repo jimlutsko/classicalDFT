@@ -338,7 +338,7 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   
   rms_force_ = sqrt(fnorm/cnorm);
   vnorm_ = sqrt(vnorm/cnorm);
-  
+
   /// Do mixing & update x
   for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
   {
