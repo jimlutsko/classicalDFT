@@ -38,7 +38,7 @@
 class LogStreamBuf: public std::stringbuf
 {
  public:
- LogStreamBuf(ofstream& log) : log_(log) {}
+  LogStreamBuf(ofstream& log) : log_(log) {}
  ~LogStreamBuf(){ if(pbase() != pptr()) putOutput();}
 
   // When we sync the stream with the output. 
@@ -49,7 +49,7 @@ class LogStreamBuf: public std::stringbuf
 
   void putOutput()
   {
-    cout << std::boolalpha;
+    //    cout << std::boolalpha;
     // Called by destructor.
     // destructor can not call virtual methods.
     const string &s = str();
@@ -126,10 +126,11 @@ class Log: public std::ostream
       if(verbose) *this << "*****************************************************************" << endl;
       if(verbose) if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
       if(verbose) *this << std::ctime(&now_time) << " " << endl;
-      if(verbose) *this << "Using:\tLib " << PROJECT_NAME << endl
+      if(verbose) *this << "#Using:\tLib " << PROJECT_NAME << endl
 	    << "\tversion: " << PROJECT_VER << endl
 	    << "\tgit revision: " << g_GIT_SHA1 << endl;
       //      *this << "Library built " << _TIMEZ_  << endl;
+      if(verbose) *this << "\tLinear Algebra library: " << DFT_Vec::get_library_name() << endl;
       if(verbose) if(numtasks > 0) *this << " MPI: numtasks = " << numtasks << endl;
       if(verbose) *this << "*****************************************************************" << endl  << endl;      
     }
@@ -148,7 +149,7 @@ class Log: public std::ostream
    */
   void write(Options &options)
   {
-    *this << "Input parameters:" << endl <<  "#" << endl;
+    *this << "#Input parameters:" << endl <<  "#" << endl;
     options.write(*this);
     *this << "=================================" << endl;
     this->flush();
