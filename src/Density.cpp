@@ -400,11 +400,7 @@ void Density::readDensity(const char *filename) // read from binary file: obsole
       throw std::runtime_error(s.str());
     }
   // everything OK so read it. 
-  Density_.Real().load(in);
-  
-  cout << "(Density::readDensity) Density_.Real().size() = " << Density_.Real().size() << endl;
-  cout << "(Density::readDensity) Ntot_                  = " << Ntot_                  << endl;
-  if (Density_.Real().size() != Ntot_) throw runtime_error("(Density::readDensity) Unexpected size for the input density");
+  Density_.Real().load(in);  
 }
 
 double Density::get_ave_background_density() const

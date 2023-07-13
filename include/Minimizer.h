@@ -31,6 +31,7 @@ class Minimizer
   void setForceTerminationCriterion(double v) {forceLimit_ = v;}
   void set_terminimation_criterion(double v) {forceLimit_ = v;}  
   void setVerbose(bool verbose) { verbose_ = verbose;}
+  void set_use_squared_forces(bool b) { use_squared_forces_ = b;}
   
   const DFT_Vec&  get_fixed_direction() {return fixed_direction_;}
   void set_fixed_direction(const DFT_Vec& fixed, bool already_using_density_alias);
@@ -42,7 +43,7 @@ class Minimizer
   virtual void   cleanup() {} // called when minimization is finished to allow decendents to clean up user output.
   
 protected:
-  double get_energy_and_forces() {calls_++;  return dft_->calculateFreeEnergyAndDerivatives(false);}
+  double get_energy_and_forces() {calls_++;  return dft_->calculateFreeEnergyAndDerivatives(false, use_squared_forces_);}
   virtual double getDF_DX();
   virtual double step() = 0;
   virtual bool   should_stop() const;
@@ -52,6 +53,7 @@ protected:
   DFT *dft_ = NULL; // calculates energy and forces
 
   bool verbose_ = false;
+  bool use_squared_forces_ = false;
   
   int    calls_        = 0;
   int    step_counter_ = 0;

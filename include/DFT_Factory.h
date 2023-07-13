@@ -105,12 +105,12 @@ public:
       options_.read(SourceInput_.c_str(), verbose_);
 
     if(include_log_ && theLog_ == NULL) theLog_ = new Log(log_file_name_.c_str(),-1,-1,NULL, -1, true, verbose_);
-    if(verbose_ && theLog_ != NULL) *theLog_ << myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ << myColor::GREEN << "#=================================" << myColor::RESET << endl << "#" << endl;
 
     if(verbose_ && theLog_ != NULL) *theLog_ << myColor::RED << myColor::BOLD << "Input parameters:" << myColor::RESET << endl <<  "#" << endl;
 
     if(verbose_ && theLog_ != NULL) options_.write(*theLog_);
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
     
     if (dy_<0) dy_ = dx_;
     if (dz_<0) dz_ = dx_;
@@ -189,8 +189,8 @@ public:
       }
     /////////////////////////////////////////////////////
     // Report
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "Summary:" <<  myColor::RESET << endl << endl;  
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#Summary:" <<  myColor::RESET << endl << endl;  
 #ifdef USE_OMP
     if(verbose_ && theLog_ != NULL) *theLog_ << "\tomp max threads  : " << omp_get_max_threads() << endl;
 #endif      
@@ -253,7 +253,7 @@ public:
 
     /////////////////////////////////////////////////////
     // Report
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
     if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "Temperature set to " << kT_ << " giving:" <<  myColor::RESET << endl << endl;  
     if(verbose_ && theLog_ != NULL) *theLog_ << "\tHSD1                        = " << hsd1_ << endl;
     if(potential1_ && interaction1_)
@@ -274,7 +274,7 @@ public:
     check();
     /////////////////////////////////////////////////////
     // Thermodynamics
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
     if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "Thermodynamics:" <<  myColor::RESET << endl << endl;
     
     xv_ = xl_ = xs1_ = xs2_ = -1;

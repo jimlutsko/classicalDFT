@@ -22,6 +22,8 @@ class DFT_Vec
   DFT_Vec();
   ~DFT_Vec();
 
+  static const char *get_library_name();
+  
   DFT_Vec& operator= (const DFT_Vec& c){set(c); return *this;}
   
   void   set(unsigned pos, double val);
@@ -72,7 +74,6 @@ class DFT_Vec
   void IncrementBy_Scaled_Vector(const DFT_Vec& v,double scale);
 
   void Schur(const DFT_Vec &v1, const DFT_Vec &v2);
-
 
   // There may be value in having library-specific implementations  of these functions
   // but for now, I do not see it. 
