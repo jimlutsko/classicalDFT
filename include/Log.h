@@ -130,6 +130,7 @@ class Log: public std::ostream
 	    << "\tversion: " << PROJECT_VER << endl
 	    << "\tgit revision: " << g_GIT_SHA1 << endl;
       //      *this << "Library built " << _TIMEZ_  << endl;
+      if(verbose) *this << "\tLinear Algebra library: " << DFT_Vec::get_library_name() << endl;
       if(verbose) if(numtasks > 0) *this << " MPI: numtasks = " << numtasks << endl;
       if(verbose) *this << "*****************************************************************" << endl  << endl;      
     }

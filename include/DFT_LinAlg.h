@@ -22,6 +22,8 @@ class DFT_Vec
   DFT_Vec();
   ~DFT_Vec();
 
+  static const char *get_library_name();
+  
   DFT_Vec& operator= (const DFT_Vec& c){set(c); return *this;}
   
   void   set(unsigned pos, double val);

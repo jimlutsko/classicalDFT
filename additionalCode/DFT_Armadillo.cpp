@@ -16,6 +16,9 @@ using namespace std;
 #define v1_DATA (*(static_cast<arma::vec*>(v1.data_)))
 #define v2_DATA (*(static_cast<arma::vec*>(v2.data_)))
 
+
+const char *DFT_Vec::get_library_name() { return "Armadillo";}
+
 DFT_Vec::DFT_Vec(unsigned N) : data_(new arma::vec(N)){}
 DFT_Vec::DFT_Vec(const DFT_Vec& v) : data_(new arma::vec(v.size())) {DATA = v_DATA;}
 DFT_Vec::DFT_Vec(): data_(new arma::vec(1)) {}
