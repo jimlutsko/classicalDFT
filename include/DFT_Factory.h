@@ -86,6 +86,8 @@ public:
     if(dft_) delete dft_;
   }
 
+  void set_density_input_file(string str) {infile_ = str;}
+  void set_density_input_stream(string str) {instream_ = str;}
 
   void set_option_no_log()      { include_log_     = false;}
   void set_option_no_dynamics() { include_density_ = include_interaction_ = include_hs_ = false;}
