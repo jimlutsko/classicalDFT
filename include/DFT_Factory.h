@@ -73,6 +73,8 @@ public:
     options_.addOption("Include_Interaction", &include_interaction_);
 
     options_.addOption("Potential", &potential_name_);
+    options_.addOption("EOS_Correction", &eos_correction_);
+    options_.addOption("D_EOS", &D_EOS_);
   }
 
   ~DFT_Factory()
@@ -105,12 +107,12 @@ public:
       options_.read(SourceInput_.c_str(), verbose_);
 
     if(include_log_ && theLog_ == NULL) theLog_ = new Log(log_file_name_.c_str(),-1,-1,NULL, -1, true, verbose_);
-    if(verbose_ && theLog_ != NULL) *theLog_ << myColor::GREEN << "=================================" << myColor::RESET << endl << "#" << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ << myColor::GREEN << "#=================================" << myColor::RESET << endl << "#" << endl;
 
     if(verbose_ && theLog_ != NULL) *theLog_ << myColor::RED << myColor::BOLD << "Input parameters:" << myColor::RESET << endl <<  "#" << endl;
 
     if(verbose_ && theLog_ != NULL) options_.write(*theLog_);
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
     
     if (dy_<0) dy_ = dx_;
     if (dz_<0) dz_ = dx_;
@@ -147,13 +149,24 @@ public:
 
     if(include_density_)
       {
-  #ifdef DENSITY_CONSTRUCTOR_DX_DY_DZ
-	  theDensity_ = new DensityType(dx_, dy_, dz_, L_, show_graphics_);
-	#else
-	  theDensity_ = new DensityType(dx_, L_, show_graphics_);
-	#endif
+#ifdef DENSITY_CONSTRUCTOR_DX_DY_DZ
+	theDensity_ = new DensityType(dx_, dy_, dz_, L_, show_graphics_);
+#else
+	theDensity_ = new DensityType(dx_, L_, show_graphics_);
+#endif
+
+	if(eos_correction_ == LJ_JZG_EOS)   eos_ = new LJ_JZG(kT_, rcut1_); // need to add no-shift option
+	//	if(eos_correction_ == LJ_MECKE_EOS) eos_ = new LJ_Mecke(kT_, rcut1_); // need to add no-shift option
 	
-	species1_   = new FMT_Species(*theDensity_,hsd1_,0.0,verbose_, 0);
+	double avdw = 0;
+	if(potential1_) avdw = potential1_->getVDW_Parameter(kT_);
+	  
+	if(eos_ == NULL)	  
+	  species1_   = new FMT_Species(*theDensity_,hsd1_,0.0,verbose_, 0);
+	else 
+	  species1_   = new FMT_Species_EOS(D_EOS_, *eos_, avdw, *theDensity_,hsd1_,0.0,0);
+
+	    
 	dft_        = new DFT(species1_);
 
 	species1_->set_fixed_background(fixed_background_);
@@ -178,8 +191,8 @@ public:
       }
     /////////////////////////////////////////////////////
     // Report
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "Summary:" <<  myColor::RESET << endl << endl;  
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#Summary:" <<  myColor::RESET << endl << endl;  
 #ifdef USE_OMP
     if(verbose_ && theLog_ != NULL) *theLog_ << "\tomp max threads  : " << omp_get_max_threads() << endl;
 #endif      
@@ -242,7 +255,7 @@ public:
 
     /////////////////////////////////////////////////////
     // Report
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
     if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "Temperature set to " << kT_ << " giving:" <<  myColor::RESET << endl << endl;  
     if(verbose_ && theLog_ != NULL) *theLog_ << "\tHSD1                        = " << hsd1_ << endl;
     if(potential1_ && interaction1_)
@@ -256,13 +269,14 @@ public:
   }  
 
   DFT& get_DFT() { check(); return *dft_;}
-
+  EOS &get_eos() { if(eos_ == NULL) throw std::runtime_error("No EOS found"); return *eos_;}
+  
   void get_thermodynamics(bool verbose_ = true)
   {
     check();
     /////////////////////////////////////////////////////
     // Thermodynamics
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "=================================" <<  myColor::RESET << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
     if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "Thermodynamics:" <<  myColor::RESET << endl << endl;
     
     xv_ = xl_ = xs1_ = xs2_ = -1;
@@ -347,6 +361,10 @@ public:
   string outstream_;
   string SourceInput_;
 
+  string eos_correction_;
+  double D_EOS_;
+  EOS *eos_ = NULL;
+  
   bool fixed_background_ = false;
   bool homogeneous_boundary_ = false;
   

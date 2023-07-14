@@ -22,6 +22,7 @@ using namespace Eigen;
 #define v1_DATA (*(static_cast<Eigen::VectorXd*>(v1.data_)))
 #define v2_DATA (*(static_cast<Eigen::VectorXd*>(v2.data_)))
 
+const char *DFT_Vec::get_library_name() { return "Eigen";}
 
 DFT_Vec::DFT_Vec(unsigned N) : data_(new Eigen::VectorXd(N)){}
 DFT_Vec::DFT_Vec(const DFT_Vec& v) : data_(new Eigen::VectorXd(v_DATA)){} //(v.size())) { DATA = v_DATA;}
@@ -71,6 +72,7 @@ double DFT_Vec::accu() const { return DATA.sum();}
 void DFT_Vec::save(ofstream &of) const
 {
   of << DATA.size() << endl;
+  of << setprecision(20);
   for(long i=0;i<DATA.size();i++)
     of << DATA[i] << " ";
   of << endl;

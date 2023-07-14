@@ -21,6 +21,7 @@ using namespace std;
 
 
 // note that here, r = |r1-r2|
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::real_space_dcf(double r, double x) const
 {
   if(allSpecies_.size() != 1)
@@ -37,6 +38,7 @@ double DFT::real_space_dcf(double r, double x) const
   return dcf;
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::fourier_space_dcf(double k, double x) const
 {
   if(allSpecies_.size() != 1)
@@ -50,11 +52,13 @@ double DFT::fourier_space_dcf(double k, double x) const
   return dcf;
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::mu_times_beta(double density) const
 {
   return mu_times_beta(vector<double>(1,density),0);
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::mu_times_beta(const vector<double> &x, int species) const
 {
   Summation mu;
@@ -70,11 +74,13 @@ double DFT::mu_times_beta(const vector<double> &x, int species) const
   return mu.sum();
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::omega_times_beta_over_volume(double density) const
 {
   return omega_times_beta_over_volume(vector<double>(1,density));
 }
 
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::omega_times_beta_over_volume(const vector<double> &x) const
 {
   double omega = fhelmholtz_times_beta_over_volume(x);
@@ -132,7 +138,7 @@ void DFT::convert_dF_to_alias_derivs()
     allSpecies_[s]->convert_to_alias_deriv(getDF(s));
 }
 
-double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
+double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 {
   for(auto &species : allSpecies_)  
     species->zeroForce();
@@ -141,8 +147,25 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 
   double F = calculateFreeEnergyAndDerivatives_internal_(onlyFex);
 
+  rms_force_ = 0;   
   for(auto &s: allSpecies_)
-    s->endForceCalculation();
+    {
+      s->endForceCalculation();
+      rms_force_ += s->getDF().euclidean_norm();
+    }
+  rms_force_ /= sqrt(allSpecies_.size()*get_Ntot());
+  
+  if(H_dot_Force)
+    for(auto &s: allSpecies_)
+      {
+	if(s->is_mass_fixed()) throw std::runtime_error("Makes no sense to do H_dot_Force when mass is fixed");
+	
+	DFT_Vec &dF = s->getDF();
+	DFT_Vec ff(dF.size());
+	matrix_dot_v1(dF,ff);
+	dF.set(ff);
+	s->endForceCalculation(); // Need to do this again to make sure that the boundaries are fixed, when demanded	
+      }
   
   return F;
 }
@@ -150,7 +173,6 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex)
 #ifdef USE_OMP    
 #pragma omp declare reduction(SummationPlus: Summation: omp_out += omp_in) 
 #endif
-
 double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 {
   Summation F;
@@ -241,9 +263,29 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 //
 //  Uses a cheap fix for fixed boundaries: set v_j=0 for j on boundary and F_{ij}v_j=0 for i on boundary
 
-void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F) const
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
+void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &result, void *param, bool only_d2F) const
 {
+  // We need to make a copy for the case in which we work in alias coordinates
+  // In that case, v_in is the alias vector and copy stores the density vector
+  
+  int Nx = allSpecies_[0]->getDensity().Nx();
+  int Ny = allSpecies_[0]->getDensity().Ny();
+  int Nz = allSpecies_[0]->getDensity().Nz();
+
+  vector<DFT_FFT> v(allSpecies_.size());
+  for(int s=0;s<allSpecies_.size();s++)
+  {
+    DFT_Vec vv = v_in[s].cReal();
+    if (is_matrix_in_alias_coordinates()) allSpecies_[s]->convert_to_density_increment(vv);
+    
+    v[s].initialize(Nx, Ny, Nz);
+    v[s].Real().set(vv);
+    v[s].do_real_2_fourier();
+  }
+  
   // I would like to do this but it violates the const declaration of v
+  // Well this is now implemented in the lines above ...
   //  for(int i=0;i<v.size();i++)
   //    v[i].do_real_2_fourier(); // make sure this is done! An internal flag should prevent needless FFT's
   
@@ -282,6 +324,20 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
   for(auto &interaction: DFT::Interactions_)    
     interaction->add_second_derivative(v,result);
 
+  if (is_matrix_in_alias_coordinates()) for(int s=0;s<allSpecies_.size();s++)
+  {
+    // Compute additional term from nonlinearity of the alias transform
+    // TODO: Need a flag or something to make sure the forces are in density coordinates
+    DFT_Vec df_term = allSpecies_[s]->getDF();
+    DFT_Vec d2rho; allSpecies_[s]->get_second_derivatives_of_density_wrt_alias(d2rho);
+    df_term.Schur(df_term, d2rho);
+    df_term.Schur(df_term, v_in[s].cReal()); // Note that we use here the vector in alias coordinates
+    
+    // Add all terms together
+    allSpecies_[s]->convert_to_alias_deriv(result[s]);
+    result[s].IncrementBy(df_term);
+  }
+
   // Remove boundary terms if the boundary is fixed
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())
@@ -292,6 +348,7 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result,
 }
 
 // computes result_I = F_{I I+J} for fixed J
+// NEEDS UPDATE FOR FMT_SPECIES_EOS
 void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &result) const
 {
   // ideal gas contribution: delta_J0/n_i  
@@ -330,6 +387,34 @@ void DFT::diagonal_matrix_elements(int jx, int jy, int jz, vector<DFT_Vec> &resu
   for(auto &interaction: DFT::Interactions_)
     if(interaction->get_s1() == interaction->get_s2())
       result[0].add(interaction->getW(J)*dV);
+
+  // If required, return diagonal elements of Hessian in alias coordinates instead
+  if (is_matrix_in_alias_coordinates()) for(int s=0;s<allSpecies_.size();s++)
+  {
+    DFT_Vec drhodx(Ntot); drhodx.set(1);
+    allSpecies_[s]->convert_to_alias_deriv(drhodx);
+    
+    DFT_Vec result_alias(Ntot);
+    
+    #ifdef USE_OMP
+    #pragma omp parallel for
+    #endif
+    for(unsigned pos=0;pos<Ntot;pos++) 
+    {
+      int ix, iy, iz; allSpecies_[0]->getDensity().cartesian(pos,ix,iy,iz);
+      long pos2 = allSpecies_[0]->getDensity().get_PBC_Pos(ix+jx, iy+jy, iz+jz);
+      result_alias.set(pos, drhodx.get(pos) * drhodx.get(pos2) * result[s].get(pos));
+    }
+    
+    // Compute additional term from nonlinearity of the alias transform
+    // TODO: Need a flag or something to make sure the forces are in density coordinates
+    DFT_Vec df_term = allSpecies_[s]->getDF();
+    DFT_Vec d2rho; allSpecies_[s]->get_second_derivatives_of_density_wrt_alias(d2rho);
+    df_term.Schur(df_term, d2rho);
+    
+    result_alias.IncrementBy(df_term);
+    result[s].set(result_alias);
+  }
 
   // Remove boundary terms if the boundary is fixed
   

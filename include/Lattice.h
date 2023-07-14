@@ -114,7 +114,8 @@ void init(double L[])
   long size() const { return Ntot_;}
   long Nout() const { return Nout_;}
   double dV() const { return dx_*dy_*dz_;}
-  double getVolume() const { return L_[0]*L_[1]*L_[2];}
+  double getVolume() const { return get_volume();}
+  double get_volume() const { return L_[0]*L_[1]*L_[2];}
   
   // Translate index to cartesian coordinates
   double getX(int i) const { return dx_*(i-double(Nx_)/2);}

@@ -56,6 +56,7 @@ class DFT : public Dynamical_Matrix
   // Accessors
   const Lattice& get_lattice() const {return allSpecies_.front()->getLattice();}
   const Density& getDensity(int species) const {return allSpecies_[species]->getDensity();}
+  const Density& get_density(int species) const {return allSpecies_[species]->getDensity();}
   Interaction_Base* getInteraction(int which) { return Interactions_[which];}
   
   Species *getSpecies(int s) const { return allSpecies_[s];}
@@ -79,6 +80,17 @@ class DFT : public Dynamical_Matrix
   void convert_dF_to_alias_derivs(vector<DFT_Vec> &x_);
   void convert_dF_to_alias_derivs();
 
+  void dF_to_H_dot_dF()
+  {
+    for(int s = 0; s<allSpecies_.size(); s++)
+      {
+	DFT_Vec &dF = getDF(s);
+	DFT_Vec ff(dF.size());
+	matrix_dot_v1(dF,ff);
+	dF.set(ff);
+      }
+  }
+  
   void set_offset(bool val) { offset_ = val;}
   
   // A few actions  
@@ -87,8 +99,8 @@ class DFT : public Dynamical_Matrix
   void write_density_vtk(int i, string &of) const {allSpecies_[i]->getDensity().write_VTK_File
       (of);}
   void perturb_density(DFT_Vec& perturbation, int species = 0) { allSpecies_[species]->perturb_density(perturbation);} 
-  double calculateFreeEnergyAndDerivatives(bool onlyFex = false);
-  double evaluate(bool onlyFex = false) { return calculateFreeEnergyAndDerivatives(onlyFex);}  
+  double calculateFreeEnergyAndDerivatives(bool onlyFex = false, bool H_dot_Force = false);
+  double evaluate(bool onlyFex = false, bool H_dot_Force = false) { return calculateFreeEnergyAndDerivatives(onlyFex,H_dot_Force);}  
 
   // Bulk Thermodynamics
 
@@ -143,6 +155,8 @@ class DFT : public Dynamical_Matrix
   
   void set_full_hessian(bool full) { full_hessian_ = full;}
 
+  double get_rms_force() const { return rms_force_;}
+  
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
   {
@@ -162,14 +176,14 @@ class DFT : public Dynamical_Matrix
   FMT *fmt_;
   vector<External_Field*> external_fields_;
 
-
   double F_id_  = 0.0; ///< Ideal part of free energy
   double F_ext_ = 0.0; ///< External field contribution to free energy (including chemical potential)
   double F_hs_  = 0.0; ///< Hard-sphere contribution to free energy
   double F_mf_  = 0.0; ///< Mean-field contribution to free energy
   
   mutable bool full_hessian_ = true; // used in matrix_holder to distinguish full hessian from excess hessian.
-
+  mutable double rms_force_ = 0.0;   // updated everytime the forces are calculated.
+  
   bool offset_ = false;
 };
 

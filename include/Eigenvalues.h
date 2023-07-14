@@ -59,7 +59,8 @@ class Eigenvalues
   double norm(const DFT_Vec &v) const;
   
   double calculate_gradients(DFT_Vec& df);
-  double calculate_residual_error(bool recompute_matrix_dot_v=true) const;
+  double calculate_residual_error(bool recompute_matrix_dot_v=true, bool first_order_correction_to_eigenvalue=false) const;
+  double calculate_angle_bound();
   
   void matrix_dot_v(const DFT_Vec &v, DFT_Vec &result, void *param) const;
   void matrix_dot_v(const vector<double> &vv, vector<double> &result, void *param);

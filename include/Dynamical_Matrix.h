@@ -35,15 +35,18 @@ class Dynamical_Matrix
     
   long get_Ntot() const { return get_dimension(0)*get_dimension(1)*get_dimension(2);}
 
-  void set_verbose(bool v)            { dm_verbose_ = v;}
-  void set_use_squared_matrix(bool v) { use_squared_matrix_  = v;}
+  void set_verbose(bool v)                 { dm_verbose_ = v;}
+  void set_use_squared_matrix(bool v)      { use_squared_matrix_  = v;}
+  void set_dm_in_alias_coordinates(bool v) { dm_in_alias_coordinates_ = v;}
   
   bool get_use_squared_matrix() const { return use_squared_matrix_;}
+  bool is_matrix_in_alias_coordinates() const { return dm_in_alias_coordinates_;}
 
 protected:
 
-  bool dm_verbose_         = false;
-  bool use_squared_matrix_ = false;
+  bool dm_verbose_              = false;
+  bool use_squared_matrix_      = false;
+  bool dm_in_alias_coordinates_ = false; // Not compatible with DDFT dynamics (not implemented)
 };
 
 #endif
