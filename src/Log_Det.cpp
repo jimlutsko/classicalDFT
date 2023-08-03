@@ -57,13 +57,11 @@ void Log_Det::get_coefficients(int order)
   for(int j=0;j<=order;j++) c_[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
 }
 
-// if the matrix is symmetric (static case) we just call the method on the dm
-// if it is dynamic, D= gF, we want (D^T D)v = (D*v)*D
 void Log_Det::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result) const
 {
   DFT_Vec r1(v);
-  matrix_.matrix_dot_v1(v,r1,NULL);
-  matrix_.matrix_dot_v1(r1,result,NULL);      
+  matrix_.matrix_dot_v1(v,r1,NULL);  // r1 = (gH)v
+  matrix_.matrix_dot_v1(r1,result,NULL); // result = (gH)r1 = (gH)(gH)v     
 }
   
 
@@ -115,10 +113,9 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
 	    {
 	      cout << myColor::YELLOW;
 	      cout << setprecision(6);      
-	      cout << '\r'; cout << "\t First sample: evaluating order " << k << " of " << c_.size() <<  "                         ";
+	      cout << '\r'; cout << "\t First sample: evaluating order " << k << " of " << c_.size() <<  "                         "; cout.flush();
 	      cout << myColor::RESET;
 	    }
-
 
 	  matrix_dot_v1(w1,result);
 	  if(has_zero_eigenvalue) result.add(lam_mid*w1.accu()/Ntot);
@@ -149,9 +146,10 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
       variance = sqrt(fabs(av2-av*av));
       
       cout << myColor::YELLOW;
-      cout << setprecision(6);      
-      cout << '\r'; cout << "\t samples = " << i << " out of << " << num_samples << " log_det = " << current_val 
-	   << " stderr = " << sqrt(fabs(av2-av*av))/sqrt(i) << "                         ";
+      cout << setprecision(6);
+      if(i == 1) cout << endl;
+      /*cout << '\r';*/ cout << "\t samples = " << i << " out of " << num_samples << " log_det = " << current_val 
+	     << " stderr = " << sqrt(fabs(av2-av*av))/sqrt(i) << "                         "; cout << endl; /*cout.flush();*/
       cout << myColor::RESET;	      
     }
   cout << endl;
