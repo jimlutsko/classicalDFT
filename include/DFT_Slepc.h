@@ -59,6 +59,7 @@ class DFT_Slepc : public DFT_Petsc
   void set_input_vec(string  filename);
   void set_input_vec(const DFT_Vec &v);
 
+  void set_relative_convergence_test(bool b){relative_tol_ = b;}
   void set_eps_tol(double v) { eps_tol_ = v;}
   void set_num_eig(int n) { num_eigenvalues_ = n;}
   void set_two_sided(bool two_sided) { two_sided_ = two_sided;}
@@ -91,10 +92,11 @@ class DFT_Slepc : public DFT_Petsc
  protected:
   DFT_Vec input_vector_dft_;
 
-  double eps_tol_      = 1e-4; // relative tolerance
+  double eps_tol_      = 1e-4; // absolute tolerance by default
   int num_eigenvalues_ = 1;
   bool two_sided_      = false;
   bool smallest_       = true;
+  bool relative_tol_   = false;
   
   EPS eps_;
 };

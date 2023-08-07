@@ -121,11 +121,13 @@ int DFT_Slepc::run_eigenproblem(int argc, char **argv)
 
       ST st;
       PetscCall(EPSGetST(eps_, &st));
+      
       KSP ksp;
       PetscCall(STGetKSP(st,&ksp));
       PetscCall(KSPSetType(ksp,KSPGMRES));
+      
       // Note that changing maxits to a larger value (up to about 40) sometimes helps
-      PetscCall(KSPSetTolerances(ksp, /*rtol =*/min(0.1*eps_tol_,0.99), /*abstol=*/PETSC_DEFAULT, /*dtol=*/PETSC_DEFAULT, /*maxits = */ 10));
+      PetscCall(KSPSetTolerances(ksp, /*rtol =*/min(0.1*eps_tol_,1e-5), /*abstol=*/PETSC_DEFAULT, /*dtol=*/PETSC_DEFAULT, /*maxits = */10));
     
       PC pc;
       PetscCall(KSPGetPC(ksp, &pc));
@@ -138,12 +140,14 @@ int DFT_Slepc::run_eigenproblem(int argc, char **argv)
     
     ST st;
     PetscCall(EPSGetST(eps_, &st));
+    
     KSP ksp;
     PetscCall(STGetKSP(st,&ksp));
-    PetscCall(KSPSetType(ksp,KSPGMRES)); 
+    PetscCall(KSPSetType(ksp,KSPGMRES));
+    
     // Somewhere, it says the tolerance here should be lower than that demanded for the eigenvalues
-    PetscCall(KSPSetTolerances(ksp, /*rtol =*/min(0.1*eps_tol_,0.99), /*abstol=*/PETSC_DEFAULT, /*dtol=*/PETSC_DEFAULT, /*maxits = */PETSC_DEFAULT));
-
+    PetscCall(KSPSetTolerances(ksp, /*rtol =*/min(0.1*eps_tol_,1e-5), /*abstol=*/PETSC_DEFAULT, /*dtol=*/PETSC_DEFAULT, /*maxits = */10));
+    
     PC pc;
     PetscCall(KSPGetPC(ksp, &pc));
     PetscCall(PCSetType(pc, PCJACOBI));
@@ -160,7 +164,8 @@ int DFT_Slepc::run_eigenproblem(int argc, char **argv)
   PetscCall(EPSSetDimensions(eps_,num_eigenvalues_,PETSC_DEFAULT,PETSC_DEFAULT));      
   if(smallest_) PetscCall(EPSSetWhichEigenpairs(eps_,EPS_SMALLEST_REAL));
   else PetscCall(EPSSetWhichEigenpairs(eps_,EPS_LARGEST_REAL));
-  PetscCall(EPSSetConvergenceTest(eps_,EPS_CONV_REL));
+  if (relative_tol_) PetscCall(EPSSetConvergenceTest(eps_,EPS_CONV_REL));
+  else               PetscCall(EPSSetConvergenceTest(eps_,EPS_CONV_ABS));
   PetscCall(EPSSetTolerances(eps_, eps_tol_, PETSC_DEFAULT));
   PetscCall(EPSSetTwoSided(eps_,(two_sided_ ? PETSC_TRUE : PETSC_FALSE)));
   
