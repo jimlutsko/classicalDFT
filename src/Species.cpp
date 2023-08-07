@@ -177,17 +177,17 @@ void Species::beginForceCalculation()
   }
 }
 
+void zero_background_forces()
+{
+}
+
 double Species::endForceCalculation()
 {
   if(fixedBackground_)
     {
       for(long pos = 0; pos < density_->get_Nboundary(); pos++)
 	dF_.set(density_->boundary_pos_2_pos(pos),0.0);
-    }
-
-  else if(homogeneousBoundary_)
-    {
-	
+    } else if(homogeneousBoundary_) {	
       double average_border_force = 0;
 
       for(long pos = 0; pos < density_->get_Nboundary(); pos++)

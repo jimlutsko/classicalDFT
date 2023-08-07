@@ -10,10 +10,6 @@
 
 #include <boost/serialization/vector.hpp>
 
-#ifdef ARNOLDI
-#include <armadillo> // for arnoldi
-#endif
-
 #include "Dynamical_Matrix.h"
 
 // This is the method of Han, Maliouto, Avron and Shin from https://arxiv.org/pdf/1606.00942.pdf
