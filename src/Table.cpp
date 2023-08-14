@@ -20,9 +20,13 @@ Table::Table(ifstream &in)
     {
 	vector<double> line;
 
-	if(!isdigit(buf[0]) && buf[0] != '-')
-	    continue;
-
+	int s = 0;
+	while(buf[s] == ' ' && s < buf.size()) s++;
+	if(s == buf.size()) continue;
+	
+	if(!isdigit(buf[s]) && buf[s] != '-')
+	  continue;
+	
 	stringstream st(buf);
 	double d;
 	while(st >> d) {line.push_back(d);}
@@ -30,6 +34,13 @@ Table::Table(ifstream &in)
     }
 }
 
+
+vector<double> Table::getColumn(int j) const
+{
+  vector<double> ret(nRows());
+  for(int i=0;i<nRows();i++) ret[i] = data_[i][j];
+  return ret;  
+}
 
 double Table::colMax(int col) const
 {
