@@ -17,6 +17,8 @@ public:
   bool isEmpty() const { return (data_.size() == 0 || data_[0].size() == 0);}
 
   double val(int i, int j) const { return data_[i][j];}
+  double get(int i, int j) const { return data_[i][j];}
+  
   int nRows() const { return data_.size();}
   int nCols() const { return data_[0].size();}
   double colMax(int col) const;
