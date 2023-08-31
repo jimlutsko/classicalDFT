@@ -354,6 +354,43 @@ double Density::get_msd() const
 }
 
 
+DFT_Vec Density::get_average_over_xy_cooordinates() const
+{
+  DFT_Vec d_z(Nz_);
+  
+  for (int k=0; k<Nz_; k++)
+  {
+    Summation sum;
+    
+    for (int i=0; i<Nx_; i++)
+    for (int j=0; j<Ny_; j++)
+    {
+      sum += get(i,j,k);
+    }
+    
+    d_z.set(k, sum.sum()/(Lx()*Ly()) );
+  }
+  
+  return d_z;
+}
+
+
+DFT_Vec Density::get_average_over_z_cooordinate() const
+{
+  DFT_Vec d_xy(Nx_*Ny_);
+  
+  for (int i=0; i<Nx_; i++)
+  for (int j=0; j<Ny_; j++)
+  {
+    Summation sum;
+    for (int k=0; k<Nz_; k++) sum += get(i,j,k);
+    
+    d_xy.set(i*Ny_+j, sum.sum()/Lz() );
+  }
+  
+  return d_xy;
+}
+
 void Density::write_VTK_File(string filename) const
 {
   // I don't understand why it has to be plus 1 ...
