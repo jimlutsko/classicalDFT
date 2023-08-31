@@ -221,6 +221,7 @@ double fireMinimizer2::step()
   //     << endl;
   
   // 15/12/2022: Changed so as to ALWAYS accept first iteration since v_ should be zero ...
+  cout << scientific << "P = " << P << fixed << "    s0: v*F/|v||F| = " << v_[0].dotWith(dft_->getDF(0))/v_[0].euclidean_norm()/dft_->getDF(0).euclidean_norm() << endl;
   if(P > 0 || it_ == 1)
     {
       N_P_positive_++;
@@ -358,15 +359,6 @@ void fireMinimizer2::SemiImplicitEuler(int begin_relax, int end_relax)
   } catch (Eta_Too_Large_Exception &e)  {
     reportMessage("Backtrack .. ");
     throw(e);
-  }
-  
-  // Re-orthogonalise the velocity
-  if(fixed_direction_.size() == dft_->getDF(0).size())
-  {
-    for(int Jspecies = begin_relax; Jspecies<end_relax; Jspecies++)
-    {
-      v_[Jspecies].IncrementBy_Scaled_Vector(fixed_direction_, -fixed_direction_.dotWith(v_[Jspecies]));
-    }
   }
 
   vnorm = 0.0;
