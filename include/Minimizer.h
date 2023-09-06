@@ -33,8 +33,10 @@ class Minimizer
   void setVerbose(bool verbose) { verbose_ = verbose;}
   void set_use_squared_forces(bool b) { use_squared_forces_ = b;}
   
-  const DFT_Vec&  get_fixed_direction() {return fixed_direction_;}
+  const DFT_Vec&  get_fixed_direction(int i=0) {return fixed_directions_[i];}
+  void reset_fixed_directions();
   void set_fixed_direction(const DFT_Vec& fixed, bool already_using_density_alias);
+  void add_fixed_direction(const DFT_Vec& fixed, bool already_using_density_alias);
   void flip_forces_along_fixed_direction(bool b=true) {flip_forces_along_fixed_direction_ = b;}
   
   // report activity
@@ -65,7 +67,7 @@ protected:
   double minDensity_ = -1;
   int image_number_  = 0;
 
-  DFT_Vec fixed_direction_;
+  vector<DFT_Vec> fixed_directions_;
   bool flip_forces_along_fixed_direction_ = false;
   
   mutable std::chrono::duration<double> elapsed_seconds_;

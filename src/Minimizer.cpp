@@ -95,16 +95,39 @@ bool Minimizer::should_stop() const
   return stop;
 }
 
+void Minimizer::reset_fixed_directions()
+{
+  fixed_directions_.clear();
+}
+
 void Minimizer::set_fixed_direction(const DFT_Vec& fixed, bool already_using_density_alias)
 {
-  fixed_direction_ = fixed; 
-  fixed_direction_.normalise(); 
+  fixed_directions_.clear();
+  add_fixed_direction(fixed, already_using_density_alias);
+  /*
+  fixed_directions_.push_back(fixed);
+  fixed_directions_[0].normalise();
   
   if (!already_using_density_alias)
   {
     // Convert to alias space as we later orthogonalise the forces/velocity in alias space
-    dft_->getSpecies(0)->convert_to_alias_increment(x_[0],fixed_direction_);
-    fixed_direction_.normalise();
+    dft_->getSpecies(0)->convert_to_alias_increment(x_[0],fixed_directions_[0]);
+    fixed_directions_[0].normalise();
+  }
+  
+  F_ = getDF_DX();*/
+}
+
+void Minimizer::add_fixed_direction(const DFT_Vec& fixed, bool already_using_density_alias)
+{
+  fixed_directions_.push_back(fixed);
+  fixed_directions_.back().normalise();
+  
+  if (!already_using_density_alias)
+  {
+    // Convert to alias space as we later orthogonalise the forces/velocity in alias space
+    dft_->getSpecies(0)->convert_to_alias_increment(x_[0],fixed_directions_.back());
+    fixed_directions_.back().normalise();
   }
   
   F_ = getDF_DX();
@@ -126,14 +149,15 @@ double Minimizer::getDF_DX()
   // or revert the sign of the normal force if "flip_forces_along_fixed_direction_"
   // is set to true.
   
-  if(fixed_direction_.size() == dft_->getDF(0).size())
+  for (int i=0; i<fixed_directions_.size(); i++)
+  if(fixed_directions_[i].size() == dft_->getDF(0).size())
   {
     for(int s=0;s<dft_->getNumberOfSpecies();s++)
     {
       DFT_Vec& df = dft_->getDF(s);
       
       double fac = 1; if (flip_forces_along_fixed_direction_) fac = 2;
-      df.IncrementBy_Scaled_Vector(fixed_direction_, -fac*fixed_direction_.dotWith(df));
+      df.IncrementBy_Scaled_Vector(fixed_directions_[i], -fac*fixed_directions_[i].dotWith(df));
     }
   }
   
