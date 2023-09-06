@@ -13,7 +13,7 @@ class DFT_Petsc
   DFT_Petsc(Dynamical_Matrix &dm, Log &theLog, int argc, char**argv);
   ~DFT_Petsc();
 
-  PetscErrorCode Solve_g_x_equals_b(DFT_Vec & dft_x, DFT_Vec &dft_b, stringstream &ret);
+  PetscErrorCode Solve_g_x_equals_b(DFT_Vec & dft_x, DFT_Vec &dft_b, stringstream &ret, bool do_hessian=false);
   virtual PetscErrorCode write_version_info(ostream &os);
 
   void set_abs_tol(double x) { abs_tol_ = x;}

@@ -274,7 +274,7 @@ DFT_Petsc::~DFT_Petsc()
 }  
 
 
-PetscErrorCode DFT_Petsc::Solve_g_x_equals_b(DFT_Vec & dft_x, DFT_Vec &dft_b, stringstream &ret)
+PetscErrorCode DFT_Petsc::Solve_g_x_equals_b(DFT_Vec & dft_x, DFT_Vec &dft_b, stringstream &ret, bool do_hessian)
 {
   PetscFunctionBegin;
   
@@ -293,9 +293,17 @@ PetscErrorCode DFT_Petsc::Solve_g_x_equals_b(DFT_Vec & dft_x, DFT_Vec &dft_b, st
 
   bnorm = dft_b.euclidean_norm();
 
-  PetscCall(MatShellSetOperation(A_,MATOP_MULT,(void(*)(void))MatMultG));  
-  PetscCall(MatShellSetOperation(A_,MATOP_GET_DIAGONAL,(void(*)(void))MatGetDiagonalG));  
-
+  if (do_hessian)
+  {
+    PetscCall(MatShellSetOperation(A_,MATOP_MULT,(void(*)(void))MatMultA));
+    PetscCall(MatShellSetOperation(A_,MATOP_GET_DIAGONAL,(void(*)(void))MatGetDiagonalA));
+  }
+  else
+  {
+    PetscCall(MatShellSetOperation(A_,MATOP_MULT,(void(*)(void))MatMultG));
+    PetscCall(MatShellSetOperation(A_,MATOP_GET_DIAGONAL,(void(*)(void))MatGetDiagonalG));
+  }
+  
   KSP ksp;    
   PetscCall(KSPCreate(PETSC_COMM_SELF, &ksp));
   PetscCall(KSPSetOperators(ksp, A_, A_));
