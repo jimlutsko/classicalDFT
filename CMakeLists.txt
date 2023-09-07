@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(USE_OMP true)
-set(USE_MPI false)
-set(USE_SLEPC false)
+set(USE_MPI true)
 
 set(USE_FMT_WEIGHTS_BEFORE_JUN_2021 false)
 set(USE_FMT_WEIGHTS_BEFORE_JAN_2023 false)
@@ -47,8 +46,6 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/DDFT.cpp
   ${PROJECT_SOURCE_DIR}/src/Arnoldi.cpp
   ${PROJECT_SOURCE_DIR}/src/Eigenvalues.cpp
-  ${PROJECT_SOURCE_DIR}/src/DFT_Petsc.cpp
-  ${PROJECT_SOURCE_DIR}/src/DFT_Slepc.cpp
   ${PROJECT_SOURCE_DIR}/src/Log_Det.cpp
   ${PROJECT_SOURCE_DIR}/src/Interaction.cpp
   ${PROJECT_SOURCE_DIR}/src/GitSHA1.cpp
@@ -69,17 +66,6 @@ target_compile_options(${PROJECT_NAME}  PUBLIC -fconcepts)
 link_directories("/usr/local/lib")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::serialization)
-
-message("USE_SLEPC = " ${USE_SLEPC})
-
-if(USE_SLEPC)
-  find_package(PkgConfig REQUIRED) 
-  set(ENV{PKG_CONFIG_PATH} "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/pkgconfig:$ENV{PETSC_DIR}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
-  pkg_check_modules(PETSC_PKG REQUIRED IMPORTED_TARGET $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/pkgconfig/PETSc.pc)
-  pkg_check_modules(SLEPC_PKG REQUIRED IMPORTED_TARGET $ENV{SLEPC_DIR}/$ENV{PETSC_ARCH}/lib/pkgconfig/slepc.pc)
-  target_compile_definitions(${PROJECT_NAME} PUBLIC USE_SLEPC)
-  target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::PETSC_PKG PkgConfig::SLEPC_PKG)
-endif()
 
 message("USE_MPI = " ${USE_MPI})
 
