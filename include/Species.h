@@ -80,6 +80,8 @@ class Species
   virtual void convert_to_alias_increment(DFT_Vec &dRho) const;
   virtual void convert_to_density_increment(DFT_Vec &dRho) const;
 
+  virtual void square_and_scale_with_d2rho_dx2(DFT_Vec &ff) const {throw std::runtime_error("square_and_scale_with_d2rho_dx2 not implemented");}
+  
   void turn_on_display() {density_->turn_on_display();}
   void doDisplay(string &title, string &file, void *param = NULL) const { density_->doDisplay(title,file, seq_num_, param);}
 
@@ -233,6 +235,8 @@ public:
   virtual void convert_to_alias_deriv(DFT_Vec &dF_dRho) const;
   virtual void convert_to_alias_increment(DFT_Vec &dRho) const;
   virtual void convert_to_density_increment(DFT_Vec &dRho) const;
+
+  virtual void square_and_scale_with_d2rho_dx2(DFT_Vec &ff) const;
   
   const DFT_Vec_Complex& getWEK() const { return fmt_weighted_densities[EI()].wk();}
 

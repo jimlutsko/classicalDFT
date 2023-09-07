@@ -162,7 +162,17 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 	
 	DFT_Vec &dF = s->getDF();
 	DFT_Vec ff(dF.size());
+	
+	DFT_Vec ff_save(dF);
+
+	s->convert_to_alias_deriv(dF);
+	s->convert_to_alias_deriv(dF); // we need two factors of drho_dx
+	
 	matrix_dot_v1(dF,ff);
+	
+	s->square_and_scale_with_d2rho_dx2(ff_save);
+	dF += ff_save;
+	
 	dF.set(ff);
 	s->endForceCalculation(); // Need to do this again to make sure that the boundaries are fixed, when demanded	
       }

@@ -33,6 +33,7 @@
 #include "config.h"
 #include "GitSHA1.h"
 
+#include "DFT_LinAlg.h"
 
 // Write a stream buffer that prefixes each line with Plop
 class LogStreamBuf: public std::stringbuf

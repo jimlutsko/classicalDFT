@@ -119,6 +119,31 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   }
 }
 
+void FMT_Species::square_and_scale_with_d2rho_dx2(DFT_Vec &ff) const 
+{
+  long pos;
+  const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
+  const double c = (1.0-etamin)/density_->dV();
+
+  DFT_Vec x(ff.size());  
+  get_density_alias(x);  
+  
+  
+  #ifdef USE_OMP
+  #pragma omp parallel for  private(pos)  schedule(static)
+  #endif
+  for(pos=0;pos<x.size();pos++)
+  {
+    double y = x.get(pos);
+    double df = ff.get(pos);
+    
+    double drho_dx   = 2*c*y/((1+y*y)*(1+y*y));
+    double d2rho_dx2 = (2*c/((1+y*y)*(1+y*y))) - 4*y*drho_dx/(1+y*y);
+
+    ff.set(pos, df*df*d2rho_dx2);
+  }
+}
+
 void FMT_Species::convert_to_alias_increment(DFT_Vec &dRho) const
 {
   DFT_Vec x; get_density_alias(x);
