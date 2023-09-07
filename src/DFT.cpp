@@ -176,7 +176,6 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 	matrix_dot_v1(dF,first_term);
 	
 	s->square_and_scale_with_d2rho_dx2(dF_copy);
-	dF_copy *= 2;
 	first_term += dF_copy;
 	
 	dF.set(first_term);
