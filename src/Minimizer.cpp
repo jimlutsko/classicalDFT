@@ -310,7 +310,7 @@ double fireMinimizer2::step()
   if(backtracks_ >= 10) // new control of dt_max_
   {
     stringstream s;
-    s << "Changinging dt_max_ from " << dt_max_ << " to " << min(dt_best_, 0.9*dt_max_) << endl;
+    s << "Changinging dt_max_ from " << dt_max_ << " to " << min(dt_best_, 0.9*dt_max_);
     reportMessage(s.str());
     dt_max_ = min(dt_best_, 0.9*dt_max_);
     dt_best_ = 0;

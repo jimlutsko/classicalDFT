@@ -157,8 +157,8 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 
   // The following is used when we want to minimize L = (dF/dx_I)^2 = (F_I rho(x_I)')^2 = (F_I)^2 (rho(x_I)')^2
   // In this case, the force is
-  // 0.5*dL/dx_J =  F_I (rho(x_I)')^2 F_IJ rho(x_J)'  + (F_J)^2 (2*rho(x_J)'*rho(x_J)'')
-  //             = [F_I (rho(x_I)')^2 F_IJ  + (F_I)^2 (2*rho(x_J)'')]*rho(x_J)'
+  // 0.5*dL/dx_J =  F_I (rho(x_I)')^2 F_IJ rho(x_J)'  + (F_J)^2 (rho(x_J)'*rho(x_J)'')
+  //             = [F_I (rho(x_I)')^2 F_IJ  + (F_I)^2 (rho(x_J)'')]*rho(x_J)'
   // Here, we calculate the term in square brackets because the last factor is added in the minimization routines.
   
   if(H_dot_Force)
@@ -167,16 +167,19 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 	if(s->is_mass_fixed()) throw std::runtime_error("Makes no sense to do H_dot_Force when mass is fixed");
 	
 	DFT_Vec &dF = s->getDF();
+	// HERE
 	DFT_Vec dF_copy(dF);
-
 	s->convert_to_alias_deriv(dF);
 	s->convert_to_alias_deriv(dF); // we need two factors of drho_dx	
-
+	//
+	
 	DFT_Vec first_term(dF.size());	
 	matrix_dot_v1(dF,first_term);
-	
+
+	// HERE
 	s->square_and_scale_with_d2rho_dx2(dF_copy);
 	first_term += dF_copy;
+	//
 	
 	dF.set(first_term);
 	s->endForceCalculation(); // Need to do this again to make sure that the boundaries are fixed, when demanded	

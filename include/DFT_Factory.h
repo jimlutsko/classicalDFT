@@ -277,7 +277,7 @@ public:
     /////////////////////////////////////////////////////
     // Thermodynamics
     if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
-    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "Thermodynamics:" <<  myColor::RESET << endl << endl;
+    if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#Thermodynamics:" <<  myColor::RESET << endl << endl;
     
     xv_ = xl_ = xs1_ = xs2_ = -1;
     dft_->findSpinodal(1.0, 1e-4, xs1_, xs2_, 1e-8);
