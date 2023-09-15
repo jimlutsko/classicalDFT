@@ -168,17 +168,17 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 	
 	DFT_Vec &dF = s->getDF();
 	// HERE
-	DFT_Vec dF_copy(dF);
-	s->convert_to_alias_deriv(dF);
-	s->convert_to_alias_deriv(dF); // we need two factors of drho_dx	
+	//	DFT_Vec dF_copy(dF);
+	//		s->convert_to_alias_deriv(dF);
+	//		s->convert_to_alias_deriv(dF); // we need two factors of drho_dx	
 	//
 	
 	DFT_Vec first_term(dF.size());	
 	matrix_dot_v1(dF,first_term);
 
 	// HERE
-	s->square_and_scale_with_d2rho_dx2(dF_copy);
-	first_term += dF_copy;
+	//		s->square_and_scale_with_d2rho_dx2(dF_copy);
+	//		first_term += dF_copy;
 	//
 	
 	dF.set(first_term);
