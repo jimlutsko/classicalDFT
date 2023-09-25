@@ -47,7 +47,9 @@ void Interaction_Base::initialize()
   long Nx = density.Nx();
   long Ny = density.Ny();
   long Nz = density.Nz();
-
+  
+  fft_workspace_.initialize(Nx, Ny, Nz);
+  
   w_att_.initialize(Nx,Ny,Nz);      
   a_vdw_ = 0.0;
   
@@ -95,33 +97,32 @@ double Interaction_Base::getInteractionEnergyAndForces()
   long Ntot = density1.Ntot();
   double dV = density1.dV();
 
-  DFT_FFT v(density1.Nx(), density1.Ny(), density1.Nz());
-  v.zeros();
+  fft_workspace_.zeros();
   double E = 0;
     
   if(s1_ == s2_) //->getSequenceNumber() == s2_->getSequenceNumber())
     {
-      v.Four().Schur(density1.get_density_fourier(),w_att_.Four(),false);
-      v.do_fourier_2_real();
-      v.Real().MultBy(dV/Ntot);
-      s1_->addToForce(v.Real());
-      E = 0.5*density1.get_dot_with(v.Real());
+      fft_workspace_.Four().Schur(density1.get_density_fourier(),w_att_.Four(),false);
+      fft_workspace_.do_fourier_2_real();
+      fft_workspace_.Real().MultBy(dV/Ntot);
+      s1_->addToForce(fft_workspace_.Real());
+      E = 0.5*density1.get_dot_with(fft_workspace_.Real());
     } else {
-    v.Four().Schur(density1.get_density_fourier(),w_att_.Four());
-    v.Four().MultBy(0.5*dV/Ntot);
-    v.do_fourier_2_real(); 
-    s2_->addToForce(v.Real());
+    fft_workspace_.Four().Schur(density1.get_density_fourier(),w_att_.Four());
+    fft_workspace_.Four().MultBy(0.5*dV/Ntot);
+    fft_workspace_.do_fourier_2_real(); 
+    s2_->addToForce(fft_workspace_.Real());
 
     const Density &density2 = s2_->getDensity();
 
-    v.Four().Schur(density2.get_density_fourier(),w_att_.Four());
-    v.Four().MultBy(0.5*dV/Ntot);
-    v.do_fourier_2_real(); 
-    s1_->addToForce(v.Real());
+    fft_workspace_.Four().Schur(density2.get_density_fourier(),w_att_.Four());
+    fft_workspace_.Four().MultBy(0.5*dV/Ntot);
+    fft_workspace_.do_fourier_2_real(); 
+    s1_->addToForce(fft_workspace_.Real());
 
     throw std::runtime_error("Must check");
     
-    E = 0.5*density1.get_dot_with(v.Real());	
+    E = 0.5*density1.get_dot_with(fft_workspace_.Real());	
   }
   return E;
 }

@@ -30,6 +30,8 @@ void Dynamical_Matrix::set_boundary_points_to_zero(DFT_Vec &v) const
 
 void Dynamical_Matrix::matrix_dot_v(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F) const
 {
+  cout << "Before new matrix dot v: counter_new_fft_plans = " << counter_new_fft_plans << " counter_fft_transforms = " << counter_fft_transforms << endl;
+  
   matrix_dot_v_intern(v,result,param,only_d2F);
   
   if(use_squared_matrix_)

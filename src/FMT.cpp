@@ -407,7 +407,7 @@ double FMT::calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies)
   } catch( Eta_Too_Large_Exception &e) {throw e;}
 
   // The  derivatives: for each species s  we need the deriv wrt the species' density at each lattice site: dF/d n_{s}(i) 
-  DFT_FFT dPhi_(Nx,Ny,Nz);  
+  //DFT_FFT dPhi_(Nx,Ny,Nz);  
   for(auto &s: allSpecies)
     s->calculateForce(needsTensor(), this);
   

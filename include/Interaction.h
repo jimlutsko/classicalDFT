@@ -92,6 +92,9 @@ class Interaction_Base
   Potential1 *v_;            ///< The interatomic potential
   double kT_;                ///< The temperature
   bool verbose_ = true;
+  
+ private:
+  DFT_FFT fft_workspace_;
 };
 
 
