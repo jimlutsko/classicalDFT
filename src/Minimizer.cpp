@@ -15,10 +15,6 @@ using namespace std;
 #include "myColor.h"
 
 
-extern int counter_new_fft_plans;
-extern int counter_fft_transforms;
-
-
 Minimizer::Minimizer(DFT *dft) : dft_(dft), forceLimit_(0.1)
 {
   x_.resize(dft->getNumberOfSpecies());
@@ -215,8 +211,6 @@ double fireMinimizer2::step()
 {
   it_++;
   static double fold = F_;
-  
-  cout << "Before new step in minimizer: counter_new_fft_plans = " << counter_new_fft_plans << " counter_fft_transforms = " << counter_fft_transforms << endl;
 
   int begin_relax = 0;
   int end_relax   = dft_->getNumberOfSpecies();

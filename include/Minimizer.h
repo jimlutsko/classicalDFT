@@ -11,7 +11,6 @@ using namespace std;
 #include <armadillo> // for Arnoldi stuff
 #endif
 
-
 // brief Minimizer base class
 class Minimizer
 {

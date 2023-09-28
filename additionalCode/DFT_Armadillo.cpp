@@ -17,10 +17,6 @@ using namespace std;
 #define v2_DATA (*(static_cast<arma::vec*>(v2.data_)))
 
 
-int counter_new_fft_plans = 0;
-int counter_fft_transforms = 0;
-
-
 const char *DFT_Vec::get_library_name() { return "Armadillo";}
 
 DFT_Vec::DFT_Vec(unsigned N) : data_(new arma::vec(N)){}

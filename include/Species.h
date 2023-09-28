@@ -497,9 +497,6 @@ protected:
 protected:
   double hsd_ = 0.0; ///< hard sphere diameter 
   vector<FMT_Weighted_Density>  fmt_weighted_densities; ///< all weighted densities in real & fourier space
-
-private:
-  DFT_FFT fft_workspace_;
 };
 
   /**

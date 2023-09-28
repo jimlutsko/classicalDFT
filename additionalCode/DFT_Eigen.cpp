@@ -13,10 +13,6 @@ using namespace std;
 #include <Eigen/Dense>
 
 
-int counter_new_fft_plans = 0;
-int counter_fft_transforms = 0;
-
-
 using namespace Eigen;
 
 #define convert(x) (*(static_cast<Eigen::VectorXd*>(data_)))

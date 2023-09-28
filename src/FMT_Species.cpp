@@ -222,8 +222,6 @@ void FMT_Species::Initialize()
   long Nx = density_->Nx();
   long Ny = density_->Ny();
   long Nz = density_->Nz();
-  
-  fft_workspace_.initialize(Nx, Ny, Nz);
 
   verbose_ = false;
   
@@ -1582,17 +1580,21 @@ void FMT_Species_EOS::generate_additional_Weight()
 void FMT_Species::calculateForce(bool needsTensor, void* param)
 {
   double dV = getLattice().dV();
+  int Nx    = getLattice().Nx();
+  int Ny    = getLattice().Ny();
+  int Nz    = getLattice().Nz();
   
-  fft_workspace_.zeros();
+  DFT_FFT dPhi(Nx,Ny,Nz);
+  dPhi.Four().zeros();
   
   int imax = (needsTensor ? fmt_weighted_densities.size() : 5);
   for(int i=0;i<imax;i++)      
-    fmt_weighted_densities[i].add_weight_schur_dPhi_to_arg(fft_workspace_.Four());  
+    fmt_weighted_densities[i].add_weight_schur_dPhi_to_arg(dPhi.Four());  
 
-  fft_workspace_.do_fourier_2_real();
+  dPhi.do_fourier_2_real();
 
-  fft_workspace_.Real().MultBy(dV);
-  addToForce(fft_workspace_.cReal()); 
+  dPhi.Real().MultBy(dV);
+  addToForce(dPhi.cReal()); 
 }
 
 void FMT_Species::set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param)

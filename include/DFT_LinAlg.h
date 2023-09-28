@@ -11,9 +11,6 @@
 #include "FMT_FFTW.h"
 #include <complex>
 
-extern int counter_new_fft_plans;
-extern int counter_fft_transforms;
-
 /**
   *  @brief UTILITY: A wrapper for linear algebra packages. The idea is to be able to easily change libraries without changing any other code. Probably overkill and could be eliminated.
   */  
@@ -206,14 +203,12 @@ class DFT_FFT
   DFT_FFT(unsigned Nx, unsigned Ny, unsigned Nz) : RealSpace_(Nx*Ny*Nz), FourierSpace_(Nx*Ny*((Nz/2)+1)), four_2_real_(NULL), real_2_four_(NULL), Nx_(Nx), Ny_(Ny), Nz_(Nz)
     {
       zeros();
-      counter_new_fft_plans ++;
       four_2_real_ = fftw_plan_dft_c2r_3d(Nx, Ny, Nz, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
       real_2_four_ = fftw_plan_dft_r2c_3d(Nx, Ny, Nz, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
     };
 
   DFT_FFT(const DFT_FFT &Other) : RealSpace_(Other.RealSpace_), FourierSpace_(Other.FourierSpace_), four_2_real_(NULL), real_2_four_(NULL), Nx_(Other.Nx_), Ny_(Other.Ny_), Nz_(Other.Nz_)
     {
-      counter_new_fft_plans ++;
       four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
       real_2_four_ = fftw_plan_dft_r2c_3d(Nx_, Ny_, Nz_, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
       is_dirty_ = Other.is_dirty_;
@@ -232,7 +227,6 @@ class DFT_FFT
     is_dirty_ = true; // mutable - so default to worse case
 
     // I don't know how to copy these ... so recreate
-    counter_new_fft_plans ++;
     four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
     real_2_four_ = fftw_plan_dft_r2c_3d(Nx_, Ny_, Nz_, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
     return *this;
@@ -252,7 +246,6 @@ class DFT_FFT
   {
     RealSpace_.zeros(Nx*Ny*Nz);
     FourierSpace_.zeros(Nx*Ny*((Nz/2)+1));
-    counter_new_fft_plans ++;
     four_2_real_ = fftw_plan_dft_c2r_3d(Nx, Ny, Nz, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
     real_2_four_ = fftw_plan_dft_r2c_3d(Nx, Ny, Nz, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
     Nx_ = Nx;
@@ -272,8 +265,8 @@ class DFT_FFT
   void set(const DFT_Vec &x)          { RealSpace_.set(x); is_dirty_ = true;}
   void set(unsigned pos, double val)  { RealSpace_.set(pos,val); is_dirty_ = true;}    
 
-  void do_real_2_fourier() {if(is_dirty_) {counter_fft_transforms ++; fftw_execute(real_2_four_);} is_dirty_ = false;}
-  void do_fourier_2_real() {if(is_dirty_) {counter_fft_transforms ++; fftw_execute(four_2_real_);} is_dirty_ = false;}
+  void do_real_2_fourier() {if(is_dirty_) fftw_execute(real_2_four_); is_dirty_ = false;}
+  void do_fourier_2_real() {if(is_dirty_) fftw_execute(four_2_real_); is_dirty_ = false;}
 
   void MultBy(double val)       { RealSpace_.MultBy(val);  FourierSpace_.MultBy(val);} // doesn't change is_dirty_
   void IncrementBy(DFT_Vec & v) { RealSpace_.IncrementBy(v); is_dirty_ = true;}
@@ -295,7 +288,6 @@ class DFT_FFT
     DFT_Vec         r(v.RealSpace_);
     DFT_Vec_Complex f(v.FourierSpace_);
     
-    counter_new_fft_plans ++;
     v.four_2_real_ = fftw_plan_dft_c2r_3d(v.Nx_, v.Ny_, v.Nz_, reinterpret_cast<fftw_complex*>(v.FourierSpace_.memptr()), v.RealSpace_.memptr(), FMT_FFTW);
     v.real_2_four_ = fftw_plan_dft_r2c_3d(v.Nx_, v.Ny_, v.Nz_, v.RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(v.FourierSpace_.memptr()),  FMT_FFTW);
 
@@ -332,7 +324,6 @@ class DFT_FFT
     DFT_Vec         r(RealSpace_);
     DFT_Vec_Complex f(FourierSpace_);
     
-    counter_new_fft_plans ++;
     four_2_real_ = fftw_plan_dft_c2r_3d(Nx_, Ny_, Nz_, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
     real_2_four_ = fftw_plan_dft_r2c_3d(Nx_, Ny_, Nz_, RealSpace_.memptr(),reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()),  FMT_FFTW);
 
