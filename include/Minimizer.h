@@ -217,6 +217,8 @@ class DDFT : public Minimizer, public Dynamical_Matrix
 
   double get_time() const { return time_;}
   void   set_tmax(double tmax) { Tmax_ = tmax;}
+
+  bool using_central_diffs() const { return central_differences_;}
   
   virtual double get_convergence_monitor() const { return RHS_max_;}
 
@@ -232,7 +234,7 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   virtual bool     is_fixed_boundary() const {return dft_->is_fixed_boundary();}
   virtual void     matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result, void *param, bool only_d2F=false) const;
   virtual bool     is_dynamic() const { return true;}
-
+    
   virtual void     g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const;
   virtual void get_matrix_diag(DFT_Vec &diag) const;
   virtual void get_matrix_diag_nonhermetian(DFT_Vec &diag) const;  
@@ -249,6 +251,8 @@ protected:
   void   subtract_ideal_gas(const DFT_Vec &density, DFT_Vec& RHS) const;
 
   virtual bool should_stop() const { return (time_ >= Tmax_ || fabs(time_-Tmax_) < 1e-10);}
+
+  
  protected:
 
   bool show_graphics_       = true;
