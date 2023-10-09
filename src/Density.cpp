@@ -43,6 +43,8 @@ void Density::set_from_smaller_density(const Density &density)
   long Ny1 = density.Ny();
   long Nz1 = density.Nz();
   
+  double background = density.get_ave_background_density();
+  
   long dNx = Nx_ - Nx1;
   long dNy = Ny_ - Ny1;
   long dNz = Nz_ - Nz1;
@@ -61,20 +63,13 @@ void Density::set_from_smaller_density(const Density &density)
 	  for(int iz=0;iz<Nz_;iz++)
 	    {
 	      int jx = ix - Mx;
-	      if(jx < 0) jx = 0;
-	      else if(jx > Nx1-1) jx = Nx1-1;
-
 	      int jy = iy - My;
-	      if(jy < 0) jy = 0;
-	      else if(jy > Ny1-1) jy = Ny1-1;
-
 	      int jz = iz - Mz;
-	      if(jz < 0) jz = 0;
-	      else if(jz > Nz1-1) jz = Nz1-1; 
-
-	      double d  = density.get(jx,jy,jz);
 	      
-	      set(ix,iy,iz,d);
+	      if      (jx < 0 || jx > Nx1-1) set(ix, iy, iz, background);
+	      else if (jy < 0 || jy > Ny1-1) set(ix, iy, iz, background);
+	      else if (jz < 0 || jz > Nz1-1) set(ix, iy, iz, background);
+        else { double d  = density.get(jx,jy,jz); set(ix,iy,iz,d); }
 	    }
 }
 
@@ -120,9 +115,9 @@ void Density::set_from_coarser_density(const Density &density)
   double dV1 = dx1*dy1*dz1;
   double Natoms1 = density.get_number_of_atoms();
   
-  int Nx1 = int( Lx()/dx1 + 0.5 );
-  int Ny1 = int( Ly()/dy1 + 0.5 );
-  int Nz1 = int( Lz()/dz1 + 0.5 );
+  int Nx1 = int( density.Lx()/dx1 + 0.5 );
+  int Ny1 = int( density.Ly()/dy1 + 0.5 );
+  int Nz1 = int( density.Lz()/dz1 + 0.5 );
   
   cout << endl;
   cout << "Fine   spacings: " << setw(12) << dx_ << setw(12) << dy_ << setw(12) << dz_ << endl;
@@ -132,9 +127,11 @@ void Density::set_from_coarser_density(const Density &density)
   cout << "Box dimensions:  " << setw(12) << Lx()    << setw(12) << Ly()    << setw(12) << Lz()    << endl;
   cout << "Coarse Nx1*dx1:  " << setw(12) << Nx1*dx1 << setw(12) << Ny1*dy1 << setw(12) << Nz1*dz1 << endl;
   
-  if (fabs(Lx()-Nx1*dx1)>1e-8*dx1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the x direction");
-  if (fabs(Ly()-Ny1*dy1)>1e-8*dy1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the y direction");
-  if (fabs(Lz()-Nz1*dz1)>1e-8*dz1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the z direction");
+  if (fabs(density.Lx()-Nx1*dx1)>1e-8*dx1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the x direction");
+  if (fabs(density.Ly()-Ny1*dy1)>1e-8*dy1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the y direction");
+  if (fabs(density.Lz()-Nz1*dz1)>1e-8*dz1) throw runtime_error("Error: the box length is not a multiple of the lattice spacing in the z direction");
+  
+  if (fabs(density.Lz()-Lz())>1.8*dx_) throw runtime_error("The Density::set_from_coarser_density is meant to be used with densities of the lengths (Lx, Ly, Lz)");
   
   for (int ix=0; ix<Nx_; ix++)
   for (int iy=0; iy<Ny_; iy++)
@@ -144,9 +141,9 @@ void Density::set_from_coarser_density(const Density &density)
     double y = getY(iy);
     double z = getZ(iz);
     
-    int ix1 = int( (x+Lx()/2+0.01*dx_)/dx1 ); // +0.01*dx_ makes sure it is rounded correctly
-    int iy1 = int( (y+Ly()/2+0.01*dx_)/dy1 );
-    int iz1 = int( (z+Lz()/2+0.01*dx_)/dz1 );
+    int ix1 = int( (x+density.Lx()/2)/dx1 + 0.01 ); // + 0.01 makes sure it is rounded correctly
+    int iy1 = int( (y+density.Ly()/2)/dy1 + 0.01 );
+    int iz1 = int( (z+density.Lz()/2)/dz1 + 0.01 );
     
     double x1 = density.getX(ix1);
     double y1 = density.getY(iy1);
@@ -210,6 +207,14 @@ void Density::set_from_coarser_density(const Density &density)
   cout << endl;
   cout << "Number of particles in coarse density: " << setw(12) << Natoms1 << endl;
   cout << "Number of particles in fine   density: " << setw(12) << get_number_of_atoms() << endl;
+  cout << "Difference = " << get_number_of_atoms() - Natoms1 << endl;
+  
+  cout << endl;
+  cout << "Average background in coarse density: " << setw(12) << density.get_ave_background_density() << endl;
+  cout << "Average background in fine   density: " << setw(12) << get_ave_background_density() << endl;
+  cout << "Difference = " << get_ave_background_density() - density.get_ave_background_density() << endl;
+  
+  cout << endl;
 }
 
 
