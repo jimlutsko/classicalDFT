@@ -270,6 +270,7 @@ class DFT_FFT
 
   void MultBy(double val)       { RealSpace_.MultBy(val);  FourierSpace_.MultBy(val);} // doesn't change is_dirty_
   void IncrementBy(DFT_Vec & v) { RealSpace_.IncrementBy(v); is_dirty_ = true;}
+  void DecrementBy(DFT_Vec & v) { RealSpace_.DecrementBy(v); is_dirty_ = true;}
   void IncrementBy(unsigned pos, double val) { RealSpace_.IncrementBy(pos,val); is_dirty_ = true;}     
   
   friend ostream &operator<<(ostream &of, const DFT_FFT &v)

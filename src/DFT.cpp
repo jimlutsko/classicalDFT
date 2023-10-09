@@ -154,6 +154,12 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
       rms_force_ += s->getDF().euclidean_norm();
     }
   rms_force_ /= sqrt(allSpecies_.size()*get_Ntot());
+
+  // The following is used when we want to minimize L = (dF/dx_I)^2 = (F_I rho(x_I)')^2 = (F_I)^2 (rho(x_I)')^2
+  // In this case, the force is
+  // 0.5*dL/dx_J =  F_I (rho(x_I)')^2 F_IJ rho(x_J)'  + (F_J)^2 (rho(x_J)'*rho(x_J)'')
+  //             = [F_I (rho(x_I)')^2 F_IJ  + (F_I)^2 (rho(x_J)'')]*rho(x_J)'
+  // Here, we calculate the term in square brackets because the last factor is added in the minimization routines.
   
   if(H_dot_Force)
     for(auto &s: allSpecies_)
@@ -161,19 +167,21 @@ double DFT::calculateFreeEnergyAndDerivatives(bool onlyFex, bool H_dot_Force)
 	if(s->is_mass_fixed()) throw std::runtime_error("Makes no sense to do H_dot_Force when mass is fixed");
 	
 	DFT_Vec &dF = s->getDF();
-	DFT_Vec ff(dF.size());
+	// HERE
+	//	DFT_Vec dF_copy(dF);
+	//		s->convert_to_alias_deriv(dF);
+	//		s->convert_to_alias_deriv(dF); // we need two factors of drho_dx	
+	//
 	
-	DFT_Vec ff_save(dF);
+	DFT_Vec first_term(dF.size());	
+	matrix_dot_v1(dF,first_term);
 
-	s->convert_to_alias_deriv(dF);
-	s->convert_to_alias_deriv(dF); // we need two factors of drho_dx
+	// HERE
+	//		s->square_and_scale_with_d2rho_dx2(dF_copy);
+	//		first_term += dF_copy;
+	//
 	
-	matrix_dot_v1(dF,ff);
-	
-	s->square_and_scale_with_d2rho_dx2(ff_save);
-	dF += ff_save;
-	
-	dF.set(ff);
+	dF.set(first_term);
 	s->endForceCalculation(); // Need to do this again to make sure that the boundaries are fixed, when demanded	
       }
   
@@ -285,14 +293,14 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
 
   vector<DFT_FFT> v(allSpecies_.size());
   for(int s=0;s<allSpecies_.size();s++)
-  {
-    DFT_Vec vv = v_in[s].cReal();
-    if (is_matrix_in_alias_coordinates()) allSpecies_[s]->convert_to_density_increment(vv);
+    {
+      DFT_Vec vv = v_in[s].cReal();
+      if (is_matrix_in_alias_coordinates()) allSpecies_[s]->convert_to_density_increment(vv);
     
-    v[s].initialize(Nx, Ny, Nz);
-    v[s].Real().set(vv);
-    v[s].do_real_2_fourier();
-  }
+      v[s].initialize(Nx, Ny, Nz);
+      v[s].Real().set(vv);
+      v[s].do_real_2_fourier();
+    }
   
   // I would like to do this but it violates the const declaration of v
   // Well this is now implemented in the lines above ...
@@ -303,58 +311,59 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())
       for(unsigned p=0;p<allSpecies_[s]->getLattice().get_Nboundary();p++)
-      {
-        unsigned pp = allSpecies_[s]->getLattice().boundary_pos_2_pos(p);
-        if(fabs(v[s].cReal().get(pp)) > 0.0)
-          throw std::runtime_error("Input vector v must have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
-      }
+	{
+	  unsigned pp = allSpecies_[s]->getLattice().boundary_pos_2_pos(p);
+	  if(fabs(v[s].cReal().get(pp)) > 0.0)
+	    throw std::runtime_error("Input vector v must have zero boundary entries in DFT::hessian_dot_v when the species has fixed boundaries");
+	}
 
   // ideal gas contribution: v_i/n_i  
   if(full_hessian_)
-  {
-    double dV = allSpecies_[0]->getDensity().dV();
+    {
+      double dV = allSpecies_[0]->getDensity().dV();
 
-    for(int s=0;s<allSpecies_.size();s++)
-      #ifdef USE_OMP
-      #pragma omp parallel for
-      #endif
-      for(unsigned pos=0;pos<v[s].cReal().size();pos++)
-        result[s].set(pos, dV*v[s].cReal().get(pos)/allSpecies_[s]->getDensity().get(pos));
-  }
+      for(int s=0;s<allSpecies_.size();s++)
+#ifdef USE_OMP
+#pragma omp parallel for
+#endif
+	for(unsigned pos=0;pos<v[s].cReal().size();pos++)
+	  result[s].set(pos, dV*v[s].cReal().get(pos)/allSpecies_[s]->getDensity().get(pos));
+    }
 
   // Hard-sphere
   if(fmt_)
-  {
-    try {fmt_->add_second_derivative(v,result, allSpecies_);}
-    catch( Eta_Too_Large_Exception &e) {throw e;}
-  } else for(auto &species : allSpecies_) // needed for interactions - its done automatically if there is an fmt evaluation
-	   species->doFFT(); 
+    {
+      try {fmt_->add_second_derivative(v,result, allSpecies_);}
+      catch( Eta_Too_Large_Exception &e) {throw e;}
+    } else for(auto &species : allSpecies_) // needed for interactions - its done automatically if there is an fmt evaluation
+	     species->doFFT(); 
   
   // Mean field
   for(auto &interaction: DFT::Interactions_)    
     interaction->add_second_derivative(v,result);
 
-  if (is_matrix_in_alias_coordinates()) for(int s=0;s<allSpecies_.size();s++)
-  {
-    // Compute additional term from nonlinearity of the alias transform
-    // TODO: Need a flag or something to make sure the forces are in density coordinates
-    DFT_Vec df_term = allSpecies_[s]->getDF();
-    DFT_Vec d2rho; allSpecies_[s]->get_second_derivatives_of_density_wrt_alias(d2rho);
-    df_term.Schur(df_term, d2rho);
-    df_term.Schur(df_term, v_in[s].cReal()); // Note that we use here the vector in alias coordinates
+  if (is_matrix_in_alias_coordinates())
+    for(int s=0;s<allSpecies_.size();s++)
+      {
+	// Compute additional term from nonlinearity of the alias transform
+	// TODO: Need a flag or something to make sure the forces are in density coordinates
+	DFT_Vec df_term = allSpecies_[s]->getDF();
+	DFT_Vec d2rho; allSpecies_[s]->get_second_derivatives_of_density_wrt_alias(d2rho);
+	df_term.Schur(df_term, d2rho);
+	df_term.Schur(df_term, v_in[s].cReal()); // Note that we use here the vector in alias coordinates
     
-    // Add all terms together
-    allSpecies_[s]->convert_to_alias_deriv(result[s]);
-    result[s].IncrementBy(df_term);
-  }
+	// Add all terms together
+	allSpecies_[s]->convert_to_alias_deriv(result[s]);
+	result[s].IncrementBy(df_term);
+      }
 
   // Remove boundary terms if the boundary is fixed
   for(int s=0;s<allSpecies_.size();s++)  
     if(allSpecies_[s]->is_fixed_boundary())
-    {
-      long p = 0;
-      do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
-    }
+      {
+	long p = 0;
+	do{result[s].set(p,0.0);} while(get_next_boundary_point(p));
+      }
 }
 
 // computes result_I = F_{I I+J} for fixed J

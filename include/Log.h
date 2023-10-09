@@ -126,7 +126,7 @@ class Log: public std::ostream
 
       if(verbose) *this << "*****************************************************************" << endl;
       if(verbose) if(prog != NULL) *this << prog << " version " << Major << "." << Minor << endl;
-      if(verbose) *this << std::ctime(&now_time) << " " << endl;
+      if(verbose) *this << std::ctime(&now_time); // << " " << endl;
       if(verbose) *this << "#Using:\tLib " << PROJECT_NAME << endl
 	    << "\tversion: " << PROJECT_VER << endl
 	    << "\tgit revision: " << g_GIT_SHA1 << endl;

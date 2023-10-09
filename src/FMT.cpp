@@ -592,7 +592,8 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
   for(int a = 0;a<Nfmt;a++)
     for(int b = a;b<Nfmt;b++)
       {
-	cout << "(" << jx << "," << jy << "," << jz << "): a = " << a << " b = " << b << endl;
+	//xxx
+	cout << '\r'; cout << "(" << jx << "," << jy << "," << jz << "): a = " << a << " b = " << b << "   "; cout.flush();
 	
 	DFT_FFT phi(Nx,Ny,Nz);
 	phi.zeros();	
@@ -632,7 +633,8 @@ void FMT::add_second_derivative(int jx, int jy, int jz, const vector<Species*> &
 	result.do_fourier_2_real();
 
 	d2F[0].IncrementBy_Scaled_Vector(result.Real(),dV/Ntot); // Ntot because FFTW normalization
-      }  
+      }
+  cout << endl;
 }
 
 
