@@ -124,6 +124,12 @@ class Species
   void   beginForceCalculation();
   double endForceCalculation();
 
+  // New stuff: reflect forces around a fixed direction
+  void set_reflect_forces(bool val) { reflect_forces_ = val;}
+  bool get_reflect_forces() const   { return reflect_forces_;}
+
+  void set_reflect_direction(DFT_Vec &dir) { reflect_direction_ = dir;}
+  
   
   friend class boost::serialization::access;
   template<typename Archive> void serialize(Archive & ar, const unsigned int version)
@@ -159,6 +165,9 @@ protected:
   bool homogeneousBoundary_ = false; // if true, forces are averaged on the background
   bool verbose_ = true;
 
+  bool    reflect_forces_   = false;
+  DFT_Vec reflect_direction_;
+  
 };
 
 

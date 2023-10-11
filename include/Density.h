@@ -71,6 +71,7 @@ class Density : public Lattice
 
   void set_background_density(double val);
   virtual void shrink(double distance, double width, double gap_size);
+  virtual void pad(int padding);
   
   virtual double  get(long pos) const { return Density_.cReal().get(pos);}   
   virtual double  get(int ix, int iy, int iz) const {putIntoBox(ix,iy,iz); return Density_.cReal().get(pos(ix,iy,iz));}

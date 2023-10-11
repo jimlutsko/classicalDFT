@@ -254,6 +254,25 @@ void Density::shrink(double distance, double width, double gap_size)
 }
 
 
+void Density::pad(int padding)
+{
+  Density rem(*this);
+
+  int left = padding/2;
+
+  double background = rem.get(0);
+  
+  Density_.initialize(Nx_+padding,Ny_+padding, Nz_+padding);
+  Density_.set(background);  
+  
+  for(int ix=0;ix<rem.Nx();ix++)
+    for(int iy=0;iy<rem.Ny();iy++)
+      for(int iz=0;iz<rem.Nz();iz++)
+	set(ix+left,iy+left,iz+left, rem.get(pos(ix,iy,iz)));
+}
+	  
+
+
 void Density::get_particles(double threshold, vector< vector<long> > &clusters)
 {
   /*

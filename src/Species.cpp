@@ -183,6 +183,10 @@ void zero_background_forces()
 
 double Species::endForceCalculation()
 {
+
+  if(reflect_forces_)
+    dF_.IncrementBy_Scaled_Vector(reflect_direction_, -2*dF_.dotWith(reflect_direction_)/(reflect_direction_.dotWith(reflect_direction_)));
+  
   if(fixedBackground_)
     {
       for(long pos = 0; pos < density_->get_Nboundary(); pos++)

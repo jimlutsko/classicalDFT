@@ -218,6 +218,9 @@ class DFT_FFT
 
   DFT_FFT& operator= (const DFT_FFT& c)
   {
+    if(four_2_real_) fftw_destroy_plan(four_2_real_);
+    if(real_2_four_) fftw_destroy_plan(real_2_four_);
+    
     RealSpace_    = c.RealSpace_;
     FourierSpace_ = c.FourierSpace_;
     
@@ -244,6 +247,9 @@ class DFT_FFT
   
   void initialize(unsigned Nx, unsigned Ny, unsigned Nz)
   {
+    if(four_2_real_) fftw_destroy_plan(four_2_real_);
+    if(real_2_four_) fftw_destroy_plan(real_2_four_);
+    
     RealSpace_.zeros(Nx*Ny*Nz);
     FourierSpace_.zeros(Nx*Ny*((Nz/2)+1));
     four_2_real_ = fftw_plan_dft_c2r_3d(Nx, Ny, Nz, reinterpret_cast<fftw_complex*>(FourierSpace_.memptr()), RealSpace_.memptr(), FMT_FFTW);
