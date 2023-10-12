@@ -253,26 +253,6 @@ void Density::shrink(double distance, double width, double gap_size)
     }
 }
 
-
-void Density::pad(int padding)
-{
-  Density rem(*this);
-
-  int left = padding/2;
-
-  double background = rem.get(0);
-  
-  Density_.initialize(Nx_+padding,Ny_+padding, Nz_+padding);
-  Density_.set(background);  
-  
-  for(int ix=0;ix<rem.Nx();ix++)
-    for(int iy=0;iy<rem.Ny();iy++)
-      for(int iz=0;iz<rem.Nz();iz++)
-	set(ix+left,iy+left,iz+left, rem.get(pos(ix,iy,iz)));
-}
-	  
-
-
 void Density::get_particles(double threshold, vector< vector<long> > &clusters)
 {
   /*
@@ -539,6 +519,25 @@ void Density::set_background_density(double val)
   for(int iy=0;iy<Ny_;iy++)
     for(int iz=0;iz<Nz_;iz++)    
       set(0,iy,iz, val);
+}
+
+void Density::set_background_density(double val, int padding)
+{
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iy=0;iy<Ny_;iy++)
+      for(int iz = 0;iz < padding; iz++)
+	{set(ix,iy,iz, val); if(iz > 0) set(ix,iy,Nz_-iz,val);}
+
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iz=0;iz<Nz_;iz++)
+      for(int iy = 0;iy < padding; iy++)
+	{set(ix,iy,iz, val); if(iy > 0) set(ix,Ny_-iy,iz,val);}      
+
+
+  for(int iy=0;iy<Ny_;iy++)
+    for(int iz=0;iz<Nz_;iz++)    
+      for(int ix = 0;ix < padding; ix++)
+	{set(ix,iy,iz, val); if(ix > 1) set(Nx_-ix,iy,iz,val);}      
 }
 
 

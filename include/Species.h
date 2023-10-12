@@ -69,6 +69,8 @@ class Species
   virtual void   get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2) const; // only valid for local aliases
   const DFT_Vec& get_density_real() const { return density_->get_density_real();}
   double get_density(long pos) const { return density_->get(pos);}
+
+  void set_background_density(double val, int padding) { density_->set_background_density(val,padding);}
   
   void read_density(istream &in) { in >> (*density_);}      
   
