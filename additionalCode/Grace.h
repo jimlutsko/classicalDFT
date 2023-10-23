@@ -57,7 +57,8 @@ class Grace
   void pause() const {char cc; std::cout << "Enter any character to continue: "; std::cin >> cc;}
 
   void noLine(int dataSet, int Graph = -1);  
-  void Line(int dataSet, int Graph = -1);  
+  void Line(int dataSet, int Graph = -1);
+  void linewidth(int dataset, int width, int Graph = -1);
   void circle(int dataSet, int Graph = -1);  
   void square(int dataSet, int Graph = -1);  
 

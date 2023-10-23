@@ -510,6 +510,14 @@ void Grace::Line(int dataSet, int Graph)
     sendCommand(ss.str());
 }
 
+void Grace::linewidth(int dataset, int width, int Graph)
+{
+  if(Graph < 0) Graph = 0;
+  std::stringstream ss;
+  ss << "g" << Graph << ".s" << dataset << " linewidth " << width;
+  sendCommand(ss.str());
+}
+
 void Grace::circle(int dataSet, int Graph)
 {
   if(Graph < 0) Graph = 0;
