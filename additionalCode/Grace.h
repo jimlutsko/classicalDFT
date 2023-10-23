@@ -40,8 +40,8 @@ class Grace
   
   void setCharSize(double s, int Graph = -1);
 
-  void setTitle(const char *s);
-  void setSubTitle(const char *s);
+  void setTitle(const char *s, int Graph = -1);
+  void setSubTitle(const char *s, int Graph = -1);
 
   void redraw(int autoScale = 1, int Graph = -1) const;
 

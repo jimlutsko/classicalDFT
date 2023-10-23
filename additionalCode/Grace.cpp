@@ -469,16 +469,24 @@ void Grace::addPoint(double x, double y, int N, int G) const
   sendCommand(s.str());
 }
 
-void Grace::setTitle(const char *s)
+void Grace::setTitle(const char *s, int Graph)
 {
+  std::stringstream s1;
+  if(Graph >= 0) s1 << "FOCUS G" << Graph;
+  sendCommand(s1.str());
+  
   std::stringstream ss;
   ss << "Title \"" << s << "\"";
   sendCommand(ss.str());
 
 }
 
-void Grace::setSubTitle(const char *s)
+void Grace::setSubTitle(const char *s, int Graph)
 {
+  std::stringstream s1;
+  if(Graph >= 0) s1 << "FOCUS G" << Graph;
+  sendCommand(s1.str());
+  
   std::stringstream ss;
   ss << "Subtitle \"" << s << "\"";
   sendCommand(ss.str());
