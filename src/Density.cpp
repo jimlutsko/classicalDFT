@@ -455,11 +455,11 @@ double Density::get_ave_background_density() const
       {d += get(ix,iy,0); n++;}
 
   for(int ix=0;ix<Nx_;ix++)
-    for(int iz=0;iz<Nz_;iz++)
+    for(int iz=1;iz<Nz_;iz++) // Cedric: start from Nz=1 so that the Ny=Nz=0 boundary points are counted twice in the average. Same remark below.
       {d += get(ix,0,iz); n++;}
 
-  for(int iy=0;iy<Ny_;iy++)
-    for(int iz=0;iz<Nz_;iz++)    
+  for(int iy=1;iy<Ny_;iy++)
+    for(int iz=1;iz<Nz_;iz++)    
       {d += get(0,iy,iz); n++;}  
 
 
