@@ -54,7 +54,7 @@ void Minimizer::resume(long maxSteps)
     double Ntotal = dft_->getNumberAtoms(0);
     double Volume = dft_->get_lattice().getVolume();
 
-    f_abs_max_ = get_convergence_monitor();
+    f_convergence_monitor_ = get_convergence_monitor();
 
     draw_after();
 
@@ -83,10 +83,10 @@ bool Minimizer::should_stop() const
 {
   bool stop = false;
   
-  if(f_abs_max_ < forceLimit_)
+  if(f_convergence_monitor_ < forceLimit_)
   {
     stringstream s;	
-    s << "Finished: convergence monitor = " << f_abs_max_ << " < " << forceLimit_ << " = forceLimit_ and so is  sufficiently small ... normal exit";
+    s << "Finished: convergence monitor = " << f_convergence_monitor_ << " < " << forceLimit_ << " = forceLimit_ and so is  sufficiently small ... normal exit";
     cout << s.str() << endl;
     reportMessage(s.str());
     stop = true;
@@ -245,7 +245,7 @@ double fireMinimizer2::step()
   //     << endl;
   
   // 15/12/2022: Changed so as to ALWAYS accept first iteration since v_ should be zero ...
-  cout << scientific << "P = " << P << fixed << "    s0: v*F/|v||F| = " << v_[0].dotWith(dft_->getDF(0))/v_[0].euclidean_norm()/dft_->getDF(0).euclidean_norm() << endl;
+  //  cout << scientific << "P = " << P << fixed << "    s0: v*F/|v||F| = " << v_[0].dotWith(dft_->getDF(0))/v_[0].euclidean_norm()/dft_->getDF(0).euclidean_norm() << endl;
   if(P > 0 || it_ == 1)
     {
       N_P_positive_++;

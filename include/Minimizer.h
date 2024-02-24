@@ -62,7 +62,7 @@ protected:
   double F_            = 0.0;
 
   double forceLimit_;
-  double f_abs_max_; // max absolute value of dF_
+  double f_convergence_monitor_; // quantity returned by get_convergence_monitor
   double vv_         = 0;
   double minDensity_ = -1;
   int image_number_  = 0;
@@ -81,7 +81,7 @@ protected:
     ar & step_counter_;
     ar & F_;
     ar & forceLimit_;
-    ar & f_abs_max_;
+    ar & f_convergence_monitor_;
     ar & vv_;
     ar & minDensity_;
   }

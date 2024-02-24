@@ -51,6 +51,8 @@ public:
     options_.addOption("Ly", L_+1);
     options_.addOption("Lz", L_+2);
 
+    options_.addOption("Cell_Size",&cellsize_);
+    
     options_.addOption("Dx", &dx_);
     options_.addOption("Dy", &dy_);
     options_.addOption("Dz", &dz_);
@@ -91,10 +93,13 @@ public:
   void set_density_input_file(string str) {infile_ = str;}
   void set_density_input_stream(string str) {instream_ = str;}
 
+  void set_density_output_file(string str) {outfile_ = str;}
+  
   void set_option_no_log()      { include_log_     = false;}
   void set_option_no_dynamics() { include_density_ = include_interaction_ = include_hs_ = false;}
   
-
+  void set_L(double lx, double ly, double lz) { L_[0] = lx; L_[1] = ly; L_[2] = lz;}
+  
   // Either of these works ... the first requires C++20
   //void addOption(const char  *name, auto *variable) { options_.addOption(name,variable);}
   template<typename Q> void addOption(const char *name, Q *variable) { options_.addOption(name,variable);}
@@ -106,6 +111,13 @@ public:
     if(SourceInput_.empty() == false)
       options_.read(SourceInput_.c_str(), verbose_);
 
+    if(cellsize_ > 0)
+      {
+	stringstream ss;
+	ss << "log_" << cellsize_;
+	log_file_name_ = ss.str();
+      }
+    
     if(include_log_ && theLog_ == NULL) theLog_ = new Log(log_file_name_.c_str(),-1,-1,NULL, -1, true, verbose_);
     if(verbose_ && theLog_ != NULL) *theLog_ << myColor::GREEN << "#=================================" << myColor::RESET << endl << "#" << endl;
 
@@ -117,9 +129,9 @@ public:
     if (dy_<0) dy_ = dx_;
     if (dz_<0) dz_ = dx_;
     
-    if(L_[0] < 0) L_[0] = dx_;
-    if(L_[1] < 0) L_[1] = dy_;
-    if(L_[2] < 0) L_[2] = dz_;
+    if(L_[0] < 0) L_[0] = (cellsize_ > 0 ? cellsize_ : dx_);
+    if(L_[1] < 0) L_[1] = (cellsize_ > 0 ? cellsize_ : dy_);
+    if(L_[2] < 0) L_[2] = (cellsize_ > 0 ? cellsize_ : dz_);
 
 #ifdef USE_OMP
     omp_set_dynamic(0);
@@ -270,6 +282,8 @@ public:
 
   DFT& get_DFT() { check(); return *dft_;}
   EOS &get_eos() { if(eos_ == NULL) throw std::runtime_error("No EOS found"); return *eos_;}
+
+  double get_cell_size() const { return cellsize_;}
   
   void get_thermodynamics(bool verbose_ = true)
   {
@@ -347,6 +361,8 @@ public:
   double dy_  = -1; // if unspecified, we will copy dx_
   double dz_  = -1; // if unspecified, we will copy dx_
 
+  double cellsize_ = -1;
+  
   double kT_   = 1;
   
   double hsd1_ = -1;

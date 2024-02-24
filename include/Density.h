@@ -21,7 +21,8 @@
 #include <complex>
 
 
-static const double SMALL_VALUE = 1e-18;
+//static const double SMALL_VALUE = 1e-18;
+static const double SMALL_VALUE = 1e-99;
 
 #include "DFT_LinAlg.h"
 #include "Summation.h"
