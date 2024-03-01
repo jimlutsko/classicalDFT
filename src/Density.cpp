@@ -36,14 +36,16 @@ double operator*(const DFT_Vec &v1, const DFT_Vec &v2) { return v1.dotWith(v2);}
 // and assume that Nx2 > Nx1
 // I will demand that Nx2-Nx1 is even
 // and the idea is that we just pad the extra terms
-void Density::set_from_smaller_density(const Density &density)
+// Background density can be anything and if not given, it is determined from input
+void Density::set_from_smaller_density(const Density &density, double background)
 {
 
   long Nx1 = density.Nx();
   long Ny1 = density.Ny();
   long Nz1 = density.Nz();
-  
-  double background = density.get_ave_background_density();
+
+  if(background < 0)
+    background = density.get_ave_background_density();
   
   long dNx = Nx_ - Nx1;
   long dNy = Ny_ - Ny1;
@@ -72,6 +74,37 @@ void Density::set_from_smaller_density(const Density &density)
         else { double d  = density.get(jx,jy,jz); set(ix,iy,iz,d); }
 	    }
 }
+
+
+void Density::expand(int delta_Nx, int delta_Ny, int delta_Nz, double background)
+{
+  const DFT_Vec rem(get_density_real());
+  Lattice l1(dx_,dy_,dz_,L_); 
+  
+  int Nx1 = Nx_;
+  int Ny1 = Ny_;
+  int Nz1 = Nz_;
+  
+  Nx_ += delta_Nx;
+  Ny_ += delta_Ny;
+  Nz_ += delta_Nz;
+
+  L_[0] = Nx_*dx_;
+  L_[1] = Ny_*dy_;
+  L_[2] = Nz_*dz_;
+
+  Ntot_ = Nx_*Ny_*Nz_;
+  Nout_ = Nx_*Ny_*((Nz_/2)+1);  
+
+  Density_.initialize(Nx_, Ny_, Nz_);
+  Density_.set(background);
+
+  for(int ix=0;ix<Nx1;ix++)
+      for(int iy=0;iy<Ny1;iy++)
+	  for(int iz=0;iz<Nz1;iz++)
+	    set(ix+delta_Nx/2),iy+(delta_Ny/2),iz+(delta_Nz/2), rem.get(l1.pos(ix,iy,iz));
+}
+
 
 
 // Here we also assume equal lattice spacings and demand that Nx1-Nx2 is even.

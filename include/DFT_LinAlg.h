@@ -243,6 +243,7 @@ class DFT_FFT
 
   void zeros() {RealSpace_.zeros(); FourierSpace_.zeros(); is_dirty_ = false;}
 
+
   bool get_is_dirty() const {return is_dirty_;}
   
   void initialize(unsigned Nx, unsigned Ny, unsigned Nz)
