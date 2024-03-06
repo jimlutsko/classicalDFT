@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <grace_np.h>
 
+#include <string>
+
 #include <vector>
 
 /**
@@ -68,6 +70,8 @@ class Grace
   
   void format_phys_rev(int Graph = -1, bool overrite_sets = false, bool overrite_style = false);
 
+  void save_to_file(std::string filename) {std::string s("SAVEALL \""); s += filename; s += "\""; sendCommand(s.c_str());}
+  
   static int CIRCLE;
   static int SQUARE;
 

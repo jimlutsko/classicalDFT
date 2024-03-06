@@ -331,7 +331,7 @@ public:
   void set_show_graphics(bool show) { show_graphics_ = show;}
   void set_log_file_name(string name) { log_file_name_ = name;}
 
-  
+  bool get_include_interactions() const { return include_interaction_;}
 protected:
   int argc_;
   char **argv_;
