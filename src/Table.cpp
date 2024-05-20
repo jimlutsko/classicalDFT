@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <stdexcept>
 #include <sstream>
 #include <string>
@@ -12,25 +13,25 @@ using namespace std;
 
 Table::Table(ifstream &in)
 {
-    if(!in.good())
-	throw std::runtime_error("input file cannot be opened");
+  if(!in.good())
+    throw std::runtime_error("input file cannot be opened");
 
-
-    for(string buf; getline(in,buf);)
+  for(string buf; getline(in,buf);)
     {
-	vector<double> line;
+      vector<double> line;
 
-	int s = 0;
-	while(buf[s] == ' ' && s < buf.size()) s++;
-	if(s == buf.size()) continue;
+      int s = 0;
+      while(buf[s] == ' ' && s < buf.size()) s++;
+      if(s == buf.size()) continue;
 	
-	if(!isdigit(buf[s]) && buf[s] != '-')
-	  continue;
-	
-	stringstream st(buf);
-	double d;
-	while(st >> d) {line.push_back(d);}
-	data_.push_back(line);
+      if(!isdigit(buf[s]) && buf[s] != '-')
+	continue;
+		
+      stringstream st(buf);
+      st.precision(10);
+      double d;
+      while(st >> d) {line.push_back(d);}
+      data_.push_back(line);
     }
 }
 

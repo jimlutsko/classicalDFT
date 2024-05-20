@@ -21,7 +21,8 @@
 #include <complex>
 
 
-static const double SMALL_VALUE = 1e-18;
+//static const double SMALL_VALUE = 1e-18;
+static const double SMALL_VALUE = 1e-99;
 
 #include "DFT_LinAlg.h"
 #include "Summation.h"
@@ -55,10 +56,10 @@ class Density : public Lattice
     Density_ = ref.Density_;
   }
   
-  // Initialize
+  void expand(int delta_Nx, int delta_Ny, int delta_Nz, double background);
   
   //set/get density 
-  void set_from_smaller_density(const Density &density);
+  void set_from_smaller_density(const Density &density, double background = -1);
   void crop_from_larger_density(const Density &density);
   void set_from_coarser_density(const Density &density);
 
