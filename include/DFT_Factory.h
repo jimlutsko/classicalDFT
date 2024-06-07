@@ -61,7 +61,8 @@ public:
     options_.addOption("FixedBoundary", &fixed_background_);
     options_.addOption("FixedBackground", &fixed_background_);
     options_.addOption("Open_System", &fixed_background_);
-      
+    options_.addOption("BoundaryWidth",&boundary_width_);
+    
     options_.addOption("MaxIterations", &maxIterations_);
     options_.addOption("Tolerence", &tol_);
 
@@ -166,6 +167,8 @@ public:
 #else
 	theDensity_ = new DensityType(dx_, L_, show_graphics_);
 #endif
+
+	theDensity_->set_boundary_width(boundary_width_);
 
 	if(eos_correction_ == LJ_JZG_EOS)   eos_ = new LJ_JZG(kT_, rcut1_); // need to add no-shift option
 	//	if(eos_correction_ == LJ_MECKE_EOS) eos_ = new LJ_Mecke(kT_, rcut1_); // need to add no-shift option
@@ -396,7 +399,9 @@ public:
   
   bool verbose_  = true;
 
-  string potential_name_ = "LJ";
-  string log_file_name_ = "log.dat";
+  int boundary_width_        = 0;
+  
+  string potential_name_     = "LJ";
+  string log_file_name_      = "log.dat";
 };
 #endif // __LUTSKO_DFT_FACTORY__

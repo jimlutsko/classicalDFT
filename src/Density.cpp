@@ -268,7 +268,7 @@ void Density::shrink(double distance, double width, double gap_size)
     double R2 = distance + gap_size;
 
     for(int p=0; p<Ntot_; p++)
-    if (!is_boundary_point(p))
+      if (!is_boundary_point(p))
     {
       int i,j,k;
       cartesian(p, i, j, k);
@@ -581,56 +581,93 @@ void Lattice::test_boundary_coding()
   long pos = -1;
 
   int ix,iy,iz;
-  iz = 0;
-  cout << Nx_ << " " << Ny_ << " " << Nz_ << endl;
-  for(ix = 0;ix < Nx_; ix++)
-    for(iy = 0; iy < Ny_; iy++)
-      {
-	pos++;
+ 
+  cout << "\tNx,Ny,Nz = " << Nx_ << " " << Ny_ << " " << Nz_ << endl;
 
-	long p = boundary_pos(ix,iy,iz);
-	cout << ix << " " << iy << " " << iz << " " << pos << " " << p << endl;	
-	if(p != pos) throw std::runtime_error("p1");
+  // z-boundary
+  for(iz = 0; iz < Nz_; iz++)        
+    for(ix = 0;ix < Nx_; ix++)
+      for(iy = 0; iy < Ny_; iy++)
+	{
+	  if(iz > boundary_width_ && iz < Nz_-boundary_width_) continue;
+	  pos++;
+	  
+	  long p = boundary_pos(ix,iy,iz);
+	  if(p != pos)
+	    {
+	      cout << "\t" <<  ix << " " << iy << " " << iz << " " << pos << " " << p << endl;		    
+	      throw std::runtime_error("p1");
+	    }
+	  
+	  int jx,jy,jz; jx = jy = jz = -1;
+	  boundary_cartesian(pos,jx,jy,jz);
+	  if(ix != ix || jy != iy || jz != iz)
+	    {
+	      cout << "\t" << ix << " " << iy << " " << iz << " " << pos << " " << jx << " " << jy << " " << jz << endl;
+	      throw std::runtime_error("p2");
+	    }
+	}
 
-	int jx,jy,jz; jx = jy = jz = -1;
-	boundary_cartesian(pos,jx,jy,jz);
-	cout << ix << " " << iy << " " << iz << " " << pos << " " << jx << " " << jy << " " << jz << endl;
-	if(ix != ix || jy != iy || jz != iz) throw std::runtime_error("p2");
-      }
+  // y-boundary
+  for(iy = 0; iy < Ny_; iy++)       
+    for(ix = 0;ix < Nx_; ix++)  
+      for(iz = boundary_width_+1; iz < Nz_-boundary_width_; iz++)
+	{
+	  if(iy > boundary_width_ && iy < Ny_-boundary_width_) continue;	
+	  pos++;
 
-  iy = 0;
-  for(ix = 0;ix < Nx_; ix++)
-    for(iz = 1; iz < Nz_; iz++)
-      {
-	pos++;
+	  long p = boundary_pos(ix,iy,iz);
+	  if(p != pos)
+	    {
+	      cout << "\t" <<  ix << " " << iy << " " << iz << " " << pos << " " << p << endl;
+	      throw std::runtime_error("p3");	    
+	    }
 
-	long p = boundary_pos(ix,iy,iz);
-	cout << ix << " " << iy << " " << iz << " " << pos << " " << p << endl;
-	if(p != pos) throw std::runtime_error("p3");
+	  int jx,jy,jz; jx = jy = jz = -1;
+	  boundary_cartesian(pos,jx,jy,jz);
+	  if(ix != ix || jy != iy || jz != iz)
+	    {
+	      cout << "\t" <<  ix << " " << iy << " " << iz << " " << pos << " " << jx << " " << jy << " " << jz << endl;	
+	      throw std::runtime_error("p4");
+	    }
+	}
 
-	int jx,jy,jz; jx = jy = jz = -1;
-	boundary_cartesian(pos,jx,jy,jz);
-	cout << ix << " " << iy << " " << iz << " " << pos << " " << jx << " " << jy << " " << jz << endl;	
-	if(ix != ix || jy != iy || jz != iz) throw std::runtime_error("p4");
-      }
+  // x-boundary
+  for(ix = 0;ix < Nx_; ix++)    
+    for(iy = boundary_width_+1;iy < Ny_-boundary_width_; iy++)      
+      for(iz = boundary_width_+1; iz < Nz_-boundary_width_; iz++)
+	{
+	  if(ix > boundary_width_ && ix < Nx_-boundary_width_) continue;
+	  pos++;
+	  
+	  long p = boundary_pos(ix,iy,iz);
+	  if(p != pos)
+	    {
+	      cout << "\t" <<  ix << " " << iy << " " << iz << " " << pos << " " << p << endl;		      
+	      throw std::runtime_error("p5");
+	    }
+	  
+	  int jx,jy,jz; jx = jy = jz = -1;
+	  boundary_cartesian(pos,jx,jy,jz);
+	  if(ix != ix || jy != iy || jz != iz)
+	    {
+	      cout << "\t" <<  ix << " " << iy << " " << iz << " " << pos << " " << jx << " " << jy << " " << jz << endl;		      
+	      throw std::runtime_error("p6");
+	    }
+	}     
+  cout << "\tTest of conversion to and from boundary position passed" << endl;
 
-  ix = 0;
-  for(iy = 1;iy < Ny_; iy++)
-    for(iz = 1; iz < Nz_; iz++)
-      {
-	pos++;
 
-	long p = boundary_pos(ix,iy,iz);
-	cout << ix << " " << iy << " " << iz << " " << pos << " " << p << endl;	
-	if(p != pos) throw std::runtime_error("p5");
-
-	int jx,jy,jz; jx = jy = jz = -1;
-	boundary_cartesian(pos,jx,jy,jz);
-	cout << ix << " " << iy << " " << iz << " " << pos << " " << jx << " " << jy << " " << jz << endl;	
-	if(ix != ix || jy != iy || jz != iz) throw std::runtime_error("p6");
-      }     
-  cout << "pos = " << pos << endl;
-  cout << "Test passed";
+  ix = iy = iz = 0;
+  int count = 1;
+  while(1)
+    {
+      try {get_next_boundary_point(ix,iy,iz);} //cout << "\t" <<  ix << " " << iy << " " << iz << " : " << count << endl;}
+      catch(...) {break;}
+      count++;
+    }
+  cout << "\tFound " << count << " boundary points calling get_next_boundary_point : expected " << get_Nboundary() << endl;
+  if(count != get_Nboundary()) {cout << endl; throw std::runtime_error("get_next_boundary_point error\n\n");}
 }
 
 

@@ -42,6 +42,9 @@ class Lattice
 
   Lattice& operator=(const Lattice &a){copy(a);return *this;}
 
+  void     set_boundary_width(unsigned b) { boundary_width_ = b;}
+  unsigned get_boundary_width()           { return boundary_width_;}
+  
   void copy(const Lattice &ref)     
   {
       Nx_ = ref.Nx_;
@@ -57,9 +60,11 @@ class Lattice
 
       L_[0] = ref.L_[0];
       L_[1] = ref.L_[1];
-      L_[2] = ref.L_[2];    
+      L_[2] = ref.L_[2];
+
+      boundary_width_ = ref.boundary_width_;
   }
-  
+
 
 void init(double L[])
   {	
@@ -193,25 +198,30 @@ void init(double L[])
   }
 
   ////////// Characterizing boundary points:
-  // We map points on the boundary (ix or iy or iz = 0)
-  // to an array of NxNy+Nx(Nz-1)+(Ny-1)(Nz-1) points
+  // Boundary points are those within a distance of b of the edge of the cell.
+  // We map points on the boundary (ix <= b or ix >= Nx-b;  or iy <= b or iy >= Ny-b or iz <= b or iz >= Nz - b )
+  // to an array of k(NyNz+ (Nx-k)Nz+(Nx-k)(Ny-k)) points where k = 1+2b
+  // or, equivalently,  k(NxNy + NxNy + NyNz -k(Nx+Ny+Nz) +k*k) points.
 
 
   bool is_boundary_point(long pos) const
   {
     int ix, iy, iz;
     cartesian(pos,ix,iy,iz);
-    return ((ix % Nx_ == 0) || (iy % Ny_ == 0) || (iz % Nz_ == 0));
+
+    unsigned b = boundary_width_;
+    
+    return ((ix%Nx_ <= b || ix%Nx_ >= Nx_-b) || (iy%Ny_ <= b || iy%Ny_ >= Ny_-b) || (iz%Nz_ <= b || iz%Nz_ >= Nz_-b));
   }
   
-  long get_Nboundary() const { return Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-Nx_-Ny_-Nz_+1;}
+  long get_Nboundary() const { int k = 1+2*boundary_width_; return k*(Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-k*(Nx_+Ny_+Nz_)+k*k);}
   // cartesian coordinates to position
   long boundary_pos(int v[]) const { return boundary_pos(v[0],v[1],v[2]);}
 
   long boundary_pos(int ix, int iy, int iz) const    
   {
     long pos = -1;
-
+    // First get points in cell
     while(ix < 0) ix += Nx_;
     while(iy < 0) iy += Ny_;
     while(iz < 0) iz += Nz_;
@@ -220,18 +230,24 @@ void init(double L[])
     while(iy > Ny_-1) iy -= Ny_;
     while(iz > Nz_-1) iz -= Nz_;
 
-    if(iz == 0)
-      pos = ix*Ny_+iy;
-    else {
-      pos = Nx_*Ny_;
-      if(iy == 0)
-	pos += ix*(Nz_-1)+iz-1;
-      else if(ix == 0) {
-	pos += Nx_*(Nz_-1) + (iy-1)*(Nz_-1)+(iz-1);
-      } else {
-	throw std::runtime_error("Non-boundary point given to Lattice::boundary_pos");
-      }
-    }
+    unsigned b = boundary_width_;
+    unsigned k = 1+2*b;
+    
+    if(iz <= b)
+      pos = iz*Nx_*Ny_ + ix*Ny_+iy;
+    else if(iz >= Nz_-b)
+      pos = (b+1)*Nx_*Ny_ + (iz-(Nz_-b))*Nx_*Ny_  + ix*Ny_+iy;
+    else if(iy <= b)
+      pos = k*Nx_*Ny_ + (iy*Nx_ + ix)*(Nz_-k)+iz-1-b;
+    else if(iy >= Ny_-b)
+      pos = k*Nx_*Ny_ + (b+1)*Nx_*(Nz_-k) + ((iy-(Ny_-b))*Nx_ + ix)*(Nz_-k)+iz-1-b;
+    else if(ix <= b)
+      pos = k*Nx_*Ny_ + k*Nx_*(Nz_-k) + (ix*(Ny_-k)+(iy-b-1))*(Nz_-k)+(iz-b-1);
+    else if(ix >= Nx_-b)
+      pos = k*Nx_*Ny_ + k*Nx_*(Nz_-k) + (b+1)*(Ny_-k)*(Nz_-k) + ((ix-(Nx_-b))*(Ny_-k)+(iy-b-1))*(Nz_-k)+(iz-b-1);
+    else 
+      throw std::runtime_error("Non-boundary point given to Lattice::boundary_pos");
+ 
     return pos;
   }
 
@@ -252,55 +268,84 @@ void init(double L[])
   void boundary_cartesian(long pos,int &ix, int &iy, int &iz) const
   {
     ix = iy = iz = 0;
-    
-    if(pos < Nx_*Ny_)
+
+    unsigned b = boundary_width_;
+    unsigned k = 1+2*b;
+
+    if(pos < (b+1)*Nx_*Ny_)
       {
-	ix = int(pos/Ny_);
-	iy = pos-Ny_*ix;
-      } else {
-      pos -= Nx_*Ny_;
-      if(pos < Nx_*(Nz_-1))
-	{
-	  ix = int(pos/(Nz_-1));
-	  iz = 1+int(pos-ix*(Nz_-1));
-	} else {
-	pos -= Nx_*(Nz_-1);
-	if(pos < (Ny_-1)*(Nz_-1))
-	  {
-	    iy = 1+int(pos/(Nz_-1));
-	    iz = 1+int(pos - (iy-1)*(Nz_-1));
-	  } else {
-	  throw std::runtime_error("Non-boundary point given to Lattice::boundary_cartesian");
-	}
-      }      
-    }
+	//pos = iz*Nx_*Ny_ + ix*Ny_+iy;	
+	iz = pos/(Nx_*Ny_); pos -= iz*Nx_*Ny_;
+	ix = pos/Ny_;       pos -= ix*Ny_;
+	iy = pos;
+      } else if(pos < k*Nx_*Ny_) {
+      //pos = (iz+k-Nz_)*Nx_*Ny_  + ix*Ny_+iy;
+	iz = Nz_-k+pos/(Nx_*Ny_); pos -= (iz-(Nz_-k))*Nx_*Ny_;
+	ix = pos/Ny_; pos -= ix*Ny_;
+	iy = pos;
+    } else if(pos < k*Nx_*Ny_ + (b+1)*Nx_*(Nz_-k)) {
+      //pos = k*Nx_*Ny_ + (iy*Nx_ + ix)*(Nz_-k)+iz-1-b;
+      iy = (pos-k*Nx_*Ny_)/(Nx_*(Nz_-k)); pos -= k*Nx_*Ny_ + iy*Nx_*(Nz_-k);
+      ix = pos/(Nz_-k); pos -= ix*(Nz_-k);
+      iz = pos+1+b;
+    } else if(pos < k*Nx_*Ny_ + k*Nx_*(Nz_-k)) {
+      //pos = k*Nx_*Ny_ + (b+1)*Nx_*(Nz_-k) + ((iy-(Ny_-b))*Nx_ + ix)*(Nz_-k)+iz-1-b;      
+      iy = Ny_-b + (pos - k*Nx_*Ny_ - (b+1)*Nx_*(Nz_-k))/(Nx_*(Nz_-k)); pos -= k*Nx_*Ny_ + (b+1)*Nx_*(Nz_-k) + (iy-(Ny_-b))*Nx_*(Nz_-k);
+      ix = pos/(Nz_-k); pos -= ix*(Nz_-k);
+      iz = pos+1+b;
+    } else if(pos < k*Nx_*Ny_ + k*Nx_*(Nz_-k) + k*(Ny_-k)*(Nz_-k) ) {
+      //pos = k*Nx_*Ny_ + k*Nx_*(Nz_-k) + (ix*(Ny_-k)+(iy-b-1))*(Nz_-k)+(iz-b-1);
+      ix = (pos - k*Nx_*Ny_ - k*Nx_*(Nz_-k))/((Ny_-k)*(Nz_-k)); pos -= k*Nx_*Ny_ + k*Nx_*(Nz_-k) + ix*(Ny_-k)*(Nz_-k);
+      iy = 1+b+pos/(Nz_-k); pos -= (iy-b-1)*(Nz_-k);
+      iz = pos+1+b;
+    } else
+      throw std::runtime_error("Non-boundary point given to Lattice::boundary_cartesian");      
   }
 
-  // Loop over boundary points. The order is
-  // ix = 0, iy = 0 to Ny-1, iz = 0 to Nz-1
-  // iy = 0, ix = 1 to Nx-1, iz = 0 to Nz-1
-  // iz = 0, ix = 1 to Nx-1, iy = 1 to Ny-1
-  // giving Ny*Nz + (Nx-1)*Nz + (Nx-1)*(Ny-1) = Ny*Nz+Nx*Nz+Nx*Ny-Nz-Nx-Ny+1 points as expected. 
+
+  // Loop over boundary points. The order is (with k = 2b+1)
+  // x-boundary k*Ny*Nz points
+  // y-boundary k*(Nx-k)*Nz points
+  // z-boundary k*(Nx-k)*(Ny-k) points
+  // giving a total of k*(Ny*Nz + Nx*Nz + Nx*Ny - k*Nz - k*Ny-k*Nx+k*k) points
+  // as expected.
   bool get_next_boundary_point(int &ix, int &iy, int &iz) const
   {
-    if(iz == 0 && ix != 0 && iy != 0) // on the last boundary
+    int b = boundary_width_;
+    
+    // are we in x-boundary ?
+    if(ix <= b || ix >= Nx_-b)
       {
-	if(iy < Ny_-1) {iy++; return true;}
-	else if(ix < Nx_-1) {iy = 1; ix++; return true;}
-	return false; // finished
+	if(iz < Nz_-1)     {iz++; return true;} 	
+	if(iy < Ny_-1)     {iy++; iz = 0; return true;}
+	if(ix < b)         {ix++;       iy=iz=0; return true;}
+	if(ix == b && b>0) {ix = Nx_-b; iy=iz=0; return true;}
+	if(ix > b && ix < Nx_-1)     {ix++;       iy=iz=0; return true;}
+	ix = b+1; iy=iz=0; return true; // go to y boundary
       }
-    if(iy == 0 && ix != 0)
+
+    // are we in y-boundary?
+    // We cannot visit x-boundary points
+    if(iy <= b || iy >= Ny_-b)
       {
-	if(iz < Nz_-1) {iz++; return true;}
-	else if(ix < Nx_-1) {iz = 0; ix++; return true;}
-	else {iz = 0; ix = iy = 1; return true;} // start z-boundary
-      }    
-    if(ix == 0)
-      {
-	if(iz < Nz_-1) {iz++; return true;}
-	else if(iy < Ny_-1) { iy++; iz = 0; return true;}
-	else {ix = 1; iy = 0; iz = 0; return true;}
+	if(iz < Nz_-1)     {iz++; return true;} 	
+	if(ix < Nx_-b-1)   {ix++; iz = 0; return true;}
+	if(iy < b)         {iy++;    ix = b+1; iz = 0; return true;}
+	if(iy == b && b>0) {iy=Ny_-b;ix = b+1; iz = 0; return true;}
+	if(iy > b && iy < Ny_-1)     {iy++;    ix = b+1; iz = 0; return true;}
+	ix = iy = b+1; iz = 0; return true; // go to z-boundary
       }
+    // are we on z-boundary?
+    // we cannot visit x or y boundary points
+    if(iz <= b || iz >=Nz_-b)
+      {
+	if(iy < Ny_-b-1)   {iy++; return true;}
+	if(ix < Nx_-b-1)   {ix++; iy = b+1; return true;}
+	if(iz < b)         {iz++;    ix = b+1; iy = b+1; return true;}
+	if(iz == b && b>0) {iz=Nz_-b;ix = b+1; iy = b+1; return true;}
+	if(iz > b && iz < Nz_-1) {iz++;    ix = b+1; iy = b+1; return true;}
+      }
+    // no where left to go or we were fed a bad starting point
     throw std::runtime_error("Lattice::get_next_boundary_point called with bad arguments");
   }
 
@@ -331,6 +376,8 @@ void init(double L[])
     in.read((char*) &l.dz_, sizeof(double));
     
     in.read((char*) &l.L_, 3*sizeof(double));
+
+    in.read((char*) &l.boundary_width_, sizeof(unsigned));
     
     return in;
   }    
@@ -349,6 +396,8 @@ void init(double L[])
     ar & dz_;
 
     ar & L_;
+    if(version > 0)
+      ar & boundary_width_;
   }
   
 protected:
@@ -364,6 +413,10 @@ protected:
   double dz_;   ///< Lattice spacing in z direction
 
   double L_[3];    ///< Dimensions of physical box in hard-sphere units
+
+  unsigned boundary_width_ = 0;
 };
+
+BOOST_CLASS_VERSION(Lattice, 1)
 
 #endif
