@@ -163,15 +163,16 @@ void Species::beginForceCalculation()
       double Mtot = density_->getNumberAtoms();
       double Mboundary = density_->get_ave_background_density() * density_->dV() * density_->get_Nboundary();
       double Mtarget = fixedMass_;
-      
-      for (long p=0;p<density_->Ntot();p++) if (!density_->is_boundary_point(p))
-      {
-        double d = density_->get(p);
-        d *= (Mtarget-Mboundary)/(Mtot-Mboundary);
-        density_->set(p,d);
-      }
-    }
-    else *density_ *= (fixedMass_/density_->getNumberAtoms());
+
+      // TBD: cann't we get rid of the if-else?
+      for (long p=0;p<density_->Ntot();p++)
+	if (!density_->is_boundary_point(p))
+	  {
+	    double d = density_->get(p);
+	    d *= (Mtarget-Mboundary)/(Mtot-Mboundary);
+	    density_->set(p,d);
+	  }
+    } else *density_ *= (fixedMass_/density_->getNumberAtoms());
     
     mu_ = 0.0;
   }
@@ -181,6 +182,10 @@ void zero_background_forces()
 {
 }
 
+
+// Makes adjustments to enforce fixed background (forces on background set to zero)
+// or homogeneous background (forces on background set to same value)
+// and adjusts forces for fixed mass calculation. 
 double Species::endForceCalculation()
 {
 
@@ -202,8 +207,9 @@ double Species::endForceCalculation()
       for(long pos = 0; pos < density_->get_Nboundary(); pos++)
 	dF_.set(density_->boundary_pos_2_pos(pos),average_border_force);
     }    
-
-    
+  
+  // Next two blocks should really be combined: there is no advantage to separating them.
+  // Also, it does not seem we need to worry about setting boundary forces to zero (again).
   if(fixedMass_ > 0.0 && !fixedBackground_)
     {
       mu_ = 0.0;
@@ -225,14 +231,21 @@ double Species::endForceCalculation()
       double Mboundary = density_->get_ave_background_density() * density_->dV() * density_->get_Nboundary();
       double Mtarget = fixedMass_ - Mboundary;
       
-      for(long p=0;p<density_->Ntot();p++) if (!density_->is_boundary_point(p))
+      for(long p=0;p<density_->Ntot();p++)
+	if (!density_->is_boundary_point(p))
           mu_ += dF_.get(p)*density_->get(p);
+
       mu_ /= Mtarget;
-      for(long p=0;p<density_->Ntot();p++) if (!density_->is_boundary_point(p))
-          dF_.set(p, dF_.get(p)-mu_*density_->dV());
-      
-      for(long pos = 0; pos < density_->get_Nboundary(); pos++)
-	dF_.set(density_->boundary_pos_2_pos(pos),0.0);
+
+      for(long p=0;p<density_->Ntot();p++)
+	{
+	  if (!density_->is_boundary_point(p))
+	    dF_.set(p, dF_.get(p)-mu_*density_->dV());
+	  else dF_.set(p, 0.0);
+	}
+      // added "else" above and eliminated following in order to be more efficient	  
+      //      for(long pos = 0; pos < density_->get_Nboundary(); pos++)
+      //	dF_.set(density_->boundary_pos_2_pos(pos),0.0);
     }
 
   

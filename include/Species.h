@@ -13,6 +13,15 @@
 #include "External_Field.h"
 #include "EOS.h"
 
+/* Constraints:
+   1. Fixed Mass           : total mass is not allowed to change: value is either given or taken as current mass. 
+   2. Homogeneous Boundary : all boundary points forced to have same density
+   3. Fixed Background     : background(i.e. border) points are held constant and never change.
+*/
+
+
+
+
 class Species
 {
  public:
@@ -29,14 +38,13 @@ class Species
   void setFixedMass(double m)           { set_fixed_mass(m);}
   void setFixedBackground(bool fixed)   { set_open_system(fixed);}
   void setHomogeneousBoundary(bool val) { set_homogeneous_boundary(val);}
-  
-  // These functions should only take care of the fixed mass and it should be the
-  // role of another function to setup the physical system (e.g. set_closed_system).
+
+  // fixed mass
   void set_fixed_mass_only()    { fixedMass_ = density_->get_mass(); mu_ = 0.0; }
   void set_fixed_mass()         { fixedMass_ = density_->get_mass(); mu_ = 0.0; fixedBackground_ = false; }
   void set_fixed_mass(double m) { fixedMass_ = m; if(m > 0.0) {mu_ = 0.0; fixedBackground_ = false;} }
   
-  // These functions should only take care of the boundary conditions
+  // boundary conditions
   void set_homogeneous_boundary(bool val) { homogeneousBoundary_ = val; }
   void set_fixed_boundary(bool val)       { fixedBackground_     = val; }
   void set_fixed_background(bool val)     { set_fixed_boundary(val); }
