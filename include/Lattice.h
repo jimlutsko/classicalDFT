@@ -312,6 +312,7 @@ void init(double L[])
   bool get_next_boundary_point(int &ix, int &iy, int &iz) const
   {
     int b = boundary_width_;
+    long pos_input = pos(ix,iy,iz);
     
     // are we in x-boundary ?
     if(ix <= b || ix >= Nx_-b)
@@ -346,7 +347,9 @@ void init(double L[])
 	if(iz > b && iz < Nz_-1) {iz++;    ix = b+1; iy = b+1; return true;}
       }
     // no where left to go or we were fed a bad starting point
-    throw std::runtime_error("Lattice::get_next_boundary_point called with bad arguments");
+    if (!is_boundary_point(pos_input))
+      throw std::runtime_error("Lattice::get_next_boundary_point called with bad arguments");
+    else return false;
   }
 
   bool get_next_boundary_point(long &p) const
