@@ -482,19 +482,7 @@ double Density::get_ave_background_density() const
   double d = 0;
   double n = 0;
   
-
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iy=0;iy<Ny_;iy++)
-      {d += get(ix,iy,0); n++;}
-
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iz=1;iz<Nz_;iz++) // Cedric: start from Nz=1 so that the Ny=Nz=0 boundary points are counted twice in the average. Same remark below.
-      {d += get(ix,0,iz); n++;}
-
-  for(int iy=1;iy<Ny_;iy++)
-    for(int iz=1;iz<Nz_;iz++)    
-      {d += get(0,iy,iz); n++;}  
-
+  long pos = 0; do {d = get(pos); n++;} while (get_next_boundary_point(pos));
 
   return d/n;
 }
@@ -502,19 +490,7 @@ double Density::get_ave_background_density() const
 double Density::get_max_background_density() const
 {
   double d = get(0,0,0);
-  
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iy=0;iy<Ny_;iy++)
-      d = std::max(d,get(ix,iy,0));
-
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iz=0;iz<Nz_;iz++)
-      d = std::max(d,get(ix,0,iz));
-
-  for(int iy=0;iy<Ny_;iy++)
-    for(int iz=0;iz<Nz_;iz++)
-      d = std::max(d,get(0,iy,iz));
-
+  long pos = 0; do {d = std::max(d,get(pos));} while (get_next_boundary_point(pos));
 
   return d;
 }
@@ -522,38 +498,17 @@ double Density::get_max_background_density() const
 double Density::get_min_background_density() const
 {
   double d = get(0,0,0);
-  
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iy=0;iy<Ny_;iy++)
-      d = std::min(d,get(ix,iy,0));
-
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iz=0;iz<Nz_;iz++)
-      d = std::min(d,get(ix,0,iz));
-
-  for(int iy=0;iy<Ny_;iy++)
-    for(int iz=0;iz<Nz_;iz++)
-      d = std::min(d,get(0,iy,iz));
-
+  long pos = 0; do {d = std::min(d,get(pos));} while (get_next_boundary_point(pos));
 
   return d;
 }
 
 void Density::set_background_density(double val)
 {
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iy=0;iy<Ny_;iy++)
-      set(ix,iy,0, val);
-
-  for(int ix=0;ix<Nx_;ix++)
-    for(int iz=0;iz<Nz_;iz++)
-      set(ix,0,iz,val); 
-
-  for(int iy=0;iy<Ny_;iy++)
-    for(int iz=0;iz<Nz_;iz++)    
-      set(0,iy,iz, val);
+  long pos = 0; do {set(pos,val);} while (get_next_boundary_point(pos));
 }
 
+// Is obsolete now that we have the nonzero boundary option in lattice class?
 void Density::set_background_density(double val, int padding)
 {
   for(int ix=0;ix<Nx_;ix++)
@@ -707,13 +662,12 @@ void Density::center_cluster(bool fixed_boundary)
   */
   DFT_Vec dcpy(get_density_real());
 
-  int Nmin = (fixed_boundary ? 1 : 0);
-
-  for(int ix=Nmin;ix<Nx_;ix++)
-    for(int iy=Nmin;iy<Ny_;iy++)
-      for(int iz=Nmin;iz<Nz_;iz++)
+  for(int ix=0;ix<Nx_;ix++)
+    for(int iy=0;iy<Ny_;iy++)
+      for(int iz=0;iz<Nz_;iz++)
 	{
 	  long p = pos(ix,iy,iz);
+	  if (fixed_boundary && is_boundary_point(p)) continue;
 
 	  int jx = ix-dx; //if(jx == 0 || jx == Nx_) jx = ix-2*dx;
 	  int jy = iy-dy; //if(jy == 0 || jy == Ny_) jy = iy-2*dy;
