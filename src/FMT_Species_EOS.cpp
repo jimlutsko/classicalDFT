@@ -162,7 +162,7 @@ void FMT_Species_EOS::add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, cons
 
   // Get Psi: psi(K) = conv(w_eta,v;K) = sum_J w_eta(K-J)V(J)
   DFT_FFT Psi(Nx,Ny,Nz);
-      
+  
   // N.B. the fmt weights have all necessary normalization factors built in, including dV
   bool bConjugate = false;
   convolute_eta_weight_with(v, result, bConjugate);
@@ -170,7 +170,7 @@ void FMT_Species_EOS::add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, cons
 
   // Get Lambda: Lambda(K) = (d2dfex(K)/deta(K) deta(K))psi(K)  
   DFT_FFT Lambda(Nx,Ny,Nz);
-
+  
   long pos;
 #ifdef USE_OMP
 #pragma omp parallel for  private(pos) schedule(static)

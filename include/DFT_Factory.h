@@ -285,7 +285,8 @@ public:
 
   DFT& get_DFT() { check(); return *dft_;}
   EOS &get_eos() { if(eos_ == NULL) throw std::runtime_error("No EOS found"); return *eos_;}
-
+  double get_D_EOS() { return D_EOS_;}
+  
   double get_cell_size() const { return cellsize_;}
   
   void get_thermodynamics(bool verbose_ = true)
