@@ -482,7 +482,7 @@ double Density::get_ave_background_density() const
   double d = 0;
   double n = 0;
   
-  long pos = 0; do {d = get(pos); n++;} while (get_next_boundary_point(pos));
+  long pos = 0; do {d += get(pos); n++;} while (get_next_boundary_point(pos));
 
   return d/n;
 }
