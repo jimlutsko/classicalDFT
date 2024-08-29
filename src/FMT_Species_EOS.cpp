@@ -47,9 +47,9 @@ FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& d
 //  rho_eos(I) = eta_eos(I)*(6/M_PI)/(D_EOS*hsd)^3.
 double FMT_Species_EOS::effDensity(long I)
 {
-  double eta = eos_weighted_density_[0].real(I);
   double hsd3 = hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_;
-  double x   = 6*eta/(M_PI*hsd3);
+  //  double eta = eos_weighted_density_[0].real(I);  
+  double x   = (6/(M_PI*hsd3)) * eos_weighted_density_[0].real(I);
 
   return x;
 }
@@ -165,8 +165,9 @@ void FMT_Species_EOS::add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, cons
   
   // N.B. the fmt weights have all necessary normalization factors built in, including dV
   bool bConjugate = false;
-  convolute_eta_weight_with(v, result, bConjugate);
-  Psi.Real().IncrementBy(result.Real());
+  //  convolute_eta_weight_with(v, result, bConjugate);
+  //  Psi.Real().IncrementBy(result.Real());
+  convolute_eta_weight_with(v, Psi, bConjugate);
 
   // Get Lambda: Lambda(K) = (d2dfex(K)/deta(K) deta(K))psi(K)  
   DFT_FFT Lambda(Nx,Ny,Nz);

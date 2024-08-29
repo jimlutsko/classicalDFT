@@ -21,6 +21,11 @@
 static string LJ_name = "LJ";
 static string WHDF_name = "WHDF";
 
+static string ESFMT_NAME = "esFMT";
+static string ROSEN_NAME = "Rosen";
+static string WB_NAME    = "WB";
+static string WBII_NAME  = "WBII";
+
 template <class DensityType>
 class DFT_Factory
 {
@@ -62,6 +67,8 @@ public:
     options_.addOption("FixedBackground", &fixed_background_);
     options_.addOption("Open_System", &fixed_background_);
     options_.addOption("BoundaryWidth",&boundary_width_);
+
+    options_.addOption("FMT", &fmt_name_);
     
     options_.addOption("MaxIterations", &maxIterations_);
     options_.addOption("Tolerence", &tol_);
@@ -146,8 +153,17 @@ public:
 
     fmt_ = NULL;
     if(include_hs_)
-      fmt_ = new esFMT(1,0);
-
+      {
+	if(fmt_name_ == WB_NAME)	  
+	  fmt_ = new WhiteBearI();
+	else if(fmt_name_ == WBII_NAME)	  
+	  fmt_ = new WhiteBearII();
+	else if(fmt_name_ == ROSEN_NAME)	  
+	  fmt_ = new Rosenfeld();
+	else
+	  fmt_ = new esFMT(1,0);
+      }
+	
     interaction1_ = NULL;
     if(include_interaction_)
       {
@@ -171,7 +187,7 @@ public:
 	theDensity_->set_boundary_width(boundary_width_);
 
 	if(eos_correction_ == LJ_JZG_EOS)   eos_ = new LJ_JZG(kT_, rcut1_); // need to add no-shift option
-	//	if(eos_correction_ == LJ_MECKE_EOS) eos_ = new LJ_Mecke(kT_, rcut1_); // need to add no-shift option
+	if(eos_correction_ == EOS_NULL)     eos_ = new EOS_NULL_(kT_); // need to add no-shift option
 	
 	double avdw = 0;
 	if(potential1_) avdw = potential1_->getVDW_Parameter(kT_);
@@ -404,5 +420,6 @@ public:
   
   string potential_name_     = "LJ";
   string log_file_name_      = "log.dat";
+  string fmt_name_           = "ESFMT";
 };
 #endif // __LUTSKO_DFT_FACTORY__

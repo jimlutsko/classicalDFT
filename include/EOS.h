@@ -6,6 +6,7 @@
 // Empirical equations of state.
 
 const string LJ_JZG_EOS("LJ_JZG_EOS");
+const string EOS_NULL("EOS_NULL");
 const string LJ_MECKE_EOS("LJ_MECKE_EOS");
 
 
@@ -46,6 +47,42 @@ public:
     o << "#EOS model is " << ps.getName() << std::endl;
     return o;
   }
+  
+protected:
+  double kT_ = 1;
+};
+
+class EOS_NULL_ : public EOS
+{
+public:
+  EOS_NULL_(double kT):  EOS(kT) {}
+  virtual ~EOS_NULL_(){}
+
+  // Basic functionality
+  virtual double get_energy_per_atom(  double density) {return 0.0;}  // F/(NkT) = FE per unit atom (phi)
+  virtual double get_energy_per_volume(double density) {return density*get_energy_per_atom(density);}
+  virtual double get_pressure(double density) {return 0.0;}     // P/nkT
+
+  // convenience helpers ...
+  virtual double get_energy_per_atom(double density, double kT)   {kT_ = kT; return get_energy_per_atom(density);}
+  virtual double get_energy_per_volume(double density, double kT) {          return density*get_energy_per_atom(density,kT);}
+  virtual double get_pressure(double density, double kT)          {kT_ = kT; return get_pressure(density);}
+
+  // Excess F_ex/(kT*V) and derivatives
+  virtual double fex(double density)  {return density*phix(density);}
+  virtual double f1ex(double density) {return phix(density) + density*phi1x(density);}
+  virtual double f2ex(double density) {return 2*phi1x(density) + density*phi2x(density);}
+  
+  // excess free energy per atom and density derivatives
+  virtual double phix(double density)  const {return 0.0;} //{ throw std::runtime_error("phix not implemented in EOS object");}
+  virtual double phi1x(double density) const {return 0.0;} //{ throw std::runtime_error("phix not implemented in EOS object");}
+  virtual double phi2x(double density) const {return 0.0;} //{ throw std::runtime_error("phix not implemented in EOS object");}
+  virtual double phi3x(double density) const {return 0.0;} //{ throw std::runtime_error("phix not implemented in EOS object");}
+
+  void set_temperature(double kT) {kT_ = kT;}
+  
+  virtual char const * const getName() const {return "NULL";}
+  virtual double getEffHSD(){return 0.0;}
   
 protected:
   double kT_ = 1;
