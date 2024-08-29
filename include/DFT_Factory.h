@@ -188,6 +188,7 @@ public:
 
 	if(eos_correction_ == LJ_JZG_EOS)   eos_ = new LJ_JZG(kT_, rcut1_); // need to add no-shift option
 	if(eos_correction_ == EOS_NULL)     eos_ = new EOS_NULL_(kT_); // need to add no-shift option
+	if(eos_correction_ == HS_PY_EOS)    eos_ = new PY_EOS(kT_); // need to add no-shift option
 	
 	double avdw = 0;
 	if(potential1_) avdw = potential1_->getVDW_Parameter(kT_);
