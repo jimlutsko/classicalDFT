@@ -342,6 +342,14 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
   for(auto &interaction: DFT::Interactions_)    
     interaction->add_second_derivative(v,result);
 
+  //EOS
+  for(int s=0;s<allSpecies_.size();s++)
+    {
+      FMT_Species_EOS *species = dynamic_cast<FMT_Species_EOS*>(allSpecies_[s]);
+      if(species)
+	species->add_second_derivative(v[s],result[s],fmt_);
+    }
+
   if (is_matrix_in_alias_coordinates())
     for(int s=0;s<allSpecies_.size();s++)
       {
