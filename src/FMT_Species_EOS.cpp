@@ -56,6 +56,8 @@ double FMT_Species_EOS::effDensity(long I)
 
 double FMT_Species_EOS::get_bulk_dfex(double x, const void *param) const
 {
+  if(eos_.isNull()) return 0;
+  
   double eta = M_PI*x*hsd_*hsd_*hsd_/6;
   FMT &fmt   = *((FMT*) param);  
   double fdft = x*fmt.get_fex(eta) + avdw_*x*x;
@@ -64,6 +66,8 @@ double FMT_Species_EOS::get_bulk_dfex(double x, const void *param) const
 
 double FMT_Species_EOS::get_bulk_ddfex_deta(double x, const void *param) const
 {
+  if(eos_.isNull()) return 0;
+  
   double HSeta = M_PI*x*hsd_*hsd_*hsd_/6;
   FMT &fmt     = *((FMT*) param);
 
@@ -76,6 +80,8 @@ double FMT_Species_EOS::get_bulk_ddfex_deta(double x, const void *param) const
 
 double FMT_Species_EOS::get_bulk_d2dfex_deta2(double x, const void *param) const
 {
+  if(eos_.isNull()) return 0;
+  
   double HSeta = M_PI*x*hsd_*hsd_*hsd_/6;
   FMT &fmt     = *((FMT*) param);
 
@@ -91,6 +97,8 @@ double FMT_Species_EOS::get_bulk_d2dfex_deta2(double x, const void *param) const
 // dF_EOS(x) = F_EOS(x)-F_dft(x) = F_EOS(x)_excess - F_HS_excess(x) - 0.5*a*x*x
 double FMT_Species_EOS::dfex(long pos, void* param)
 {
+  if(eos_.isNull()) return 0;
+  
   double x   = effDensity(pos);
   return get_bulk_dfex(x,param);
 }
@@ -102,20 +110,12 @@ void FMT_Species_EOS::calculateFundamentalMeasures(bool needsTensor)
   eos_weighted_density_[0].convoluteWith(rho_k);          
 }
 
-// Here, we need d
+
 void FMT_Species_EOS::set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param)
 {
   FMT_Species::set_fundamental_measure_derivatives(pos,fm,param);
 
   double x   = effDensity(pos);
-  //  double eta = M_PI*x*hsd_*hsd_*hsd_/6;
-  //  FMT &fmt   = *((FMT*) param);
-
-  //  double dfdft = (fmt.get_fex(eta) + eta*fmt.get_dfex_deta(eta)) + 2*avdw_*x;
-
-  // convert to df/deta_EOS
-  //  double fac = 6/(M_PI*hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_);
-  //  eos_weighted_density_[0].Set_dPhi(pos,(eos_.f1ex(x) - dfdft)*fac);
   eos_weighted_density_[0].Set_dPhi(pos,get_bulk_ddfex_deta(x, param));
 }
 
@@ -123,6 +123,8 @@ void FMT_Species_EOS::calculateForce(bool needsTensor, void *param)
 {
   FMT_Species::calculateForce(needsTensor);
 
+  if(eos_.isNull()) return;
+  
   double dV = getLattice().dV();
   int Nx    = getLattice().Nx();
   int Ny    = getLattice().Ny();
@@ -148,6 +150,8 @@ void FMT_Species_EOS::calculateForce(bool needsTensor, void *param)
 // d2F is the force FOR THIS SPECIES
 void FMT_Species_EOS::add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, const void *param)
 {
+  if(eos_.isNull()) return;
+  
   const Density &density1 = getDensity();
 
   long Ntot    = density1.Ntot();

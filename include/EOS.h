@@ -39,6 +39,8 @@ public:
   virtual double phi2x(double density) const = 0; //{ throw std::runtime_error("phix not implemented in EOS object");}
   virtual double phi3x(double density) const = 0; //{ throw std::runtime_error("phix not implemented in EOS object");}
 
+  virtual bool isNull() {return false;}
+  
   void set_temperature(double kT) {kT_ = kT;}
   
   virtual char const * const getName() const = 0;
@@ -82,6 +84,8 @@ public:
   virtual double phi3x(double density) const {return 0.0;} //{ throw std::runtime_error("phix not implemented in EOS object");}
 
   void set_temperature(double kT) {kT_ = kT;}
+
+  virtual bool isNull() {return true;}
   
   virtual char const * const getName() const {return "NULL";}
   virtual double getEffHSD(){return 0.0;}
