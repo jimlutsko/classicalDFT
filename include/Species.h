@@ -290,11 +290,16 @@ public:
 
   void convolute_weight_with(int pos, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
   {
+    convolute_weight_with(fmt_weighted_densities[pos].wk(),v,result,bConjugate);
+  }
+
+  void convolute_weight_with(const DFT_Vec_Complex& wk, const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
+  {
     if(v.get_is_dirty() == true) throw std::runtime_error("Need real and fourier parts of input to FMT_Species::convolute_weight_with(...) to be consistent");
 
-    result.Four().Schur(v.cFour(), fmt_weighted_densities[pos].wk(),bConjugate);
+    result.Four().Schur(v.cFour(), wk,bConjugate);
     result.do_fourier_2_real();
-  }  
+  }    
   
   // Loop over the weighted densities and ask each one to add its contribution to dPhi
   //       In other words:   SUM_{a} SUM_j d PHI/d n_{a}(j) w_{a}(j-i)
@@ -637,6 +642,12 @@ public:
   virtual void calculateForce(bool needsTensor, void *param = NULL);
 
   void add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, const void *param);
+
+  void convolute_eos_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
+  { convolute_weight_with(eos_weighted_density_[0].wk(), v, result, bConjugate );}
+
+
+
   //  double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
   
   // TODO

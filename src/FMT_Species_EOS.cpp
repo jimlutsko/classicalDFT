@@ -48,8 +48,7 @@ FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& d
 double FMT_Species_EOS::effDensity(long I)
 {
   double hsd3 = hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_;
-  //  double eta = eos_weighted_density_[0].real(I);  
-  double x   = (6/(M_PI*hsd3)) * eos_weighted_density_[0].real(I);
+  double x    = (6/(M_PI*hsd3)) * eos_weighted_density_[0].real(I);
 
   return x;
 }
@@ -58,8 +57,8 @@ double FMT_Species_EOS::get_bulk_dfex(double x, const void *param) const
 {
   if(eos_.isNull()) return 0;
   
-  double eta = M_PI*x*hsd_*hsd_*hsd_/6;
-  FMT &fmt   = *((FMT*) param);  
+  double eta  = M_PI*x*hsd_*hsd_*hsd_/6;
+  FMT &fmt    = *((FMT*) param);  
   double fdft = x*fmt.get_fex(eta) + avdw_*x*x;
   return eos_.fex(x) - fdft;
 }
@@ -72,7 +71,6 @@ double FMT_Species_EOS::get_bulk_ddfex_deta(double x, const void *param) const
   FMT &fmt     = *((FMT*) param);
 
   double dfdft_dx = fmt.get_fex(HSeta) + HSeta*fmt.get_dfex_deta(HSeta) + 2*avdw_*x;
-
   double dx_deta  = 6/(M_PI*hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_);
 
   return dx_deta*(eos_.f1ex(x) - dfdft_dx);
@@ -90,7 +88,7 @@ double FMT_Species_EOS::get_bulk_d2dfex_deta2(double x, const void *param) const
   double d2fdft_dx2 = dHSeta_dx*(2*fmt.get_dfex_deta(HSeta) + HSeta*fmt.get_d2fex_deta2(HSeta)) + 2*avdw_;
 
   double dx_deta = 6/(M_PI*hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_);
-  
+
   return dx_deta*dx_deta*(eos_.f2ex(x) - d2fdft_dx2);
 }
 
@@ -159,7 +157,6 @@ void FMT_Species_EOS::add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, cons
   int Ny       = density1.Ny();
   int Nz       = density1.Nz();
   double dV    = density1.dV();
-  double hsd   = getHSD();
   
   // Some working space
   DFT_FFT result(Nx,Ny,Nz);
@@ -169,9 +166,7 @@ void FMT_Species_EOS::add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, cons
   
   // N.B. the fmt weights have all necessary normalization factors built in, including dV
   bool bConjugate = false;
-  //  convolute_eta_weight_with(v, result, bConjugate);
-  //  Psi.Real().IncrementBy(result.Real());
-  convolute_eta_weight_with(v, Psi, bConjugate);
+  convolute_eos_eta_weight_with(v, Psi, bConjugate);
 
   // Get Lambda: Lambda(K) = (d2dfex(K)/deta(K) deta(K))psi(K)  
   DFT_FFT Lambda(Nx,Ny,Nz);
@@ -188,6 +183,6 @@ void FMT_Species_EOS::add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, cons
 
   //the fmt weights have all necessary normalization factors built in, including dV
   bConjugate = true;
-  convolute_eta_weight_with(Lambda, result, bConjugate);
+  convolute_eos_eta_weight_with(Lambda, result, bConjugate);
   d2F.IncrementBy_Scaled_Vector(result.Real(),dV);
 }
