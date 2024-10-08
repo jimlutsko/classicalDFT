@@ -53,6 +53,7 @@ double FMT_Species_EOS::effDensity(long I)
   return x;
 }
 
+// this is F/V: note that fmt.get_fex gives F/N
 double FMT_Species_EOS::get_bulk_dfex(double x, const void *param) const
 {
   if(eos_.isNull()) return 0;
@@ -67,10 +68,11 @@ double FMT_Species_EOS::get_bulk_ddfex_deta(double x, const void *param) const
 {
   if(eos_.isNull()) return 0;
   
-  double HSeta = M_PI*x*hsd_*hsd_*hsd_/6;
+  double   eta = M_PI*x*hsd_*hsd_*hsd_/6;
   FMT &fmt     = *((FMT*) param);
 
-  double dfdft_dx = fmt.get_fex(HSeta) + HSeta*fmt.get_dfex_deta(HSeta) + 2*avdw_*x;
+  double dfdft_dx = fmt.get_fex(eta) + eta*fmt.get_dfex_deta(eta) + 2*avdw_*x;
+
   double dx_deta  = 6/(M_PI*hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_);
 
   return dx_deta*(eos_.f1ex(x) - dfdft_dx);
@@ -80,12 +82,12 @@ double FMT_Species_EOS::get_bulk_d2dfex_deta2(double x, const void *param) const
 {
   if(eos_.isNull()) return 0;
   
-  double HSeta = M_PI*x*hsd_*hsd_*hsd_/6;
+  double   eta = M_PI*x*hsd_*hsd_*hsd_/6;
   FMT &fmt     = *((FMT*) param);
 
-  double dHSeta_dx = M_PI*hsd_*hsd_*hsd_/6;
+  double deta_dx = M_PI*hsd_*hsd_*hsd_/6;
 
-  double d2fdft_dx2 = dHSeta_dx*(2*fmt.get_dfex_deta(HSeta) + HSeta*fmt.get_d2fex_deta2(HSeta)) + 2*avdw_;
+  double d2fdft_dx2 = deta_dx*(2*fmt.get_dfex_deta(eta) + eta*fmt.get_d2fex_deta2(eta)) + 2*avdw_;
 
   double dx_deta = 6/(M_PI*hsd_*hsd_*hsd_*D_EOS_*D_EOS_*D_EOS_);
 

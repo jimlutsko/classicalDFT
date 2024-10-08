@@ -127,7 +127,9 @@ class Species
   double evaluate_external_field(const External_Field &f);
 
   // Placeholders for FMT-specific functionality: non-FMT classes do nothing  
-  virtual double getHSD() const { return 0.0;}  
+  virtual double getHSD() const { return 0.0;}
+  virtual double get_hsd() const { return getHSD();}
+  
   //  virtual void set_fundamental_measure_derivatives(FundamentalMeasures &fm, long pos, bool needsTensor) {}
   virtual void set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param = NULL) {}
  
@@ -239,6 +241,7 @@ public:
   ~FMT_Species(){}
 
   virtual double getHSD() const { return hsd_;}
+  
   double getEta(long pos) const { return fmt_weighted_densities[EI()].real(pos);}
   double getS(long pos) const { return fmt_weighted_densities[SI()].real(pos);}
   double getV(int j, long pos)      const { return fmt_weighted_densities[VI(j)].real(pos);}
@@ -646,7 +649,7 @@ public:
   void convolute_eos_eta_weight_with(const DFT_FFT &v, DFT_FFT &result, bool bConjugate = false) const
   { convolute_weight_with(eos_weighted_density_[0].wk(), v, result, bConjugate );}
 
-
+  double get_eos_weight(long l) const { return eos_weighted_density_[0].getWeight(l);}
 
   //  double get_eos_measure(long pos) const { return eos_weighted_density_[0].real(pos);}
   
