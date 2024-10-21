@@ -295,8 +295,9 @@ void DFT::matrix_dot_v_intern(const vector<DFT_FFT> &v_in, vector<DFT_Vec> &resu
   for(int s=0;s<allSpecies_.size();s++)
     {
       DFT_Vec vv = v_in[s].cReal();
-      if (is_matrix_in_alias_coordinates()) allSpecies_[s]->convert_to_density_increment(vv);
-    
+      if (is_matrix_in_alias_coordinates())
+	  allSpecies_[s]->convert_to_density_increment(vv);
+      
       v[s].initialize(Nx, Ny, Nz);
       v[s].Real().set(vv);
       v[s].do_real_2_fourier();
