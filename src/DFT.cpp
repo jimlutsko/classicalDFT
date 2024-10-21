@@ -228,6 +228,26 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
       species->doFFT();
   }
 
+  // EOS term
+  F_eos_ = 0;
+  for(auto &species : allSpecies_)
+    {
+      FMT_Species_EOS *eos_species = dynamic_cast<FMT_Species_EOS*>(species);
+      if(eos_species)
+	{
+	  const Density& density = species->getDensity();	  
+	  double dV = density.dV();
+	  long Ntot = density.Ntot();
+
+	  double F = 0;	  
+	  for(long I=0;I<Ntot;I++)
+	    F += eos_species->dfex(I, fmt_);
+	  F_eos_ += F*dV;      	  
+	}
+    }
+  F += F_eos_;
+
+  
   //< Mean field contribution to F and dF
   F_mf_ = 0;
   for(auto &interaction: DFT::Interactions_)    
@@ -242,7 +262,6 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
   
   for(auto &species: allSpecies_)
     F_ext_ += species->evaluate_contribution_chemical_potential();
-
   
   for(auto &field : external_fields_)
     F_ext_ += allSpecies_[field->get_species()]->evaluate_external_field(*field);

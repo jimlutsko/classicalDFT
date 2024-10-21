@@ -134,6 +134,7 @@ class DFT : public Dynamical_Matrix
   double get_f_ext() const { return F_ext_;} //external field contribution to free energy including chemical potential
   double get_f_hs()  const { return F_hs_;}  //Hard-sphere contribution to free energy
   double get_f_mf()  const { return F_mf_;} //mean field contribution to free energy
+  double get_f_eos()  const { return F_eos_;} 
 
   // Implement Dynamical_Matrix interface.
   // Second derivatives contracted into arbitrary vector
@@ -167,7 +168,8 @@ class DFT : public Dynamical_Matrix
     ar & F_id_;
     ar & F_ext_;
     ar & F_hs_;
-    ar & F_mf_;	
+    ar & F_mf_;
+    ar & F_eos_;
   }
 
  protected:
@@ -180,6 +182,7 @@ class DFT : public Dynamical_Matrix
   double F_ext_ = 0.0; ///< External field contribution to free energy (including chemical potential)
   double F_hs_  = 0.0; ///< Hard-sphere contribution to free energy
   double F_mf_  = 0.0; ///< Mean-field contribution to free energy
+  double F_eos_ = 0.0;
   
   mutable bool full_hessian_ = true; // used in matrix_holder to distinguish full hessian from excess hessian.
   mutable double rms_force_ = 0.0;   // updated everytime the forces are calculated.

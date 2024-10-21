@@ -169,8 +169,6 @@ void FMT_Species_EOS::add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, cons
   // N.B. the fmt weights have all necessary normalization factors built in, including dV
   bool bConjugate = false;
   convolute_eos_eta_weight_with(v, Psi, bConjugate);
-  for(int i=0;i<1;i++)
-    cout << "i = " << i << " r = " << i*0.05 << " Psi[" << i << "] = " << Psi.Real().get(i) << endl; 
 
   // Get Lambda: Lambda(K) = (d2dfex(K)/deta(K) deta(K))psi(K)  
   DFT_FFT Lambda(Nx,Ny,Nz);
