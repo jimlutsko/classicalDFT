@@ -118,7 +118,6 @@ protected:
   
   // Sums up phi(i) over the lattice to give the total free energy
   double calculateFreeEnergy(vector<Species*> &allSpecies);
-  double EOS_Correction(FMT_Species_EOS &eos_species);
   
   virtual string Name() const = 0;
   friend class boost::serialization::access;
