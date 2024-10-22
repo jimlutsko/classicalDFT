@@ -639,6 +639,7 @@ public:
   double get_bulk_d2dfex_deta2(double x, const void *param) const;
 
   double get_bulk_ddfex_dx(double x, const void *param) const {return get_bulk_ddfex_deta(x,param)*(M_PI*pow(D_EOS_*hsd_,3))/6;}
+  double get_bulk_d2dfex_dx2(double x, const void *param) const {return get_bulk_d2dfex_deta2(x,param)*((M_PI*pow(D_EOS_*hsd_,3))/6)*((M_PI*pow(D_EOS_*hsd_,3))/6);}
 
   
   // Evaluate EOS free energy functional at point I
@@ -647,7 +648,7 @@ public:
 
   virtual void calculateFundamentalMeasures(bool needsTensor);
   virtual void set_fundamental_measure_derivatives(long pos, FundamentalMeasures &fm, void* param = NULL);  
-  virtual void calculateForce(bool needsTensor, void *param = NULL);
+  void calculateForce(void *param);
 
   void add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, const void *param);
 

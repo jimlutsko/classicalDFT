@@ -45,7 +45,7 @@ double DFT::real_space_dcf(double r, double x) const
     {
       double hsd1 = e->get_eos_hsd();
       if(r < hsd1)
-	dcf -= (M_PI/12)*(r-hsd1)*(r-hsd1)*(r+2*hsd1)*e->get_bulk_ddfex_dx(x, fmt_);
+	dcf -= (M_PI/12)*(r-hsd1)*(r-hsd1)*(r+2*hsd1)*e->get_bulk_d2dfex_dx2(x, fmt_);
     }
   
   return dcf;
@@ -255,7 +255,9 @@ double DFT::calculateFreeEnergyAndDerivatives_internal_(bool onlyFex)
 	  double F = 0;	  
 	  for(long I=0;I<Ntot;I++)
 	    F += eos_species->dfex(I, fmt_);
-	  F_eos_ += F*dV;      	  
+	  F_eos_ += F*dV;
+
+	  eos_species->calculateForce(&fmt_);
 	}
     }
   F += F_eos_;

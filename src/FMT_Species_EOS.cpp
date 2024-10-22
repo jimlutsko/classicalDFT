@@ -119,9 +119,10 @@ void FMT_Species_EOS::set_fundamental_measure_derivatives(long pos, FundamentalM
   eos_weighted_density_[0].Set_dPhi(pos,get_bulk_ddfex_deta(x, param));
 }
 
-void FMT_Species_EOS::calculateForce(bool needsTensor, void *param)
+void FMT_Species_EOS::calculateForce(void *param)
 {
-  FMT_Species::calculateForce(needsTensor);
+  //  if(!no_fmt)
+  //    FMT_Species::calculateForce(needsTensor);
 
   if(eos_.isNull()) return;
   
@@ -137,7 +138,7 @@ void FMT_Species_EOS::calculateForce(bool needsTensor, void *param)
 
   dF_local.do_fourier_2_real();
   dF_local.Real().MultBy(dV);
-  addToForce(dF_local.cReal());   
+  addToForce(dF_local.cReal());
 }
 
 // For this we need sum_J sum_K dV (d2dfex(K)/deta(K) deta(K)) w_eta(K-I) w_eta(K-J)v(J)
