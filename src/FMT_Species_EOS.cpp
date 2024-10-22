@@ -187,5 +187,8 @@ void FMT_Species_EOS::add_second_derivative(const DFT_FFT &v, DFT_Vec &d2F, cons
   //the fmt weights have all necessary normalization factors built in, including dV
   bConjugate = true;
   convolute_eos_eta_weight_with(Lambda, result, bConjugate);
+  cout << "d2F.get(12) = " << d2F.get(12) << endl;
+  cout << "result.Real().get(12) = " << result.Real().get(12) << endl;
   d2F.IncrementBy_Scaled_Vector(result.Real(),dV);
+  cout << "d2F.get(12) = " << d2F.get(12) << endl;  
 }

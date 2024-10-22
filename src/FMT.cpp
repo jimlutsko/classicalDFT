@@ -545,17 +545,6 @@ void FMT::add_second_derivative(const vector<DFT_FFT> &v, vector<DFT_Vec> &d2F, 
 	} 
            
     }
-  // Now get EOS contributions
-  for(int s = 0;s<Nspecies;s++)
-    {
-      FMT_Species_EOS *species = dynamic_cast<FMT_Species_EOS*>(allSpecies[s]);
-      if(species)
-	species->add_second_derivative(v[s], d2F[s], this);
-    }
-
-
-
-  
 }
 
 // Adds contribution to F_{I,I+J} = sum_{a,b} sum_K dV Phi_{ab}(K) w_a(K-I) w_b(K-I-J)
