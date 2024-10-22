@@ -57,7 +57,9 @@ class DFT : public Dynamical_Matrix
   const Lattice& get_lattice() const {return allSpecies_.front()->getLattice();}
   const Density& getDensity(int species) const {return allSpecies_[species]->getDensity();}
   const Density& get_density(int species) const {return allSpecies_[species]->getDensity();}
-  Interaction_Base* getInteraction(int which) { return Interactions_[which];}
+  Interaction_Base* getInteraction(int which) { return (Interactions_.size() == 0 ? NULL : Interactions_[which]);}
+  const int get_num_interactions() const { return Interactions_.size();}
+
   
   Species *getSpecies(int s) const { return allSpecies_[s];}
   int      getNumberOfSpecies() const {return allSpecies_.size();}
@@ -102,7 +104,7 @@ class DFT : public Dynamical_Matrix
   double calculateFreeEnergyAndDerivatives(bool onlyFex = false, bool H_dot_Force = false);
   double evaluate(bool onlyFex = false, bool H_dot_Force = false) { return calculateFreeEnergyAndDerivatives(onlyFex,H_dot_Force);}  
 
-  // Bulk Thermodynamics
+  // Bulk properties
 
   virtual double mu_times_beta(const vector<double> &densities, int species) const;
   virtual double omega_times_beta_over_volume(const vector<double> &x) const;

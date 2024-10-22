@@ -631,10 +631,15 @@ public:
 
   virtual bool is_eos() const { return true;}  
 
+  double get_eos_hsd() const { return hsd_*D_EOS_;}
+  
   // pass through from the EOS object
   double get_bulk_dfex(double x, const void *param) const;
   double get_bulk_ddfex_deta(double x, const void *param) const;
   double get_bulk_d2dfex_deta2(double x, const void *param) const;
+
+  double get_bulk_ddfex_dx(double x, const void *param) const {return get_bulk_ddfex_deta(x,param)*(M_PI*pow(D_EOS_*hsd_,3))/6;}
+
   
   // Evaluate EOS free energy functional at point I
   double effDensity(long I);

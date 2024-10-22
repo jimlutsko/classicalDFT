@@ -28,13 +28,26 @@ double DFT::real_space_dcf(double r, double x) const
     throw std:: runtime_error("DFT::real_space_dcf only implemented for single species");
   
   double dcf = 0;
-  double hsd = allSpecies_[0]->getHSD();
+  Species *s = allSpecies_[0];
+  double hsd = s->getHSD();
+  double dV = s->getLattice().dV();
 
+  // FMT contribution
   if(fmt_) dcf += fmt_->get_real_space_dcf(r,x,hsd);
 
+  // Interaction contribution
   for(auto &x: Interactions_)
-    dcf -= x->getW(r);
-    
+    dcf -= x->getW(r)/dV; // spurious dV in definition of weights
+
+  // EOS correction contribution
+  FMT_Species_EOS *e = dynamic_cast<FMT_Species_EOS*>(s);
+  if(e)
+    {
+      double hsd1 = e->get_eos_hsd();
+      if(r < hsd1)
+	dcf -= (M_PI/12)*(r-hsd1)*(r-hsd1)*(r+2*hsd1)*e->get_bulk_ddfex_dx(x, fmt_);
+    }
+  
   return dcf;
 }
 

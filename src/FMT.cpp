@@ -692,7 +692,9 @@ double FMT::d2Phi_dn_dn(int I[3], int si, int J[3], int sj, vector<Species*> &al
 
 double FMT::BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const
 {
-  if(allSpecies[0]->is_eos()) throw std::runtime_error("FMT::BulkMuex Not implemented for eos correction species");
+  //if(allSpecies[0]->is_eos()) throw std::runtime_error("FMT::BulkMuex Not implemented for eos correction species");
+
+  double mu = 0.0;
 
   FundamentalMeasures fm(0.0,1.0);
 
@@ -704,6 +706,11 @@ double FMT::BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies
 	  FundamentalMeasures fm1(x[s],sfmt->getHSD());
 	  fm.add(fm1);
 	}
+
+      FMT_Species_EOS *eosfmt = dynamic_cast<FMT_Species_EOS*>(allSpecies[s]);
+      if(eosfmt)
+	  mu += eosfmt->get_bulk_ddfex_dx(x[s],this);
+      
     }
   FundamentalMeasures dPhi;
   calculate_dPhi_wrt_fundamental_measures(fm, dPhi);
@@ -712,7 +719,7 @@ double FMT::BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies
   FundamentalMeasures weights(1.0, allSpecies[species]->getHSD()); // a non-fmt species gives zero hsd so OK.
   vector<double> weights_v = weights.get_as_vector();
 
-  double mu = 0.0;
+
   for(int i=0;i<dPhi_v.size();i++) mu += dPhi_v[i]*weights_v[i];
 
   // I now assume there is only one species as I do not (now, yet) have the generalization
