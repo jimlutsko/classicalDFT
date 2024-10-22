@@ -353,16 +353,6 @@ double FMT::calculateFreeEnergy(vector<Species*> &allSpecies)
   if(hadCatch) 
     throw Eta_Too_Large_Exception();
 
-  // Add in contributions from any EOS corrections
-  /*  double FEOS = 0;
-  for(auto s: allSpecies)
-    {
-      FMT_Species_EOS *eos_species = dynamic_cast<FMT_Species_EOS*>(s);
-      if(eos_species)
-	FEOS += EOS_Correction(*eos_species);
-    }
-
-  */
   // For the AO species, there is additional work to do for both the free energy and the forces. 
   // Do FFT of density and compute the fundamental measures by convolution
   double FAO = 0;
