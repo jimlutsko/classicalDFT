@@ -210,6 +210,8 @@ public:
 	  {
 	    interaction1_ = new Interaction_Interpolation_QF(species1_,species1_,potential1_,kT_,verbose_);
 	    dft_->addInteraction(interaction1_);
+	    if(eos_ != NULL) // factor of 1/2 because of conventions .... 
+	      dynamic_cast<FMT_Species_EOS*>(species1_)->set_avdw(interaction1_->getVDWParameter()/2);
 	  }
 
 	if(infile_.empty() == false)
@@ -221,6 +223,8 @@ public:
 	    else throw std::runtime_error("Input file stream no good  ... aborting");	  	    
 	  }
       }
+
+    
     /////////////////////////////////////////////////////
     // Report
     if(verbose_ && theLog_ != NULL) *theLog_ <<  myColor::GREEN << "#=================================" <<  myColor::RESET << endl;
