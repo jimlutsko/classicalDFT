@@ -46,6 +46,7 @@ public:
     options_.addOption("nCores", &nCores_);
     options_.addOption("kT", &kT_);
 
+    options_.addOption("BH_Split", &bh_split_);
     options_.addOption("HSD", &hsd1_);
 
     options_.addOption("eps1",   &eps1_);
@@ -176,6 +177,7 @@ public:
 	  potential1_ = new WHDF(sigma1_, eps1_, rcut1_);
 	else throw std::runtime_error("Requested potential " + potential_name_ + " unknown to DFT_Factory");
 	  
+	if (bh_split_) potential1_->setBH();
 	if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
       } else if(hsd1_ < 1) hsd1_ = 1;
 
@@ -271,6 +273,7 @@ public:
 	  potential1_ = new WHDF(sigma1_, eps1_, rcut1_);
 	else throw std::runtime_error("Requested potential " + potential_name_ + " unknown to DFT_Factory");
 	  
+	if (bh_split_) potential1_->setBH();
 	hsd1_ = potential1_->getHSD(kT_);
       }
 
@@ -311,6 +314,8 @@ public:
   
   void get_thermodynamics(bool verbose_ = true)
   {
+    if (!include_interaction_) return;
+    
     check();
     /////////////////////////////////////////////////////
     // Thermodynamics
@@ -389,6 +394,7 @@ public:
   
   double kT_   = 1;
   
+  bool bh_split_ = false;
   double hsd1_ = -1;
   
   double eps1_   = 1;

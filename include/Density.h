@@ -105,6 +105,7 @@ class Density : public Lattice
   // do stuff to the density
 
   void   operator*=(double a)   { Density_.MultBy(a);}
+  void   operator+=(double a)   { Density_.Real().add(a);}
   void   operator+=(DFT_Vec &v) { Density_.IncrementBy(v);}
   void   operator-=(DFT_Vec &v) { Density_.DecrementBy(v);} 
   void   shift(DFT_Vec &direction, double scale) { Density_.Real().IncrementBy_Scaled_Vector(direction, scale);}
