@@ -99,8 +99,8 @@ class Density : public Lattice
   // get neighboring values: the return value is the density at pos.
   double get_neighbor_values(long pos,double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;  
   
-  DFT_Vec get_average_over_xy_cooordinates() const;
-  DFT_Vec get_average_over_z_cooordinate() const;
+  DFT_Vec get_average_over_xy_coordinates() const;
+  DFT_Vec get_average_over_z_coordinate() const;
   
   // do stuff to the density
 

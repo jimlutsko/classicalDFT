@@ -391,7 +391,7 @@ double Density::get_msd() const
 }
 
 
-DFT_Vec Density::get_average_over_xy_cooordinates() const
+DFT_Vec Density::get_average_over_xy_coordinates() const
 {
   DFT_Vec d_z(Nz_);
   
@@ -412,7 +412,7 @@ DFT_Vec Density::get_average_over_xy_cooordinates() const
 }
 
 
-DFT_Vec Density::get_average_over_z_cooordinate() const
+DFT_Vec Density::get_average_over_z_coordinate() const
 {
   DFT_Vec d_xy(Nx_*Ny_);
   
