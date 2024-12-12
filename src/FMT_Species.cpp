@@ -54,9 +54,7 @@ void FMT_Species::set_density_from_alias(const DFT_Vec &x)
   //Species::set_density_from_alias(x);
   
   long pos;
-  const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
-  const double c = (1.0-etamin)/density_->dV();
-  //const double c = (0.99-etamin)/density_->dV();
+  const double c = 1.0/density_->dV() - dmin;
   
   #ifdef USE_OMP    
   #pragma omp parallel for  private(pos)  schedule(static)
@@ -64,7 +62,6 @@ void FMT_Species::set_density_from_alias(const DFT_Vec &x)
   for(pos=0;pos<x.size();pos++)
   {
     double y = x.get(pos);
-    //double z = dmin +c*(1-exp(-y*y));
     double z = dmin +c*y*y/(1+y*y);
     density_->set(pos,z);
   }
@@ -86,7 +83,6 @@ void FMT_Species::get_density_alias(DFT_Vec &x) const
   for(pos=0;pos<x.size();pos++)
   {
     double z = (density_->get(pos) - dmin)/c;
-    //double y = sqrt(fabs(log(1.0/(1-z))));
     double y = sqrt(fabs(z/(1-z)));
     x.set(pos, y);          
   }
@@ -103,9 +99,7 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   //Species::convert_to_alias_deriv(x,dF_dRho);  
   
   long pos;
-  const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
-  const double c = (1.0-etamin)/density_->dV();
-  //  const double c = (0.99-etamin)/density_->dV();  
+  const double c = 1.0/density_->dV() - dmin;
 
   #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
@@ -114,7 +108,6 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
   {
     double y = x.get(pos);
     double df = dF_dRho.get(pos);
-    //dF_dRho.set(pos, df*(2*c*y*exp(-y*y)));
     dF_dRho.set(pos, df*(2*c*y/((1+y*y)*(1+y*y))));
   }
 }
@@ -122,8 +115,7 @@ void FMT_Species::convert_to_alias_deriv(DFT_Vec &x, DFT_Vec &dF_dRho) const
 void FMT_Species::square_and_scale_with_d2rho_dx2(DFT_Vec &ff) const 
 {
   long pos;
-  const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
-  const double c = (1.0-etamin)/density_->dV();
+  const double c = 1.0/density_->dV() - dmin;
 
   DFT_Vec x(ff.size());  
   get_density_alias(x);  
@@ -155,9 +147,7 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
   //Species::convert_to_alias_increment(x,dF_dRho);  
   
   long pos;
-  const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
-  const double c = (1.0-etamin)/density_->dV();
-  //  const double c = (0.99-etamin)/density_->dV();  
+  const double c = 1.0/density_->dV() - dmin;  
 
   #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
@@ -166,7 +156,6 @@ void FMT_Species::convert_to_alias_increment(DFT_Vec &x, DFT_Vec &dRho) const
   {
     double y = x.get(pos);
     double drho = dRho.get(pos);
-    //dRho.set(pos, drho/(2*c*y*exp(-y*y)));
     dRho.set(pos, drho*(1+y*y)*(1+y*y)/(2*c*y));
   }
 }
@@ -176,9 +165,7 @@ void FMT_Species::get_second_derivatives_of_density_wrt_alias(DFT_Vec &d2Rhodx2)
   d2Rhodx2.zeros(density_->size());
   
   long pos;
-  const double etamin = dmin*(4*M_PI*getHSD()*getHSD()*getHSD()/3);
-  const double c = (1.0-etamin)/density_->dV();
-  //  const double c = (0.99-etamin)/density_->dV();  
+  const double c = 1.0/density_->dV() - dmin; 
 
   #ifdef USE_OMP
   #pragma omp parallel for  private(pos)  schedule(static)
