@@ -114,10 +114,16 @@ public:
   
   string get_name() const { return Name();}
   
+  double get_lambda_regulator() {return lambda_regulator_;}
+  void set_lambda_regulator(double val) {lambda_regulator_ = val;}
+
+  
 protected:
   
   // Sums up phi(i) over the lattice to give the total free energy
   double calculateFreeEnergy(vector<Species*> &allSpecies);
+  
+  double lambda_regulator_ = 0.0;
   
   virtual string Name() const = 0;
   friend class boost::serialization::access;

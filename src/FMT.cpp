@@ -137,6 +137,7 @@ double FMT::calculate_Phi(const FundamentalMeasures& fm) const
   phi -= (1/M_PI)*s0*f1; 
   phi += (1/(2*M_PI))*(s1*s2-v1_v2)*f2;
   phi += Phi3(fm)*f3;
+  phi += lambda_regulator_*f3;
 
   return phi;
 }
@@ -164,6 +165,7 @@ void FMT::calculate_dPhi_wrt_fundamental_measures(const FundamentalMeasures& fm,
   dPhi.eta -= (1/M_PI)*s0*f1p; 
   dPhi.eta += (1/(2*M_PI))*(s1*s2-v1_v2)*f2p;
   dPhi.eta += Phi3(fm)*f3p;
+  dPhi.eta += lambda_regulator_*f3p;
 
   dPhi.s0 += -(1/M_PI)*f1;
   dPhi.s1 += (1/(2*M_PI))*s2*f2;
@@ -232,7 +234,7 @@ double FMT::d2Phi_a_b(int a, int b, const FundamentalMeasures& n) const
     {
       if(n.is_eta(b))  d2Phi += ( -(1/M_PI)*s0*f1pp 
 				  +(1/(2*M_PI))*(s1*s2-v1_v2)*f2pp
-				  + Phi3(n)*f3pp );
+				  + Phi3(n)*f3pp + lambda_regulator_*f3pp);
       // eta-s0,s1,s2
       if(n.is_s0(b)) d2Phi += -(1/M_PI)*f1p;
       if(n.is_s1(b)) d2Phi += (1/(2*M_PI))*(s2)*f2p;

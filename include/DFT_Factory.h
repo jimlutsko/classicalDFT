@@ -69,6 +69,7 @@ public:
     options_.addOption("BoundaryWidth",&boundary_width_);
 
     options_.addOption("FMT", &fmt_name_);
+    options_.addOption("LambdaRegulator", &lambda_regulator_);
     
     options_.addOption("MaxIterations", &maxIterations_);
     options_.addOption("Tolerence", &tol_);
@@ -162,6 +163,8 @@ public:
 	  fmt_ = new Rosenfeld();
 	else
 	  fmt_ = new esFMT(1,0);
+	  
+	    fmt_->set_lambda_regulator(lambda_regulator_);
       }
 	
     interaction1_ = NULL;
@@ -391,6 +394,8 @@ public:
   double eps1_   = 1;
   double sigma1_ = 1;
   double rcut1_  = 3;
+  
+  double lambda_regulator_ = 0.0;
 
   string infile_;
   string instream_;

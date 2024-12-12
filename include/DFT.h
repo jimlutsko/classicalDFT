@@ -73,6 +73,8 @@ class DFT : public Dynamical_Matrix
   double get_temperature()                    const { return Interactions_[0]->get_temperature();}
   double get_number_of_atoms(int species = 0) const { return allSpecies_[species]->getDensity().get_mass();}
   
+  double get_lambda_regulator() {if (fmt_) return fmt_->get_lambda_regulator(); else return 0.0;}
+  
   // Set
   void setDF(int i, DFT_Vec &df) {return allSpecies_[i]->setDF(df);}
   void set_density(int i,DFT_Vec &x) {allSpecies_[i]->set_density(x);}
@@ -94,6 +96,7 @@ class DFT : public Dynamical_Matrix
   }
   
   void set_offset(bool val) { offset_ = val;}
+  void set_lambda_regulator(double val) {if (fmt_) fmt_->set_lambda_regulator(val);}
   
   // A few actions  
   void doDisplay(string &title, string &file, void *param = NULL) { for(auto &x: allSpecies_) x->doDisplay(title,file, param);}
