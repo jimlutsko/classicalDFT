@@ -75,7 +75,6 @@ class Grace
   static int CIRCLE;
   static int SQUARE;
 
-
   static int NORMAL_SCALE;
   static int LOG_SCALE;
   

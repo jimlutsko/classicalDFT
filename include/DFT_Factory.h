@@ -172,7 +172,7 @@ public:
 	else if(potential_name_ == WHDF_name)
 	  potential1_ = new WHDF(sigma1_, eps1_, rcut1_);
 	else throw std::runtime_error("Requested potential " + potential_name_ + " unknown to DFT_Factory");
-	  
+
 	if(hsd1_ < 0) hsd1_ = potential1_->getHSD(kT_);
       } else if(hsd1_ < 1) hsd1_ = 1;
 
@@ -306,6 +306,7 @@ public:
 
   DFT& get_DFT() { check(); return *dft_;}
   EOS &get_eos() { if(eos_ == NULL) throw std::runtime_error("No EOS found"); return *eos_;}
+  Potential1* get_potential() { return potential1_;}
   double get_D_EOS() { return D_EOS_;}
   
   double get_cell_size() const { return cellsize_;}
@@ -320,7 +321,9 @@ public:
     
     xv_ = xl_ = xs1_ = xs2_ = -1;
     dft_->findSpinodal(1.0, 1e-4, xs1_, xs2_, 1e-8);
-    dft_->findCoex(1.5, 1e-4, xv_, xl_,1e-8);				  
+    xv_ = 0.001;
+    xl_ = 0.9;
+    dft_->findCoex(0.9, 1e-4, xv_, xl_,1e-8);				  
 
     if(verbose_ && theLog_ != NULL) *theLog_ << "\tkT = " << kT_ << endl;
     if(verbose_ && theLog_ != NULL) *theLog_ << "\tOmega/(V kT) = " << dft_->omega_times_beta_over_volume(xl_) << endl;  

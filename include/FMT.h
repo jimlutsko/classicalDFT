@@ -33,12 +33,12 @@ public:
   FMT(){} 
   ~FMT(){}
 
-  // calculates total FMT contribution to the chemical potential of the requested species.
+  // calculates total FMT+EOS contribution to the chemical potential of the requested species.
   // x is an array giving density for each species
   double BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies, int species) const;
 
-  //Total FMT contribution to excess beta times Helmholtz free energy per unit volume. 
-  double BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const;
+  //Total FMT+EOS contribution to excess beta times Helmholtz free energy per unit volume. 
+  double get_contribution_beta_fex_per_volume(const vector<double> &x, const vector<Species*> &allSpecies) const;
   
   // Calculates total free energy and dOmega/dRho(i) for each lattice point using FFT convolutions
   double calculateFreeEnergyAndDerivatives(vector<Species*> &allSpecies);

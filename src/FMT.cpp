@@ -735,7 +735,7 @@ double FMT::BulkMuex(const vector<double> &x, const vector<Species*> &allSpecies
 }
 
 
-double FMT::BulkFex(const vector<double> &x, const vector<Species*> &allSpecies) const
+double FMT::get_contribution_beta_fex_per_volume(const vector<double> &x, const vector<Species*> &allSpecies) const
 { 
   FundamentalMeasures fm(0.0,1.0);
   double f = 0;

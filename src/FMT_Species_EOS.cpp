@@ -42,7 +42,7 @@ FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& d
   generateWeights(D_EOS*hsd, eos_weighted_density_);
   eos_weighted_density_[0].transformWeights();
 }
-
+/*
 void FMT_Species_EOS::initialize(FMT &fmt, int msize = 1000, double eta_max = 0.6)
 {
   double x_max = eta_max*6.0/(M_PI*pow(hsd_*D_EOS_,3));
@@ -60,7 +60,7 @@ void FMT_Species_EOS::initialize(FMT &fmt, int msize = 1000, double eta_max = 0.
       y.pushback(eos.fex(x)-fdft);
   
 }
-
+*/
 //  rho_eos(I) = eta_eos(I)*(6/M_PI)/(D_EOS*hsd)^3.
 double FMT_Species_EOS::effDensity(long I)
 {
