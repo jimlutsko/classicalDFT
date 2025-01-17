@@ -299,7 +299,7 @@ double fireMinimizer2::step()
 	v_[Jspecies].MultBy(0.5); vnorm_ *= 0.5;
 	dft_->setDF(Jspecies,dF_rem[Jspecies]);
       }
-    dt_ /= 2;
+    if(dt_/2 >= dt_min_) dt_ /= 2;
     //    dt_max_ *= f_back_; // old method of control of dt_max_
     fmax_ = 1000; //rem;
     backtracks_++;

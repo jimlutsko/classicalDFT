@@ -110,6 +110,7 @@ class fireMinimizer2 : public Minimizer
   
   void setTimeStep(double dt)    { dt_ = dt;}
   void setTimeStepMax(double dt) { dt_max_ = dt;}  
+  void setTimeStepMin(double dt) { dt_min_ = dt;}
   void setAlphaStart(double a)   { alpha_start_ = a; alpha_ = alpha_start_;}
   void setAlphaFac(double a)     { f_alf_ = a;}
   void setBacktrackFac(double a) { f_back_ = a;}  
