@@ -204,7 +204,7 @@ void init(double L[])
   // or, equivalently,  k(NxNy + NxNy + NyNz -k(Nx+Ny+Nz) +k*k) points.
 
 
-  bool is_boundary_point(long pos) const
+  virtual bool is_boundary_point(long pos) const
   {
     int ix, iy, iz;
     cartesian(pos,ix,iy,iz);
@@ -214,11 +214,11 @@ void init(double L[])
     return ((ix%Nx_ <= b || ix%Nx_ >= Nx_-b) || (iy%Ny_ <= b || iy%Ny_ >= Ny_-b) || (iz%Nz_ <= b || iz%Nz_ >= Nz_-b));
   }
   
-  long get_Nboundary() const { int k = 1+2*boundary_width_; return k*(Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-k*(Nx_+Ny_+Nz_)+k*k);}
+  virtual long get_Nboundary() const { int k = 1+2*boundary_width_; return k*(Nx_*Ny_+Nx_*Nz_+Ny_*Nz_-k*(Nx_+Ny_+Nz_)+k*k);}
   // cartesian coordinates to position
   long boundary_pos(int v[]) const { return boundary_pos(v[0],v[1],v[2]);}
 
-  long boundary_pos(int ix, int iy, int iz) const    
+  virtual long boundary_pos(int ix, int iy, int iz) const    
   {
     long pos = -1;
     // First get points in cell
@@ -265,7 +265,7 @@ void init(double L[])
     v[0] = ix; v[1] = iy; v[2] = iz;
   }
   
-  void boundary_cartesian(long pos,int &ix, int &iy, int &iz) const
+  virtual void boundary_cartesian(long pos,int &ix, int &iy, int &iz) const
   {
     ix = iy = iz = 0;
 
@@ -309,7 +309,7 @@ void init(double L[])
   // z-boundary k*(Nx-k)*(Ny-k) points
   // giving a total of k*(Ny*Nz + Nx*Nz + Nx*Ny - k*Nz - k*Ny-k*Nx+k*k) points
   // as expected.
-  bool get_next_boundary_point(int &ix, int &iy, int &iz) const
+  virtual bool get_next_boundary_point(int &ix, int &iy, int &iz) const
   {
     int b = boundary_width_;
     long pos_input = pos(ix,iy,iz);
@@ -352,7 +352,7 @@ void init(double L[])
     else return false;
   }
 
-  bool get_next_boundary_point(long &p) const
+  virtual bool get_next_boundary_point(long &p) const
   {
     int ix,iy,iz;
     cartesian(p,ix,iy,iz);
