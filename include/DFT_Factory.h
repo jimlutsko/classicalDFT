@@ -83,6 +83,7 @@ public:
     options_.addOption("ShowGraphics", &show_graphics_);
     options_.addOption("Include_HS", &include_hs_);
     options_.addOption("Include_Interaction", &include_interaction_);
+    options_.addOption("Include_External_Field", &include_ext_field_);
 
     options_.addOption("Potential", &potential_name_);
     options_.addOption("EOS_Correction", &eos_correction_);
@@ -96,6 +97,7 @@ public:
     if(theDensity_) delete theDensity_;
     if(species1_) delete species1_;
     if(interaction1_) delete interaction1_;
+    if(field1_) delete field1_;
     if(fmt_) delete fmt_;
     if(dft_) delete dft_;
   }
@@ -217,6 +219,13 @@ public:
 	    dft_->addInteraction(interaction1_);
 	  }
 
+  field1_ = NULL;
+  if (include_ext_field_)
+  {
+    field1_ = new External_Field();
+    dft_->add_field(field1_);
+  }
+
 	if(infile_.empty() == false)
 	  theDensity_->readDensity(infile_.c_str());
 	if(instream_.empty() == false)
@@ -261,6 +270,7 @@ public:
     if(species1_)     delete species1_;         species1_ = NULL;
     if(interaction1_) delete interaction1_; interaction1_ = NULL;
     if(potential1_)   delete potential1_;     potential1_ = NULL;
+    if(field1_)       delete field1_;             field1_ = NULL;
       
     if(include_hs_)
       fmt_ = new esFMT(1,0);
@@ -290,6 +300,12 @@ public:
 	interaction1_ = new Interaction_Interpolation_QF(species1_,species1_,potential1_,kT_,verbose_);
 	dft_->addInteraction(interaction1_);
       }
+
+    if (include_ext_field_)
+    {
+      field1_ = new External_Field();
+      dft_->add_field(field1_);
+    }
 
     /////////////////////////////////////////////////////
     // Report
@@ -342,6 +358,7 @@ public:
   FMT&              get_FMT()         { return *fmt_;}
   Interaction_Base& get_interaction() { return *interaction1_;}
   Species&          get_species()     { return *species1_;}
+  External_Field&   get_field()       { return *field1_;}
 
   double get_temperature() const { return kT_;}
   double get_liq_coex_density() const { return xl_;}
@@ -361,6 +378,7 @@ public:
   void set_log_file_name(string name) { log_file_name_ = name;}
 
   bool get_include_interactions() const { return include_interaction_;}
+  bool get_include_ext_field()    const { return include_ext_field_;}
 protected:
   int argc_;
   char **argv_;
@@ -370,7 +388,8 @@ protected:
   Potential1  *potential1_ = NULL;
   DensityType *theDensity_ = NULL;
   Species     *species1_   = NULL;
-
+  External_Field  *field1_ = NULL;
+  
   Interaction_Base *interaction1_ = NULL;
   
   FMT *fmt_ = NULL;
@@ -425,6 +444,7 @@ public:
   bool include_interaction_  = true;
   bool include_density_      = true;
   bool include_log_          = true;
+  bool include_ext_field_    = false;
   
   bool verbose_  = true;
 

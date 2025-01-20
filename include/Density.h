@@ -155,6 +155,8 @@ public:
 
   int get_species() const {return species_;}
   const DFT_Vec& get_field() const { return field_;}
+  
+  void set_field(const DFT_Vec &x) {field_.set(x);}
 
   template<class Archive> void serialize(Archive &ar, const unsigned int version)
   {
@@ -163,7 +165,7 @@ public:
   }  
 protected:
   DFT_Vec field_;
-  int     species_ = 1;
+  int     species_ = 0;
 };
 
 
