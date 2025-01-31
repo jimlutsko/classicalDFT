@@ -372,8 +372,14 @@ public:
   bool   get_homogeneous_boundary() const { return homogeneous_boundary_;}
   bool   get_fixed_background() const { return fixed_background_;}
   
+  void set_homogeneous_boundary(bool b) {homogeneous_boundary_ = b; species1_->set_homogeneous_boundary(homogeneous_boundary_);}
+  void set_fixed_background(bool b) {fixed_background_ = b; species1_->set_fixed_background(fixed_background_);}
+  
   void check() const {    if(!is_initialized_) throw std::runtime_error("DFT factory not initialized");}
 
+  double get_lambda_regulator() {return lambda_regulator_;}
+  void set_lambda_regulator(double val) {lambda_regulator_ = val; if (fmt_) fmt_->set_lambda_regulator(lambda_regulator_);}
+  
   void set_show_graphics(bool show) { show_graphics_ = show;}
   void set_log_file_name(string name) { log_file_name_ = name;}
 
