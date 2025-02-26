@@ -559,6 +559,41 @@ class LJ_Mecke : public EOS
     return pid+phs+pa;
   }
 
+  // excess free energy per atom and density derivatives
+  virtual double phix(double density)  const
+  {
+    double s = 0.1617*(density/rhoc_)/(0.689+0.311*pow(kT_/kTc_,0.3674));
+    double fhs = (4*s-3*s*s)*pow(1-s,-2);
+    double fa  = 0.0;
+    
+    for(int i=0;i<32;i++)
+      fa += c_[i]*pow(kT_/kTc_,m_[i])*pow(density/rhoc_,n_[i])*exp(p_[i]*pow(density/rhoc_,q_[i]));
+    
+    fa += da_*density/kT_;
+
+    return fhs+fa;
+  }
+  virtual double phi1x(double density) const
+  {
+    double s1  = 0.1617*(1.0/rhoc_)/(0.689+0.311*pow(kT_/kTc_,0.3674));
+    double s   = s1*density;
+    double fhs = s1*(4-2*s)*pow(1-s,-3);
+
+    double fa  = 0.0;
+    for(int i=0;i<32;i++)
+      {
+	fa += c_[i]*pow(kT_/kTc_,m_[i])*(n_[i]/rhoc_)*pow(density/rhoc_,n_[i]-1)*exp(p_[i]*pow(density/rhoc_,q_[i]));
+	fa += c_[i]*pow(kT_/kTc_,m_[i])*pow(density/rhoc_,n_[i])*exp(p_[i]*pow(density/rhoc_,q_[i]))*p_[i]*q_[i]*pow(density/rhoc_,q_[i]-1)/rhoc_;
+      }
+    fa += da_/kT_;
+
+    return fhs+fa;
+  }    
+  virtual double phi2x(double density) const = 0; //{ throw std::runtime_error("phix not implemented in EOS object");}
+  virtual double phi3x(double density) const = 0; //{ throw std::runtime_error("phix not implemented in EOS object");}
+
+
+  
  private:
   double rhoc_;
   double kTc_;

@@ -62,9 +62,18 @@ static void my_error_function(const char *msg)
 
 
 
-Grace::Grace(int xsize, int ysize, int Ngraph, bool show) : xmin_(0.0), xmax_(10.0), ymin_(0.0), 
-			   ymax_(10.0), nMaxDataSet_(0), Ngraph_(Ngraph)
+void Grace::setup(int xsize, int ysize, int Ngraph, bool show) 
+	
 {
+  xmin_ = 0.0;
+  xmax_ = 10.0;
+  ymin_ = 0.0;
+  ymax_ = 10.0;
+  nMaxDataSet_ = 0;
+  Ngraph_ = Ngraph;
+
+
+  
   if(!show) return;
 
   GraceRegisterErrorFunction(my_error_function);

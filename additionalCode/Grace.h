@@ -17,7 +17,8 @@
 class Grace
 {
  public:
-  explicit Grace(int sizex = 800, int sizey = 600, int Ngraph = 1, bool show = true);
+  explicit Grace(int sizex = 800, int sizey = 600, int Ngraph = 1, bool show = true) { setup(sizex, sizey, Ngraph, show);}
+  explicit Grace(bool show) { setup(800,600,1,show);}
   ~Grace(){}
 
   void close() { GraceClose();}
@@ -91,7 +92,9 @@ class Grace
  private:
 
   void sendCommand(const std::string &s) const {if(GraceIsOpen()) GracePrintf(s.c_str());}
+  void setup(int xsize, int ysize, int Ngraph, bool show);
 
+  
   double xmin_, xmax_;
   double ymin_, ymax_;
   int nMaxDataSet_;
