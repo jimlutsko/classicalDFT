@@ -71,29 +71,26 @@ double DFT::mu_times_beta(double density) const
   return mu_times_beta(vector<double>(1,density),0);
 }
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::mu_times_beta(const vector<double> &x, int species) const
 {
   Summation mu;
 
   mu += log(x[species]);
 
-  if(fmt_)
+  if(fmt_) // also adds in EOS contribution
     mu += fmt_->BulkMuex(x, allSpecies_, species);
   
   for(auto &interaction: Interactions_)
     mu += interaction->Mu(x,species);
-  
+
   return mu.sum();
 }
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::omega_times_beta_over_volume(double density) const
 {
   return omega_times_beta_over_volume(vector<double>(1,density));
 }
 
-// NEEDS UPDATE FOR FMT_SPECIES_EOS
 double DFT::omega_times_beta_over_volume(const vector<double> &x) const
 {
   double omega = fhelmholtz_times_beta_over_volume(x);
@@ -112,24 +109,17 @@ double DFT::fhelmholtz_times_beta_over_volume(const vector<double> &x) const
 {
   double F = 0.0;
 
-  double V = get_lattice().getVolume();
-
   for(auto &y: x)
     F += y*log(y)-y;
 
   double Fhs = 0.0;
-  if(fmt_)
-    {
-      Fhs += fmt_->BulkFex(x, allSpecies_);
-      F += Fhs;
-    }
+  if(fmt_) // includes EOS contribution
+    F += fmt_->get_contribution_beta_fex_per_volume(x, allSpecies_);
 
   double Fmf = 0.0;
   for(auto &interaction: Interactions_)
-    Fmf += interaction->Fhelmholtz(x);
-
-  F += Fmf;
-
+    F += interaction->Fhelmholtz(x);
+  
   return F;  
 }  
 

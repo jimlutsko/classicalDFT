@@ -32,8 +32,7 @@ using namespace std;
 //
 
 FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& density, double hsd, double mu, int seq)
-  : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1), D_EOS_(D_EOS), eos_(eos), avdw_(avdw)
-										    
+  : FMT_Species(density,hsd,mu,seq), eos_weighted_density_(1), D_EOS_(D_EOS), eos_(eos), avdw_(avdw)										    
 {
   long Nx = density_->Nx();
   long Ny = density_->Ny();
@@ -41,9 +40,27 @@ FMT_Species_EOS::FMT_Species_EOS(double D_EOS, EOS &eos, double avdw, Density& d
 
   eos_weighted_density_[0].initialize(Nx, Ny, Nz);
   generateWeights(D_EOS*hsd, eos_weighted_density_);
-  eos_weighted_density_[0].transformWeights();  
+  eos_weighted_density_[0].transformWeights();
 }
+/*
+void FMT_Species_EOS::initialize(FMT &fmt, int msize = 1000, double eta_max = 0.6)
+{
+  double x_max = eta_max*6.0/(M_PI*pow(hsd_*D_EOS_,3));
 
+  double dx = x_max/msize;
+  for(int i=0;i<=msize;i++)
+    {
+      double x    = i*dx;
+      double eta  = M_PI*x*hsd_*hsd_*hsd_/6;
+      double fdft = x*fmt.get_fex(eta) + avdw_*x*x;
+      return eos_.fex(x) - fdft;
+
+      
+      x.push_back(i*dx);
+      y.pushback(eos.fex(x)-fdft);
+  
+}
+*/
 //  rho_eos(I) = eta_eos(I)*(6/M_PI)/(D_EOS*hsd)^3.
 double FMT_Species_EOS::effDensity(long I)
 {
@@ -121,9 +138,6 @@ void FMT_Species_EOS::set_fundamental_measure_derivatives(long pos, FundamentalM
 
 void FMT_Species_EOS::calculateForce(void *param)
 {
-  //  if(!no_fmt)
-  //    FMT_Species::calculateForce(needsTensor);
-
   if(eos_.isNull()) return;
   
   double dV = getLattice().dV();

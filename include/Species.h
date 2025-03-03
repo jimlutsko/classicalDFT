@@ -632,6 +632,8 @@ public:
   virtual bool is_eos() const { return true;}  
 
   double get_eos_hsd() const { return hsd_*D_EOS_;}
+
+  void set_avdw(double a) {avdw_ = a;}
   
   // pass through from the EOS object
   double get_bulk_dfex(double x, const void *param) const;

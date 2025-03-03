@@ -142,7 +142,7 @@ double  DFT::find_density_from_mu(double mu, double xmin, double xmax, double to
   
   if(mu2 < mu || mu1 > mu)
     {
-      cout << "mu1 = " << mu1 << " mu = " << mu << " mu2 = " << mu2 << endl;
+      cout << "mu1 = " << mu1 << " mu = " << mu << " mu2 = " << mu2 << " xmin = " << xmin << " xmax = " << xmax << endl;
       throw std::runtime_error("DFT::find_density_from_mu failed");
     }
   

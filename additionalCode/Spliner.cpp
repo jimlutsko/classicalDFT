@@ -470,6 +470,15 @@ double SplinerVec::f(double z) const
 {
   int klo, khi;
   double a,b,h;
+
+  if(z < x_[0])
+    return y_[0] + ((y_[1]-y_[0])/(x_[1]-x_[0]))*(z-x_[0]);
+
+  int n = x_.size();
+  if(z > x_[n-1])
+    return y_[n-1] + ((y_[n-1]-y_[n-2])/(x_[n-1]-x_[n-2]))*(z-x_[n-1]);  
+
+  
   locate(z,a,b,h, klo, khi);
   double yz =a*y_[klo]+b*y_[khi]+((a*a*a-a)*y2_[klo]
 			 +(b*b*b-b)*y2_[khi])*(h*h)/6.0;
@@ -478,6 +487,14 @@ double SplinerVec::f(double z) const
 
 double SplinerVec::dfdx(double z) const 
 {
+  if(z < x_[0])
+    return ((y_[1]-y_[0])/(x_[1]-x_[0]));
+
+  int n = x_.size();
+  if(z > x_[n-1])
+    return ((y_[n-1]-y_[n-2])/(x_[n-1]-x_[n-2]));
+
+  
   int klo, khi;
   double a,b,h;
   locate(z,a,b,h, klo, khi);
@@ -489,6 +506,9 @@ double SplinerVec::dfdx(double z) const
 
 double SplinerVec::d2fdx2(double z) const 
 {
+  if(z < x_[0]) return 0;
+  if(z > x_.back()) return 0;
+  
   int klo, khi;
   double a,b,h;
   locate(z,a,b,h, klo, khi);
@@ -497,6 +517,9 @@ double SplinerVec::d2fdx2(double z) const
 
 double SplinerVec::d3fdx3(double z) const 
 {
+  if(z < x_[0]) return 0;
+  if(z > x_.back()) return 0;
+  
   int klo, khi;
   double a,b,h;
   locate(z,a,b,h, klo, khi);
