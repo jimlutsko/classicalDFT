@@ -388,6 +388,7 @@ public:
   double get_lambda_regulator() {return lambda_regulator_;}
   void set_lambda_regulator(double val) {lambda_regulator_ = val; if (fmt_) fmt_->set_lambda_regulator(lambda_regulator_);}
   
+  bool get_show_graphics() { return show_graphics_;}
   void set_show_graphics(bool show) { show_graphics_ = show;}
   void set_log_file_name(string name) { log_file_name_ = name;}
 
