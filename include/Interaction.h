@@ -35,6 +35,7 @@ class Interaction_Base
   Interaction_Base(Species *s1, Species *s2, Potential1 *v, double kT, bool verbose = true);
 
   Interaction_Base() {}
+  virtual ~Interaction_Base() {}
 
   virtual void initialize();
 
@@ -105,6 +106,7 @@ class Interaction : public Interaction_Base
   Interaction(Species *s1, Species *s2, Potential1 *v, double kT, string pointsFile) :
   Interaction_Base(s1,s2,v,kT), pointsFile_(pointsFile) {};
   Interaction() : Interaction_Base(){};
+  virtual ~Interaction() {}
 
   virtual void initialize();
   
@@ -148,6 +150,7 @@ class Interaction_Gauss : public Interaction_Base
   }
 
   Interaction_Gauss(): Interaction_Base() {}  
+  virtual ~Interaction_Gauss() {}
 
  protected:
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz);
@@ -176,6 +179,7 @@ class Interaction_Gauss_E : public Interaction_Gauss
   Interaction_Gauss_E(Species *s1, Species *s2, Potential1 *v, double kT, int Ngauss, bool verbose = true) :
     Interaction_Gauss(s1,s2,v,kT,Ngauss, verbose){}
   Interaction_Gauss_E(): Interaction_Gauss(){}  
+  virtual ~Interaction_Gauss_E() {}
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -197,6 +201,7 @@ class Interaction_Gauss_F : public Interaction_Gauss
    Interaction_Gauss(s1,s2,v,kT,Ngauss, verbose){}
 
   Interaction_Gauss_F(): Interaction_Gauss(){}
+  virtual ~Interaction_Gauss_F() {}
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -218,6 +223,7 @@ class Interaction_Interpolation : public Interaction_Base
    Interaction_Base(s1,s2,v,kT,verbose) {}
 
   Interaction_Interpolation(): Interaction_Base() {}
+  virtual ~Interaction_Interpolation() {}
 
  protected:
   virtual double generateWeight(int Sx, int Sy, int Sz, double dx, double dy, double dz);
@@ -247,6 +253,7 @@ class Interaction_Interpolation_Zero : public Interaction_Interpolation
    Interaction_Interpolation(s1,s2,v,kT,verbose) { vv_.push_back(1.0); pt_.push_back(0.0); initialize();}
 
  Interaction_Interpolation_Zero() : Interaction_Interpolation() {};
+ virtual ~Interaction_Interpolation_Zero() {}
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -271,6 +278,7 @@ class Interaction_Interpolation_LE : public Interaction_Interpolation
     }
 
   Interaction_Interpolation_LE() : Interaction_Interpolation(){}
+  virtual ~Interaction_Interpolation_LE() {}
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -294,7 +302,8 @@ class Interaction_Interpolation_QE : public Interaction_Interpolation
       initialize();
     }
 
-  Interaction_Interpolation_QE() : Interaction_Interpolation(){}  
+  Interaction_Interpolation_QE() : Interaction_Interpolation(){}
+  virtual ~Interaction_Interpolation_QE() {} 
 
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -319,6 +328,7 @@ class Interaction_Interpolation_LF : public Interaction_Interpolation
     }
 
   Interaction_Interpolation_LF() : Interaction_Interpolation(){}
+  virtual ~Interaction_Interpolation_LF() {} 
   
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -341,6 +351,7 @@ class Interaction_Interpolation_QF : public Interaction_Interpolation
       initialize();
     }  
   Interaction_Interpolation_QF() : Interaction_Interpolation(){}
+  virtual ~Interaction_Interpolation_QF() {} 
   
   friend class boost::serialization::access;
   template<class Archive> void serialize(Archive & ar, const unsigned int version)

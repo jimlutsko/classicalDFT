@@ -455,7 +455,7 @@ void Density::write_VTK_File(string filename) const
   /* Use visit_writer to write a regular mesh with data. */
   write_regular_mesh(filename.c_str(), 0, dims, nvars, vardims,
 		     centering, varnames, vars);
-  delete density;
+  delete[] density;
 }
 
 void Density::writeDensity(string filename) const
