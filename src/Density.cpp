@@ -107,8 +107,10 @@ void Density::expand(int delta_Nx, int delta_Ny, int delta_Nz, double background
 
 
 
-// Here we also assume equal lattice spacings and demand that Nx1-Nx2 is even.
-void Density::crop_from_larger_density(const Density &density)
+// Here we assume equal lattice spacings and demand that Nx1-Nx2 is even.
+// Periodic boundaries are NOT applied: if the new box is bigger,
+// the density is assumed constant outside the old (smaller) box.
+void Density::resize(const Density &density)
 {
   int Nx1 = density.Nx();
   int Ny1 = density.Ny();
