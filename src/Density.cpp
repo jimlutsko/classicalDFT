@@ -130,9 +130,9 @@ void Density::crop_from_larger_density(const Density &density)
     for(int iy=0;iy<Ny_;iy++)
       for(int iz=0;iz<Nz_;iz++)
 	{
-	  int jx = max(min(ix+Mx,0),Nx1);
-	  int jy = max(min(iy+My,0),Ny1);
-	  int jz = max(min(iz+Mz,0),Nz1);
+	  int jx = min(max(ix+Mx,0),Nx1);
+	  int jy = min(max(iy+My,0),Ny1);
+	  int jz = min(max(iz+Mz,0),Nz1);
 
 	  double d = density.get(jx,jy,jz);
 	  set(ix,iy,iz,d);
