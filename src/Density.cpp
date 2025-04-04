@@ -505,7 +505,7 @@ void Density::write_VTK_File(string filename) const
   /* Use visit_writer to write a regular mesh with data. */
   write_regular_mesh(filename.c_str(), 0, dims, nvars, vardims,
 		     centering, varnames, vars);
-  delete density;
+  delete[] density;
 }
 
 void Density::writeDensity(string filename) const
@@ -737,6 +737,59 @@ void Density::center_cluster(bool fixed_boundary)
   return;  
 
 }
+
+
+void Density::initialize_with_gaussians(vector<vector<double>> atom_coordinates, double alpha, double prefactor)
+{
+  vector<Summation> normalization_factors(atom_coordinates.size());
+  
+  // First loop to compute normalization factors
+  for(int ix=0;ix<Nx_;ix++)
+  for(int iy=0;iy<Ny_;iy++)
+  for(int iz=0;iz<Nz_;iz++)
+  {
+    double x = getX(ix);
+	  double y = getY(iy);
+	  double z = getZ(iz);
+    
+    for (int j=0; j<atom_coordinates.size(); j++)
+    {
+      double dx = fabs(x-atom_coordinates[j][0]); while (dx>L_[0]/2) dx-=L_[0];
+      double dy = fabs(y-atom_coordinates[j][1]); while (dy>L_[1]/2) dy-=L_[1];
+      double dz = fabs(z-atom_coordinates[j][2]); while (dz>L_[2]/2) dz-=L_[2];
+      
+      double r2 = dx*dx+dy*dy+dz*dz;
+      normalization_factors[j] += exp(-alpha*r2);
+    }
+  }
+  
+  // Second loop to initialize the density
+  for(int ix=0;ix<Nx_;ix++)
+  for(int iy=0;iy<Ny_;iy++)
+  for(int iz=0;iz<Nz_;iz++)
+  {
+    double x = getX(ix);
+	  double y = getY(iy);
+	  double z = getZ(iz);
+	  
+	  Summation S;
+	  
+    for (int j=0; j<atom_coordinates.size(); j++)
+    {
+      double dx = fabs(x-atom_coordinates[j][0]); while (dx>L_[0]/2) dx-=L_[0];
+      double dy = fabs(y-atom_coordinates[j][1]); while (dy>L_[1]/2) dy-=L_[1];
+      double dz = fabs(z-atom_coordinates[j][2]); while (dz>L_[2]/2) dz-=L_[2];
+      
+      double r2 = dx*dx+dy*dy+dz*dz;
+      S += exp(-alpha*r2) / normalization_factors[j].sum();
+    }
+    
+    double d = prefactor * S.sum() / dV();
+    d += 1e-18; // protection against zeros
+    set(ix, iy, iz, d);
+  }
+}
+
 
 //template<typename Archive> void Density::serialize(Archive & ar, const unsigned int version)
 /*

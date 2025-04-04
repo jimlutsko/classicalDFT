@@ -116,6 +116,8 @@ class Density : public Lattice
   
   void   doFFT() {Density_.do_real_2_fourier();}
   
+  void initialize_with_gaussians(vector<vector<double>> atom_coordinates, double alpha, double prefactor);
+  
   // access arrays  
   const double*          get_density_pointer() { return Density_.Real().memptr();}
   const DFT_Vec&         get_density_real()    const { return Density_.cReal();}
