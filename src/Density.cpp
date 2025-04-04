@@ -134,7 +134,7 @@ void Density::crop_from_larger_density(const Density &density)
 	  int jy = max(min(iy+My,0),Ny1);
 	  int jz = max(min(iz+Mz,0),Nz1);
 
-	  double d = density.get(j,jy,jz);
+	  double d = density.get(jx,jy,jz);
 	  set(ix,iy,iz,d);
 	}
 }
