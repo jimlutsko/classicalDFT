@@ -127,12 +127,16 @@ void Density::crop_from_larger_density(const Density &density)
   if(dNz != 2*Mz) cout << "Warning: difference in density lattices is not even in z direction" << endl;
   
   for(int ix=0;ix<Nx_;ix++)
-  for(int iy=0;iy<Ny_;iy++)
-  for(int iz=0;iz<Nz_;iz++)
-  {
-    double d = density.get(ix+Mx,iy+My,iz+Mz);
-    set(ix,iy,iz,d);
-  }
+    for(int iy=0;iy<Ny_;iy++)
+      for(int iz=0;iz<Nz_;iz++)
+	{
+	  int jx = max(min(ix+Mx,0),Nx1);
+	  int jy = max(min(iy+My,0),Ny1);
+	  int jz = max(min(iz+Mz,0),Nz1);
+
+	  double d = density.get(j,jy,jz);
+	  set(ix,iy,iz,d);
+	}
 }
 
 
@@ -388,6 +392,52 @@ double Density::get_msd() const
 	    }
 	}
   return r2/m;
+}
+
+double Density::get_Radius_1() const 
+{
+  double d_back = get_ave_background_density();
+  
+  double r2 = 0;
+  double m = 0;
+  for(int i=0;i<Nx_;i++)
+    for(int j=0;j<Ny_;j++)
+      for(int k=0;k<Nz_;k++)
+	{
+	  double x = getX(i);
+	  double y = getY(j);
+	  double z = getZ(k);
+
+	  double d = get(i,j,k) - d_back;
+	  r2 += d*(x*x+y*y+z*z);
+	  m += d;
+	}
+  return sqrt(fabs(r2/m));
+}
+
+
+double Density::get_Radius_2() const 
+{
+  double d_back = get_ave_background_density();
+  
+  double r1 = 0;
+  double m = 0;
+  for(int i=0;i<Nx_;i++)
+    for(int j=0;j<Ny_;j++)
+      for(int k=0;k<Nz_;k++)
+	{
+	  double x = getX(i);
+	  double y = getY(j);
+	  double z = getZ(k);
+
+	  double d = get(i,j,k) - d_back;
+	  if(fabs(d-0.4) < 0.01)
+	    {
+	      m++;
+	      r1 += sqrt(x*x+y*y+z*z);
+	    }
+	}
+  return r1/m;
 }
 
 

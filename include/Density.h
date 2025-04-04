@@ -91,6 +91,8 @@ class Density : public Lattice
   double get_max()  const { return Density_.cReal().max();}
   void   get_center_of_mass(double &rx, double &ry, double &rz) const;  
   double get_msd() const;
+  double get_Radius_1() const;
+  double get_Radius_2() const;
   void   get_particles(double threshold, vector< vector<long> > &clusters); // detect particles
   double get_ave_background_density() const;
   double get_max_background_density() const;
