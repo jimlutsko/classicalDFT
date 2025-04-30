@@ -204,7 +204,7 @@ class fireMinimizer2 : public Minimizer
 class DDFT : public Minimizer, public Dynamical_Matrix
 {
  public:
-  DDFT(DFT *dft, bool showGraphics = true, bool central_differences = false);
+  DDFT(DFT *dft, bool showGraphics = true, bool central_differences = false, bool forward_diffs_2 = false);
   ~DDFT() {}
 
   virtual void reset(){ time_ = 0.0;}
@@ -219,7 +219,8 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   double get_time() const { return time_;}
   void   set_tmax(double tmax) { Tmax_ = tmax;}
 
-  bool using_central_diffs() const { return central_differences_;}
+  bool using_central_diffs()   const { return central_differences_;}
+  bool using_forward_diffs_2() const { return forward_differences_2_;}
   
   virtual double get_convergence_monitor() const { return RHS_max_;}
 
@@ -240,7 +241,7 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   virtual void get_matrix_diag(DFT_Vec &diag) const;
   virtual void get_matrix_diag_nonhermetian(DFT_Vec &diag) const;  
   virtual void get_metric_diag(DFT_Vec &diag) const;
-  
+
 protected:
   double get_neighbors(const DFT_Vec &x, int species, long pos, int stride,
 			     double &xpx, double &xmx, double &xpy, double &xmy, double &xpz, double &xmz) const;
@@ -256,9 +257,10 @@ protected:
   
  protected:
 
-  bool show_graphics_       = true;
-  bool central_differences_ = false;
-  
+  bool show_graphics_         = true;
+  bool central_differences_   = false;
+  bool forward_differences_2_ = false;
+
   double dt_;
   double time_ = 0;
   double tolerence_fixed_point_ = 1e-4;

@@ -39,8 +39,8 @@ using namespace std;
 
 // This implementation presently only works for a single species!!!
 
-DDFT::DDFT(DFT *dft, bool showGraphics, bool central_differences)
-  : Minimizer(dft), show_graphics_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), central_differences_(central_differences), dtMax_(1)
+DDFT::DDFT(DFT *dft, bool showGraphics, bool central_differences, bool forward_diffs_2)
+  : Minimizer(dft), show_graphics_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), central_differences_(central_differences), forward_differences_2_(forward_diffs_2), dtMax_(1)
 {
   double dx = dft_->get_lattice().getDX();
   //dt_ = 10*0.1*dx*dx;
@@ -326,9 +326,10 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
   if(dft_->getNumberOfSpecies() > 1) throw std::runtime_error("DDFT::g_dot_x is not implemented for more than one species");
   int species = 0;
 
-  const int stride       = (central_differences_ ? 2 : 1); 
+  const int stride       = (central_differences_   ? 2 : 1);
+  const int fac          = (forward_differences_2_ ? 1 : 2);
   const Density &density = dft_->getDensity(species);
-  const double D[]       = {1/(2*stride*dx_*dx_), 1/(2*stride*dy_*dy_), 1/(2*stride*dz_*dz_)};
+  const double D[]       = {1/(fac*stride*dx_*dx_), 1/(fac*stride*dy_*dy_), 1/(fac*stride*dz_*dz_)};
 
   long pos;
 #ifdef USE_OMP
@@ -347,8 +348,14 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 	
 	double dpx,dmx,dpy,dmy,dpz,dmz; // density
 	double d0 = density.get_neighbor_values(pos,dpx,dmx,dpy,dmy,dpz,dmz);
-
+	
 	if(central_differences_) d0 = 0;
+	else if(forward_differences_2_) // tricky way of getting the right terms
+	  {
+	    dmx = dmy = dmz = d0;
+	    d0 = 0; 
+	  }       	
+
 	gx.set(pos,D[0]*((dpx+d0)*(xpx-x0)-(d0+dmx)*(x0-xmx))
 	       + D[1]*((dpy+d0)*(xpy-x0)-(d0+dmy)*(x0-xmy))
 	       + D[2]*((dpz+d0)*(xpz-x0)-(d0+dmz)*(x0-xmz)));
