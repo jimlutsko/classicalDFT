@@ -334,7 +334,7 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
   const Density &density = dft_->getDensity(species);
   double D[]       = {1/(dx_*dx_), 1/(dy_*dy_), 1/(dz_*dz_)};
 
-  if(diff_type_ == DiffType::CENTRAL) { D[0]/=2; D[1]/=2; D[2]/=2;}
+  if(diff_type_ == DiffType::CENTRAL) { D[0]/=4; D[1]/=4; D[2]/=4;}
   if(diff_type_ == DiffType::FWD1)    { D[0]/=2; D[1]/=2; D[2]/=2;}
   
   long pos;
