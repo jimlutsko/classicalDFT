@@ -328,15 +328,15 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
   if(dft_->getNumberOfSpecies() > 1) throw std::runtime_error("DDFT::g_dot_x is not implemented for more than one species");
   int species = 0;
 
-  //  const int stride       = (central_differences_   ? 2 : 1);
-  //  const int fac          = (forward_differences_2_ ? 1 : 2);
-
   const int stride       = (diff_type_ == DiffType::CENTRAL ? 2 : 1);
   const int fac          = (diff_type_ == DiffType::FWD2    ? 1 : 2);  
 
   const Density &density = dft_->getDensity(species);
-  const double D[]       = {1/(fac*stride*dx_*dx_), 1/(fac*stride*dy_*dy_), 1/(fac*stride*dz_*dz_)};
+  double D[]       = {1/(dx_*dx_), 1/(dy_*dy_), 1/(dz_*dz_)};
 
+  if(diff_type_ == DiffType::CENTRAL) { D[0]/=2; D[1]/=2; D[2]/=2;}
+  if(diff_type_ == DiffType::FWD1)    { D[0]/=2; D[1]/=2; D[2]/=2;}
+  
   long pos;
 #ifdef USE_OMP
 #pragma omp parallel for  private(pos) schedule(static)
@@ -357,16 +357,42 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 	
 	//	if(central_differences_) d0 = 0;
 	//	else if(forward_differences_2_) // tricky way of getting the right terms
+	/*
 	if(diff_type_ == DiffType::CENTRAL) d0 = 0;
 	else if(diff_type_ == DiffType::FWD2) // tricky way of getting the right terms	  
 	  {
 	    dmx = dmy = dmz = d0;
 	    d0 = 0; 
-	  }       	
-
+	  }
 	gx.set(pos,D[0]*((dpx+d0)*(xpx-x0)-(d0+dmx)*(x0-xmx))
 	       + D[1]*((dpy+d0)*(xpy-x0)-(d0+dmy)*(x0-xmy))
 	       + D[2]*((dpz+d0)*(xpz-x0)-(d0+dmz)*(x0-xmz)));
+	*/
+
+	int ix,iy,iz;
+	density.cartesian(pos,ix,iy,iz);
+	
+	if(diff_type_ == DiffType::CENTRAL)
+	  {
+	    gx.set(pos,D[0]*(dpx*(xpx-x0)-dmx*(x0-xmx))
+		   + D[1]*(dpy*(xpy-x0)-dmy*(x0-xmy))
+		   + D[2]*(dpz*(xpz-x0)-dmz*(x0-xmz)));
+	  } else if(diff_type_ == DiffType::FWD1) {
+	  gx.set(pos,D[0]*((dpx+d0)*(xpx-x0)-(d0+dmx)*(x0-xmx))
+		 + D[1]*((dpy+d0)*(xpy-x0)-(d0+dmy)*(x0-xmy))
+		 + D[2]*((dpz+d0)*(xpz-x0)-(d0+dmz)*(x0-xmz)));
+	} else if(diff_type_ == DiffType::FWD2) {
+	  gx.set(pos,D[0]*(dpx*(xpx-x0)-d0*(x0-xmx))
+		 + D[1]*(dpy*(xpy-x0)-d0*(x0-xmy))
+		 + D[2]*(dpz*(xpz-x0)-d0*(x0-xmz)));
+	} else if(diff_type_ == DiffType::FWD3) {	  
+	  double dp2x = density.get(ix+2,iy,iz);
+	  double dp2y = density.get(ix,iy+2,iz);
+	  double dp2z = density.get(ix,iy,iz+2);
+	  gx.set(pos,D[0]*(dp2x*(xpx-x0)-dpx*(x0-xmx))
+		 + D[1]*(dp2y*(xpy-x0)-dpy*(x0-xmy))
+		 + D[2]*(dp2z*(xpz-x0)-dpz*(x0-xmz)));
+	}
       }
     }      
 }
