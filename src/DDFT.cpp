@@ -39,8 +39,10 @@ using namespace std;
 
 // This implementation presently only works for a single species!!!
 
-DDFT::DDFT(DFT *dft, bool showGraphics, bool central_differences, bool forward_diffs_2)
-  : Minimizer(dft), show_graphics_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), central_differences_(central_differences), forward_differences_2_(forward_diffs_2), dtMax_(1)
+//DDFT::DDFT(DFT *dft, bool showGraphics, bool central_differences, bool forward_diffs_2)
+//  : Minimizer(dft), show_graphics_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), central_differences_(central_differences), forward_differences_2_(forward_diffs_2), dtMax_(1)
+DDFT::DDFT(DFT *dft, bool showGraphics, DiffType diff)
+  : Minimizer(dft), show_graphics_(showGraphics) , tolerence_fixed_point_(1e-4), successes_(0), diff_type_(diff), dtMax_(1)    
 {
   double dx = dft_->get_lattice().getDX();
   //dt_ = 10*0.1*dx*dx;
@@ -326,8 +328,12 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
   if(dft_->getNumberOfSpecies() > 1) throw std::runtime_error("DDFT::g_dot_x is not implemented for more than one species");
   int species = 0;
 
-  const int stride       = (central_differences_   ? 2 : 1);
-  const int fac          = (forward_differences_2_ ? 1 : 2);
+  //  const int stride       = (central_differences_   ? 2 : 1);
+  //  const int fac          = (forward_differences_2_ ? 1 : 2);
+
+  const int stride       = (diff_type_ == DiffType::CENTRAL ? 2 : 1);
+  const int fac          = (diff_type_ == DiffType::FWD2    ? 1 : 2);  
+
   const Density &density = dft_->getDensity(species);
   const double D[]       = {1/(fac*stride*dx_*dx_), 1/(fac*stride*dy_*dy_), 1/(fac*stride*dz_*dz_)};
 
@@ -349,8 +355,10 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 	double dpx,dmx,dpy,dmy,dpz,dmz; // density
 	double d0 = density.get_neighbor_values(pos,dpx,dmx,dpy,dmy,dpz,dmz);
 	
-	if(central_differences_) d0 = 0;
-	else if(forward_differences_2_) // tricky way of getting the right terms
+	//	if(central_differences_) d0 = 0;
+	//	else if(forward_differences_2_) // tricky way of getting the right terms
+	if(diff_type_ == DiffType::CENTRAL) d0 = 0;
+	else if(diff_type_ == DiffType::FWD2) // tricky way of getting the right terms	  
 	  {
 	    dmx = dmy = dmz = d0;
 	    d0 = 0; 
@@ -377,67 +385,6 @@ void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result
   }
 }
 
-void DDFT::get_matrix_diag_nonhermetian(DFT_Vec &diag) const
-{
-  const Density &density = dft_->getDensity(0);
-
-  long Ntot = get_Ntot();
-  int Nx    = get_dimension(0);
-  int Ny    = get_dimension(1);
-  int Nz    = get_dimension(2);  
-  int alf   = (central_differences_ ? 2 : 1);
-  
-  vector<DFT_Vec> G0(1);  G0[0].zeros(Ntot);
-  vector<DFT_Vec> Gx(1);  Gx[0].zeros(Ntot);
-  vector<DFT_Vec> Gy(1);  Gy[0].zeros(Ntot);
-  vector<DFT_Vec> Gz(1);  Gz[0].zeros(Ntot);
-
-  dft_->diagonal_matrix_elements(0,     0,   0, G0);
-
-  dft_->diagonal_matrix_elements(alf,   0,   0, Gx);
-  dft_->diagonal_matrix_elements(  0, alf,   0, Gy);
-  dft_->diagonal_matrix_elements(  0,   0, alf, Gz);
-
-  int ix;
-#ifdef USE_OMP
-#pragma omp parallel for  private(ix) schedule(static)  
-#endif
-  for(ix=0; ix<Nx; ix++)
-    for(int iy=0; iy<Ny; iy++)
-      for(int iz=0; iz<Nz; iz++)
-	{
-	  long I = density.pos(ix,iy,iz);
-	  double d0 = density.get(ix,iy,iz);
-
-	  double fp[3];
-	  double fm[3];
-	  long Im[3];
-	  for(int a=0;a<3;a++)
-	    {
-	      int ax = (a == 0 ? 1 : 0);
-	      int ay = (a == 1 ? 1 : 0);
-	      int az = (a == 2 ? 1 : 0);
-
-	      double da = density.get(ix+ax, iy+ay, iz+az);
-	      if(central_differences_) fp[a] = 0.25*da;
-	      else fp[a] = 0.5*(d0 + da);
-
-	      da = density.get(ix-ax, iy-ay, iz-az);
-
-	      if(central_differences_) fm[a] = 0.25*da;
-	      else fm[a] = 0.5*(d0 + da);
-	      	      
-	      Im[a] = density.get_PBC_Pos(ix-alf*ax, iy-alf*ay, iz-alf*az);
-	    }
-
-	  double sum = 0.0;
-	  sum += fp[0]*(Gx[0].get(I)-G0[0].get(I))+fm[0]*(Gx[0].get(Im[0])-G0[0].get(I));
-	  sum += fp[1]*(Gy[0].get(I)-G0[0].get(I))+fm[1]*(Gy[0].get(Im[1])-G0[0].get(I));
-	  sum += fp[2]*(Gz[0].get(I)-G0[0].get(I))+fm[2]*(Gz[0].get(Im[2])-G0[0].get(I));
-	  diag.set(I,-sum/(dx_*dx_));
-	}
-}
-
 void DDFT::get_matrix_diag(DFT_Vec &diag) const
 {
   const Density &density = dft_->getDensity(0);
@@ -446,7 +393,8 @@ void DDFT::get_matrix_diag(DFT_Vec &diag) const
   int Nx    = get_dimension(0);
   int Ny    = get_dimension(1);
   int Nz    = get_dimension(2);  
-  int alf   = (central_differences_ ? 2 : 1);
+  //  int alf   = (central_differences_ ? 2 : 1);
+  int alf   = (diff_type_ == DiffType::CENTRAL ? 2 : 1);  
   
   vector<DFT_Vec> G0(1);  G0[0].zeros(Ntot);
   vector<DFT_Vec> Gx(1);  Gx[0].zeros(Ntot);
@@ -500,12 +448,14 @@ void DDFT::get_matrix_diag(DFT_Vec &diag) const
 	      int az = (a == 2 ? 1 : 0);
 
 	      double da = density.get(ix+ax, iy+ay, iz+az);
-	      if(central_differences_) fp[a] = 0.25*da;
+	      //	      if(central_differences_) fp[a] = 0.25*da;
+	      if(diff_type_ == DiffType::CENTRAL) fp[a] = 0.25*da;	      
 	      else fp[a] = 0.5*(d0 + da);
 
 	      da = density.get(ix-ax, iy-ay, iz-az);
 
-	      if(central_differences_) fm[a] = 0.25*da;
+	      //	      if(central_differences_) fm[a] = 0.25*da;
+	      if(diff_type_ == DiffType::CENTRAL) fm[a] = 0.25*da;	      
 	      else fm[a] = 0.5*(d0 + da);
 	      	      
 	      Ip[a] = density.get_PBC_Pos(ix+alf*ax, iy+alf*ay, iz+alf*az);
@@ -561,7 +511,8 @@ void DDFT::get_metric_diag(DFT_Vec &diag) const
 	      f += density.get(ix-ax, iy-ay, iz-az);
 	    }
 
-	  if(central_differences_) { f /= 4;}
+	  //	  if(central_differences_) { f /= 4;}
+	  if(diff_type_ == DiffType::CENTRAL) { f /= 4;}	  
 	  else { f = (f+6*d0)/2;}
 
 	  f /= (dx_*dx_);
@@ -569,6 +520,75 @@ void DDFT::get_metric_diag(DFT_Vec &diag) const
 	  diag.set(I,-f);
 	}
 }
+
+
+void DDFT::get_matrix_diag_nonhermetian(DFT_Vec &diag) const
+{
+  throw std::runtime_error("DDFT::get_matrix_diag_nonhermetian not implemented");
+  /*
+  const Density &density = dft_->getDensity(0);
+
+  long Ntot = get_Ntot();
+  int Nx    = get_dimension(0);
+  int Ny    = get_dimension(1);
+  int Nz    = get_dimension(2);  
+  //  int alf   = (central_differences_ ? 2 : 1);
+  int alf   = (diff_type_ == DiffType::CENTRAL ? 2 : 1);  
+  
+  vector<DFT_Vec> G0(1);  G0[0].zeros(Ntot);
+  vector<DFT_Vec> Gx(1);  Gx[0].zeros(Ntot);
+  vector<DFT_Vec> Gy(1);  Gy[0].zeros(Ntot);
+  vector<DFT_Vec> Gz(1);  Gz[0].zeros(Ntot);
+
+  dft_->diagonal_matrix_elements(0,     0,   0, G0);
+
+  dft_->diagonal_matrix_elements(alf,   0,   0, Gx);
+  dft_->diagonal_matrix_elements(  0, alf,   0, Gy);
+  dft_->diagonal_matrix_elements(  0,   0, alf, Gz);
+
+  int ix;
+#ifdef USE_OMP
+#pragma omp parallel for  private(ix) schedule(static)  
+#endif
+  for(ix=0; ix<Nx; ix++)
+    for(int iy=0; iy<Ny; iy++)
+      for(int iz=0; iz<Nz; iz++)
+	{
+	  long I = density.pos(ix,iy,iz);
+	  double d0 = density.get(ix,iy,iz);
+
+	  double fp[3];
+	  double fm[3];
+	  long Im[3];
+	  for(int a=0;a<3;a++)
+	    {
+	      int ax = (a == 0 ? 1 : 0);
+	      int ay = (a == 1 ? 1 : 0);
+	      int az = (a == 2 ? 1 : 0);
+
+	      double da = density.get(ix+ax, iy+ay, iz+az);
+	      //	      if(central_differences_) fp[a] = 0.25*da;
+	      if(diff_type_ == DiffType::CENTRAL) fp[a] = 0.25*da;	      
+	      else fp[a] = 0.5*(d0 + da);
+
+	      da = density.get(ix-ax, iy-ay, iz-az);
+
+	      //	      if(central_differences_) fm[a] = 0.25*da;
+	      if(diff_type_ == DiffType::CENTRAL) fm[a] = 0.25*da;
+	      else fm[a] = 0.5*(d0 + da);
+	      	      
+	      Im[a] = density.get_PBC_Pos(ix-alf*ax, iy-alf*ay, iz-alf*az);
+	    }
+
+	  double sum = 0.0;
+	  sum += fp[0]*(Gx[0].get(I)-G0[0].get(I))+fm[0]*(Gx[0].get(Im[0])-G0[0].get(I));
+	  sum += fp[1]*(Gy[0].get(I)-G0[0].get(I))+fm[1]*(Gy[0].get(Im[1])-G0[0].get(I));
+	  sum += fp[2]*(Gz[0].get(I)-G0[0].get(I))+fm[2]*(Gz[0].get(Im[2])-G0[0].get(I));
+	  diag.set(I,-sum/(dx_*dx_));
+	}
+*/
+}
+
 
 
 void DDFT::Display(double F, double dFmin, double dFmax, double N)

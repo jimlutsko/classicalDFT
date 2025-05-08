@@ -11,6 +11,47 @@ using namespace std;
 #include <armadillo> // for Arnoldi stuff
 #endif
 
+// This is copied from https://cplusplus.com/forum/general/118551/
+
+#define FOREACH_OP(F) \
+  F(FWD1) \
+  F(CENTRAL)  \
+  F(FWD2) \
+  F(FWD3)   \
+
+enum class DiffType
+  {
+#define F(x) x,
+    FOREACH_OP(F)
+#undef F
+  };
+
+inline const char* DiffType_names( unsigned n )
+{
+  const char* diff_names[] = 
+    {
+#define F(x) #x ,
+      FOREACH_OP(F)
+#undef F
+      NULL
+    };
+  return diff_names[ n ];
+}  
+
+inline DiffType DiffType_values( unsigned n )
+{
+  DiffType diff_values[] =
+    {
+#define F(x) DiffType::x,
+      FOREACH_OP(F)
+#undef F
+    };
+  return diff_values[ n ];
+}
+
+    //    {    FWD1=1, CENTRAL, FWD2, FWD3};
+
+
 // brief Minimizer base class
 class Minimizer
 {
@@ -204,7 +245,8 @@ class fireMinimizer2 : public Minimizer
 class DDFT : public Minimizer, public Dynamical_Matrix
 {
  public:
-  DDFT(DFT *dft, bool showGraphics = true, bool central_differences = false, bool forward_diffs_2 = false);
+  //  DDFT(DFT *dft, bool showGraphics = true, bool central_differences = false, bool forward_diffs_2 = false);
+  DDFT(DFT *dft, bool showGraphics = true, DiffType diff = DiffType::FWD1);
   ~DDFT() {}
 
   virtual void reset(){ time_ = 0.0;}
@@ -219,8 +261,11 @@ class DDFT : public Minimizer, public Dynamical_Matrix
   double get_time() const { return time_;}
   void   set_tmax(double tmax) { Tmax_ = tmax;}
 
-  bool using_central_diffs()   const { return central_differences_;}
-  bool using_forward_diffs_2() const { return forward_differences_2_;}
+  //  bool using_central_diffs()   const { return central_differences_;}
+  //  bool using_forward_diffs_2() const { return forward_differences_2_;}
+
+  bool using_central_diffs()   const { return (diff_type_ == DiffType::CENTRAL);}
+  bool using_forward_diffs_2() const { return (diff_type_ == DiffType::FWD2);}
   
   virtual double get_convergence_monitor() const { return RHS_max_;}
 
@@ -258,8 +303,9 @@ protected:
  protected:
 
   bool show_graphics_         = true;
-  bool central_differences_   = false;
-  bool forward_differences_2_ = false;
+  //  bool central_differences_   = false;
+  //  bool forward_differences_2_ = false;
+  DiffType diff_type_ = DiffType::FWD1;
 
   double dt_;
   double time_ = 0;
