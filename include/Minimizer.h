@@ -49,6 +49,10 @@ inline DiffType DiffType_values( unsigned n )
   return diff_values[ n ];
 }
 
+DiffType get_diff_type_from_string(string diff_type_string);
+string get_diff_type_name(DiffType diff);
+
+
     //    {    FWD1=1, CENTRAL, FWD2, FWD3};
 
 
