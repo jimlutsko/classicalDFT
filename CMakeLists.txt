@@ -45,6 +45,7 @@ set(all_SRCS
   ${PROJECT_SOURCE_DIR}/src/Potential.cpp
   ${PROJECT_SOURCE_DIR}/src/Minimizer.cpp
   ${PROJECT_SOURCE_DIR}/src/DDFT.cpp
+  ${PROJECT_SOURCE_DIR}/src/DiffType.cpp
   ${PROJECT_SOURCE_DIR}/src/Arnoldi.cpp
   ${PROJECT_SOURCE_DIR}/src/Eigenvalues.cpp
   ${PROJECT_SOURCE_DIR}/src/Log_Det.cpp
