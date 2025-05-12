@@ -326,13 +326,11 @@ double DDFT::get_neighbors(const DFT_Vec &x, int species, long pos, int stride,
 void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 {
   if(dft_->getNumberOfSpecies() > 1) throw std::runtime_error("DDFT::g_dot_x is not implemented for more than one species");
-  int species = 0;
 
-  const int stride       = (diff_type_ == DiffType::CENTRAL ? 2 : 1);
-  const int fac          = (diff_type_ == DiffType::FWD2    ? 1 : 2);  
-
+  int species            = 0;
   const Density &density = dft_->getDensity(species);
-  double D[]       = {1/(dx_*dx_), 1/(dy_*dy_), 1/(dz_*dz_)};
+  const int stride       = (diff_type_ == DiffType::CENTRAL ? 2 : 1);
+  double D[]             = {1/(dx_*dx_), 1/(dy_*dy_), 1/(dz_*dz_)};
 
   if(diff_type_ == DiffType::CENTRAL) { D[0]/=4; D[1]/=4; D[2]/=4;}
   if(diff_type_ == DiffType::FWD1)    { D[0]/=2; D[1]/=2; D[2]/=2;}
@@ -355,23 +353,6 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 	double dpx,dmx,dpy,dmy,dpz,dmz; // density
 	double d0 = density.get_neighbor_values(pos,dpx,dmx,dpy,dmy,dpz,dmz);
 	
-	//	if(central_differences_) d0 = 0;
-	//	else if(forward_differences_2_) // tricky way of getting the right terms
-	/*
-	if(diff_type_ == DiffType::CENTRAL) d0 = 0;
-	else if(diff_type_ == DiffType::FWD2) // tricky way of getting the right terms	  
-	  {
-	    dmx = dmy = dmz = d0;
-	    d0 = 0; 
-	  }
-	gx.set(pos,D[0]*((dpx+d0)*(xpx-x0)-(d0+dmx)*(x0-xmx))
-	       + D[1]*((dpy+d0)*(xpy-x0)-(d0+dmy)*(x0-xmy))
-	       + D[2]*((dpz+d0)*(xpz-x0)-(d0+dmz)*(x0-xmz)));
-	*/
-
-	int ix,iy,iz;
-	density.cartesian(pos,ix,iy,iz);
-	
 	if(diff_type_ == DiffType::CENTRAL)
 	  {
 	    gx.set(pos,D[0]*(dpx*(xpx-x0)-dmx*(x0-xmx))
@@ -386,6 +367,8 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
 		 + D[1]*(dpy*(xpy-x0)-d0*(x0-xmy))
 		 + D[2]*(dpz*(xpz-x0)-d0*(x0-xmz)));
 	} else if(diff_type_ == DiffType::FWD3) {	  
+	  int ix,iy,iz;
+	  density.cartesian(pos,ix,iy,iz);	
 	  double dp2x = density.get(ix+2,iy,iz);
 	  double dp2y = density.get(ix,iy+2,iz);
 	  double dp2z = density.get(ix,iy,iz+2);
@@ -413,6 +396,8 @@ void DDFT::matrix_dot_v_intern(const vector<DFT_FFT> &v, vector<DFT_Vec> &result
 
 void DDFT::get_matrix_diag(DFT_Vec &diag) const
 {
+  throw std::runtime_error("get_matrix_diag must be updated for new diff types");
+  
   const Density &density = dft_->getDensity(0);
 
   long Ntot = get_Ntot();
@@ -511,6 +496,8 @@ void DDFT::get_matrix_diag(DFT_Vec &diag) const
 
 void DDFT::get_metric_diag(DFT_Vec &diag) const
 {
+  throw std::runtime_error("get_metric_diag must be updated for new diff types");
+  
   const Density &density = dft_->getDensity(0);
 
   long Ntot = get_Ntot();
