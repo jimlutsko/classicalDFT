@@ -344,7 +344,7 @@ void DDFT::g_dot_x(const DFT_Vec& x, DFT_Vec& gx) const
       if(is_fixed_boundary() && density.is_boundary_point(pos))
 	{
 	  gx.set(pos,0.0);
-	  if(fabs(x.get(pos) > 0.0))
+	  if(fabs(x.get(pos)) > 0.0)
 	    throw std::runtime_error("For fixed boundaries, input vector to DDFT::g_dot_x must have zero boundary entries");
 	} else {      
 	double xpx,xmx,xpy,xmy,xpz,xmz;
