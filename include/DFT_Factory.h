@@ -333,6 +333,7 @@ public:
   double get_D_EOS() { return D_EOS_;}
   
   double get_cell_size() const { return cellsize_;}
+  bool get_include_hs() const { return include_hs_;}
   
   void get_thermodynamics(bool verbose_ = true)
   {

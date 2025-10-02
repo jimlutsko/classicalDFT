@@ -69,8 +69,8 @@ class DFT : public Dynamical_Matrix
 
   Species &get_species(int s = 0) const { return *(allSpecies_[s]);}
   
-  string get_potential()                      const { return Interactions_[0]->get_name();}
-  double get_temperature()                    const { return Interactions_[0]->get_temperature();}
+  string get_potential()                      const { return (Interactions_.size() == 0 ? string("none") : Interactions_[0]->get_name());}
+  double get_temperature()                    const { return (Interactions_.size() == 0 ? 0.0 : Interactions_[0]->get_temperature());}
   double get_number_of_atoms(int species = 0) const { return allSpecies_[species]->getDensity().get_mass();}
   
   double get_lambda_regulator() {if (fmt_) return fmt_->get_lambda_regulator(); else return 0.0;}
