@@ -242,7 +242,7 @@ class DFT_FFT
     }
 
   void zeros() {RealSpace_.zeros(); FourierSpace_.zeros(); is_dirty_ = false;}
-
+  void shift(DFT_Vec &direction, double scale) { RealSpace_.IncrementBy_Scaled_Vector(direction, scale); is_dirty_ = true;}
 
   bool get_is_dirty() const {return is_dirty_;}
   

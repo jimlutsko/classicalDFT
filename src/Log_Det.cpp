@@ -25,7 +25,7 @@ Log_Det::Log_Det(const Dynamical_Matrix& matrix, int order, double lam_max, doub
   //  if(matrix_.is_dynamic()) { lam_min_ *= lam_min_; lam_max_ *= lam_max_;}
   lam_min_ *= lam_min_; lam_max_ *= lam_max_;
   
-  scale_ = 1.0/(lam_min_+lam_max_);
+  scale_ = 1.0; //1.0/(lam_min_+lam_max_);
   a_     = lam_min_*scale_;
   b_     = lam_max_*scale_;
   
@@ -49,19 +49,29 @@ void Log_Det::get_coefficients(int order)
 	  else T = 2*xk*Tm1-Tm2;
 
 	  c_[j] += log(0.5*(b_-a_)*xk+0.5*(b_+a_))*T;
+	  //	  c_[j] += log((2/(b_-a_))*xk+2*(b_+a_)/(b_-a_))*T;
 
 	  Tm2 = Tm1;
 	  Tm1 = T;
 	}
     }
   for(int j=0;j<=order;j++) c_[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
+
+  cout << "c_[0] = " << c_[0] << endl;
 }
 
 void Log_Det::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result) const
 {
   DFT_Vec r1(v);
   matrix_.matrix_dot_v1(v,r1,NULL);  // r1 = (gH)v
-  matrix_.matrix_dot_v1(r1,result,NULL); // result = (gH)r1 = (gH)(gH)v     
+  matrix_.matrix_dot_v1(r1,result,NULL); // result = (gH)r1 = (gH)(gH)v
+
+
+  //  for(int i=0;i<5;i++) cout << "result["<< i << "] = "<< result.get(i) << endl;
+  //  cout << endl;
+  
+  result.MultBy(2.0/(b_-a_));
+  result.IncrementBy_Scaled_Vector(v, -(b_+a_)/(b_-a_));
 }
   
 
@@ -69,6 +79,30 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
 {
   double lam_mid = (lam_max_+lam_min_)/2;
 
+  
+  {
+    // test
+    double x = lam_mid;
+    double y = (2*x/(lam_max_-lam_min_))-(lam_max_+lam_min_)/(lam_max_-lam_min_);
+
+    double z= 0;
+
+    double T0 = 1;
+    double T1 = y;
+    z = c_[0]*T0+c_[1]*T1;
+    for(int k=2;k<c_.size();k++)
+      {
+	double T = 2*y*T1-T0;
+	z += c_[k]*T;
+
+	T0 = T1;
+	T1 = T;
+      }
+    cout << "\tcheck: z=sum c_k*T_k(y) = " << z << " ln(x) = " << log(x) << endl;
+    cout << endl;
+  }
+  
+  
   // first, we need the interpolation coefficients for log(x) 
 
   long Ntot    = matrix_.get_Ntot();
@@ -87,7 +121,7 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
   if(seed <= 0) { random_device r;  seed = r();}
   mt19937 rng(seed);
   uniform_int_distribution<> distrib(0, 1);      
-  
+
   for(int i=1;i<=num_samples;i++)
     {
       for(long pos = 0; pos < Ntot; pos++) v.set(pos,(distrib(rng) > 0 ? 1 : -1));
@@ -95,10 +129,6 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
 
       matrix_dot_v1(v,result);      
       if(has_zero_eigenvalue) result.add(lam_mid*v.accu()/Ntot);
-
-      result.MultBy(scale_); // This is because we use A/( lam_min+ lam_max)	        
-      result.MultBy(2.0/(b_-a_));
-      result.IncrementBy_Scaled_Vector(v, -(b_+a_)/(b_-a_));
 
       w0.set(v);
       w1.set(result); 
@@ -113,16 +143,15 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
 	    {
 	      cout << myColor::YELLOW;
 	      cout << setprecision(6);      
-	      cout << '\r'; cout << "\t First sample: evaluating order " << k << " of " << c_.size() <<  "                         "; cout.flush();
+	      cout << '\r'; cout << "\t First sample: evaluating order " << k
+		   << " of " << c_.size() <<  "                         "; cout.flush();
 	      cout << myColor::RESET;
 	    }
 
+	  // T_n = 2*A*T_{n-1}-T_{n-2}
 	  matrix_dot_v1(w1,result);
 	  if(has_zero_eigenvalue) result.add(lam_mid*w1.accu()/Ntot);
-	  
-	  result.MultBy(scale_); // This is because we use A/( lam_min+ lam_max)	  
-	  result.MultBy(4.0/(b_-a_));
-	  result.IncrementBy_Scaled_Vector(w1, -2*(b_+a_)/(b_-a_));
+	  result.MultBy(2);	  
 	  result.DecrementBy(w0);
 	  w2.set(result);
 
@@ -148,8 +177,9 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
       cout << myColor::YELLOW;
       cout << setprecision(6);
       if(i == 1) cout << endl;
-      /*cout << '\r';*/ cout << "\t samples = " << i << " out of " << num_samples << " log_det = " << current_val 
-	     << " stderr = " << sqrt(fabs(av2-av*av))/sqrt(i) << "                         "; cout << endl; /*cout.flush();*/
+      cout << "\t samples = " << i << " out of " << num_samples << " log_det = " << current_val 
+	   << " stderr = " << sqrt(fabs(av2-av*av))/sqrt(i);
+      cout << endl; 
       cout << myColor::RESET;	      
     }
   cout << endl;
