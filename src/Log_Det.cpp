@@ -23,11 +23,12 @@ Log_Det::Log_Det(const Dynamical_Matrix& matrix, int order, double lam_max, doub
   : matrix_(matrix), verbose_(verbose), lam_max_(lam_max), lam_min_(lam_min)
 {
   //  if(matrix_.is_dynamic()) { lam_min_ *= lam_min_; lam_max_ *= lam_max_;}
-  lam_min_ *= lam_min_; lam_max_ *= lam_max_;
+  //  lam_min_ *= lam_min_; lam_max_ *= lam_max_;
   
-  scale_ = 1.0; //1.0/(lam_min_+lam_max_);
-  a_     = lam_min_*scale_;
-  b_     = lam_max_*scale_;
+  a_     = lam_min_;
+  b_     = lam_max_;
+
+  cout << "a = " << a_ << " b_ = " << b_ << endl;
   
   get_coefficients(order);
 }
@@ -49,61 +50,73 @@ void Log_Det::get_coefficients(int order)
 	  else T = 2*xk*Tm1-Tm2;
 
 	  c_[j] += log(0.5*(b_-a_)*xk+0.5*(b_+a_))*T;
-	  //	  c_[j] += log((2/(b_-a_))*xk+2*(b_+a_)/(b_-a_))*T;
 
 	  Tm2 = Tm1;
 	  Tm1 = T;
 	}
     }
   for(int j=0;j<=order;j++) c_[j] *= (j == 0 ? 1.0 : 2.0)/(order+1);
-
-  cout << "c_[0] = " << c_[0] << endl;
+  /*
+  for(int k=0;k<=order;k++)
+    {
+      cout << "c_[" << k << "] = " << c_[k] << endl;
+    }
+  cout << endl;
+  */
 }
 
 void Log_Det::matrix_dot_v1(const DFT_Vec &v, DFT_Vec &result) const
 {
-  DFT_Vec r1(v);
-  matrix_.matrix_dot_v1(v,r1,NULL);  // r1 = (gH)v
-  matrix_.matrix_dot_v1(r1,result,NULL); // result = (gH)r1 = (gH)(gH)v
+  //  DFT_Vec r1(v);
+  //matrix_.matrix_dot_v1(v,r1,NULL);  // r1 = (gH)v
+  //matrix_.matrix_dot_v1(r1,result,NULL); // result = (gH)r1 = (gH)(gH)v
 
+  matrix_.matrix_dot_v1(v,result,NULL);  // r1 = (gH)v
 
-  //  for(int i=0;i<5;i++) cout << "result["<< i << "] = "<< result.get(i) << endl;
-  //  cout << endl;
-  
-  result.MultBy(2.0/(b_-a_));
+  int s = 1;
+  if(matrix_.is_dynamic()) s = -1;
+  result.MultBy(s*2.0/(b_-a_));
   result.IncrementBy_Scaled_Vector(v, -(b_+a_)/(b_-a_));
 }
-  
 
-double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eigenvalue, double &variance)
+
+double Log_Det::eval_poly(double x) const
+{
+  //  double y = (2*x/(lam_max_-lam_min_))-(lam_max_+lam_min_)/(lam_max_-lam_min_);
+  double y = (2*x/(b_ - a_))-(b_+a_)/(b_-a_);
+  double z = 0;
+
+  double T0 = 1;
+  double T1 = y;
+  z = c_[0]*T0+c_[1]*T1;
+  for(int k=2;k<c_.size();k++)
+    {
+      double T = 2*y*T1-T0;
+      z += c_[k]*T;
+      
+      T0 = T1;
+      T1 = T;
+    }
+  return z;
+}
+
+double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eigenvalue, double &variance, vector<double> eigenvalues)
 {
   double lam_mid = (lam_max_+lam_min_)/2;
 
-  
-  {
-    // test
-    double x = lam_mid;
-    double y = (2*x/(lam_max_-lam_min_))-(lam_max_+lam_min_)/(lam_max_-lam_min_);
+  // test
+  for(double x=log(lam_min_); x<=log(lam_max_);x+= (log(lam_max_)-log(lam_min_))/10)
+    {
+      double xx = exp(x);
+      double z  = eval_poly(xx);
+      cout << "\tcheck: x = "<< xx << " z=sum c_k*T_k(y) = " << z << " ln(x) = " << log(xx) << endl;
+    }
+  cout << endl;
 
-    double z= 0;
-
-    double T0 = 1;
-    double T1 = y;
-    z = c_[0]*T0+c_[1]*T1;
-    for(int k=2;k<c_.size();k++)
-      {
-	double T = 2*y*T1-T0;
-	z += c_[k]*T;
-
-	T0 = T1;
-	T1 = T;
-      }
-    cout << "\tcheck: z=sum c_k*T_k(y) = " << z << " ln(x) = " << log(x) << endl;
-    cout << endl;
-  }
-  
-  
-  // first, we need the interpolation coefficients for log(x) 
+  cout << "lam_min = "<< lam_min_ << " lam_max = " << lam_max_ << endl;
+  cout << "Has zero eigenvalue = " << has_zero_eigenvalue << endl << endl;
+  cout << "Fixed boundary      = " << matrix_.is_fixed_boundary() << endl;
+  cout << "Is Dynamic          = " << matrix_.is_dynamic() << endl;
 
   long Ntot    = matrix_.get_Ntot();
   long Nactive = Ntot - (matrix_.is_fixed_boundary() ? matrix_.get_Nboundary() : 0);
@@ -128,7 +141,7 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
       if(matrix_.is_fixed_boundary()) matrix_.set_boundary_points_to_zero(v);
 
       matrix_dot_v1(v,result);      
-      if(has_zero_eigenvalue) result.add(lam_mid*v.accu()/Ntot);
+      //      if(has_zero_eigenvalue) result.add(lam_mid*v.accu()/Ntot);
 
       w0.set(v);
       w1.set(result); 
@@ -150,7 +163,7 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
 
 	  // T_n = 2*A*T_{n-1}-T_{n-2}
 	  matrix_dot_v1(w1,result);
-	  if(has_zero_eigenvalue) result.add(lam_mid*w1.accu()/Ntot);
+	  //	  if(has_zero_eigenvalue) result.add(lam_mid*w1.accu()/Ntot);
 	  result.MultBy(2);	  
 	  result.DecrementBy(w0);
 	  w2.set(result);
@@ -160,35 +173,36 @@ double Log_Det::calculate_log_det(long seed, int num_samples, bool has_zero_eige
 	  w0.set(w1);
 	  w1.set(w2);
 	}
-      log_det     += v.dotWith(u); 
-      var_log_det += v.dotWith(u)*v.dotWith(u);
+      
+      double val = v.dotWith(u);
+      double val1 = val;
+      for(double& x: eigenvalues)
+	{
+	  val -= eval_poly(x);
+	  //	  if(x > 1e-3) val += log(fabs(x));
+	  val += log(fabs(x));
+	}
+      
+      log_det     += val;
+      var_log_det += val*val;
 
       double av          = log_det/i;
       double av2         = var_log_det/i;
-      double current_val = -Nactive*log(scale_) + (has_zero_eigenvalue ? -log(lam_mid) : 0) + av;
+      double current_val = av;
 
-      // becuase in dynamic case this is log det D^2      
-      current_val /= 2;
-      av /= 2;
-      av2 /= 4;
-      
       variance = sqrt(fabs(av2-av*av));
       
       cout << myColor::YELLOW;
       cout << setprecision(6);
       if(i == 1) cout << endl;
       cout << "\t samples = " << i << " out of " << num_samples << " log_det = " << current_val 
-	   << " stderr = " << sqrt(fabs(av2-av*av))/sqrt(i);
+	   << " stderr = " << sqrt(fabs(av2-av*av))/sqrt(i) << " : " << val1 << " " << val;
       cout << endl; 
       cout << myColor::RESET;	      
     }
   cout << endl;
 
   log_det /= num_samples;				     
-  if(has_zero_eigenvalue) log_det -= log(lam_mid);
-  log_det -= Nactive*log(scale_);
-
-  log_det /= 2;// becuase in dynamic case this is log det D^2
   
   return log_det;
 }

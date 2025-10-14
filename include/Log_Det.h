@@ -22,8 +22,10 @@ class Log_Det
   Log_Det(const Dynamical_Matrix& matrix, int order, double lam_max, double lam_min, bool verbose = false);
   ~Log_Det(){}
 
-  double calculate_log_det(long seed, int num_samples, bool has_zero_eigenvalue, double& variance);  
+  double calculate_log_det(long seed, int num_samples, bool has_zero_eigenvalue, double& variance, vector<double> eigenvalues);  
 
+  double eval_poly(double x) const;
+  
   void set_verbose(bool b) { verbose_ = b;}
   void set_debug(bool b)   { debug_   = b;}
   
@@ -39,7 +41,7 @@ protected:
   double lam_min_ = 0;
   double a_       = 0;
   double b_       = 0;
-  double scale_   = 0;
+  //  double scale_   = 0;
   
   bool verbose_ = false;
   bool debug_   = false;
